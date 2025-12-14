@@ -1,8 +1,0 @@
----
-site_name: example
-site_description: A Python project example.
-site_url: https://hasansezertasan.github.io/example/
-repo_name: hasansezertasan/example
-repo_url: https://github.com/hasansezertasan/example
-nav:
-  - Home: index.md

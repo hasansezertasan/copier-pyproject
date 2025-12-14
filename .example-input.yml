@@ -4,3 +4,21 @@ github_repo_name: example
 author_full_name: Hasan Sezer Taşan
 author_email: hasansezertasan@gmail.com
 short_description: A Python project example.
+include_cli: false
+include_web: false
+include_tui: false
+include_gui: false
+use_pydantic_settings: false
+release_automation: none
+dependency_management: none
+include_changelog: false
+include_contributing: false
+include_code_of_conduct: false
+include_citation: false
+include_pants: false
+include_codecov: false
+include_mise: false
+include_trunk: false
+include_poe: false
+include_commitizen: false
+use_pre_commit: false

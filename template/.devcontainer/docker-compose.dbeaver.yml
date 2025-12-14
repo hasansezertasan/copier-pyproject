@@ -1,0 +1,17 @@
+---
+services:
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:latest
+    container_name: dbeaver
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      # - dbeaver_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+networks:
+  default:

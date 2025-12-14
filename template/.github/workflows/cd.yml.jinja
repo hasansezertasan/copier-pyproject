@@ -5,16 +5,16 @@ on:
   release:
     types: [published]
 jobs:
-  publish-pypi:
+  cd:
     runs-on: ubuntu-latest
-    name: Publish on PyPI
+    name: Continuous Deployment
     permissions:
       id-token: write  # IMPORTANT: Mandatory for Trusted Publishing (gh-action-pypi-publish)
       contents: write  # IMPORTANT: Mandatory for GitHub Release
     # Specifying a GitHub environment is optional, but strongly encouraged
     environment:
       name: publish
-      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}{% endraw %}
+      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -38,5 +38,6 @@ jobs:
         run: uv publish --quiet --trusted-publishing always
       - name: Attach Build Artifacts to GitHub Release
         env:
-          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-        run: gh release upload {% raw %}${{ github.ref_name }}{% endraw %} ./dist/* --clobber
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.ref_name }} ./dist/* --clobber
+{% endraw %}

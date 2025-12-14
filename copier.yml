@@ -1,10 +1,14 @@
 ---
 _subdirectory: template
+_exclude:
+  - includes
+_tasks:
+  - "git init"
 github_user:
   type: str
   help: The GitHub username
 github_repo_name:
-  type: str  # Any value will be treated raw as a string
+  type: str # Any value will be treated raw as a string
   help: An awesome project needs an awesome name. Tell me yours.
   validator: >-
     {% if not (github_repo_name | regex_search('^[a-z][a-z0-9\-]+$')) %} github_repo_name must start with a letter, followed one or more letters, digits or dashes all lowercase. {% endif %}
@@ -18,3 +22,84 @@ short_description:
   type: str
   default: A Python project template.
   help: A short description of the project
+include_cli:
+  type: bool
+  default: true
+  help: "Include CLI (Command Line Interface) using Typer?"
+include_web:
+  type: bool
+  default: true
+  help: "Include Web API using FastAPI?"
+include_gui:
+  type: bool
+  default: true
+  help: "Include GUI (Graphical User Interface) using Tkinter?"
+include_tui:
+  type: bool
+  default: true
+  help: "Include TUI (Terminal User Interface) using Textual?"
+use_pydantic_settings:
+  type: bool
+  default: true
+  help: "Use pydantic-settings for type-safe configuration management?"
+release_automation:
+  type: str
+  default: release-please
+  choices:
+    - none
+    - release-please
+    - release-it
+    - release-drafter
+  help: "Choose the release automation system to use"
+dependency_management:
+  type: str
+  default: renovate
+  choices:
+    - none
+    - renovate
+    - dependabot
+  help: "Choose the dependency management tool to use"
+include_changelog:
+  type: bool
+  default: true
+  help: "Include CHANGELOG.md file for tracking project changes?"
+include_contributing:
+  type: bool
+  default: true
+  help: "Include CONTRIBUTING.md file with contribution guidelines?"
+include_code_of_conduct:
+  type: bool
+  default: true
+  help: "Include CODE_OF_CONDUCT.md file for community standards?"
+include_citation:
+  type: bool
+  default: true
+  help: "Include CITATION.cff file for software citation?"
+include_pants:
+  type: bool
+  default: true
+  help: "Include Pants build system configuration?"
+include_codecov:
+  type: bool
+  default: true
+  help: "Include Codecov configuration for code coverage reporting?"
+include_mise:
+  type: bool
+  default: true
+  help: "Include mise configuration for tool version management?"
+include_trunk:
+  type: bool
+  default: true
+  help: "Include Trunk configuration for linting and formatting?"
+include_poe:
+  type: bool
+  default: true
+  help: "Include Poe the Poet (poethepoet) for task running?"
+include_commitizen:
+  type: bool
+  default: true
+  help: "Include Commitizen for automated version bumping and changelog generation?"
+use_precommit:
+  type: bool
+  default: false
+  help: Do you want to use pre-commit?

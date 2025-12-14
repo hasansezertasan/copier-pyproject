@@ -1,12 +1,13 @@
 # {{github_repo_name}}
 
 <!-- TODO @{{github_user}}: Make it work, make it right, make it fast. -->
-
 [![CI](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/ci.yml/badge.svg)](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/{{github_user}}/{{github_repo_name}})](https://codecov.io/gh/{{github_user}}/{{github_repo_name}})
+[![Documentation Status](https://img.shields.io/github/actions/workflow/status/{{github_user}}/{{github_repo_name}}/gh-pages.yml?label=docs)](https://{{github_user}}.github.io/{{github_repo_name}})
 [![PyPI - Version](https://img.shields.io/pypi/v/{{github_repo_name}}.svg)](https://pypi.org/project/{{github_repo_name}})
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/{{github_repo_name}}.svg)](https://pypi.org/project/{{github_repo_name}})
 [![License - MIT](https://img.shields.io/github/license/{{github_user}}/{{github_repo_name}}.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Stars](https://img.shields.io/github/stars/{{github_user}}/{{github_repo_name}}?style=social)](https://github.com/{{github_user}}/{{github_repo_name}}/stargazers)
 [![Latest Commit](https://img.shields.io/github/last-commit/{{github_user}}/{{github_repo_name}})](https://github.com/{{github_user}}/{{github_repo_name}})
 
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
@@ -36,7 +37,7 @@
 - [Development](#development-toolbox)
 - [Disclaimer](#disclaimer)
 - [License](#license-scroll)
-- [Changelog](#changelog-memo)
+{% if include_changelog %}- [Changelog](#changelog-memo){% endif %}
 
 ## Screenshots
 
@@ -48,8 +49,40 @@ pip install {{github_repo_name}}
 
 ## Usage
 
-```python
+{% if include_cli %}
+### CLI
+
+```bash
+{{github_repo_name}} version
+{{github_repo_name}} info
 ```
+
+{% endif %}
+### GUI
+
+```bash
+{{github_repo_name}}-gui
+```
+
+{% if include_tui %}
+### TUI
+
+```bash
+{{github_repo_name}}-tui
+```
+
+An interactive terminal user interface displays project information. Press 'q' to exit.
+
+{% endif %}
+{% if include_web %}
+### Web
+
+```bash
+fastapi dev {{github_repo_name}}.app:app
+```
+
+Open <http://127.0.0.1:8000/docs> for the interactive API documentation.
+{% endif %}
 
 ## Support :heart:
 
@@ -63,7 +96,6 @@ If you have any questions or need help, feel free to open an issue on the [GitHu
 
 ## Author :person_with_crown:
 
-<!-- # TODO @{{github_user}}: Update the author name. -->
 This project is maintained by [{{author_full_name}}][author], It's me :wave:
 
 ## Analysis
@@ -115,17 +147,35 @@ Run the CI pipeline:
 uv run --locked tox run
 ```
 
-## Disclaimer
+### `docs`
 
-This template is not intended to be used for malicious purposes. The author is not responsible for any damage caused by this template. Use at your own risk.
+Build the documentation site:
+
+```sh
+uv run --locked tox run -e docs
+```
+
+### `docs-server`
+
+Start the live-reloading docs server:
+
+```sh
+uv run --locked tox run -e docs-server
+```
+
+## Credits
+
+This package was created with [Copier](https://github.com/copier-org/copier) and the [hasansezertasan/copier-pyproject](https://github.com/hasansezertasan/copier-pyproject) project template.
 
 ## License :scroll:
 
 This project is licensed under the [MIT License](https://spdx.org/licenses/MIT.html).
 
+{% if include_changelog %}
 ## Changelog :memo:
 
 For a detailed list of changes, please refer to the [CHANGELOG](./CHANGELOG.md).
+{% endif %}
 
 <!-- Refs -->
 [author]: https://github.com/{{github_user}}
