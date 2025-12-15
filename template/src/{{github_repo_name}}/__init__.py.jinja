@@ -1,0 +1,9 @@
+"""Top-level package for the project."""
+
+{% if include_c_extensions %}
+try:
+    from {{github_repo_name}}._c_extension import ExampleExtension, fibonacci_cython
+except ImportError:
+    # Fallback if Cython extension is not available
+    pass
+{% endif %}

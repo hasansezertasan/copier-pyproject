@@ -11,7 +11,7 @@
 # Pre-commit: uv run --locked tox run -e pre-commit
 # Build: uv build
 # Run CLI: uv run --locked <repo-name> version
-# Run FastAPI: uv run --locked fastapi dev <repo-name>.app:app
+# Run FastAPI: uv run --locked fastapi dev <repo-name>.web:app
 # Serve docs: uv run --only-group docs mkdocs serve
 # Trunk check: trunk check (if configured)
 # Pants lint: pants lint :: (if configured)

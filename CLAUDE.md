@@ -53,7 +53,7 @@ uv run --locked <repo-name> version
 uv run --locked <repo-name> info
 
 # Run the FastAPI web app
-uv run --locked fastapi dev <repo-name>.app:app
+uv run --locked fastapi dev <repo-name>.web:app
 
 # Run pre-commit hooks
 uv run --locked tox run -e pre-commit
@@ -91,7 +91,7 @@ The template uses Copier's Jinja2 templating with these key patterns:
 Projects created from this template have:
 
 - **CLI Application**: Typer-based CLI in `cli.py.jinja` with `version` and `info` commands
-- **Web Application**: FastAPI stub in `app.py.jinja` with `/version` and `/info` endpoints
+- **Web Application**: FastAPI stub in `web.py.jinja` with `/version` and `/info` endpoints
 - **Core Modules**:
   - `__metadata__.py.jinja`: Project name constant
   - `dirs.py.jinja`: Platform-aware directory management using `platformdirs`

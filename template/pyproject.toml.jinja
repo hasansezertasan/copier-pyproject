@@ -17,11 +17,12 @@ keywords = [
     "tox", "pytest", "ruff", "mypy", "pyright",
     "type-hints", "typed", "modern-python",
     "ci-cd", "github-actions", "automation", "mkdocs",
-    "pre-commit", "linting", "testing", "coverage", "release-automation"
+    "pre-commit", "linting", "testing", "coverage", "release-automation",
     {% if include_cli %}"typer",{% endif %}
     {% if include_web %}"fastapi", "docker",{% endif %}
     {% if include_tui %}"textual", "tui",{% endif %}
-    {% if use_pydantic_settings %}"pydantic",{% endif %}
+    {% if include_pydantic_settings %}"pydantic",{% endif %}
+    {% if include_c_extensions %}"cython", "c-extensions", "performance",{% endif %}
 ]
 # TODO @{{github_user}}: Fill in the missing classifiers...
 classifiers = [
@@ -31,6 +32,7 @@ classifiers = [
   "Intended Audience :: Information Technology",
   "Intended Audience :: System Administrators",
   "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3",
@@ -58,23 +60,24 @@ classifiers = [
   "Environment :: Console",
   "Topic :: Terminals",
 {% endif %}
+{% if include_c_extensions %}
+  "Topic :: Software Development :: Compilers",
+{% endif %}
 ]
 requires-python = ">=3.10"
 dependencies = []
 
-{% if include_cli or include_web or include_tui or use_pydantic_settings %}
 [project.optional-dependencies]
 {% if include_cli %}cli = ["typer>=0.20.0"]{% endif %}
 {% if include_web %}web = ["fastapi[all]>=0.123.5"]{% endif %}
 {% if include_tui %}tui = ["textual>=0.50.0"]{% endif %}
-{% if use_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
+{% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
 all = [
     {% if include_cli %}"cli",{% endif%}
     {% if include_web %}"web",{% endif%}
     {% if include_tui %}"tui",{% endif%}
-    {% if use_pydantic_settings %}"config",{% endif%}
+    {% if include_pydantic_settings %}"config",{% endif%}
 ]
-{% endif %}
 
 
 [project.urls]
@@ -127,13 +130,18 @@ test = [
   "pytest-rerunfailures==16.1",
   "pytest-xdist[psutil]==3.8.0",
   "pytest==8.4.2",
+  "pytest-sugar",
+  "dirty-equals",
+  "inline-snapshot"
 ]
 docs = [
     "mkdocs==1.6.1",
+    "mkdocs-material==9.1.1",
 ]
 tool = [
   {% if include_commitizen %}"commitizen==4.10.0",{% endif %}
   {% if include_poe %}"poethepoet==0.38.0",{% endif %}
+  {% if include_c_extensions %}"cython>=3.0.0",{% endif %}
   "copier==9.11.0",
 ]
 pre-commit = [
@@ -143,7 +151,11 @@ pre-commit = [
 
 
 [build-system]
+{% if include_c_extensions %}
+requires = ["hatchling", "hatch-vcs", "cython>=3.0.0"]
+{% else %}
 requires = ["hatchling", "hatch-vcs"]
+{% endif %}
 build-backend = "hatchling.build"
 
 
@@ -170,6 +182,13 @@ hooks.vcs.version-file = "src/{{github_repo_name}}/_version.py"
 version_scheme = "only-version"
 local_scheme = "no-local-version"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
+[tool.hatch.build.targets.sdist]
+include = ["/README.md", "LICENSE", "/{{github_repo_name}}", "/tests"]
+
 {% if include_commitizen %}
 [tool.commitizen]
 major_version_zero = true
@@ -185,28 +204,31 @@ version_scheme = "pep404"
 {% endif %}
 
 [tool.pytest.ini_options]
+# addopts = "-rXs --strict-config --strict-markers"
 addopts = "-v --tb=short"
+filterwarnings = ["error"]
 testpaths = ["tests"]
+xfail_strict = true
 
 
 [tool.coverage.run]
 branch = true
-omit = ["src/{{github_repo_name}}/_version.py"]
+omit = ["src/**/_version.py"]
 parallel = true
 source_pkgs = ["{{github_repo_name}}", "tests"]
 
 
 [tool.coverage.paths]
-{{github_repo_name}} = ["src/{{github_repo_name}}", "*/{{github_repo_name}}/src/{{github_repo_name}}"]
 tests = ["tests", "*/{{github_repo_name}}/tests"]
+{{github_repo_name}} = ["src/{{github_repo_name}}", "*/{{github_repo_name}}/src/{{github_repo_name}}"]
 
 
 [tool.coverage.report]
-# fail_under = 99
-# omit = ["src/**/_version.py"]
-# show_missing = true
-# skip_covered = true
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+fail_under = 99
+omit = ["src/**/_version.py"]
+show_missing = true
+skip_covered = true
 
 
 [tool.vulture]
@@ -239,6 +261,7 @@ preview = true
 docstring-code-format = true
 line-ending = "lf"
 preview = true
+skip-magic-trailing-comma = true
 
 
 [tool.ruff.lint]
@@ -248,6 +271,10 @@ logger-objects = ["logging_setup.logger"]
 preview = true
 select = ["ALL"]
 
+[tool.ruff.lint.isort]
+combine-as-imports = true
+# skip-magic-trailing-comma = true
+split-on-trailing-comma = false
 
 [tool.ruff.lint.flake8-copyright]
 author = "{{author_full_name}} <{{author_email}}>"
@@ -342,7 +369,7 @@ env_list = [
     {% if include_cli %}"cli",{% endif %}
     {% if include_web %}"web",{% endif %}
     {% if include_tui %}"tui",{% endif %}
-    {% if use_pydantic_settings %}"config",{% endif %}
+    {% if include_pydantic_settings %}"config",{% endif %}
     "3.14",
     "3.13",
     "3.12",

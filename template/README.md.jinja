@@ -83,6 +83,25 @@ fastapi dev {{github_repo_name}}.app:app
 
 Open <http://127.0.0.1:8000/docs> for the interactive API documentation.
 {% endif %}
+{% if include_c_extensions %}
+### C Extensions
+
+This package includes high-performance C extensions compiled with Cython.
+
+```python
+from {{github_repo_name}} import ExampleExtension, fibonacci_cython
+
+# Use the Cython extension class
+ext = ExampleExtension(42)
+print(ext.get_value())  # 42
+
+# Use the Cython function
+result = fibonacci_cython(10)
+print(result)  # 55
+```
+
+If Cython compilation fails during installation, the package will fall back to pure Python implementations.
+{% endif %}
 
 ## Support :heart:
 
@@ -91,6 +110,19 @@ If you have any questions or need help, feel free to open an issue on the [GitHu
 ## Motivation
 
 ## Features
+
+{% if include_cli %}- **CLI Application**: Command-line interface built with Typer{% endif %}
+{% if include_web %}- **Web API**: FastAPI-based web application with automatic API documentation{% endif %}
+{% if include_gui %}- **GUI Application**: Desktop interface built with Tkinter{% endif %}
+{% if include_tui %}- **TUI Application**: Terminal user interface built with Textual{% endif %}
+{% if include_c_extensions %}- **C Extensions**: High-performance Cython extensions for computationally intensive tasks{% endif %}
+{% if include_pydantic_settings %}- **Configuration Management**: Type-safe settings using Pydantic{% endif %}
+- **Type Safety**: Full type hints with mypy, pyright, and other type checkers
+- **Code Quality**: Comprehensive linting and formatting with ruff
+- **Testing**: pytest with coverage reporting and parallel execution
+- **Documentation**: MkDocs-powered documentation with GitHub Pages deployment
+- **CI/CD**: Automated testing, building, and publishing across multiple platforms
+- **Modern Python**: uv for dependency management, hatch for building
 
 ## About
 

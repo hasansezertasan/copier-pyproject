@@ -24,7 +24,7 @@ Copier will prompt for:
 - `include_web` (include FastAPI web app)
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)
-- `use_pydantic_settings` (use pydantic-settings for configuration)
+- `include_pydantic_settings` (use pydantic-settings for configuration)
 - `release_automation` (none/release-please/release-it/release-drafter)
 - `dependency_management` (none/renovate/dependabot)
 - `include_changelog` (include CHANGELOG.md)

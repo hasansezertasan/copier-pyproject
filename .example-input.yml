@@ -8,7 +8,8 @@ include_cli: false
 include_web: false
 include_tui: false
 include_gui: false
-use_pydantic_settings: false
+include_c_extensions: false
+include_pydantic_settings: false
 release_automation: none
 dependency_management: none
 include_changelog: false

@@ -38,7 +38,11 @@ include_tui:
   type: bool
   default: true
   help: "Include TUI (Terminal User Interface) using Textual?"
-use_pydantic_settings:
+include_c_extensions:
+  type: bool
+  default: false
+  help: "Include C extensions support using Cython?"
+include_pydantic_settings:
   type: bool
   default: true
   help: "Use pydantic-settings for type-safe configuration management?"
