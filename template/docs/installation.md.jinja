@@ -1,0 +1,45 @@
+# Installation
+
+> Possible extras:
+{% if include_cli %}> - cli: Installs typer and adds {{github_repo_name}} as a command.{% endif %}
+{% if include_tui %}> - tui: Installs textual and adds {{github_repo_name}}-tui as a command.{% endif %}
+{% if include_web %}> - web: Installs FastAPI and adds {{github_repo_name}}-web as a command.{% endif %}
+{% if include_pydantic_settings %}> - config: Installs pydantic-settings.{% endif %}
+> - all: Installs all extras if available.
+
+## Stable release
+
+To install {{github_repo_name}}, run this command in your terminal:
+
+```sh
+uv add {{github_repo_name}}
+```
+
+Or if you prefer to use `pip`:
+
+```sh
+pip install {{github_repo_name}}
+```
+
+## From source
+
+The source files for {{github_repo_name}} can be downloaded from the [Github repo](https://github.com/{{github_user}}/{{github_repo_name}}).
+
+You can either clone the public repository:
+
+```sh
+git clone git://github.com/{{github_user}}/{{github_repo_name}}
+```
+
+Or download the [tarball](https://github.com/{{github_user}}/{{github_repo_name}}/tarball/master):
+
+```sh
+curl -OJL https://github.com/{{github_user}}/{{github_repo_name}}/tarball/master
+```
+
+Once you have a copy of the source, you can install it with:
+
+```sh
+cd {{github_repo_name}}
+uv pip install .
+```

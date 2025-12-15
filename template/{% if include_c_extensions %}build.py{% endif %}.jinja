@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""
+Build script for Cython extensions in {{github_repo_name}}.
+
+This script is called during package installation to compile Cython code.
+It searches for C files, compiles the .pyx files, and sets up include paths.
+"""
+
+import os
+from pathlib import Path
+
+from Cython.Build import cythonize
+from setuptools import Extension, setup
+
+# Get the package directory
+package_dir = Path(__file__).parent / "src" / "{{github_repo_name}}"
+c_src_dir = package_dir / "_c_src"
+
+# Recursively find all C files in _c_src
+c_files = []
+if c_src_dir.exists():
+    for root, dirs, files in os.walk(c_src_dir):
+        for file in files:
+            if file.endswith((".c", ".cpp", ".cc")):
+                c_files.append(os.path.join(root, file))
+
+# Define the extension
+extensions = [
+    Extension(
+        "{{github_repo_name}}._c_extension",
+        sources=["src/{{github_repo_name}}/_c_extension.pyx"] + c_files,
+        include_dirs=[
+            str(package_dir),
+            str(c_src_dir),
+        ],
+        # Add compiler flags as needed
+        # extra_compile_args=["-O3", "-march=native"],
+        # extra_link_args=["-lm"],  # Link math library if needed
+    )
+]
+
+# Allow build to fail in CI if Cython compilation fails
+# This is useful if you want to allow pure Python fallback
+allowed_to_fail = os.environ.get("CIBUILDWHEEL", "0") == "1"
+
+if allowed_to_fail:
+    try:
+        setup(ext_modules=cythonize(extensions, language_level=3))
+    except Exception as e:
+        print(f"Cython compilation failed: {e}")
+        print("Continuing with pure Python fallback...")
+        setup(ext_modules=[])
+else:
+    setup(ext_modules=cythonize(extensions, language_level=3))

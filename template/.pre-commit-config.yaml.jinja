@@ -1,0 +1,177 @@
+---
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+exclude: |
+  (?x)^(
+    # Ignore `.devcontainer/devcontainer.json`
+    |\.devcontainer/devcontainer\.json$
+
+    # Ignore `.vscode/launch.json`
+    |\.vscode/launch\.json$
+
+    # Ignore `.zed/debug.json`
+    |\.zed/debug\.json$
+
+    # Ignore VCS and Python build/virtualenv directories
+    |\.git
+    |\.hg
+    |\.mypy_cache
+    |\.nox
+    |\.tox
+    |\.venv
+    |_build
+    |buck-out
+    |build
+    |dist
+    |alembic
+  )$
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "chore(deps): [pre-commit.ci] pre-commit autoupdate"
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
+default_language_version:
+  python: python3.10
+default_stages: [pre-commit, pre-push]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        name: Check added large files
+        args:
+          - --maxkb=1000
+      - id: check-toml
+        name: Check TOML
+      - id: check-yaml
+        name: Check YAML
+        args:
+          - --unsafe
+      - id: check-json
+        name: Check JSON
+      - id: end-of-file-fixer
+        name: End of file fixer
+      - id: trailing-whitespace
+        name: Trailing whitespace
+      - id: debug-statements
+        name: Debug Statements
+      - id: check-merge-conflict
+        name: Check Merge Conflict
+        args: [--assume-in-merge]
+      - id: check-ast
+        name: Check AST
+      - id: detect-private-key
+        name: Detect Private Key
+  - repo: https://github.com/tsvikas/sync-with-uv
+    rev: v0.5.0
+    hooks:
+      - id: sync-with-uv
+        name: Sync with uv
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.9.15
+    hooks:
+      - id: uv-lock
+        name: Update the uv lockfile
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.7
+    hooks:
+      - id: ruff
+        name: Ruff Linter
+      - id: ruff-format
+        name: Ruff Formatter
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.407
+    hooks:
+      - id: pyright
+        name: Pyright Type Checker
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.0
+    hooks:
+      - id: mypy
+        name: Mypy Type Checker
+        additional_dependencies:
+          {% if include_web %}- "fastapi"{% endif %}
+          {% if include_cli %}- "typer"{% endif %}
+          {% if include_tui %}- "textual"{% endif %}
+  - repo: https://github.com/psf/black
+    rev: 24.2.0
+    hooks:
+      - id: black
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.14
+    hooks:
+      - id: vulture
+        name: Vulture Linter
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7
+    hooks:
+      - id: bandit
+        name: Bandit Security Linter
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        name: Codespell Spell Checker
+        additional_dependencies:
+          - tomli
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.40.0
+    hooks:
+      - id: typos
+        name: Typos Linter
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.35.0
+    hooks:
+      - id: check-github-actions
+        name: Validate GitHub Actions
+        args: ["--verbose"]
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.7
+    hooks:
+      - id: actionlint
+        name: Actionlint Linter
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.37.1
+    hooks:
+      - id: yamllint
+        name: YAML Linter
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.18.1
+    hooks:
+      - id: markdownlint-cli2
+        name: Markdown Linter
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.17.2
+    hooks:
+      - id: yamlfmt
+        name: YAML Formatter
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.10.0
+    hooks:
+      - id: commitizen
+        name: Commitizen
+      - id: commitizen-branch
+        name: Commitizen Branch
+        stages:
+          - pre-push
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Pytest Test Runner
+        entry: ./venv/bin/pytest tests
+        language: python
+        pass_filenames: false
+        always_run: true

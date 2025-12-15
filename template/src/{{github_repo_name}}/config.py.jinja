@@ -1,14 +1,40 @@
-"""Python module for {{github_repo_name}} configuration and paths."""
+"""Configurations for the project."""
 
+from __future__ import annotations
+
+{% if include_pydantic_settings %}
 from pathlib import Path
 
-PROJECT_NAME: str = "{{github_repo_name}}"
-"""Name of the project."""
-ROOT_FOLDER_NAME: str = f".{PROJECT_NAME}"
-"""Name of the root folder."""
-ROOT_FOLDER_PATH: Path = Path.home() / ROOT_FOLDER_NAME
-"""Path to the root folder."""
-LOG_FILE_PATH: Path = ROOT_FOLDER_PATH / "main.log"
-"""Path to the log file."""
-CONFIG_FILE_PATH: Path = ROOT_FOLDER_PATH / "config.json"
-"""Path to the config file."""
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+
+
+class Settings(BaseSettings):
+    """Application settings using pydantic-settings.
+
+    Settings can be configured via environment variables or .env file.
+    All settings are prefixed with the project name.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix=f"{PROJECT_NAME.upper()}_",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    # Example settings - customize these for your project
+    debug: bool = Field(default=False, description="Enable debug mode")
+    log_level: str = Field(default="INFO", description="Logging level")
+    config_dir: Path = Field(
+        default_factory=lambda: Path.home() / f".{PROJECT_NAME}",
+        description="Configuration directory",
+    )
+
+
+# Global settings instance
+settings = Settings()
+{% endif %}

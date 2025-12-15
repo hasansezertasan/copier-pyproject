@@ -1,0 +1,14 @@
+"""Directory configurations for the project."""
+
+from pathlib import Path
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+
+ROOT_FOLDER_NAME: str = f".{PROJECT_NAME}"
+"""Name of the root folder."""
+ROOT_FOLDER_PATH: Path = Path.home() / ROOT_FOLDER_NAME
+"""Path to the root folder."""
+LOG_FILE_PATH: Path = ROOT_FOLDER_PATH / "main.log"
+"""Path to the log file."""
+CONFIG_FILE_PATH: Path = ROOT_FOLDER_PATH / "config.json"
+"""Path to the config file."""

@@ -15,6 +15,7 @@
       "--port=80"
     ]
   },
+  {% if include_cli %}
   {
     "label": "Python: CLI",
     "adapter": "debugpy",
@@ -23,4 +24,5 @@
     "justMyCode": false,
     "args": ["run", "{{github_repo_name}}"]
   }
+  {% endif %}
 ]

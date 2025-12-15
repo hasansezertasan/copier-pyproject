@@ -17,6 +17,7 @@
         "--port=80"
       ]
     },
+    {% if include_cli %}
     {
       "name": "Python: CLI",
       "type": "debugpy",
@@ -25,6 +26,7 @@
       "module": "uv",
       "args": ["run", "{{github_repo_name}}", "${input:args}"]
     }
+    {% endif %}
   ],
   "inputs": [
     {

@@ -1,0 +1,23 @@
+---
+services:
+  vpn:
+    cap_add:
+      - net_admin
+    environment:
+      TZ: "EST5EDT"
+    image: dperson/openvpn-client
+    networks:
+      - default
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+      - label:disable
+    stdin_open: true
+    tmpfs:
+      - /run
+      - /tmp
+    tty: true
+    volumes:
+      - ./vpn:/vpn
+networks:
+  default:

@@ -97,12 +97,3 @@ repos:
     hooks:
       - id: yamlfmt
         name: YAML Formatter
-# - repo: https://github.com/commitizen-tools/commitizen
-#   rev: v4.10.0
-#   hooks:
-#     - id: commitizen
-#       name: Commitizen
-#     - id: commitizen-branch
-#       name: Commitizen Branch
-#       stages:
-#         - pre-push

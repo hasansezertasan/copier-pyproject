@@ -5,16 +5,9 @@ on:
   release:
     types: [published]
 jobs:
-  publish-pypi:
+  build:
     runs-on: ubuntu-latest
-    name: Publish on PyPI
-    permissions:
-      id-token: write  # IMPORTANT: Mandatory for Trusted Publishing (gh-action-pypi-publish)
-      contents: write  # IMPORTANT: Mandatory for GitHub Release
-    # Specifying a GitHub environment is optional, but strongly encouraged
-    environment:
-      name: publish
-      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}{% endraw %}
+    name: Build the Package
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -34,9 +27,43 @@ jobs:
         run: echo "Cache was restored"
       - name: Build the Package
         run: uv build --no-sources --quiet
-      - name: Publish to PyPI
-        run: uv publish --quiet --trusted-publishing always
-      - name: Attach Build Artifacts to GitHub Release
-        env:
-          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-        run: gh release upload {% raw %}${{ github.ref_name }}{% endraw %} ./dist/* --clobber
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-distributions
+          path: dist/
+  pypi-publish:
+    runs-on: ubuntu-latest
+    name: Publish to PyPI
+    needs: build
+    permissions:
+      id-token: write  # IMPORTANT: Mandatory for Trusted Publishing (gh-action-pypi-publish)
+    # Specifying a GitHub environment is optional, but strongly encouraged
+    environment:
+      name: publish
+      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}
+    steps:
+    - name: Download package
+      uses: actions/download-artifact@v4
+      with:
+        name: package-distributions
+        path: dist/
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+  attach-github-release:
+    runs-on: ubuntu-latest
+    name: Attach Build Artifacts to GitHub Release
+    needs: pypi-publish
+    permissions:
+      contents: write  # IMPORTANT: Mandatory for GitHub Release
+    steps:
+    - name: Download package
+      uses: actions/download-artifact@v4
+      with:
+        name: package-distributions
+        path: dist/
+    - name: Attach Build Artifacts to GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release upload ${{ github.ref_name }} ./dist/* --clobber
+{% endraw %}

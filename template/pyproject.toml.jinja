@@ -3,16 +3,28 @@ name = "{{github_repo_name}}"
 description = "{{short_description}}"
 license = "MIT"
 readme = "README.md"
-# TODO @{{github_user}}: Update the author name and email
-authors = [{ name = "{{author_full_name}}", email = "{{author_email}}" }]
-# TODO @{{github_user}}: Update the maintainer name and email
+authors = [
+  { name = "{{author_full_name}}", email = "{{author_email}}" },
+]
 maintainers = [
   { name = "{{author_full_name}}", email = "{{author_email}}" },
 ]
 dynamic = ["version"]
-# TODO @{{github_user}}: Update the keywords
-keywords = ["command-line", "cli", "package", "metadata", "pypi", "python"]
-# TODO @{{github_user}}: Fill in classifiers
+# TODO @{{github_user}}: Fill in the missing keywords...
+keywords = [
+    "command-line", "cli", "package", "metadata", "pypi", "python",
+    "template", "copier", "scaffold", "boilerplate", "uv", "hatch",
+    "tox", "pytest", "ruff", "mypy", "pyright",
+    "type-hints", "typed", "modern-python",
+    "ci-cd", "github-actions", "automation", "mkdocs",
+    "pre-commit", "linting", "testing", "coverage", "release-automation",
+    {% if include_cli %}"typer",{% endif %}
+    {% if include_web %}"fastapi", "docker",{% endif %}
+    {% if include_tui %}"textual", "tui",{% endif %}
+    {% if include_pydantic_settings %}"pydantic",{% endif %}
+    {% if include_c_extensions %}"cython", "c-extensions", "performance",{% endif %}
+]
+# TODO @{{github_user}}: Fill in the missing classifiers...
 classifiers = [
   "Development Status :: 1 - Planning",
   "Environment :: Console",
@@ -20,6 +32,7 @@ classifiers = [
   "Intended Audience :: Information Technology",
   "Intended Audience :: System Administrators",
   "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3",
@@ -31,42 +44,65 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
   "Programming Language :: Python",
-  "Topic :: Internet",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development",
-  "Topic :: Terminals",
   "Typing :: Typed",
+{% if include_cli %}
+  "Environment :: Console",
+  "Topic :: Utilities",
+{% endif %}
+{% if include_web %}
+  "Framework :: FastAPI",
+  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+{% endif %}
+{% if include_tui %}
+  "Environment :: Console",
+  "Topic :: Terminals",
+{% endif %}
+{% if include_c_extensions %}
+  "Topic :: Software Development :: Compilers",
+{% endif %}
 ]
 requires-python = ">=3.10"
 dependencies = []
 
-
 [project.optional-dependencies]
-cli = ["typer>=0.20.0"]
-web = ["fastapi[all]>=0.123.5"]
+{% if include_cli %}cli = ["typer>=0.20.0"]{% endif %}
+{% if include_web %}web = ["fastapi[all]>=0.123.5"]{% endif %}
+{% if include_tui %}tui = ["textual>=0.50.0"]{% endif %}
+{% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
+all = [
+    {% if include_cli %}"cli",{% endif%}
+    {% if include_web %}"web",{% endif%}
+    {% if include_tui %}"tui",{% endif%}
+    {% if include_pydantic_settings %}"config",{% endif%}
+]
 
 
 [project.urls]
-changelog = "https://github.com/{{github_user}}/{{github_repo_name}}/blob/main/CHANGELOG.md"
-documentation = "https://github.com/{{github_user}}/{{github_repo_name}}#readme"
+{% if include_changelog %}changelog = "https://github.com/{{github_user}}/{{github_repo_name}}/blob/main/CHANGELOG.md"{% endif %}
+documentation = "https://{{github_user}}.github.io/{{github_repo_name}}"
 homepage = "https://github.com/{{github_user}}/{{github_repo_name}}"
 issues = "https://github.com/{{github_user}}/{{github_repo_name}}/issues"
 releasenotes = "https://github.com/{{github_user}}/{{github_repo_name}}/releases"
 source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
 
-
+{% if include_cli or include_tui or include_web %}
 [project.scripts]
-{{github_repo_name}} = "{{github_repo_name}}.cli:app"
-
-
+{% if include_cli %}{{github_repo_name}} = "{{github_repo_name}}.cli:app"{% endif %}
+{% if include_tui %}{{github_repo_name}}-tui = "{{github_repo_name}}.tui:main"{% endif %}
+{% if include_web %}{{github_repo_name}}-web = "{{github_repo_name}}.web:main"{% endif %}
+{% endif %}
+{% if include_gui %}
 [project.gui-scripts]
 {{github_repo_name}}-gui = "{{github_repo_name}}.gui:main"
+{% endif %}
 
 
 [dependency-groups]
 dev = [
-  "{{github_repo_name}}[cli,web]",
+  "{{github_repo_name}}[all]",
   "tox==4.31.0",
   "tox-uv==1.29.0",
   { include-group = "style" },
@@ -74,13 +110,14 @@ dev = [
 ]
 style = [
   "actionlint-py==1.7.9.24",
+  "editorconfig-checker==3.6.0",
   "mypy==1.19.0",
   "pyrefly==0.44.0",
   "pyright==1.1.407",
-  "ruff==0.14.7",
+  "ruff==0.14.8",
   "slotscheck==0.19.1",
   "taplo==0.9.3",
-  "ty==0.0.1a29",
+  "ty==0.0.1a33",
   "typos==1.40.0",
   "validate-pyproject[all]==0.24.1",
   "vulture==2.14",
@@ -93,15 +130,19 @@ test = [
   "pytest-rerunfailures==16.1",
   "pytest-xdist[psutil]==3.8.0",
   "pytest==8.4.2",
+  "pytest-sugar",
+  "dirty-equals",
+  "inline-snapshot"
 ]
 docs = [
     "mkdocs==1.6.1",
+    "mkdocs-material==9.1.1",
 ]
 tool = [
-  "commitizen==4.10.0",
-  "cookiecutter==2.6.0",
+  {% if include_commitizen %}"commitizen==4.10.0",{% endif %}
+  {% if include_poe %}"poethepoet==0.38.0",{% endif %}
+  {% if include_c_extensions %}"cython>=3.0.0",{% endif %}
   "copier==9.11.0",
-  "poethepoet==0.38.0",
 ]
 pre-commit = [
     "pre-commit-uv==4.2.0",
@@ -110,7 +151,11 @@ pre-commit = [
 
 
 [build-system]
+{% if include_c_extensions %}
+requires = ["hatchling", "hatch-vcs", "cython>=3.0.0"]
+{% else %}
 requires = ["hatchling", "hatch-vcs"]
+{% endif %}
 build-backend = "hatchling.build"
 
 
@@ -120,6 +165,7 @@ cache-keys = [
   { file = "pyproject.toml" },
   { git = { commit = true, tags = true } },
 ]
+package = true
 trusted-publishing = "always"
 
 
@@ -136,39 +182,53 @@ hooks.vcs.version-file = "src/{{github_repo_name}}/_version.py"
 version_scheme = "only-version"
 local_scheme = "no-local-version"
 
-# TODO @{{github_user}}: Commitizen should be optional.
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
+[tool.hatch.build.targets.sdist]
+include = ["/README.md", "LICENSE", "/{{github_repo_name}}", "/tests"]
+
+{% if include_commitizen %}
 [tool.commitizen]
 major_version_zero = true
 name = "cz_conventional_commits"
 tag_format = "$version"
+{% if include_changelog %}
 update_changelog_on_bump = true
+{% else %}
+update_changelog_on_bump = false
+{% endif %}
 version_provider = "scm"
 version_scheme = "pep404"
-
+{% endif %}
 
 [tool.pytest.ini_options]
+# addopts = "-rXs --strict-config --strict-markers"
 addopts = "-v --tb=short"
+filterwarnings = ["error"]
 testpaths = ["tests"]
+xfail_strict = true
 
 
 [tool.coverage.run]
 branch = true
-omit = ["src/{{github_repo_name}}/_version.py"]
+omit = ["src/**/_version.py"]
 parallel = true
 source_pkgs = ["{{github_repo_name}}", "tests"]
 
 
 [tool.coverage.paths]
-{{github_repo_name}} = ["src/{{github_repo_name}}", "*/{{github_repo_name}}/src/{{github_repo_name}}"]
 tests = ["tests", "*/{{github_repo_name}}/tests"]
+{{github_repo_name}} = ["src/{{github_repo_name}}", "*/{{github_repo_name}}/src/{{github_repo_name}}"]
 
 
 [tool.coverage.report]
-# fail_under = 99
-# omit = ["src/**/_version.py"]
-# show_missing = true
-# skip_covered = true
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+fail_under = 99
+omit = ["src/**/_version.py"]
+show_missing = true
+skip_covered = true
 
 
 [tool.vulture]
@@ -201,6 +261,7 @@ preview = true
 docstring-code-format = true
 line-ending = "lf"
 preview = true
+skip-magic-trailing-comma = true
 
 
 [tool.ruff.lint]
@@ -210,8 +271,11 @@ logger-objects = ["logging_setup.logger"]
 preview = true
 select = ["ALL"]
 
+[tool.ruff.lint.isort]
+combine-as-imports = true
+# skip-magic-trailing-comma = true
+split-on-trailing-comma = false
 
-# TODO @{{github_user}}: Update the author name and email
 [tool.ruff.lint.flake8-copyright]
 author = "{{author_full_name}} <{{author_email}}>"
 
@@ -233,7 +297,8 @@ convention = "pep257"
 
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["S101", "PLR2004"]
+"./tests/*.py" = ["S101", "PLR2004"]
+"./examples/*.py" = ["INP001"]
 
 
 [tool.ruff.lint.pyupgrade]
@@ -252,7 +317,11 @@ strict = true
 
 
 [tool.pyright]
+exclude = [".venv"]
 include = ["src/{{github_repo_name}}"]
+pythonVersion = "3.10"
+venv = ".venv"
+venvPath = ".venv"
 
 
 [tool.ty.src]
@@ -273,7 +342,7 @@ python-version = "3.10"
 project-includes = ["src"]
 
 
-# TODO @{{github_user}}: poethepoet should be optional.
+{% if include_poe %}
 [tool.poe]
 executor.type = "uv"
 
@@ -291,10 +360,22 @@ cmd = "tox run -e style"
 [tool.poe.tasks.pypi-readme]
 help = "Generate Fancy PyPI README"
 shell = "hatch-fancy-pypi-readme -o PyPI.md && open PyPI.md"
+{% endif %}
 
 
 [tool.tox]
-env_list = ["style", "run", "3.14", "3.13", "3.12", "3.11", "3.10"]
+env_list = [
+    "style",
+    {% if include_cli %}"cli",{% endif %}
+    {% if include_web %}"web",{% endif %}
+    {% if include_tui %}"tui",{% endif %}
+    {% if include_pydantic_settings %}"config",{% endif %}
+    "3.14",
+    "3.13",
+    "3.12",
+    "3.11",
+    "3.10"
+]
 requires = ["tox>=4"]
 
 
@@ -313,7 +394,7 @@ constrain_package_deps = true
 dependency_groups = ["test"]
 description = "Run the tests under {base_python}"
 env_tmp_dir = "{toxworkdir}/tmp/{envname}"
-extras = ["cli", "web"]
+extras = ["all"]
 package = "wheel"
 runner = "uv-venv-runner"
 use_frozen_constraints = true
@@ -393,15 +474,22 @@ description = "Run pre-commit hooks"
 runner = "uv-venv-runner"
 
 
-[tool.tox.env.docs]
+[tool.tox.env.docs-build]
 commands = [["mkdocs", "build", "--clean"]]
 dependency_groups = ["docs"]
 description = "Build Docs"
 runner = "uv-venv-runner"
 
 
-# TODO @{{github_user}}: This should be available if the project is a CLI project.
-[tool.tox.env.run]
+[tool.tox.env.docs-server]
+commands = [["mkdocs", "serve"]]
+dependency_groups = ["docs"]
+description = "Start the live-reloading docs server"
+runner = "uv-venv-runner"
+
+{% if include_cli %}
+[tool.tox.env.cli]
 commands = [["{{github_repo_name}}", "version", { replace = "posargs", extend = true }]]
 description = "Run the CLI application."
 runner = "uv-venv-runner"
+{% endif %}

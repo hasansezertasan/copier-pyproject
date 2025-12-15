@@ -1,0 +1,46 @@
+# Cython extension module for {{github_repo_name}}
+# This file contains Cython code that will be compiled to C and then to a Python extension
+
+# Import from the .pxd file if needed
+# cimport {{github_repo_name}}.c{{github_repo_name}}
+
+# Example class with cdef methods for performance
+cdef class ExampleExtension:
+    """Example Cython class with fast C methods."""
+
+    cdef int _value
+
+    def __init__(self, int value=0):
+        self._value = value
+
+    cdef int _get_value(self):
+        """Fast C method."""
+        return self._value
+
+    cdef void _set_value(self, int value):
+        """Fast C method."""
+        self._value = value
+
+    def get_value(self):
+        """Python-accessible method."""
+        return self._get_value()
+
+    def set_value(self, int value):
+        """Python-accessible method."""
+        self._set_value(value)
+
+    def increment(self):
+        """Increment the internal value."""
+        self._value += 1
+        return self._value
+
+# Example function
+def fibonacci_cython(int n):
+    """Compute nth Fibonacci number using Cython for speed."""
+    if n <= 1:
+        return n
+
+    cdef int a = 0, b = 1, i
+    for i in range(2, n + 1):
+        a, b = b, a + b
+    return b

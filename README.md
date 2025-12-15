@@ -5,11 +5,11 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 ## What this template includes
 
 - uv-first workflow with dependency groups (dev, style, test, docs, tool, pre-commit) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions from Git tags.
-- Ready-to-run Typer CLI entrypoint, FastAPI app stub, logging/config modules, type hints, and a `py.typed` marker plus CLI/web tests; container-ready `Dockerfile`.
+- Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
 - QA stack: pytest with coverage/xdist/reruns (and `.codecov.yml`), ruff, mypy, pyright, ty, pyrefly, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint.
 - Docs and site: MkDocs scaffold (`docs/index.md`) with GitHub Pages deploy workflow.
-- Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release drafter, release-please config, PR title linting, issue/PR templates, Renovate config, Commitizen, pre-commit (with pre-commit-uv), devcontainer, VS Code launch config, gitignore, FUNDING, and LICENSE.
-- Extra tooling: Trunk config (hadolint/markdownlint/etc.), Pants config, `.dockerignore`, and badge-rich README template for generated projects.
+- Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), configurable release automation (release-please/release-it/release-drafter), PR title linting, issue/PR templates, dependency management (Renovate/Dependabot), optional Commitizen, pre-commit (with pre-commit-uv), devcontainer, VS Code launch config, gitignore, FUNDING, and LICENSE.
+- Extra tooling: Optional Trunk config (hadolint/markdownlint/etc.), Pants config, `.dockerignore`, and badge-rich README template for generated projects.
 
 ## Inputs
 
@@ -20,6 +20,25 @@ Copier will prompt for:
 - `author_full_name`
 - `author_email`
 - `short_description`
+- `include_cli` (include Typer CLI)
+- `include_web` (include FastAPI web app)
+- `include_gui` (include Tkinter GUI)
+- `include_tui` (include Textual TUI)
+- `include_c_extensions` (include C extensions support using Cython)
+- `include_pydantic_settings` (use pydantic-settings for configuration)
+- `release_automation` (none/release-please/release-it/release-drafter)
+- `dependency_management` (none/renovate/dependabot)
+- `include_changelog` (include CHANGELOG.md)
+- `include_contributing` (include CONTRIBUTING.md)
+- `include_code_of_conduct` (include CODE_OF_CONDUCT.md)
+- `include_citation` (include CITATION.cff)
+- `include_pants` (include Pants build system)
+- `include_codecov` (include Codecov configuration)
+- `include_mise` (include mise tool version management)
+- `include_trunk` (include Trunk linting/formatting)
+- `include_poe` (include Poe task runner)
+- `include_commitizen` (include Commitizen)
+- `use_precommit` (use pre-commit hooks)
 
 ## Scaffold a project
 
@@ -33,12 +52,12 @@ Copier will prompt for:
 - Install dependencies: `uv sync`
 - Style gate: `uv run --locked tox run -e style`
 - Full test suite: `uv run --locked tox run`
-- Run the CLI: `uv run --locked <repo-name> version`
-- Run the FastAPI app: `uv run --locked fastapi dev <repo-name>.app:app`
+- Run the CLI (if included): `uv run --locked <repo-name> version`
+- Run the FastAPI app (if included): `uv run --locked fastapi dev <repo-name>.web:app`
 - Serve docs locally: `uv run --only-group docs mkdocs serve` (deploys via GitHub Pages on release)
-- Optional tooling: `trunk check` for aggregated linting; `pants lint ::` for Pants-based linting.
+- Optional tooling: `trunk check` for aggregated linting (if configured); `pants lint ::` for Pants-based linting (if configured).
 
-`example/README.md` shows the rendered README produced from `.example-input.yml`.
+`.example-input.yml` provides default values for all template options.
 
 ## Release automation
 

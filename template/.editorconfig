@@ -5,48 +5,43 @@ root = true
 
 # Unix-style newlines with a newline ending every file
 [*]
-end_of_line = lf
-insert_final_newline = true
-indent_style = space
-indent_size = 4
-trim_trailing_whitespace = true
 charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
 
 # Docstrings and comments use max_line_length = 88
 [*.py]
 max_line_length = 88
 
-# Use 2 spaces for the HTML files
-[*.html]
-indent_size = 2
-
 # Makefiles always use tabs for indentation
 [Makefile]
 indent_style = tab
+indent_size = unset
 
-# Shell scripts use tabs for indentation
-[*.sh]
+# Batch Files and PowerShell Scripts use tabs for indentation
+[*.{bat,ps1}]
 indent_style = tab
+end_of_line = crlf
 
-# PowerShell scripts use tabs for indentation
-[*.ps1]
-indent_style = tab
-
-# Batch files use tabs for indentation
-[*.bat]
-indent_style = tab
-
-# YAML files use 2 spaces for indentation
-[*.yml, *.yaml]
+# HTML, CSS, JavaScript, JSON, Markdown, Shell, YAML, TOML files use 2 spaces for indentation
+[*.{css,html,js,json,md,sh,yml,yaml,toml}]
 indent_size = 2
 
-# Markdown files use 2 spaces for indentation
-[*.md]
-indent_size = 2
+# Ignore binary or generated files
+[*.{png,jpg,gif,ico,woff,woff2,ttf,eot,svg,pdf}]
+charset = unset
+end_of_line = unset
+indent_style = unset
+indent_size = unset
+trim_trailing_whitespace = unset
+insert_final_newline = unset
+max_line_length = unset
 
-# TOML files use 2 spaces for indentation
-[*.toml]
-indent_size = 2
+[*.{diff,patch}]
+trim_trailing_whitespace = false
 
 # Ignore files and directories: node_modules, .git, .vscode, .DS_Store, .venv, .pytest_cache, .ruff_cache
 [**]
