@@ -5,7 +5,7 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 ## What this template includes
 
 - uv-first workflow with dependency groups (dev, style, test, docs, tool, pre-commit) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions from Git tags.
-- Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
+- Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
 - QA stack: pytest with coverage/xdist/reruns (and `.codecov.yml`), ruff, mypy, pyright, ty, pyrefly, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint.
 - Docs and site: MkDocs scaffold (`docs/index.md`) with GitHub Pages deploy workflow.
 - Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), configurable release automation (release-please/release-it/release-drafter), PR title linting, issue/PR templates, dependency management (Renovate/Dependabot), optional Commitizen, pre-commit (with pre-commit-uv), devcontainer, VS Code launch config, gitignore, FUNDING, and LICENSE.
@@ -24,6 +24,7 @@ Copier will prompt for:
 - `include_web` (include FastAPI web app)
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)
+- `include_c_extensions` (include C extensions support using Cython)
 - `include_pydantic_settings` (use pydantic-settings for configuration)
 - `release_automation` (none/release-please/release-it/release-drafter)
 - `dependency_management` (none/renovate/dependabot)
