@@ -22,4 +22,4 @@ include_mise: false
 include_trunk: false
 include_poe: false
 include_commitizen: false
-use_pre_commit: false
+use_precommit: false
