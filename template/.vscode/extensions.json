@@ -1,17 +1,17 @@
 {
   "recommendations": [
-    "hverlin.mise-vscode",
-    "redhat.vscode-yaml",
-    "dotenv.dotenv-vscode",
-    "mikestead.dotenv",
     "aaron-bond.better-comments",
-    "tamasfe.even-better-toml",
     "bierner.emojisense",
-    "pomdtr.markdown-kroki",
-    "christian-kohler.path-intellisense",
-    "ms-python.vscode-pylance",
-    "ms-python.python",
     "charliermarsh.ruff",
-    "ms-python.mypy-type-checker"
+    "christian-kohler.path-intellisense",
+    "dotenv.dotenv-vscode",
+    "hverlin.mise-vscode",
+    "mikestead.dotenv",
+    "ms-python.mypy-type-checker",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "pomdtr.markdown-kroki",
+    "redhat.vscode-yaml",
+    "tamasfe.even-better-toml"
   ]
 }

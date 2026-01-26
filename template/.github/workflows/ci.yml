@@ -56,6 +56,14 @@ jobs:
       - name: Run the tests
         run: uv run --locked tox run
         # https://github.com/marketplace/actions/alls-green#why used for branch protection checks
+      - name: Coverage
+        run: |
+          uv run coverage combine
+          uv run coverage report --show-missing
+          uv run coverage xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+
   check:
     if: always()
     needs: [ci]

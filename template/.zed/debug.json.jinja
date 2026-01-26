@@ -1,6 +1,7 @@
 [
   // Use IntelliSense to learn about possible attributes.
   // Hover to view descriptions of existing attributes.
+  {% if include_web %}
   {
     "label": "Python: Web App",
     "adapter": "debugpy",
@@ -15,6 +16,7 @@
       "--port=80"
     ]
   },
+  {% endif %}
   {% if include_cli %}
   {
     "label": "Python: CLI",

@@ -6,13 +6,13 @@ import platform
 from importlib.metadata import Distribution
 from typing import Any
 
-from {{github_repo_name}} import gui
+from {{github_repo_name}}.gui import app as gui_app
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 
 
 def test_build_info_message_contains_metadata() -> None:
     """The GUI message should include core project metadata."""
-    message = gui.build_info_message()
+    message = gui_app.build_info_message()
     distribution = Distribution.from_name(PROJECT_NAME)
 
     assert PROJECT_NAME in message
@@ -23,7 +23,7 @@ def test_build_info_message_contains_metadata() -> None:
 
 def test_main_can_skip_gui(capsys: Any) -> None:
     """When GUI display is skipped, information is printed to stdout."""
-    exit_code = gui.main(show_window=False)
+    exit_code = gui_app.main(show_window=False)
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -34,11 +34,11 @@ def test_main_handles_display_errors(monkeypatch: Any, capsys: Any) -> None:
     """Errors while showing the GUI should fall back to stdout."""
 
     def _raise_display_error(_: str) -> None:
-        raise gui.GuiDisplayError("boom")
+        raise gui_app.GuiDisplayError("boom")
 
-    monkeypatch.setattr(gui, "_display_message", _raise_display_error)
+    monkeypatch.setattr(gui_app, "_display_message", _raise_display_error)
 
-    exit_code = gui.main()
+    exit_code = gui_app.main()
     captured = capsys.readouterr()
 
     assert exit_code == 1

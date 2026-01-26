@@ -6,7 +6,7 @@ import platform
 from importlib.metadata import Distribution
 from typing import Any
 
-from {{github_repo_name}} import tui
+from {{github_repo_name}}.tui import app as tui_app
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 
 
@@ -18,7 +18,7 @@ def test_build_info_message_contains_metadata() -> None:
     When: build_info_message is called
     Then: The message includes project name, version, Python version, and platform
     """
-    message = tui.build_info_message()
+    message = tui_app.build_info_message()
     distribution = Distribution.from_name(PROJECT_NAME)
 
     assert PROJECT_NAME in message
@@ -35,7 +35,7 @@ def test_main_can_skip_tui(capsys: Any) -> None:
     When: main is called with show_tui=False
     Then: The exit code is 0 and info is written to stdout
     """
-    exit_code = tui.main(show_tui=False)
+    exit_code = tui_app.main(show_tui=False)
     captured = capsys.readouterr()
 
     assert exit_code == 0
@@ -52,11 +52,11 @@ def test_main_handles_display_errors(monkeypatch: Any, capsys: Any) -> None:
     """
 
     def _raise_display_error(_: str) -> None:
-        raise tui.TuiDisplayError("boom")
+        raise tui_app.TuiDisplayError("boom")
 
-    monkeypatch.setattr(tui, "_display_tui", _raise_display_error)
+    monkeypatch.setattr(tui_app, "_display_tui", _raise_display_error)
 
-    exit_code = tui.main()
+    exit_code = tui_app.main()
     captured = capsys.readouterr()
 
     assert exit_code == 1

@@ -32,4 +32,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 WORKDIR /app
 
 # Set the default command to run the application
-CMD ["uvicorn", "{{github_repo_name}}.web:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "{{github_repo_name}}.web.app:app", "--host", "0.0.0.0", "--port", "80"]

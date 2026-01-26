@@ -83,6 +83,43 @@ fastapi dev {{github_repo_name}}.app:app
 
 Open <http://127.0.0.1:8000/docs> for the interactive API documentation.
 {% endif %}
+{% if include_profiling %}
+### Profiling
+
+Profile your application for performance optimization:
+
+```bash
+# Setup profiling environment
+tox run -e profile
+
+# Profile with scalene (CPU/memory)
+python profile.py scalene
+
+# Profile with cProfile (built-in)
+python profile.py cprofile
+
+# Profile with py-spy (sampling, low overhead)
+py-spy top -- python profile.py run
+```
+
+View cProfile results with:
+```bash
+snakeviz profile.prof
+```
+
+{% endif %}
+
+### Debugging
+
+Debug your application in VS Code using the provided launch configurations:
+
+- **Current File**: Debug the currently open Python file.
+- **Tests**: Debug pytest runs.
+- **Attach**: Attach to a running process (e.g., web app with debugpy).
+- **Web App/CLI/TUI/GUI**: Debug specific entry points (if enabled).
+- **With Profiling**: Debug while profiling with scalene (if profiling enabled).
+
+Select a configuration from the Run and Debug panel in VS Code.
 {% if include_c_extensions %}
 ### C Extensions
 

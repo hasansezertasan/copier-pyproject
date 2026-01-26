@@ -1,0 +1,70 @@
+"""MCP (Model Context Protocol) server for the project."""
+
+from __future__ import annotations
+
+import platform
+from importlib.metadata import Distribution
+
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.types import TextContent, Tool
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.logging_setup import logger
+
+server = Server(name="{{github_repo_name}}")
+
+
+@server.list_tools()
+async def list_tools() -> list[Tool]:
+    """List available MCP tools."""
+    return [
+        Tool(
+            name="version",
+            description="Get the current version of {{github_repo_name}}",
+            inputSchema={"type": "object", "properties": {}, "required": []},
+        ),
+        Tool(
+            name="info",
+            description="Get runtime information about {{github_repo_name}}",
+            inputSchema={"type": "object", "properties": {}, "required": []},
+        ),
+    ]
+
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict) -> list[TextContent]:  # noqa: ARG001
+    """Handle MCP tool calls."""
+    distribution = Distribution.from_name(PROJECT_NAME)
+
+    if name == "version":
+        logger.info("MCP tool `version` called.")
+        return [TextContent(type="text", text=distribution.version)]
+
+    if name == "info":
+        logger.info("MCP tool `info` called.")
+        python_version = platform.python_version()
+        python_implementation = platform.python_implementation()
+        info_text = (
+            f"Application Version: {distribution.version}\n"
+            f"Python Version: {python_version} ({python_implementation})\n"
+            f"Platform: {platform.system()}"
+        )
+        return [TextContent(type="text", text=info_text)]
+
+    msg = f"Unknown tool: {name}"
+    raise ValueError(msg)
+
+
+async def run_server() -> None:
+    """Run the MCP server using stdio transport."""
+    logger.info("Starting MCP server for {{github_repo_name}}")
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(read_stream, write_stream, server.create_initialization_options())
+
+
+def main() -> None:
+    """Entry point for the MCP server."""
+    import asyncio
+
+    asyncio.run(run_server())

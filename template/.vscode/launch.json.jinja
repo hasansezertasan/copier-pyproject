@@ -5,6 +5,34 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-v", "--tb=short", "${input:testArgs}"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: Attach",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "justMyCode": false
+    },
+    {% if include_web %}
+    {
       "name": "Python: Web App",
       "type": "debugpy",
       "request": "launch",
@@ -17,6 +45,7 @@
         "--port=80"
       ]
     },
+    {% endif %}
     {% if include_cli %}
     {
       "name": "Python: CLI",
@@ -25,6 +54,37 @@
       "justMyCode": true,
       "module": "uv",
       "args": ["run", "{{github_repo_name}}", "${input:args}"]
+    },
+    {% endif %}
+    {% if include_tui %}
+    {
+      "name": "Python: TUI",
+      "type": "debugpy",
+      "request": "launch",
+      "justMyCode": true,
+      "module": "uv",
+      "args": ["run", "{{github_repo_name}}-tui"]
+    },
+    {% endif %}
+    {% if include_gui %}
+    {
+      "name": "Python: GUI",
+      "type": "debugpy",
+      "request": "launch",
+      "justMyCode": true,
+      "module": "uv",
+      "args": ["run", "{{github_repo_name}}-gui"]
+    },
+    {% endif %}
+    {% if include_profiling %}
+    {
+      "name": "Python: With Profiling",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scalene",
+      "args": ["--cpu", "--memory", "${file}"],
+      "console": "integratedTerminal",
+      "justMyCode": true
     }
     {% endif %}
   ],
@@ -33,7 +93,13 @@
       "id": "args",
       "type": "promptString",
       "default": "version",
-      "description": "Arguments"
+      "description": "CLI arguments (e.g., version, info)"
+    },
+    {
+      "id": "testArgs",
+      "type": "promptString",
+      "default": "",
+      "description": "Test arguments (e.g., tests/test_cli.py -v)"
     }
   ]
 }

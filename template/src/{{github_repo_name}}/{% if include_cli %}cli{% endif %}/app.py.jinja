@@ -9,7 +9,7 @@ from importlib.metadata import Distribution
 import typer
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.logging_setup import logger
+from {{github_repo_name}}.core.logging_setup import logger
 
 app = typer.Typer(
     name="{{github_repo_name}}",
@@ -62,7 +62,7 @@ def interactive() -> None:
     Show application information:
         {{github_repo_name}} interactive
     """
-    from {{github_repo_name}}.tui import main
+    from {{github_repo_name}}.tui.app import main
     main()
 {% endif %}
 
@@ -74,7 +74,7 @@ def gui() -> None:
     Show application information:
         {{github_repo_name}} gui
     """
-    from {{github_repo_name}}.gui import main
+    from {{github_repo_name}}.gui.app import main
     main()
 {% endif %}
 
@@ -87,7 +87,7 @@ def web() -> None:
         {{github_repo_name}} web
     """
     import uvicorn
-    from {{github_repo_name}}.web import app
+    from {{github_repo_name}}.web.app import app as web_app
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(web_app, host="0.0.0.0", port=8000)
 {% endif %}

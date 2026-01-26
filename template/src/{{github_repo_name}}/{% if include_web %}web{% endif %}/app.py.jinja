@@ -1,0 +1,99 @@
+"""Web application for the project."""
+# mypy: disable-error-code="misc"
+
+from __future__ import annotations
+
+import platform
+from importlib.metadata import Distribution
+{% if web_framework == "fastapi" %}
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, PlainTextResponse
+{% endif %}
+{% if web_framework == "litestar" %}
+from litestar import Litestar, get
+from litestar.response import Response
+{% endif %}
+
+from {{github_repo_name}}.core.logging_setup import logger
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+
+{% if web_framework == "fastapi" %}
+app = FastAPI(title="{{github_repo_name}}")
+
+
+@app.get("/version", response_class=PlainTextResponse)
+def get_version() -> str:
+    """Return the current version number of the project.
+
+    Returns:
+        str: The version number as a plain text string.
+    """
+    distribution = Distribution.from_name(PROJECT_NAME)
+    logger.info("HTTP GET `/version` called.")
+    logger.info("Version displayed successfully.")
+    return distribution.version
+
+
+@app.get("/info")
+def get_info() -> JSONResponse:
+    """Return basic runtime information about the project.
+
+    Returns:
+        JSONResponse: A JSON response containing project and environment info.
+    """
+    distribution = Distribution.from_name(PROJECT_NAME)
+    logger.info("HTTP GET `/info` called.")
+    python_version = platform.python_version()
+    python_implementation = platform.python_implementation()
+    payload = {
+        "application_version": distribution.version,
+        "python_version": python_version,
+        "python_implementation": python_implementation,
+        "platform": platform.system(),
+    }
+    logger.info("Application information displayed successfully.")
+    return JSONResponse(content=payload)
+{% endif %}
+{% if web_framework == "litestar" %}
+@get("/version", media_type="text/plain")
+async def get_version() -> str:
+    """Return the current version number of the project.
+
+    Returns:
+        str: The version number as a plain text string.
+    """
+    distribution = Distribution.from_name(PROJECT_NAME)
+    logger.info("HTTP GET `/version` called.")
+    logger.info("Version displayed successfully.")
+    return distribution.version
+
+
+@get("/info")
+async def get_info() -> dict[str, str]:
+    """Return basic runtime information about the project.
+
+    Returns:
+        dict: A dictionary containing project and environment info.
+    """
+    distribution = Distribution.from_name(PROJECT_NAME)
+    logger.info("HTTP GET `/info` called.")
+    python_version = platform.python_version()
+    python_implementation = platform.python_implementation()
+    logger.info("Application information displayed successfully.")
+    return {
+        "application_version": distribution.version,
+        "python_version": python_version,
+        "python_implementation": python_implementation,
+        "platform": platform.system(),
+    }
+
+
+app = Litestar(route_handlers=[get_version, get_info])
+{% endif %}
+
+
+def main() -> None:
+    """Entry point for the web application."""
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
