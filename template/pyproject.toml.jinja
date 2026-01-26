@@ -79,11 +79,11 @@ dependencies = []
 {% if include_mcp %}mcp = ["mcp>=1.0.0"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
 all = [
-    {% if include_cli %}"cli",{% endif%}
-    {% if include_web %}"web",{% endif%}
-    {% if include_tui %}"tui",{% endif%}
-    {% if include_mcp %}"mcp",{% endif%}
-    {% if include_pydantic_settings %}"config",{% endif%}
+    {% if include_cli %}"typer>=0.20.0",{% endif %}
+    {% if include_web %}{% if web_framework == "fastapi" %}"fastapi[all]>=0.123.5",{% endif %}{% if web_framework == "litestar" %}"litestar[standard]>=2.0.0",{% endif %}{% endif %}
+    {% if include_tui %}"textual>=0.50.0",{% endif %}
+    {% if include_mcp %}"mcp>=1.0.0",{% endif %}
+    {% if include_pydantic_settings %}"pydantic-settings>=2.0.0",{% endif %}
 ]
 
 
