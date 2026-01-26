@@ -50,6 +50,20 @@ include_mcp:
   type: bool
   default: false
   help: "Include MCP (Model Context Protocol) server support?"
+include_worker:
+  type: bool
+  default: false
+  help: "Include message queue worker using FastStream?"
+worker_broker:
+  type: str
+  default: kafka
+  choices:
+    - kafka
+    - nats
+    - rabbitmq
+    - redis
+  when: "{{ include_worker }}"
+  help: "Choose the message broker to use"
 include_c_extensions:
   type: bool
   default: false
@@ -123,3 +137,11 @@ include_precommit:
   type: bool
   default: false
   help: "Include pre-commit hooks configuration?"
+include_dbeaver:
+  type: bool
+  default: false
+  help: "Include DBeaver CloudBeaver for database management in devcontainer?"
+include_vpn:
+  type: bool
+  default: false
+  help: "Include OpenVPN client in devcontainer?"

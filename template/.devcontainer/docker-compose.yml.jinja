@@ -1,0 +1,99 @@
+---
+services:
+  # Update this to the name of the service you want to work with in your docker-compose.yml file
+  devcontainer:
+    # Uncomment if you want to override the service's Dockerfile to one in the .devcontainer
+    # folder. Note that the path of the Dockerfile and context is relative to the *primary*
+    # docker-compose.yml file (the first in the devcontainer.json "dockerComposeFile"
+    # array). The sample below assumes your primary file is in the root of your project.
+    #
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      # Update this to wherever you want VS Code to mount the folder of your project
+      - ../..:/workspaces:cached
+    # Uncomment the next four lines if you will use a ptrace-based debugger like C++, Go, and Rust.
+    # cap_add:
+    #   - SYS_PTRACE
+    # security_opt:
+    #   - seccomp:unconfined
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+{% if include_worker %}
+{% if worker_broker == "rabbitmq" %}
+  rabbitmq:
+    image: rabbitmq:4.0-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+{% endif %}
+{% if worker_broker == "kafka" %}
+  kafka:
+    image: bitnami/kafka:latest
+    restart: unless-stopped
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    ports:
+      - "9092:9092"
+{% endif %}
+{% if worker_broker == "nats" %}
+  nats:
+    image: nats:latest
+    restart: unless-stopped
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+{% endif %}
+{% if worker_broker == "redis" %}
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+{% endif %}
+{% endif %}
+{% if include_dbeaver %}
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:latest
+    container_name: dbeaver
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+{% endif %}
+{% if include_vpn %}
+  vpn:
+    image: dperson/openvpn-client
+    cap_add:
+      - net_admin
+    environment:
+      TZ: "EST5EDT"
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+      - label:disable
+    stdin_open: true
+    tmpfs:
+      - /run
+      - /tmp
+    tty: true
+    volumes:
+      - ./vpn:/vpn
+{% endif %}

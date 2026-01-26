@@ -10,6 +10,8 @@ web_framework: fastapi
 include_tui: false
 include_gui: false
 include_mcp: false
+include_worker: false
+worker_broker: kafka
 include_c_extensions: false
 include_profiling: false
 include_pycrucible: false
@@ -26,3 +28,5 @@ include_mise: false
 include_trunk: false
 include_commitizen: false
 include_precommit: false
+include_dbeaver: false
+include_vpn: false

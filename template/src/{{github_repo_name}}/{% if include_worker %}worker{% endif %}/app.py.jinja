@@ -1,0 +1,125 @@
+"""FastStream message queue worker application."""
+
+from __future__ import annotations
+
+import platform
+from importlib.metadata import Distribution, PackageNotFoundError
+
+from faststream import FastStream, Logger
+{%- if worker_broker == "kafka" %}
+from faststream.kafka import KafkaBroker
+{%- endif %}
+{%- if worker_broker == "nats" %}
+from faststream.nats import NatsBroker
+{%- endif %}
+{%- if worker_broker == "rabbitmq" %}
+from faststream.rabbit import RabbitBroker
+{%- endif %}
+{%- if worker_broker == "redis" %}
+from faststream.redis import RedisBroker
+{%- endif %}
+from pydantic import BaseModel, Field
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.logging_setup import logger as app_logger
+
+# Get version from package metadata
+try:
+    _distribution = Distribution.from_name(PROJECT_NAME)
+    __version__ = _distribution.version
+except PackageNotFoundError:
+    __version__ = "0.0.0"
+
+
+class VersionRequest(BaseModel):
+    """Request model for version information."""
+
+    request_id: str = Field(..., description="Unique request identifier")
+
+
+class VersionResponse(BaseModel):
+    """Response model containing version information."""
+
+    request_id: str = Field(..., description="Original request identifier")
+    version: str = Field(..., description="Application version")
+    python_version: str = Field(..., description="Python version")
+    platform: str = Field(..., description="Platform information")
+
+
+{% if worker_broker == "kafka" -%}
+broker = KafkaBroker("localhost:9092")
+{% endif -%}
+{% if worker_broker == "nats" -%}
+broker = NatsBroker("nats://localhost:4222")
+{% endif -%}
+{% if worker_broker == "rabbitmq" -%}
+broker = RabbitBroker("amqp://guest:guest@localhost:5672/")
+{% endif -%}
+{% if worker_broker == "redis" -%}
+broker = RedisBroker("redis://localhost:6379")
+{% endif %}
+app = FastStream(
+    broker,
+    title="{{github_repo_name}} Worker",
+    version=__version__,
+    description="Message queue worker for {{github_repo_name}}",
+)
+
+version_response_publisher = broker.publisher(
+    "version-responses",
+    description="Publishes version response messages",
+)
+
+
+@broker.subscriber(
+    "version-requests",
+    description="Handles version request messages",
+)
+async def handle_version_request(msg: VersionRequest, logger: Logger) -> None:
+    """Handle incoming version request messages.
+
+    Args:
+        msg: The version request message.
+        logger: FastStream logger instance.
+    """
+    app_logger.info("Received version request: %s", msg.request_id)
+    logger.info("Processing version request: %s", msg.request_id)
+
+    response = VersionResponse(
+        request_id=msg.request_id,
+        version=__version__,
+        python_version=platform.python_version(),
+        platform=platform.system(),
+    )
+
+    await version_response_publisher.publish(response)
+    app_logger.info("Sent version response for request: %s", msg.request_id)
+
+
+@app.after_startup
+async def on_startup() -> None:  # noqa: RUF029
+    """Log startup information."""
+    app_logger.info("Worker started - version %s", __version__)
+
+
+@app.after_shutdown
+async def on_shutdown() -> None:  # noqa: RUF029
+    """Log shutdown information."""
+    app_logger.info("Worker shutting down")
+
+
+def main() -> None:
+    """Entry point for the worker application.
+
+    Runs the FastStream application using uvloop if available.
+    """
+    import asyncio  # noqa: PLC0415
+
+    try:
+        import uvloop  # noqa: PLC0415
+
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    except ImportError:
+        pass
+
+    asyncio.run(app.run())

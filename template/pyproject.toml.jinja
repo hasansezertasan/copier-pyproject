@@ -22,6 +22,7 @@ keywords = [
     {% if include_web %}{% if web_framework == "fastapi" %}"fastapi",{% endif %}{% if web_framework == "litestar" %}"litestar",{% endif %} "docker",{% endif %}
     {% if include_tui %}"textual", "tui",{% endif %}
     {% if include_mcp %}"mcp", "model-context-protocol",{% endif %}
+    {% if include_worker %}"faststream", "message-queue", "{{worker_broker}}",{% endif %}
     {% if include_pydantic_settings %}"pydantic",{% endif %}
     {% if include_c_extensions %}"cython", "c-extensions", "performance",{% endif %}
 ]
@@ -77,12 +78,14 @@ dependencies = []
 {% endif %}
 {% if include_tui %}tui = ["textual>=0.50.0"]{% endif %}
 {% if include_mcp %}mcp = ["mcp>=1.0.0"]{% endif %}
+{% if include_worker %}worker = ["faststream[{{worker_broker}}]>=0.5.0"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
 all = [
     {% if include_cli %}"typer>=0.20.0",{% endif %}
     {% if include_web %}{% if web_framework == "fastapi" %}"fastapi[all]>=0.123.5",{% endif %}{% if web_framework == "litestar" %}"litestar[standard]>=2.0.0",{% endif %}{% endif %}
     {% if include_tui %}"textual>=0.50.0",{% endif %}
     {% if include_mcp %}"mcp>=1.0.0",{% endif %}
+    {% if include_worker %}"faststream[{{worker_broker}}]>=0.5.0",{% endif %}
     {% if include_pydantic_settings %}"pydantic-settings>=2.0.0",{% endif %}
 ]
 
@@ -95,12 +98,13 @@ issues = "https://github.com/{{github_user}}/{{github_repo_name}}/issues"
 releasenotes = "https://github.com/{{github_user}}/{{github_repo_name}}/releases"
 source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
 
-{% if include_cli or include_tui or include_web or include_mcp %}
+{% if include_cli or include_tui or include_web or include_mcp or include_worker %}
 [project.scripts]
 {% if include_cli %}{{github_repo_name}} = "{{github_repo_name}}.cli.app:app"{% endif %}
 {% if include_tui %}{{github_repo_name}}-tui = "{{github_repo_name}}.tui.app:main"{% endif %}
 {% if include_web %}{{github_repo_name}}-web = "{{github_repo_name}}.web.app:main"{% endif %}
 {% if include_mcp %}{{github_repo_name}}-mcp = "{{github_repo_name}}.mcp.app:main"{% endif %}
+{% if include_worker %}{{github_repo_name}}-worker = "{{github_repo_name}}.worker.app:main"{% endif %}
 {% endif %}
 {% if include_gui %}
 [project.gui-scripts]
@@ -375,6 +379,7 @@ env_list = [
     {% if include_cli %}"cli",{% endif %}
     {% if include_web %}"web",{% endif %}
     {% if include_tui %}"tui",{% endif %}
+    {% if include_worker %}"worker",{% endif %}
     {% if include_pydantic_settings %}"config",{% endif %}
     "3.14",
     "3.13",
@@ -512,6 +517,13 @@ runner = "uv-venv-runner"
 [tool.tox.env.cli]
 commands = [["{{github_repo_name}}", "version", { replace = "posargs", extend = true }]]
 description = "Run the CLI application."
+runner = "uv-venv-runner"
+{% endif %}
+
+{% if include_worker %}
+[tool.tox.env.worker]
+commands = [["{{github_repo_name}}-worker", { replace = "posargs", extend = true }]]
+description = "Run the message queue worker application."
 runner = "uv-venv-runner"
 {% endif %}
 

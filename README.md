@@ -26,6 +26,8 @@ Copier will prompt for:
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)
 - `include_mcp` (include MCP server support)
+- `include_worker` (include message queue worker using FastStream)
+- `worker_broker` (kafka/nats/rabbitmq/redis - when `include_worker` is enabled)
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
 - `include_pycrucible` (include PyCrucible for standalone executables)

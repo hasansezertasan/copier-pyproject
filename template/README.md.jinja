@@ -83,6 +83,17 @@ fastapi dev {{github_repo_name}}.app:app
 
 Open <http://127.0.0.1:8000/docs> for the interactive API documentation.
 {% endif %}
+{% if include_worker %}
+### Worker
+
+Run the message queue worker:
+
+```bash
+{{github_repo_name}}-worker
+```
+
+The worker connects to {{worker_broker}} and processes messages from the configured queues.
+{% endif %}
 {% if include_profiling %}
 ### Profiling
 
@@ -152,6 +163,7 @@ If you have any questions or need help, feel free to open an issue on the [GitHu
 {% if include_web %}- **Web API**: FastAPI-based web application with automatic API documentation{% endif %}
 {% if include_gui %}- **GUI Application**: Desktop interface built with Tkinter{% endif %}
 {% if include_tui %}- **TUI Application**: Terminal user interface built with Textual{% endif %}
+{% if include_worker %}- **Message Queue Worker**: FastStream-based worker for processing messages from {{worker_broker}}{% endif %}
 {% if include_c_extensions %}- **C Extensions**: High-performance Cython extensions for computationally intensive tasks{% endif %}
 {% if include_pydantic_settings %}- **Configuration Management**: Type-safe settings using Pydantic{% endif %}
 - **Type Safety**: Full type hints with mypy, pyright, and other type checkers
