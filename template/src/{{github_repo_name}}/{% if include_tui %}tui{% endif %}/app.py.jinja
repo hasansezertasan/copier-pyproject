@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import platform
 import sys
-from importlib.metadata import Distribution
+from importlib.metadata import Distribution, PackageNotFoundError
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import logger
@@ -16,13 +16,18 @@ class TuiDisplayError(RuntimeError):
 
 def build_info_message() -> str:
     """Return a short application information message for display."""
-    distribution = Distribution.from_name(PROJECT_NAME)
+    try:
+        distribution = Distribution.from_name(PROJECT_NAME)
+        version = distribution.version
+    except PackageNotFoundError:
+        logger.warning("Package metadata not found for %s", PROJECT_NAME)
+        version = "unknown"
     python_version = platform.python_version()
     python_implementation = platform.python_implementation()
     system_name = platform.system()
     return (
         f"{PROJECT_NAME}\n\n"
-        f"Version: {distribution.version}\n"
+        f"Version: {version}\n"
         f"Python: {python_version} ({python_implementation})\n"
         f"Platform: {system_name}"
     )
@@ -100,6 +105,8 @@ def _display_tui(message: str) -> None:
     try:
         app = InfoApp()
         app.run()
+    except (KeyboardInterrupt, SystemExit):
+        raise  # Let these propagate naturally
     except Exception as exc:
         msg = f"Failed to display TUI: {exc}"
         raise TuiDisplayError(msg) from exc

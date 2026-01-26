@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import platform
-from importlib.metadata import Distribution
+from importlib.metadata import Distribution, PackageNotFoundError
 
 import typer
 
@@ -27,7 +27,16 @@ def show_version() -> None:
     Example output:
         0.1.0
     """
-    distribution = Distribution.from_name(PROJECT_NAME)
+    try:
+        distribution = Distribution.from_name(PROJECT_NAME)
+    except PackageNotFoundError:
+        logger.error("Package metadata not found for %s", PROJECT_NAME)
+        typer.echo(
+            f"Error: Package '{PROJECT_NAME}' metadata not found. "
+            "Is the package installed correctly?",
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
     logger.info("Command `version` called.")
     typer.echo(distribution.version)
     logger.info("Version displayed successfully.")
@@ -45,7 +54,16 @@ def info() -> None:
         Python Version: 3.8.20 (CPython)
         Platform: Darwin
     """
-    distribution = Distribution.from_name(PROJECT_NAME)
+    try:
+        distribution = Distribution.from_name(PROJECT_NAME)
+    except PackageNotFoundError:
+        logger.error("Package metadata not found for %s", PROJECT_NAME)
+        typer.echo(
+            f"Error: Package '{PROJECT_NAME}' metadata not found. "
+            "Is the package installed correctly?",
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
     logger.info("Command `info` called.")
     python_version = platform.python_version()
     python_implementation = platform.python_implementation()

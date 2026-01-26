@@ -41,16 +41,15 @@ jobs:
     # Specifying a GitHub environment is optional, but strongly encouraged
     environment:
       name: publish
-      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}
+      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}{% endraw %}
     steps:
     - name: Download package
       uses: actions/download-artifact@v4
       with:
         name: package-distributions
         path: dist/
-    - name: Publish distribution 📦 to PyPI
+    - name: Publish distribution to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-{% endraw %}
 {% if include_pycrucible %}
   build-executables:
     name: Build Executables
@@ -60,7 +59,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build with PyCrucible
         uses: razorblade23/pycrucible-action@v1
         with:
@@ -85,7 +84,7 @@ jobs:
       IMAGE_NAME: {% raw %}${{ github.repository }}{% endraw %}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import platform
-from importlib.metadata import Distribution
+from importlib.metadata import Distribution, PackageNotFoundError
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -35,7 +35,20 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:  # noqa: ARG001
     """Handle MCP tool calls."""
-    distribution = Distribution.from_name(PROJECT_NAME)
+    try:
+        distribution = Distribution.from_name(PROJECT_NAME)
+    except PackageNotFoundError:
+        logger.error(
+            "Failed to retrieve package metadata for '%s'. "
+            "Ensure the package is installed correctly.",
+            PROJECT_NAME,
+        )
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Package '{PROJECT_NAME}' metadata not found. Is it installed?",
+            )
+        ]
 
     if name == "version":
         logger.info("MCP tool `version` called.")

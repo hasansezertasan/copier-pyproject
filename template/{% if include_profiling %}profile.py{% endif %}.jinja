@@ -36,13 +36,13 @@ import {{github_repo_name}}
 def run_app():
     """Run the main application for profiling."""
     {% if include_cli %}
-    from {{github_repo_name}}.cli import app
+    from {{github_repo_name}}.cli.app import app
     app()
     {% elif include_web %}
-    from {{github_repo_name}}.web import main
+    from {{github_repo_name}}.web.app import main
     main()
     {% elif include_tui %}
-    from {{github_repo_name}}.tui import main
+    from {{github_repo_name}}.tui.app import main
     main()
     {% else %}
     print("No main entry point found. Please modify profile.py to run your app.")
@@ -57,20 +57,46 @@ def profile_pyspy():
 def profile_scalene():
     """Profile with scalene."""
     cmd = [sys.executable, "-m", "scalene", "--cpu", "--memory", __file__, "run"]
-    subprocess.run(cmd)
+    try:
+        result = subprocess.run(cmd, check=False)
+        if result.returncode != 0:
+            print(f"Error: scalene exited with code {result.returncode}", file=sys.stderr)
+            print("Make sure scalene is installed: pip install scalene", file=sys.stderr)
+            sys.exit(result.returncode)
+    except FileNotFoundError:
+        print("Error: scalene module not found.", file=sys.stderr)
+        print("Install it with: pip install scalene", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.SubprocessError as e:
+        print(f"Error running scalene: {e}", file=sys.stderr)
+        sys.exit(1)
 
 def profile_cprofile():
     """Profile with cProfile and visualize with snakeviz."""
     import cProfile
-    import pstats
 
     profile_file = "profile.prof"
-    cProfile.run("run_app()", profile_file)
-    print(f"Profile saved to {profile_file}")
-    print("To visualize:")
-    print(f"snakeviz {profile_file}")
-    print("Or view in browser with:")
-    print(f"python -m pstats {profile_file}")
+    profiler = cProfile.Profile()
+
+    try:
+        profiler.enable()
+        run_app()
+        profiler.disable()
+    except Exception as e:
+        profiler.disable()
+        print(f"Error during profiling: {e}", file=sys.stderr)
+        raise
+
+    try:
+        profiler.dump_stats(profile_file)
+        print(f"Profile saved to {profile_file}")
+        print("To visualize:")
+        print(f"snakeviz {profile_file}")
+        print("Or view in browser with:")
+        print(f"python -m pstats {profile_file}")
+    except (OSError, IOError) as e:
+        print(f"Error: Failed to write profile to {profile_file}: {e}", file=sys.stderr)
+        sys.exit(1)
 
 def main():
     if len(sys.argv) < 2:
