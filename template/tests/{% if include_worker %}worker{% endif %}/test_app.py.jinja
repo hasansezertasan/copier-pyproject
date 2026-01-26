@@ -41,9 +41,24 @@ def test_broker_exists() -> None:
 
 @pytest.mark.asyncio
 async def test_handle_version_request() -> None:
-    """Test version request handler produces correct response."""
+    """Test version request handler processes message and publishes response."""
     async with TestBroker(broker) as tb:
         request = VersionRequest(request_id="test-request-001")
 
-        # The handler should process the message without errors
+        # Capture the published response
+        published_messages: list[VersionResponse] = []
+
+        @tb.subscriber("version-responses")
+        def capture_response(msg: VersionResponse) -> None:
+            published_messages.append(msg)
+
+        # Publish request and let handler process it
         await tb.publish(request, "version-requests")
+
+        # Verify response was published with correct data
+        assert len(published_messages) == 1
+        response = published_messages[0]
+        assert response.request_id == "test-request-001"
+        assert response.version is not None
+        assert response.python_version is not None
+        assert response.platform is not None
