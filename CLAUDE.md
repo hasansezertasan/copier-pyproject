@@ -29,6 +29,9 @@ copier copy --data-file .example-input.yml --defaults . example/
 
 # Force regenerate (overwrites existing)
 copier copy --data-file .example-input.yml --defaults . example/ --force
+
+# Test with specific features enabled
+copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=kafka --defaults --trust . /tmp/test-worker --force
 ```
 
 ### Working with Generated Projects
@@ -58,7 +61,7 @@ uv run --locked pytest tests/test_smoke.py -v
 uv run --locked example version
 uv run --locked example info
 
-# Run the FastAPI web app (if include_web=true)
+# Run the FastAPI/Litestar web app (if include_web=true)
 uv run --locked fastapi dev example.web.app:app
 
 # Run the TUI (if include_tui=true)
@@ -66,6 +69,12 @@ uv run --locked example-tui
 
 # Run the GUI (if include_gui=true)
 uv run --locked example-gui
+
+# Run the MCP server (if include_mcp=true)
+uv run --locked example-mcp
+
+# Run the worker (if include_worker=true)
+uv run --locked example-worker
 
 # Run pre-commit hooks
 uv run --locked tox run -e pre-commit
@@ -99,6 +108,7 @@ pre-commit install
 3. **TODO Markers**: `TODO @{{github_user}}:` generates actionable TODOs in the rendered project
 4. **Raw Blocks**: `{% raw %}${{ github.ref_name }}{% endraw %}` preserves GitHub Actions syntax
 5. **Conditional Files**: `{% if condition %}filename{% endif %}.jinja` includes file only when condition is true
+6. **Whitespace Control**: Use `{%-` and `-%}` to avoid extra blank lines in rendered output
 
 ### Template Variables (copier.yml)
 
@@ -113,14 +123,21 @@ Optional components (all boolean):
 - `include_gui` - Tkinter GUI
 - `include_tui` - Textual TUI
 - `include_mcp` - MCP (Model Context Protocol) server
+- `include_worker` - FastStream message queue worker
 - `include_c_extensions` - Cython support with multi-platform wheels
 - `include_profiling` - py-spy, scalene, cProfile tools
 - `include_pycrucible` - PyCrucible for standalone executables
 - `include_pydantic_settings` - pydantic-settings for config
 
-Framework choices (when parent option is enabled):
+Framework/broker choices (when parent option is enabled):
 
 - `web_framework` - fastapi/litestar (when `include_web` is true)
+- `worker_broker` - kafka/nats/rabbitmq/redis (when `include_worker` is true)
+
+Devcontainer services:
+
+- `include_dbeaver` - CloudBeaver database management UI
+- `include_vpn` - OpenVPN client
 
 Tooling options:
 
@@ -146,10 +163,11 @@ Subpackages (each with `__init__.py` and `app.py`):
   - `config.py` - Configuration (uses pydantic-settings if enabled)
 - `utils/` - Utility functions (always included)
 - `cli/` - Typer CLI with `version` and `info` commands (conditional)
-- `web/` - FastAPI with `/version` and `/info` endpoints (conditional)
+- `web/` - FastAPI/Litestar with `/version` and `/info` endpoints (conditional)
 - `gui/` - Tkinter GUI launcher (conditional)
 - `tui/` - Textual TUI (conditional)
 - `mcp/` - MCP server with `version` and `info` tools (conditional)
+- `worker/` - FastStream message queue worker (conditional)
 
 Other conditional files:
 
@@ -158,12 +176,25 @@ Other conditional files:
 
 Test packages mirror source structure in `tests/`:
 
-- `tests/cli/`, `tests/web/`, `tests/gui/`, `tests/tui/`, `tests/mcp/` (each conditional)
+- `tests/cli/`, `tests/web/`, `tests/gui/`, `tests/tui/`, `tests/mcp/`, `tests/worker/` (each conditional)
 
 Entry points configured in `pyproject.toml`:
 
-- `project.scripts`: `pkg.cli.app:app`, `pkg.tui.app:main`, `pkg.web.app:main`, `pkg.mcp.app:main`
+- `project.scripts`: `pkg.cli.app:app`, `pkg.tui.app:main`, `pkg.web.app:main`, `pkg.mcp.app:main`, `pkg.worker.app:main`
 - `project.gui-scripts`: `pkg.gui.app:main` (launches without terminal)
+
+### Devcontainer Structure
+
+The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
+
+- `devcontainer` - Main development container (always included)
+- Message broker services (conditional on `include_worker` + `worker_broker`):
+  - `kafka` - Bitnami Kafka (KRaft mode)
+  - `nats` - NATS with JetStream
+  - `rabbitmq` - RabbitMQ with management UI
+  - `redis` - Redis
+- `cloudbeaver` - DBeaver CloudBeaver (conditional on `include_dbeaver`)
+- `vpn` - OpenVPN client (conditional on `include_vpn`)
 
 ### Build System
 
@@ -174,9 +205,11 @@ Entry points configured in `pyproject.toml`:
 ### CI/CD Workflows
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
+   - Codecov coverage steps are conditional on `include_codecov`
 2. **CD** (`cd.yml.jinja`): PyPI trusted publishing on GitHub Release
-3. **Release automation**: release-please, release-it, or release-drafter (configurable)
-4. **PR title linting**: Validates conventional commits format
+3. **Build Wheels** (`build-wheels.yml`): Multi-platform Cython wheels (conditional on `include_c_extensions`)
+4. **Release automation**: release-please, release-it, or release-drafter (configurable)
+5. **PR title linting**: Validates conventional commits format
 
 ### PyPI Trusted Publishing Setup
 
@@ -208,6 +241,20 @@ For generated projects to publish to PyPI:
 3. Use `{{variable_name}}` for Copier variable substitution
 4. Test by regenerating `example/` directory
 
+### Adding New Optional Components
+
+1. Add boolean variable to `copier.yml` with `type: bool`, `default`, and `help`
+2. If component has choices (like `worker_broker`), add a separate choice variable with `when: "{{ parent_option }}"`
+3. Create conditional directory: `template/src/{{github_repo_name}}/{% if include_xxx %}xxx{% endif %}/`
+4. Create matching test directory: `template/tests/{% if include_xxx %}xxx{% endif %}/`
+5. Update `pyproject.toml.jinja`:
+   - Add optional dependency
+   - Add to `all` extras
+   - Add entry point if applicable
+   - Add keywords
+6. Update `.example-input.yml` with the new option
+7. Update `README.md` with documentation
+
 ### Modifying Template Variables
 
 1. Edit `copier.yml` to add/change variables
@@ -220,6 +267,7 @@ For generated projects to publish to PyPI:
 - **Escaping**: Use `{% raw %}{% endraw %}` for GitHub Actions syntax
 - **Comments**: Template-only comments use `{# #}`, generated comments use `#`
 - **TODOs**: Use `TODO @{{github_user}}:` pattern for actionable items
+- **Whitespace**: Use `{%-` and `-%}` to eliminate blank lines from conditionals
 
 ### Testing Template Changes
 
@@ -229,9 +277,16 @@ Always test changes by:
 2. Running style checks: `cd example && uv run --locked tox run -e style`
 3. Running tests: `cd example && uv run --locked tox run`
 
+For features with choices (like `worker_broker`), test multiple combinations:
+```bash
+copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=kafka --defaults --trust . /tmp/test-kafka --force
+copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=rabbitmq --defaults --trust . /tmp/test-rabbitmq --force
+```
+
 ## Copier-Specific Behavior
 
 - **Subdirectory**: `_subdirectory: template` means Copier renders from `template/` not root
 - **Answers File**: `{{_copier_conf.answers_file}}.jinja` becomes `.copier-answers.yml`
 - **Update Workflow**: Users run `copier update` to pull template changes
 - **Post-copy Task**: `git init` runs automatically after scaffolding
+- **Trust Flag**: Use `--trust` when testing locally to run post-copy tasks
