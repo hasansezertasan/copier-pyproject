@@ -13,19 +13,14 @@ from fastapi.testclient import TestClient
 from litestar.testing import TestClient
 {% endif %}
 
-from {{github_repo_name}}.web.app import app
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.web.app import app
 
 
 @pytest.fixture
 def client() -> TestClient:
     """Fixture that provides a test client for the web application."""
-{% if web_framework == "fastapi" %}
     return TestClient(app)
-{% endif %}
-{% if web_framework == "litestar" %}
-    return TestClient(app)
-{% endif %}
 
 
 def test_version_endpoint(client: TestClient) -> None:
@@ -149,6 +144,7 @@ def test_info_endpoint_structure(client: TestClient) -> None:
     )
 
 {% if web_framework == "fastapi" %}
+
 def test_openapi_docs_available(client: TestClient) -> None:
     """Test that OpenAPI documentation is available.
 
@@ -177,6 +173,7 @@ def test_openapi_docs_available(client: TestClient) -> None:
     )
 {% endif %}
 {% if web_framework == "litestar" %}
+
 def test_openapi_schema_available(client: TestClient) -> None:
     """Test that OpenAPI schema is available.
 
@@ -197,7 +194,5 @@ def test_openapi_schema_available(client: TestClient) -> None:
         - The endpoint should be accessible and return 200.
     """
     openapi_response = client.get("/schema/openapi.json")
-    assert openapi_response.status_code == 200, (
-        "OpenAPI schema should be available"
-    )
+    assert openapi_response.status_code == 200, "OpenAPI schema should be available"
 {% endif %}

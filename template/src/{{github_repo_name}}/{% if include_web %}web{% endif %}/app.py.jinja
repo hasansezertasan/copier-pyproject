@@ -6,16 +6,18 @@ from __future__ import annotations
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
 {% if web_framework == "fastapi" %}
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 {% endif %}
 {% if web_framework == "litestar" %}
+
 from litestar import Litestar, get
-from litestar.response import Response
+from litestar.exceptions import HTTPException as LitestarHTTPException
 {% endif %}
 
-from {{github_repo_name}}.core.logging_setup import logger
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.logging_setup import logger
 
 {% if web_framework == "fastapi" %}
 app = FastAPI(title="{{github_repo_name}}")
@@ -69,7 +71,6 @@ def get_info() -> JSONResponse:
     return JSONResponse(content=payload)
 {% endif %}
 {% if web_framework == "litestar" %}
-from litestar.exceptions import HTTPException as LitestarHTTPException
 
 
 @get("/version", media_type="text/plain")

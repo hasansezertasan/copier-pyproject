@@ -6,13 +6,12 @@ import platform
 from importlib.metadata import Distribution
 from typing import Any
 
-from {{github_repo_name}}.tui import app as tui_app
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.tui import app as tui_app
 
 
 def test_build_info_message_contains_metadata() -> None:
-    """
-    The TUI message should include core project metadata.
+    """The TUI message should include core project metadata.
 
     Given: The application is installed
     When: build_info_message is called
@@ -28,8 +27,7 @@ def test_build_info_message_contains_metadata() -> None:
 
 
 def test_main_can_skip_tui(capsys: Any) -> None:
-    """
-    When TUI display is skipped, information is printed to stdout.
+    """When TUI display is skipped, information is printed to stdout.
 
     Given: The application is installed
     When: main is called with show_tui=False
@@ -43,16 +41,16 @@ def test_main_can_skip_tui(capsys: Any) -> None:
 
 
 def test_main_handles_display_errors(monkeypatch: Any, capsys: Any) -> None:
-    """
-    Errors while showing the TUI should fall back to stdout.
+    """Errors while showing the TUI should fall back to stdout.
 
     Given: The TUI cannot be displayed
     When: main is called
     Then: The exit code is 1 and info is written to stdout
     """
+    error_message = "boom"
 
     def _raise_display_error(_: str) -> None:
-        raise tui_app.TuiDisplayError("boom")
+        raise tui_app.TuiDisplayError(error_message)
 
     monkeypatch.setattr(tui_app, "_display_tui", _raise_display_error)
 

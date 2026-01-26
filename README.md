@@ -21,9 +21,11 @@ Copier will prompt for:
 - `author_email`
 - `short_description`
 - `include_cli` (include Typer CLI)
-- `include_web` (include FastAPI web app)
+- `include_web` (include web API)
+- `web_framework` (fastapi/litestar - when `include_web` is enabled)
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)
+- `include_mcp` (include MCP server support)
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
 - `include_pycrucible` (include PyCrucible for standalone executables)

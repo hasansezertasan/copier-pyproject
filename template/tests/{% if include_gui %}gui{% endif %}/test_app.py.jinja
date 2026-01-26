@@ -6,8 +6,8 @@ import platform
 from importlib.metadata import Distribution
 from typing import Any
 
-from {{github_repo_name}}.gui import app as gui_app
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.gui import app as gui_app
 
 
 def test_build_info_message_contains_metadata() -> None:
@@ -32,9 +32,10 @@ def test_main_can_skip_gui(capsys: Any) -> None:
 
 def test_main_handles_display_errors(monkeypatch: Any, capsys: Any) -> None:
     """Errors while showing the GUI should fall back to stdout."""
+    error_message = "boom"
 
     def _raise_display_error(_: str) -> None:
-        raise gui_app.GuiDisplayError("boom")
+        raise gui_app.GuiDisplayError(error_message)
 
     monkeypatch.setattr(gui_app, "_display_message", _raise_display_error)
 

@@ -43,12 +43,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:  # noqa: A
             "Ensure the package is installed correctly.",
             PROJECT_NAME,
         )
-        return [
-            TextContent(
-                type="text",
-                text=f"Error: Package '{PROJECT_NAME}' metadata not found. Is it installed?",
-            )
-        ]
+        error_msg = (
+            f"Error: Package '{PROJECT_NAME}' metadata not found. Is it installed?"
+        )
+        return [TextContent(type="text", text=error_msg)]
 
     if name == "version":
         logger.info("MCP tool `version` called.")
@@ -73,7 +71,8 @@ async def run_server() -> None:
     """Run the MCP server using stdio transport."""
     logger.info("Starting MCP server for {{github_repo_name}}")
     async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+        init_options = server.create_initialization_options()
+        await server.run(read_stream, write_stream, init_options)
 
 
 def main() -> None:

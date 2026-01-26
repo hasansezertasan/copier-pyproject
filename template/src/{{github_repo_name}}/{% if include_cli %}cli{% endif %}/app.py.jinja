@@ -73,6 +73,7 @@ def info() -> None:
     logger.info("Application information displayed successfully.")
 
 {% if include_tui %}
+
 @app.command()
 def interactive() -> None:
     """Start interactive mode for {{github_repo_name}}.
@@ -81,10 +82,11 @@ def interactive() -> None:
         {{github_repo_name}} interactive
     """
     from {{github_repo_name}}.tui.app import main
+
     main()
 {% endif %}
-
 {% if include_gui %}
+
 @app.command()
 def gui() -> None:
     """Start graphical user interface for {{github_repo_name}}.
@@ -93,10 +95,11 @@ def gui() -> None:
         {{github_repo_name}} gui
     """
     from {{github_repo_name}}.gui.app import main
+
     main()
 {% endif %}
-
 {% if include_web %}
+
 @app.command()
 def web() -> None:
     """Start web interface for {{github_repo_name}}.
@@ -105,6 +108,7 @@ def web() -> None:
         {{github_repo_name}} web
     """
     import uvicorn
+
     from {{github_repo_name}}.web.app import app as web_app
 
     uvicorn.run(web_app, host="0.0.0.0", port=8000)
