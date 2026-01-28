@@ -72,8 +72,6 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8080:8080"
     restart: unless-stopped

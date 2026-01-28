@@ -3,9 +3,26 @@
 from __future__ import annotations
 
 import pytest
-from faststream.testing import TestBroker
+{%- if worker_broker == "kafka" %}
+from faststream.kafka import TestKafkaBroker
+{%- endif %}
+{%- if worker_broker == "nats" %}
+from faststream.nats import TestNatsBroker
+{%- endif %}
+{%- if worker_broker == "rabbitmq" %}
+from faststream.rabbit import TestRabbitBroker
+{%- endif %}
+{%- if worker_broker == "redis" %}
+from faststream.redis import TestRedisBroker
+{%- endif %}
 
-from {{github_repo_name}}.worker.app import VersionRequest, VersionResponse, app, broker
+from {{github_repo_name}}.worker.app import (
+    VersionRequest,
+    VersionResponse,
+    broker,
+    handle_version_request,
+    version_response_publisher,
+)
 
 
 def test_version_request_model() -> None:
@@ -28,37 +45,40 @@ def test_version_response_model() -> None:
     assert response.platform == "Linux"
 
 
-def test_app_metadata() -> None:
-    """Test FastStream app has correct metadata."""
-    assert app.title == "{{github_repo_name}} Worker"
-    assert app.description == "Message queue worker for {{github_repo_name}}"
-
-
 def test_broker_exists() -> None:
     """Test broker is properly configured."""
     assert broker is not None
 
 
+{% if worker_broker == "kafka" -%}
+TestBroker = TestKafkaBroker
+{% endif -%}
+{% if worker_broker == "nats" -%}
+TestBroker = TestNatsBroker
+{% endif -%}
+{% if worker_broker == "rabbitmq" -%}
+TestBroker = TestRabbitBroker
+{% endif -%}
+{% if worker_broker == "redis" -%}
+TestBroker = TestRedisBroker
+{% endif %}
+
 @pytest.mark.asyncio
 async def test_handle_version_request() -> None:
     """Test version request handler processes message and publishes response."""
     async with TestBroker(broker) as tb:
-        request = VersionRequest(request_id="test-request-001")
+        await tb.publish(
+            VersionRequest(request_id="test-request-001"),
+            "version-requests",
+        )
 
-        # Capture the published response
-        published_messages: list[VersionResponse] = []
+        handle_version_request.mock.assert_called_once_with(
+            {"request_id": "test-request-001"},
+        )
 
-        @tb.subscriber("version-responses")
-        def capture_response(msg: VersionResponse) -> None:
-            published_messages.append(msg)
-
-        # Publish request and let handler process it
-        await tb.publish(request, "version-requests")
-
-        # Verify response was published with correct data
-        assert len(published_messages) == 1
-        response = published_messages[0]
-        assert response.request_id == "test-request-001"
-        assert response.version is not None
-        assert response.python_version is not None
-        assert response.platform is not None
+        version_response_publisher.mock.assert_called_once()
+        published = version_response_publisher.mock.call_args[0][0]
+        assert published["request_id"] == "test-request-001"
+        assert "version" in published
+        assert "python_version" in published
+        assert "platform" in published
