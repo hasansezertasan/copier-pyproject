@@ -100,15 +100,7 @@ dependency_management:
 include_changelog:
   type: bool
   default: true
-  help: "Include CHANGELOG.md file for tracking project changes?"
-include_contributing:
-  type: bool
-  default: true
-  help: "Include CONTRIBUTING.md file with contribution guidelines?"
-include_code_of_conduct:
-  type: bool
-  default: true
-  help: "Include CODE_OF_CONDUCT.md file for community standards?"
+  help: "Use conventional changelog format (Keep a Changelog)? If false, CHANGELOG.md links to GitHub Releases instead."
 include_citation:
   type: bool
   default: true

@@ -35,8 +35,6 @@ Copier will prompt for:
 - `release_automation` (none/release-please/release-it/release-drafter)
 - `dependency_management` (none/renovate/dependabot)
 - `include_changelog` (include CHANGELOG.md)
-- `include_contributing` (include CONTRIBUTING.md)
-- `include_code_of_conduct` (include CODE_OF_CONDUCT.md)
 - `include_citation` (include CITATION.cff)
 - `include_pants` (include Pants build system)
 - `include_codecov` (include Codecov configuration)

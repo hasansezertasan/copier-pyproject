@@ -19,8 +19,6 @@ include_pydantic_settings: false
 release_automation: none
 dependency_management: none
 include_changelog: false
-include_contributing: false
-include_code_of_conduct: false
 include_citation: false
 include_pants: false
 include_codecov: false
