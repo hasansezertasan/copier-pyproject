@@ -224,7 +224,7 @@ include = ["/README.md", "LICENSE", "/{{github_repo_name}}", "/tests"]
 [tool.commitizen]
 major_version_zero = true
 name = "cz_conventional_commits"
-tag_format = "$version"
+tag_format = "v$version"
 {% if include_changelog %}
 update_changelog_on_bump = true
 {% else %}
