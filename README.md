@@ -42,6 +42,8 @@ Copier will prompt for:
 - `include_trunk` (include Trunk linting/formatting)
 - `include_commitizen` (include Commitizen)
 - `include_precommit` (use pre-commit hooks)
+- `include_dbeaver` (include CloudBeaver database UI in devcontainer)
+- `include_vpn` (include OpenVPN sidecar in devcontainer)
 
 ## Scaffold a project
 

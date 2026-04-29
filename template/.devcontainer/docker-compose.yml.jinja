@@ -1,15 +1,12 @@
 ---
+{%- set redis_enabled = include_redis or (include_worker and worker_broker == 'redis') -%}
+{%- set redis_image = (redis_backend ~ ':latest') if include_redis else 'redis:latest' -%}
+{%- set redis_cli = 'valkey-cli' if (include_redis and redis_backend == 'valkey') else 'redis-cli' -%}
+{%- set has_healthy_deps = include_postgres or redis_enabled -%}
 services:
   # Update this to the name of the service you want to work with in your docker-compose.yml file
   devcontainer:
-    # Uncomment if you want to override the service's Dockerfile to one in the .devcontainer
-    # folder. Note that the path of the Dockerfile and context is relative to the *primary*
-    # docker-compose.yml file (the first in the devcontainer.json "dockerComposeFile"
-    # array). The sample below assumes your primary file is in the root of your project.
-    #
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
     volumes:
       # Update this to wherever you want VS Code to mount the folder of your project
       - ../..:/workspaces:cached
@@ -21,19 +18,89 @@ services:
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
-{% if include_worker %}
-{% if worker_broker == "rabbitmq" %}
-  rabbitmq:
-    image: rabbitmq:4.0-management
+{%- if include_postgres or redis_enabled %}
+    env_file:
+      - ../.env
+{%- endif %}
+{%- if include_vpn %}
+    # Share the vpn service's network namespace so all devcontainer traffic
+    # routes through the VPN tunnel. Port forwards must be declared on the
+    # `vpn` service rather than here when this is enabled.
+    network_mode: "service:vpn"
+{%- endif %}
+{%- if has_healthy_deps or include_vpn %}
+    depends_on:
+{%- if include_vpn %}
+      - vpn
+{%- endif %}
+{%- if include_postgres %}
+      postgres:
+        condition: service_healthy
+{%- endif %}
+{%- if redis_enabled %}
+      redis:
+        condition: service_healthy
+{%- endif %}
+{%- endif %}
+{%- if include_postgres %}
+  postgres:
+    image: postgres:latest
     restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+{%- endif %}
+{%- if redis_enabled %}
+  redis:
+    image: {{ redis_image }}
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "{{ redis_cli }}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+{%- endif %}
+{%- if include_worker %}
+{%- if worker_broker == "rabbitmq" %}
+  rabbitmq:
+    image: rabbitmq:4.0.9-management
+    restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
     ports:
       - "5672:5672"
       - "15672:15672"
-{% endif %}
-{% if worker_broker == "kafka" %}
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+{%- endif -%}
+{%- if worker_broker == "kafka" %}
   kafka:
     image: bitnami/kafka:latest
     restart: unless-stopped
@@ -46,8 +113,12 @@ services:
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
     ports:
       - "9092:9092"
-{% endif %}
-{% if worker_broker == "nats" %}
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+{%- endif -%}
+{%- if worker_broker == "nats" %}
   nats:
     image: nats:latest
     restart: unless-stopped
@@ -55,32 +126,59 @@ services:
     ports:
       - "4222:4222"
       - "8222:8222"
-{% endif %}
-{% if worker_broker == "redis" %}
-  redis:
-    image: redis:latest
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+{%- endif -%}
+{%- endif -%}
+{%- if include_pgadmin %}
+  pgadmin:
+    profiles:
+      - tools
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+{%- endif -%}
+{%- if include_adminer %}
+  adminer:
+    profiles:
+      - tools
+    image: adminer:latest
     restart: unless-stopped
     ports:
-      - "6379:6379"
-{% endif %}
-{% endif %}
-{% if include_dbeaver %}
+      - "8081:8080"
+    depends_on:
+      - postgres
+{%- endif -%}
+{%- if include_dbeaver %}
   cloudbeaver:
+    profiles:
+      - tools
     image: dbeaver/cloudbeaver:latest
-    container_name: dbeaver
+    restart: unless-stopped
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Etc/UTC
     ports:
-      - "8080:8080"
-    restart: unless-stopped
-{% endif %}
-{% if include_vpn %}
+      - "8978:8978"
+{%- endif -%}
+{%- if include_vpn %}
   vpn:
     image: dperson/openvpn-client
     cap_add:
-      - net_admin
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
     environment:
       TZ: "EST5EDT"
     read_only: true
@@ -94,4 +192,13 @@ services:
     tty: true
     volumes:
       - ./vpn:/vpn
-{% endif %}
+{%- endif %}
+{%- if include_postgres or redis_enabled %}
+volumes:
+{%- if include_postgres %}
+  postgres-data: {}
+{%- endif %}
+{%- if redis_enabled %}
+  redis-data: {}
+{%- endif %}
+{%- endif %}

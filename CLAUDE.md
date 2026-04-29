@@ -188,13 +188,20 @@ Entry points configured in `pyproject.toml`:
 The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 - `devcontainer` - Main development container (always included)
+  - Uses `ghcr.io/astral-sh/uv:python3.14-bookworm-slim` image directly (no Dockerfile)
+  - `devcontainer.json.jinja` features: `git:1` (always), `mise:1` (when `include_mise`)
+  - When `include_vpn` is true, devcontainer sets `network_mode: "service:vpn"` and `depends_on: [vpn]` so all traffic routes through the VPN tunnel
 - Message broker services (conditional on `include_worker` + `worker_broker`):
   - `kafka` - Bitnami Kafka (KRaft mode)
   - `nats` - NATS with JetStream
   - `rabbitmq` - RabbitMQ with management UI
   - `redis` - Redis
 - `cloudbeaver` - DBeaver CloudBeaver (conditional on `include_dbeaver`)
-- `vpn` - OpenVPN client (conditional on `include_vpn`)
+- `vpn` - OpenVPN client sidecar (conditional on `include_vpn`)
+  - Uses `dperson/openvpn-client` with `NET_ADMIN` cap and `/dev/net/tun` device
+  - Mounts `./vpn:/vpn` — drop `.ovpn` config + optional `vpn.auth` credentials there
+  - Conditional `vpn/` subdir is rendered with a README and `.gitignore` (whitelists README only)
+  - Devcontainer shares the vpn service's network namespace via `network_mode`; port forwards must be declared on the `vpn` service rather than `devcontainer`
 
 ### Build System
 

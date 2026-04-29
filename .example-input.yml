@@ -26,5 +26,10 @@ include_mise: false
 include_trunk: false
 include_commitizen: false
 include_precommit: false
+include_postgres: false
+include_redis: false
+redis_backend: redis
+include_pgadmin: false
+include_adminer: false
 include_dbeaver: false
 include_vpn: false

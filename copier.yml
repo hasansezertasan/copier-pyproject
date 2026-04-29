@@ -129,10 +129,36 @@ include_precommit:
   type: bool
   default: false
   help: "Include pre-commit hooks configuration?"
+include_postgres:
+  type: bool
+  default: false
+  help: "Include PostgreSQL database service in devcontainer?"
+include_redis:
+  type: bool
+  default: false
+  help: "Include Redis/Valkey cache service in devcontainer?"
+redis_backend:
+  type: str
+  default: redis
+  choices:
+    - redis
+    - valkey
+  when: "{{ include_redis }}"
+  help: "Choose the Redis-compatible backend image (redis or valkey)"
+include_pgadmin:
+  type: bool
+  default: false
+  when: "{{ include_postgres }}"
+  help: "Include pgAdmin for PostgreSQL management (gated behind 'tools' compose profile)?"
+include_adminer:
+  type: bool
+  default: false
+  when: "{{ include_postgres }}"
+  help: "Include Adminer for database management (gated behind 'tools' compose profile)?"
 include_dbeaver:
   type: bool
   default: false
-  help: "Include DBeaver CloudBeaver for database management in devcontainer?"
+  help: "Include DBeaver CloudBeaver for database management (gated behind 'tools' compose profile)?"
 include_vpn:
   type: bool
   default: false
