@@ -1,0 +1,59 @@
+"""Tests for the MCP server."""
+
+from __future__ import annotations
+
+import platform
+from importlib.metadata import Distribution
+
+import pytest
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.mcp.app import call_tool, list_tools
+
+
+@pytest.mark.asyncio
+async def test_list_tools_returns_expected_tools() -> None:
+    """Test that list_tools returns the expected tools."""
+    tools = await list_tools()
+
+    assert len(tools) == 2
+
+    tool_names = {tool.name for tool in tools}
+    assert "version" in tool_names
+    assert "info" in tool_names
+
+
+@pytest.mark.asyncio
+async def test_version_tool_returns_version() -> None:
+    """Test that the version tool returns the correct version."""
+    result = await call_tool("version", {})
+
+    distribution = Distribution.from_name(PROJECT_NAME)
+    expected_version = distribution.version
+
+    assert len(result) == 1
+    assert result[0].type == "text"
+    assert result[0].text == expected_version
+
+
+@pytest.mark.asyncio
+async def test_info_tool_returns_runtime_info() -> None:
+    """Test that the info tool returns runtime information."""
+    result = await call_tool("info", {})
+
+    distribution = Distribution.from_name(PROJECT_NAME)
+
+    assert len(result) == 1
+    assert result[0].type == "text"
+
+    info_text = result[0].text
+    assert distribution.version in info_text
+    assert platform.python_version() in info_text
+    assert platform.system() in info_text
+
+
+@pytest.mark.asyncio
+async def test_unknown_tool_raises_error() -> None:
+    """Test that calling an unknown tool raises ValueError."""
+    with pytest.raises(ValueError, match="Unknown tool"):
+        await call_tool("unknown_tool", {})

@@ -41,19 +41,91 @@ jobs:
     # Specifying a GitHub environment is optional, but strongly encouraged
     environment:
       name: publish
-      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}
+      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}{% endraw %}
     steps:
     - name: Download package
       uses: actions/download-artifact@v4
       with:
         name: package-distributions
         path: dist/
-    - name: Publish distribution 📦 to PyPI
+    - name: Publish distribution to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+{% if include_pycrucible %}
+  build-executables:
+    name: Build Executables
+    needs: build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build with PyCrucible
+        uses: razorblade23/pycrucible-action@v1
+        with:
+          source: '.'
+          output: './dist/{{github_repo_name}}'
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: {{github_repo_name}}-executable-{% raw %}${{ matrix.os }}{% endraw %}
+          path: ./dist/
+{% endif %}
+{%- if include_web %}
+  docker-publish:
+    name: Publish Docker Image
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to Docker Hub
+        if: {% raw %}${{ secrets.DOCKERHUB_USERNAME != '' }}{% endraw %}
+        uses: docker/login-action@v3
+        with:
+          username: {% raw %}${{ secrets.DOCKERHUB_USERNAME }}{% endraw %}
+          password: {% raw %}${{ secrets.DOCKERHUB_TOKEN }}{% endraw %}
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: {% raw %}${{ github.actor }}{% endraw %}
+          password: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            {% raw %}${{ secrets.DOCKERHUB_USERNAME != '' && format('docker.io/{0}', github.repository) || '' }}{% endraw %}
+            ghcr.io/{% raw %}${{ github.repository }}{% endraw %}
+          tags: |
+            type=semver,pattern={{"{{"}}version{{"}}"}}
+            type=semver,pattern={{"{{"}}major{{"}}"}}.{{"{{"}}minor{{"}}"}}
+            type=semver,pattern={{"{{"}}major{{"}}"}}
+            type=raw,value=latest,enable={{"{{"}}is_default_branch{{"}}"}}
+            type=sha,prefix=
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: {% raw %}${{ steps.meta.outputs.tags }}{% endraw %}
+          labels: {% raw %}${{ steps.meta.outputs.labels }}{% endraw %}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+{%- endif %}
   attach-github-release:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
-    needs: pypi-publish
+    needs: {% if include_pycrucible %}[pypi-publish, build-executables]{% else %}pypi-publish{% endif %}
     permissions:
       contents: write  # IMPORTANT: Mandatory for GitHub Release
     steps:
@@ -62,6 +134,15 @@ jobs:
       with:
         name: package-distributions
         path: dist/
+{% if include_pycrucible %}
+    - name: Download executables
+      uses: actions/download-artifact@v4
+      with:
+        pattern: {{github_repo_name}}-executable-*
+        path: dist/executables/
+        merge-multiple: true
+{% endif %}
+{% raw %}
     - name: Attach Build Artifacts to GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -19,8 +19,10 @@ keywords = [
     "ci-cd", "github-actions", "automation", "mkdocs",
     "pre-commit", "linting", "testing", "coverage", "release-automation",
     {% if include_cli %}"typer",{% endif %}
-    {% if include_web %}"fastapi", "docker",{% endif %}
+    {% if include_web %}{% if web_framework == "fastapi" %}"fastapi",{% endif %}{% if web_framework == "litestar" %}"litestar",{% endif %} "docker",{% endif %}
     {% if include_tui %}"textual", "tui",{% endif %}
+    {% if include_mcp %}"mcp", "model-context-protocol",{% endif %}
+    {% if include_worker %}"faststream", "message-queue", "{{worker_broker}}",{% endif %}
     {% if include_pydantic_settings %}"pydantic",{% endif %}
     {% if include_c_extensions %}"cython", "c-extensions", "performance",{% endif %}
 ]
@@ -53,7 +55,8 @@ classifiers = [
   "Topic :: Utilities",
 {% endif %}
 {% if include_web %}
-  "Framework :: FastAPI",
+{% if web_framework == "fastapi" %}  "Framework :: FastAPI",{% endif %}
+{% if web_framework == "litestar" %}  "Framework :: Litestar",{% endif %}
   "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
 {% endif %}
 {% if include_tui %}
@@ -69,14 +72,21 @@ dependencies = []
 
 [project.optional-dependencies]
 {% if include_cli %}cli = ["typer>=0.20.0"]{% endif %}
-{% if include_web %}web = ["fastapi[all]>=0.123.5"]{% endif %}
+{% if include_web %}
+{% if web_framework == "fastapi" %}web = ["fastapi[all]>=0.123.5"]{% endif %}
+{% if web_framework == "litestar" %}web = ["litestar[standard]>=2.0.0"]{% endif %}
+{% endif %}
 {% if include_tui %}tui = ["textual>=0.50.0"]{% endif %}
+{% if include_mcp %}mcp = ["mcp>=1.0.0"]{% endif %}
+{% if include_worker %}worker = ["faststream[{{worker_broker}}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
 all = [
-    {% if include_cli %}"cli",{% endif%}
-    {% if include_web %}"web",{% endif%}
-    {% if include_tui %}"tui",{% endif%}
-    {% if include_pydantic_settings %}"config",{% endif%}
+    {% if include_cli %}"typer>=0.20.0",{% endif %}
+    {% if include_web %}{% if web_framework == "fastapi" %}"fastapi[all]>=0.123.5",{% endif %}{% if web_framework == "litestar" %}"litestar[standard]>=2.0.0",{% endif %}{% endif %}
+    {% if include_tui %}"textual>=0.50.0",{% endif %}
+    {% if include_mcp %}"mcp>=1.0.0",{% endif %}
+    {% if include_worker %}"faststream[{{worker_broker}}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",{% endif %}
+    {% if include_pydantic_settings %}"pydantic-settings>=2.0.0",{% endif %}
 ]
 
 
@@ -88,15 +98,17 @@ issues = "https://github.com/{{github_user}}/{{github_repo_name}}/issues"
 releasenotes = "https://github.com/{{github_user}}/{{github_repo_name}}/releases"
 source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
 
-{% if include_cli or include_tui or include_web %}
+{% if include_cli or include_tui or include_web or include_mcp or include_worker %}
 [project.scripts]
-{% if include_cli %}{{github_repo_name}} = "{{github_repo_name}}.cli:app"{% endif %}
-{% if include_tui %}{{github_repo_name}}-tui = "{{github_repo_name}}.tui:main"{% endif %}
-{% if include_web %}{{github_repo_name}}-web = "{{github_repo_name}}.web:main"{% endif %}
+{% if include_cli %}{{github_repo_name}} = "{{github_repo_name}}.cli.app:app"{% endif %}
+{% if include_tui %}{{github_repo_name}}-tui = "{{github_repo_name}}.tui.app:main"{% endif %}
+{% if include_web %}{{github_repo_name}}-web = "{{github_repo_name}}.web.app:main"{% endif %}
+{% if include_mcp %}{{github_repo_name}}-mcp = "{{github_repo_name}}.mcp.app:main"{% endif %}
+{% if include_worker %}{{github_repo_name}}-worker = "{{github_repo_name}}.worker.app:main"{% endif %}
 {% endif %}
 {% if include_gui %}
 [project.gui-scripts]
-{{github_repo_name}}-gui = "{{github_repo_name}}.gui:main"
+{{github_repo_name}}-gui = "{{github_repo_name}}.gui.app:main"
 {% endif %}
 
 
@@ -105,22 +117,36 @@ dev = [
   "{{github_repo_name}}[all]",
   "tox==4.31.0",
   "tox-uv==1.29.0",
+  "debugpy==1.8.0",
   { include-group = "style" },
   { include-group = "test" },
 ]
 style = [
   "actionlint-py==1.7.9.24",
+  "basedpyright==1.36.1",
   "editorconfig-checker==3.6.0",
-  "mypy==1.19.0",
-  "pyrefly==0.44.0",
+  "mypy==1.19.1",
+  "pyrefly==0.46.0",
   "pyright==1.1.407",
-  "ruff==0.14.8",
+  "ruff==0.14.9",
   "slotscheck==0.19.1",
   "taplo==0.9.3",
-  "ty==0.0.1a33",
+  "ty==0.0.2",
   "typos==1.40.0",
   "validate-pyproject[all]==0.24.1",
   "vulture==2.14",
+  "zuban==0.3.0",
+  # "bandit==1.9.2",
+  # "google-yamlfmt",
+  # "pyupgrade-directories",
+  # "shellcheck-makefile>=1.27.3",
+  # "shellcheck-py>=0.10.0.1",
+  # "types-PyYAML",
+  # "types-setuptools",
+  # "types-ujson",
+  # "yamlfix>=1.18.0",
+  # "yamlfmt>=1.1.1",
+  # "yamllint>=1.37.1",
 ]
 test = [
   "coverage-enable-subprocess==1.0",
@@ -131,6 +157,7 @@ test = [
   "pytest-xdist[psutil]==3.8.0",
   "pytest==8.4.2",
   "pytest-sugar",
+  "pytest-asyncio>=0.23.0",
   "dirty-equals",
   "inline-snapshot"
 ]
@@ -140,11 +167,15 @@ docs = [
 ]
 tool = [
   {% if include_commitizen %}"commitizen==4.10.0",{% endif %}
-  {% if include_poe %}"poethepoet==0.38.0",{% endif %}
   {% if include_c_extensions %}"cython>=3.0.0",{% endif %}
-  "copier==9.11.0",
+  {% if include_profiling %}"py-spy>=0.4.0", "scalene>=1.5.0", "snakeviz>=2.2.0",{% endif %}
+  # "marimo==0.15.2",
+  # "bump-my-version==1.2.4",
+  # "inflection==0.5.1",
+  # "copier==9.11.0",
 ]
 pre-commit = [
+    "prek==0.2.23",
     "pre-commit-uv==4.2.0",
     "pre-commit==4.5.0",
 ]
@@ -193,7 +224,7 @@ include = ["/README.md", "LICENSE", "/{{github_repo_name}}", "/tests"]
 [tool.commitizen]
 major_version_zero = true
 name = "cz_conventional_commits"
-tag_format = "$version"
+tag_format = "v$version"
 {% if include_changelog %}
 update_changelog_on_bump = true
 {% else %}
@@ -206,6 +237,7 @@ version_scheme = "pep404"
 [tool.pytest.ini_options]
 # addopts = "-rXs --strict-config --strict-markers"
 addopts = "-v --tb=short"
+asyncio_mode = "auto"
 filterwarnings = ["error"]
 testpaths = ["tests"]
 xfail_strict = true
@@ -342,33 +374,13 @@ python-version = "3.10"
 project-includes = ["src"]
 
 
-{% if include_poe %}
-[tool.poe]
-executor.type = "uv"
-
-
-[tool.poe.tasks.test]
-help = "Run tests"
-cmd = "tox run"
-
-
-[tool.poe.tasks.style]
-help = "Run Style"
-cmd = "tox run -e style"
-
-
-[tool.poe.tasks.pypi-readme]
-help = "Generate Fancy PyPI README"
-shell = "hatch-fancy-pypi-readme -o PyPI.md && open PyPI.md"
-{% endif %}
-
-
 [tool.tox]
 env_list = [
     "style",
     {% if include_cli %}"cli",{% endif %}
     {% if include_web %}"web",{% endif %}
     {% if include_tui %}"tui",{% endif %}
+    {% if include_worker %}"worker",{% endif %}
     {% if include_pydantic_settings %}"config",{% endif %}
     "3.14",
     "3.13",
@@ -461,6 +473,7 @@ commands = [
   [
     "actionlint",
   ],
+  # ["yamlfmt", "."],
 ]
 dependency_groups = ["style"]
 description = "Run Checkers, Linters and Formatters"
@@ -487,9 +500,53 @@ dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
 runner = "uv-venv-runner"
 
+{% if include_profiling %}
+[tool.tox.env.profile]
+commands = [
+  [
+    "python",
+    "-c",
+    "import {{github_repo_name}}; print('Profiling setup complete. Run tools manually or use profile.py script.')",
+  ],
+]
+dependency_groups = ["tool"]
+description = "Setup environment for profiling with py-spy, scalene, and cProfile"
+runner = "uv-venv-runner"
+{% endif %}
+
 {% if include_cli %}
 [tool.tox.env.cli]
 commands = [["{{github_repo_name}}", "version", { replace = "posargs", extend = true }]]
 description = "Run the CLI application."
 runner = "uv-venv-runner"
+{% endif %}
+
+{% if include_worker %}
+[tool.tox.env.worker]
+commands = [["{{github_repo_name}}-worker", { replace = "posargs", extend = true }]]
+description = "Run the message queue worker application."
+runner = "uv-venv-runner"
+{% endif %}
+
+{% if include_pycrucible %}
+[tool.pycrucible]
+{% if include_cli %}
+entrypoint = "src/{{github_repo_name}}/cli/app.py"
+{% elif include_gui %}
+entrypoint = "src/{{github_repo_name}}/gui/app.py"
+{% elif include_tui %}
+entrypoint = "src/{{github_repo_name}}/tui/app.py"
+{% elif include_web %}
+entrypoint = "uvicorn {{github_repo_name}}.web.app:app --host 0.0.0.0 --port 8000"
+{% else %}
+entrypoint = "src/{{github_repo_name}}/__main__.py"
+{% endif %}
+
+[tool.pycrucible.options]
+debug = false
+extract_to_temp = false
+
+[tool.pycrucible.patterns]
+include = ["**/**.py", "**/*.toml", "**/*.json", "**/*.yaml", "**/*.yml"]
+exclude = ["**/__pycache__/**", "**/.git/**", "**/tests/**", "**/.venv/**"]
 {% endif %}

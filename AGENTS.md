@@ -11,8 +11,9 @@
 # Pre-commit: uv run --locked tox run -e pre-commit
 # Build: uv build
 # Run CLI: uv run --locked <repo-name> version
-# Run FastAPI: uv run --locked fastapi dev <repo-name>.web:app
+# Run FastAPI: uv run --locked fastapi dev <repo-name>.web.app:app
 # Serve docs: uv run --only-group docs mkdocs serve
+# Profile: uv run --locked tox run -e profile (if profiling enabled)
 # Trunk check: trunk check (if configured)
 # Pants lint: pants lint :: (if configured)
 ```
@@ -27,4 +28,4 @@
 - **Structure**: Code in `src/{{github_repo_name}}/`, tests in `tests/`
 - **Tools**: Ruff (full rules, complexity ≤5), MyPy/Pyright strict, pytest + coverage, pre-commit
 - **Template**: `.jinja` files, `{{variables}}`, `{% raw %}` for Jinja escaping
-- **Optional Tools**: Poe (poethepoet) for task running, configurable via `include_poe`; Commitizen for version management, configurable via `include_commitizen`
+- **Optional Tools**: mise for task running (configurable via `include_mise`); Commitizen for version management (configurable via `include_commitizen`)

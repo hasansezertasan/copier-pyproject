@@ -97,3 +97,15 @@ repos:
     hooks:
       - id: yamlfmt
         name: YAML Formatter
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
+    hooks:
+      - id: pyupgrade
+        args:
+          - --py38-plus
+  - repo: https://github.com/djlint/djLint
+    rev: v1.34.1
+    hooks:
+      - id: djlint-reformat-jinja
+        args: [--configuration=pyproject.toml]
+      - id: djlint-jinja

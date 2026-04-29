@@ -1,0 +1,198 @@
+"""Test cases for the Web application endpoints."""
+
+from __future__ import annotations
+
+import platform
+from importlib.metadata import Distribution
+
+import pytest
+{% if web_framework == "fastapi" %}
+from fastapi.testclient import TestClient
+{% endif %}
+{% if web_framework == "litestar" %}
+from litestar.testing import TestClient
+{% endif %}
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.web.app import app
+
+
+@pytest.fixture
+def client() -> TestClient:
+    """Fixture that provides a test client for the web application."""
+    return TestClient(app)
+
+
+def test_version_endpoint(client: TestClient) -> None:
+    """Test the `/version` endpoint of the web application.
+
+    This test checks if the `/version` endpoint returns the correct version
+    as plain text.
+
+    Scenario:
+        - Send a GET request to the `/version` endpoint.
+
+    Expected Result:
+        - The response should have status code 200.
+        - The response should return plain text content.
+        - The content should match the package version.
+
+    Given:
+        - The application is set up with a `/version` endpoint.
+    When:
+        - A GET request is made to `/version`.
+    Then:
+        - The response status code should be 200.
+        - The response content type should be `text/plain`.
+        - The response body should contain the application version.
+    """
+    response = client.get("/version")
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+{% if web_framework == "fastapi" %}
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+{% endif %}
+{% if web_framework == "litestar" %}
+    assert "text/plain" in response.headers["content-type"]
+{% endif %}
+
+    distribution = Distribution.from_name(PROJECT_NAME)
+    expected_version = distribution.version
+    assert response.text == expected_version, (
+        f"Expected {expected_version}, got {response.text}"
+    )
+
+
+def test_info_endpoint(client: TestClient) -> None:
+    """Test the `/info` endpoint of the web application.
+
+    This test checks if the `/info` endpoint returns the correct application
+    information as JSON.
+
+    Scenario:
+        - Send a GET request to the `/info` endpoint.
+
+    Expected Result:
+        - The response should have status code 200.
+        - The response should return JSON content.
+        - The JSON should contain application_version, python_version,
+          python_implementation, and platform fields.
+
+    Given:
+        - The application is set up with an `/info` endpoint.
+    When:
+        - A GET request is made to `/info`.
+    Then:
+        - The response status code should be 200.
+        - The response content type should be `application/json`.
+        - The response body should contain all required fields with correct values.
+    """
+    response = client.get("/info")
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    assert "application/json" in response.headers["content-type"]
+
+    data = response.json()
+    distribution = Distribution.from_name(PROJECT_NAME)
+    expected_version = distribution.version
+
+    assert "application_version" in data
+    assert data["application_version"] == expected_version
+
+    assert "python_version" in data
+    assert data["python_version"] == platform.python_version()
+
+    assert "python_implementation" in data
+    assert data["python_implementation"] == platform.python_implementation()
+
+    assert "platform" in data
+    assert data["platform"] == platform.system()
+
+
+def test_info_endpoint_structure(client: TestClient) -> None:
+    """Test the `/info` endpoint response structure.
+
+    This test verifies that the `/info` endpoint returns a JSON object
+    with the expected keys.
+
+    Scenario:
+        - Send a GET request to the `/info` endpoint.
+
+    Expected Result:
+        - The response should be a JSON object.
+        - The JSON object should have exactly 4 keys:
+          application_version, python_version, python_implementation, platform.
+
+    Given:
+        - The application is set up with an `/info` endpoint.
+    When:
+        - A GET request is made to `/info`.
+    Then:
+        - The response should contain exactly the expected keys.
+    """
+    response = client.get("/info")
+    data = response.json()
+
+    expected_keys = {
+        "application_version",
+        "python_version",
+        "python_implementation",
+        "platform",
+    }
+    actual_keys = set(data.keys())
+
+    assert actual_keys == expected_keys, (
+        f"Expected keys {expected_keys}, got {actual_keys}"
+    )
+
+{% if web_framework == "fastapi" %}
+
+def test_openapi_docs_available(client: TestClient) -> None:
+    """Test that OpenAPI documentation is available.
+
+    This test verifies that FastAPI's automatic API documentation
+    endpoints are accessible.
+
+    Scenario:
+        - Send GET requests to `/docs` and `/openapi.json`.
+
+    Expected Result:
+        - Both endpoints should return status code 200.
+
+    Given:
+        - FastAPI automatically generates OpenAPI documentation.
+    When:
+        - GET requests are made to the documentation endpoints.
+    Then:
+        - The endpoints should be accessible and return 200.
+    """
+    docs_response = client.get("/docs")
+    assert docs_response.status_code == 200, "OpenAPI docs (/docs) should be available"
+
+    openapi_response = client.get("/openapi.json")
+    assert openapi_response.status_code == 200, (
+        "OpenAPI schema (/openapi.json) should be available"
+    )
+{% endif %}
+{% if web_framework == "litestar" %}
+
+def test_openapi_schema_available(client: TestClient) -> None:
+    """Test that OpenAPI schema is available.
+
+    This test verifies that Litestar's automatic API documentation
+    endpoints are accessible.
+
+    Scenario:
+        - Send GET request to `/schema/openapi.json`.
+
+    Expected Result:
+        - The endpoint should return status code 200.
+
+    Given:
+        - Litestar automatically generates OpenAPI documentation.
+    When:
+        - GET request is made to the schema endpoint.
+    Then:
+        - The endpoint should be accessible and return 200.
+    """
+    openapi_response = client.get("/schema/openapi.json")
+    assert openapi_response.status_code == 200, "OpenAPI schema should be available"
+{% endif %}

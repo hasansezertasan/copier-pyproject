@@ -1,0 +1,61 @@
+"""Tests for the TUI entry point."""
+
+from __future__ import annotations
+
+import platform
+from importlib.metadata import Distribution
+from typing import Any
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.tui import app as tui_app
+
+
+def test_build_info_message_contains_metadata() -> None:
+    """The TUI message should include core project metadata.
+
+    Given: The application is installed
+    When: build_info_message is called
+    Then: The message includes project name, version, Python version, and platform
+    """
+    message = tui_app.build_info_message()
+    distribution = Distribution.from_name(PROJECT_NAME)
+
+    assert PROJECT_NAME in message
+    assert distribution.version in message
+    assert platform.python_version() in message
+    assert platform.system() in message
+
+
+def test_main_can_skip_tui(capsys: Any) -> None:
+    """When TUI display is skipped, information is printed to stdout.
+
+    Given: The application is installed
+    When: main is called with show_tui=False
+    Then: The exit code is 0 and info is written to stdout
+    """
+    exit_code = tui_app.main(show_tui=False)
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert PROJECT_NAME in captured.out
+
+
+def test_main_handles_display_errors(monkeypatch: Any, capsys: Any) -> None:
+    """Errors while showing the TUI should fall back to stdout.
+
+    Given: The TUI cannot be displayed
+    When: main is called
+    Then: The exit code is 1 and info is written to stdout
+    """
+    error_message = "boom"
+
+    def _raise_display_error(_: str) -> None:
+        raise tui_app.TuiDisplayError(error_message)
+
+    monkeypatch.setattr(tui_app, "_display_tui", _raise_display_error)
+
+    exit_code = tui_app.main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert PROJECT_NAME in captured.out
