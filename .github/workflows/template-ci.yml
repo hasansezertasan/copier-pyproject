@@ -1,0 +1,67 @@
+---
+name: Template CI
+"on":
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: template-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Render & test (${{ matrix.scenario.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          # Bare template — only the always-on core/utils modules.
+          - name: minimal
+            data: ""
+          # Kitchen sink with FastAPI + Redis worker + pydantic settings + codecov.
+          - name: full-fastapi-redis
+            data: >-
+              --data include_cli=true --data include_web=true
+              --data web_framework=fastapi --data include_gui=true
+              --data include_tui=true --data include_mcp=true
+              --data include_worker=true --data worker_broker=redis
+              --data include_pydantic_settings=true --data include_codecov=true
+          # Exercise the other web framework and broker branches.
+          - name: litestar-kafka
+            data: >-
+              --data include_web=true --data web_framework=litestar
+              --data include_worker=true --data worker_broker=kafka
+          # Compiles the Cython extension during the wheel build.
+          - name: c-extensions
+            data: --data include_c_extensions=true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        with:
+          # hatch-vcs (in generated projects) and copier --vcs-ref=HEAD need
+          # full history and tags.
+          fetch-depth: 0
+
+      - name: Set up mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac  # v2
+
+      - name: Render template
+        run: >
+          copier copy --data-file .example-input.yml
+          ${{ matrix.scenario.data }}
+          --defaults --trust --vcs-ref=HEAD . ../rendered
+
+      - name: Style checks
+        working-directory: ../rendered
+        run: uv run tox run -e style
+
+      - name: Tests
+        working-directory: ../rendered
+        run: uv run tox run -e 3.12

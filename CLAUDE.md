@@ -136,6 +136,11 @@ Framework/broker choices (when parent option is enabled):
 
 Devcontainer services:
 
+- `include_postgres` - PostgreSQL service
+- `include_redis` - Redis/Valkey service
+- `redis_backend` - redis/valkey image (when `include_redis` is true)
+- `include_pgadmin` - pgAdmin UI (when `include_postgres` is true)
+- `include_adminer` - Adminer UI (when `include_postgres` is true)
 - `include_dbeaver` - CloudBeaver database management UI
 - `include_vpn` - OpenVPN client
 
@@ -143,6 +148,8 @@ Tooling options:
 
 - `release_automation` - none/release-please/release-it/release-drafter
 - `dependency_management` - none/renovate/dependabot
+- `include_changelog` - Keep a Changelog format (else link to GitHub Releases)
+- `include_citation` - CITATION.cff file
 - `include_pants`, `include_codecov`, `include_trunk`
 - `include_mise` - mise for tool version management and task running
 - `include_commitizen` - Commitizen versioning
@@ -158,7 +165,7 @@ Root modules in `src/{{github_repo_name}}/`:
 Subpackages (each with `__init__.py` and `app.py`):
 
 - `core/` - Core infrastructure (always included):
-  - `dirs.py` - Platform-aware directories
+  - `dirs.py` - Project directory locations (`~/.<package>`)
   - `logging_setup.py` - Centralized logging
   - `config.py` - Configuration (uses pydantic-settings if enabled)
 - `utils/` - Utility functions (always included)
@@ -190,12 +197,17 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 - `devcontainer` - Main development container (always included)
   - Uses `ghcr.io/astral-sh/uv:python3.14-bookworm-slim` image directly (no Dockerfile)
   - `devcontainer.json.jinja` features: `git:1` (always), `mise:1` (when `include_mise`)
-  - When `include_vpn` is true, devcontainer sets `network_mode: "service:vpn"` and `depends_on: [vpn]` so all traffic routes through the VPN tunnel
+  - When `include_vpn` is true, devcontainer sets `network_mode: "service:vpn"` and depends on the `vpn` service so all traffic routes through the VPN tunnel
+  - `depends_on` waits on `condition: service_healthy` for services that define a healthcheck (postgres, redis, kafka, rabbitmq) and `service_started` for the rest (nats, vpn)
+- Database services (conditional):
+  - `postgres` - PostgreSQL with healthcheck (conditional on `include_postgres`)
+  - `redis` - Redis/Valkey with healthcheck (conditional on `include_redis` or a `redis` worker broker; image set by `redis_backend`)
+  - `pgadmin` / `adminer` - DB UIs behind the `tools` compose profile (conditional on `include_pgadmin` / `include_adminer`)
 - Message broker services (conditional on `include_worker` + `worker_broker`):
-  - `kafka` - Bitnami Kafka (KRaft mode)
-  - `nats` - NATS with JetStream
-  - `rabbitmq` - RabbitMQ with management UI
-  - `redis` - Redis
+  - `kafka` - Bitnami Kafka (KRaft mode), healthcheck via `kafka-topics.sh`
+  - `nats` - NATS with JetStream (no healthcheck; minimal image)
+  - `rabbitmq` - RabbitMQ with management UI, healthcheck via `rabbitmq-diagnostics`
+  - `redis` - Redis (shared with the database `redis` service above)
 - `cloudbeaver` - DBeaver CloudBeaver (conditional on `include_dbeaver`)
 - `vpn` - OpenVPN client sidecar (conditional on `include_vpn`)
   - Uses `dperson/openvpn-client` with `NET_ADMIN` cap and `/dev/net/tun` device

@@ -26,6 +26,9 @@ def show_version() -> None:
 
     Example output:
         0.1.0
+
+    Raises:
+        typer.Exit: If the package metadata cannot be found.
     """
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
@@ -53,6 +56,9 @@ def info() -> None:
         Application Version: 0.1.0
         Python Version: 3.8.20 (CPython)
         Platform: Darwin
+
+    Raises:
+        typer.Exit: If the package metadata cannot be found.
     """
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
@@ -81,7 +87,7 @@ def interactive() -> None:
     Show application information:
         {{github_repo_name}} interactive
     """
-    from {{github_repo_name}}.tui.app import main
+    from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     main()
 {% endif %}
@@ -94,7 +100,7 @@ def gui() -> None:
     Show application information:
         {{github_repo_name}} gui
     """
-    from {{github_repo_name}}.gui.app import main
+    from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     main()
 {% endif %}
@@ -107,9 +113,13 @@ def web() -> None:
     Show application information:
         {{github_repo_name}} web
     """
-    import uvicorn
+    import os  # noqa: PLC0415
 
-    from {{github_repo_name}}.web.app import app as web_app
+    import uvicorn  # noqa: PLC0415
 
-    uvicorn.run(web_app, host="0.0.0.0", port=8000)
+    from {{github_repo_name}}.web.app import app as web_app  # noqa: PLC0415
+
+    host = os.environ.get(f"{PROJECT_NAME.upper()}_HOST", "127.0.0.1")
+    port = int(os.environ.get(f"{PROJECT_NAME.upper()}_PORT", "8000"))
+    uvicorn.run(web_app, host=host, port=port)
 {% endif %}

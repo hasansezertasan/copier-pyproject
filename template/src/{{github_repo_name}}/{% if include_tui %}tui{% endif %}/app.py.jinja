@@ -6,6 +6,8 @@ import platform
 import sys
 from importlib.metadata import Distribution, PackageNotFoundError
 
+from typing import ClassVar
+
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import logger
 
@@ -15,7 +17,11 @@ class TuiDisplayError(RuntimeError):
 
 
 def build_info_message() -> str:
-    """Return a short application information message for display."""
+    """Return a short application information message for display.
+
+    Returns:
+        str: A multi-line summary of the project name, version, and platform.
+    """
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
         version = distribution.version
@@ -33,12 +39,18 @@ def build_info_message() -> str:
     )
 
 
-def _display_tui(message: str) -> None:
-    """Display the information message in a Textual TUI application."""
+def _display_tui(message: str) -> None:  # noqa: C901  (lazy imports keep nesting)
+    """Display the information message in a Textual TUI application.
+
+    Raises:
+        TuiDisplayError: If Textual is unavailable or the app fails to run.
+        KeyboardInterrupt: If the user interrupts the running application.
+        SystemExit: If the application requests interpreter exit.
+    """
     try:
-        from textual.app import App, ComposeResult
-        from textual.containers import ScrollableContainer
-        from textual.widgets import Static
+        from textual.app import App, ComposeResult  # noqa: PLC0415
+        from textual.containers import ScrollableContainer  # noqa: PLC0415
+        from textual.widgets import Static  # noqa: PLC0415
     except ImportError as exc:
         msg = "Textual is not available."
         raise TuiDisplayError(msg) from exc
@@ -83,8 +95,12 @@ def _display_tui(message: str) -> None:
         }
         """
 
-        def compose(self) -> ComposeResult:
-            """Compose the TUI layout."""
+        def compose(self) -> ComposeResult:  # noqa: PLR6301  (Textual lifecycle hook)
+            """Compose the TUI layout.
+
+            Yields:
+                Widget: The widgets that make up the screen layout.
+            """
             yield Static(PROJECT_NAME, id="title")
             with ScrollableContainer(id="info-container"):
                 yield Static(message)
@@ -94,11 +110,8 @@ def _display_tui(message: str) -> None:
             """Set focus and style on mount."""
             self.title = f"{PROJECT_NAME} Info"
 
-        def action_quit(self) -> None:
-            """Handle quit action."""
-            self.exit()
-
-        BINDINGS = [
+        # The "quit" action bound below is Textual's built-in App.action_quit.
+        BINDINGS: ClassVar = [
             ("q", "quit", "Quit"),
         ]
 
@@ -112,8 +125,16 @@ def _display_tui(message: str) -> None:
         raise TuiDisplayError(msg) from exc
 
 
-def main(show_tui: bool = True) -> int:
-    """Entry point for the TUI script."""
+def main(*, show_tui: bool = True) -> int:
+    """Entry point for the TUI script.
+
+    Args:
+        show_tui: When ``False``, write the info to stdout instead of starting
+            the TUI (useful for headless environments and tests).
+
+    Returns:
+        int: ``0`` on success, ``1`` if the TUI could not be displayed.
+    """
     info_message = build_info_message()
     logger.info("TUI entry point invoked. show_tui=%s", show_tui)
 

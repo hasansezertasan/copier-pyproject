@@ -78,14 +78,14 @@ dependencies = []
 {% endif %}
 {% if include_tui %}tui = ["textual>=0.50.0"]{% endif %}
 {% if include_mcp %}mcp = ["mcp>=1.0.0"]{% endif %}
-{% if include_worker %}worker = ["faststream[{{worker_broker}}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
+{% if include_worker %}worker = ["faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
 all = [
     {% if include_cli %}"typer>=0.20.0",{% endif %}
     {% if include_web %}{% if web_framework == "fastapi" %}"fastapi[all]>=0.123.5",{% endif %}{% if web_framework == "litestar" %}"litestar[standard]>=2.0.0",{% endif %}{% endif %}
     {% if include_tui %}"textual>=0.50.0",{% endif %}
     {% if include_mcp %}"mcp>=1.0.0",{% endif %}
-    {% if include_worker %}"faststream[{{worker_broker}}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",{% endif %}
+    {% if include_worker %}"faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",{% endif %}
     {% if include_pydantic_settings %}"pydantic-settings>=2.0.0",{% endif %}
 ]
 
@@ -183,7 +183,7 @@ pre-commit = [
 
 [build-system]
 {% if include_c_extensions %}
-requires = ["hatchling", "hatch-vcs", "cython>=3.0.0"]
+requires = ["hatchling", "hatch-vcs", "cython>=3.0.0", "setuptools>=70"]
 {% else %}
 requires = ["hatchling", "hatch-vcs"]
 {% endif %}
@@ -219,6 +219,11 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
 include = ["/README.md", "LICENSE", "/{{github_repo_name}}", "/tests"]
+{% if include_c_extensions %}
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
+{% endif %}
 
 {% if include_commitizen %}
 [tool.commitizen]
@@ -238,7 +243,14 @@ version_scheme = "pep404"
 # addopts = "-rXs --strict-config --strict-markers"
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
-filterwarnings = ["error"]
+filterwarnings = [
+  "error",
+{%- if include_web and web_framework == "fastapi" %}
+  # Starlette's TestClient emits a forward-compat deprecation about httpx/httpx2.
+  # It is harmless for tests, so don't let `error` promote it to a failure.
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
+{%- endif %}
+]
 testpaths = ["tests"]
 xfail_strict = true
 
@@ -315,6 +327,17 @@ author = "{{author_full_name}} <{{author_email}}>"
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
+{% if include_pydantic_settings %}
+[tool.ruff.lint.flake8-type-checking]
+# Pydantic evaluates annotations at runtime, so imports used only in model
+# field annotations (e.g. `pathlib.Path`) must NOT be moved into a
+# `TYPE_CHECKING` block — doing so breaks model construction.
+runtime-evaluated-base-classes = [
+  "pydantic.BaseModel",
+  "pydantic_settings.BaseSettings",
+]
+{% endif %}
+
 
 [tool.ruff.lint.mccabe]
 max-complexity = 5
@@ -329,7 +352,10 @@ convention = "pep257"
 
 
 [tool.ruff.lint.per-file-ignores]
-"./tests/*.py" = ["S101", "PLR2004"]
+# Recursive glob so nested test packages (tests/cli, tests/gui, ...) are covered.
+# Tests legitimately use asserts/magic values, reach into package internals, and
+# don't need return-value documentation on their fixtures and helpers.
+"tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
 "./examples/*.py" = ["INP001"]
 
 
@@ -378,10 +404,7 @@ project-includes = ["src"]
 env_list = [
     "style",
     {% if include_cli %}"cli",{% endif %}
-    {% if include_web %}"web",{% endif %}
-    {% if include_tui %}"tui",{% endif %}
     {% if include_worker %}"worker",{% endif %}
-    {% if include_pydantic_settings %}"config",{% endif %}
     "3.14",
     "3.13",
     "3.12",
@@ -394,6 +417,9 @@ requires = ["tox>=4"]
 [tool.tox.env_run_base]
 commands = [
   [
+    "coverage",
+    "run",
+    "--module",
     "pytest",
     "-v",
     "--tb=short",
@@ -406,6 +432,10 @@ constrain_package_deps = true
 dependency_groups = ["test"]
 description = "Run the tests under {base_python}"
 env_tmp_dir = "{toxworkdir}/tmp/{envname}"
+# Arms coverage-enable-subprocess so xdist/subprocess workers are measured too;
+# `coverage run` plus `parallel = true` writes per-env data files that the CI
+# `coverage combine` step merges.
+set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
 extras = ["all"]
 package = "wheel"
 runner = "uv-venv-runner"
@@ -480,11 +510,13 @@ description = "Run Checkers, Linters and Formatters"
 runner = "uv-venv-runner"
 
 
+{% if include_precommit %}
 [tool.tox.env.pre-commit]
 commands = [["pre-commit", "run", "--all-files"]]
 dependency_groups = ["pre-commit"]
 description = "Run pre-commit hooks"
 runner = "uv-venv-runner"
+{% endif %}
 
 
 [tool.tox.env.docs-build]

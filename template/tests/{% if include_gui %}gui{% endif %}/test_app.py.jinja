@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import platform
 from importlib.metadata import Distribution
-from typing import Any
+
+import pytest
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.gui import app as gui_app
@@ -21,7 +22,7 @@ def test_build_info_message_contains_metadata() -> None:
     assert platform.system() in message
 
 
-def test_main_can_skip_gui(capsys: Any) -> None:
+def test_main_can_skip_gui(capsys: pytest.CaptureFixture[str]) -> None:
     """When GUI display is skipped, information is printed to stdout."""
     exit_code = gui_app.main(show_window=False)
     captured = capsys.readouterr()
@@ -30,7 +31,9 @@ def test_main_can_skip_gui(capsys: Any) -> None:
     assert PROJECT_NAME in captured.out
 
 
-def test_main_handles_display_errors(monkeypatch: Any, capsys: Any) -> None:
+def test_main_handles_display_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """Errors while showing the GUI should fall back to stdout."""
     error_message = "boom"
 

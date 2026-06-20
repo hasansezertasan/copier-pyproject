@@ -9,6 +9,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.dirs import ROOT_FOLDER_PATH
 
 
 class Settings(BaseSettings):
@@ -30,11 +31,53 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, description="Enable debug mode")
     log_level: str = Field(default="INFO", description="Logging level")
     config_dir: Path = Field(
-        default_factory=lambda: Path.home() / f".{PROJECT_NAME}",
+        default=ROOT_FOLDER_PATH,
         description="Configuration directory",
     )
+{% else %}
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.dirs import ROOT_FOLDER_PATH
+
+_ENV_PREFIX = f"{PROJECT_NAME.upper()}_"
+
+
+def _env(name: str, default: str) -> str:
+    """Read a prefixed environment variable, falling back to a default.
+
+    Args:
+        name: The unprefixed setting name (e.g. ``"LOG_LEVEL"``).
+        default: The value to use when the variable is unset.
+
+    Returns:
+        str: The environment value, or ``default`` if it is not set.
+    """
+    return os.environ.get(f"{_ENV_PREFIX}{name}", default)
+
+
+@dataclass(frozen=True)
+class Settings:
+    """Application settings sourced from environment variables.
+
+    Stdlib-only fallback used when pydantic-settings is not enabled. Each field
+    is overridable via an environment variable named after the uppercased
+    project name plus the field (for example ``MYPROJECT_LOG_LEVEL``).
+    """
+
+    debug: bool = field(
+        default_factory=lambda: _env("DEBUG", "").lower() in {"1", "true", "yes"}
+    )
+    log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
+    config_dir: Path = field(
+        default_factory=lambda: Path(_env("CONFIG_DIR", str(ROOT_FOLDER_PATH)))
+    )
+{% endif %}
 
 
 # Global settings instance
 settings = Settings()
-{% endif %}
+"""The global settings instance for the project."""
