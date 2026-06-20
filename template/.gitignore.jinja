@@ -269,6 +269,10 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+{% if include_c_extensions %}
+# Cython-generated C source (regenerated from _c_extension.pyx at build time)
+/src/{{github_repo_name}}/_c_extension.c
+{% endif %}
 
 # PyCharm
 #   JetBrains specific template is maintained in a separate JetBrains.gitignore that can

@@ -22,7 +22,9 @@ def _resolve_level(name: str) -> int:
     """Translate a level name (e.g. ``"DEBUG"``) to its numeric value.
 
     Falls back to ``logging.INFO`` for unknown names so a bad config value
-    never crashes logging setup.
+    never crashes logging setup. Because the fallback would otherwise be
+    invisible (an operator who typo'd ``DEGUB`` would silently get INFO), an
+    unrecognized name is reported to ``stderr`` so it stays discoverable.
 
     Args:
         name: A logging level name such as ``"DEBUG"`` or ``"WARNING"``.
@@ -30,8 +32,14 @@ def _resolve_level(name: str) -> int:
     Returns:
         int: The numeric logging level, or ``logging.INFO`` if unrecognized.
     """
-    level = getattr(logging, name.upper(), logging.INFO)
-    return level if isinstance(level, int) else logging.INFO
+    level = getattr(logging, name.upper(), None)
+    if isinstance(level, int):
+        return level
+    print(  # noqa: T201 - logging is not configured yet at this point
+        f"Unknown log level {name!r}; falling back to INFO.",
+        file=sys.stderr,
+    )
+    return logging.INFO
 
 
 def setup_logger() -> logging.Logger:

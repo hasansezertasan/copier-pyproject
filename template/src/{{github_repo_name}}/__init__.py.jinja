@@ -5,10 +5,11 @@ import logging
 try:
     from {{github_repo_name}}._c_extension import ExampleExtension, fibonacci_cython
 except ImportError as exc:
-    # The compiled Cython extension is optional. Log at debug — rather than
-    # silently passing — so a genuine build or ABI failure stays discoverable
+    # The compiled Cython extension is optional. Warn — rather than silently
+    # passing or logging at debug (which is discarded before logging is
+    # configured) — so a genuine build or ABI failure stays discoverable
     # instead of surfacing later as a confusing missing-name error.
-    logging.getLogger(__name__).debug("C extension unavailable: %s", exc)
+    logging.getLogger(__name__).warning("C extension unavailable: %s", exc)
 else:
     __all__ = ["ExampleExtension", "fibonacci_cython"]
 {% endif %}

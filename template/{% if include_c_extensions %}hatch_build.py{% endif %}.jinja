@@ -9,7 +9,6 @@ marking it as platform-specific (non pure-Python).
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any
 
@@ -23,11 +22,13 @@ class CythonBuildHook(BuildHookInterface):
 
     PLUGIN_NAME = "custom"
 
-    def initialize(self, version: str, build_data: dict[str, Any]) -> None:
+    def initialize(self, version: str, build_data: dict[str, Any]) -> None:  # noqa: ARG002 - signature fixed by BuildHookInterface
         """Cythonize and compile the extension, then include it in the wheel."""
-        from Cython.Build import cythonize
-        from setuptools import Extension
-        from setuptools.dist import Distribution
+        # Imported lazily: these are build-only dependencies that are absent
+        # from the lint/type-check environment.
+        from Cython.Build import cythonize  # noqa: PLC0415
+        from setuptools import Extension  # noqa: PLC0415
+        from setuptools.dist import Distribution  # noqa: PLC0415
 
         root = Path(self.root)
         package_dir = root / "src" / PACKAGE
@@ -46,15 +47,11 @@ class CythonBuildHook(BuildHookInterface):
             include_dirs=[str(package_dir), str(c_src_dir)],
         )
 
-        # Allow CI wheel builds to fall back to pure Python if compilation fails.
-        allow_failure = os.environ.get("CIBUILDWHEEL", "0") == "1"
-        try:
-            ext_modules = cythonize([extension], language_level=3)
-        except Exception as exc:  # noqa: BLE001 - surfaced below, not swallowed
-            if not allow_failure:
-                raise
-            self.app.display_warning(f"Cython compilation skipped: {exc}")
-            return
+        # Compilation failures propagate: a wheel that is supposed to carry the
+        # compiled extension must never be published silently degraded. The
+        # per-platform ``fail-fast: false`` matrix in build-wheels.yml isolates
+        # a failing target without blocking the others.
+        ext_modules = cythonize([extension], language_level=3)
 
         distribution = Distribution({"ext_modules": ext_modules})
         command = distribution.get_command_obj("build_ext")

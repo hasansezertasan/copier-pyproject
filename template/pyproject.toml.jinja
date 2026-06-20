@@ -218,7 +218,10 @@ allow-direct-references = true
 
 
 [tool.hatch.build.targets.sdist]
-include = ["/README.md", "LICENSE", "/{{github_repo_name}}", "/tests"]
+# The package uses a src layout, so the source tree lives under /src (not
+# /{{github_repo_name}}); including /src ships the actual modules -- and, for
+# C-extension projects, the .pyx/.pxd sources needed to compile from the sdist.
+include = ["/README.md", "LICENSE", "/src", "/tests"]
 {% if include_c_extensions %}
 
 [tool.hatch.build.targets.wheel.hooks.custom]
@@ -276,8 +279,21 @@ skip_covered = true
 
 
 [tool.vulture]
-ignore_decorators = ["@app.command", "@app.get"]
-ignore_names = ["CONFIG_FILE_PATH"]
+# Framework-invoked handlers: Typer commands, FastAPI routes, FastStream
+# lifecycle hooks, and the MCP tool dispatcher.
+ignore_decorators = [
+  "@app.command",
+  "@app.get",
+  "@app.after_startup",
+  "@app.after_shutdown",
+  "@server.call_tool",
+]
+# Public API surfaces vulture cannot see being used: ``main`` entry points are
+# referenced only via pyproject scripts, ``model_config`` is consumed by
+# pydantic-settings, ``logger`` is imported only by optional components, the MCP
+# ``arguments`` parameter is mandated by the call_tool signature, and the Textual
+# names (CSS/compose/on_mount/title/BINDINGS) are invoked by the TUI framework.
+ignore_names = ["CONFIG_FILE_PATH", "logger", "main", "model_config"{% if include_mcp %}, "arguments"{% endif %}{% if include_tui %}, "CSS", "compose", "on_mount", "title", "BINDINGS"{% endif %}]
 min_confidence = 60
 paths = ["src", "tests"]
 
@@ -356,7 +372,7 @@ convention = "pep257"
 # Tests legitimately use asserts/magic values, reach into package internals, and
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
-"./examples/*.py" = ["INP001"]
+"examples/*.py" = ["INP001"]
 
 
 [tool.ruff.lint.pyupgrade]
@@ -401,10 +417,13 @@ project-includes = ["src"]
 
 
 [tool.tox]
+# The ``worker`` env is intentionally omitted: it starts a broker-bound process
+# and would hang/fail under ``tox run`` in CI (where no broker is available).
+# The worker is covered by its pytest TestBroker suite; run it on demand with
+# ``tox -e worker`` when a broker is up (e.g. inside the devcontainer).
 env_list = [
     "style",
     {% if include_cli %}"cli",{% endif %}
-    {% if include_worker %}"worker",{% endif %}
     "3.14",
     "3.13",
     "3.12",
@@ -437,7 +456,15 @@ env_tmp_dir = "{toxworkdir}/tmp/{envname}"
 # `coverage combine` step merges.
 set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
 extras = ["all"]
+{% if include_c_extensions %}
+# The compiled extension makes each wheel ABI-specific. Distributing as an sdist
+# lets every environment compile it against its own interpreter, producing a
+# correctly tagged wheel per Python version; a single shared pre-built wheel
+# (e.g. cp310) cannot install under other versions (cp312, ...).
+package = "sdist"
+{% else %}
 package = "wheel"
+{% endif %}
 runner = "uv-venv-runner"
 use_frozen_constraints = true
 wheel_build_env = ".pkg"
@@ -505,7 +532,9 @@ commands = [
   ],
   # ["yamlfmt", "."],
 ]
-dependency_groups = ["style"]
+# `test` is included so the type checkers that scope tests (e.g. ty) can
+# resolve pytest and other test-only imports.
+dependency_groups = ["style", "test"]
 description = "Run Checkers, Linters and Formatters"
 runner = "uv-venv-runner"
 
@@ -554,6 +583,8 @@ runner = "uv-venv-runner"
 {% endif %}
 
 {% if include_worker %}
+# On-demand only (not in env_list): starts a broker-bound worker, so run it with
+# ``tox -e worker`` when a broker is reachable. CI relies on the pytest suite.
 [tool.tox.env.worker]
 commands = [["{{github_repo_name}}-worker", { replace = "posargs", extend = true }]]
 description = "Run the message queue worker application."

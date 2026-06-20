@@ -113,13 +113,10 @@ def web() -> None:
     Show application information:
         {{github_repo_name}} web
     """
-    import os  # noqa: PLC0415
-
     import uvicorn  # noqa: PLC0415
 
-    from {{github_repo_name}}.web.app import app as web_app  # noqa: PLC0415
+    from {{github_repo_name}}.web.app import app as web_app, resolve_bind  # noqa: PLC0415
 
-    host = os.environ.get(f"{PROJECT_NAME.upper()}_HOST", "127.0.0.1")
-    port = int(os.environ.get(f"{PROJECT_NAME.upper()}_PORT", "8000"))
+    host, port = resolve_bind()
     uvicorn.run(web_app, host=host, port=port)
 {% endif %}

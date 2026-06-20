@@ -136,16 +136,36 @@ app = Litestar(route_handlers=[get_version, get_info])
 {% endif %}
 
 
-def main() -> None:
-    """Entry point for the web application.
+def resolve_bind() -> tuple[str, int]:
+    """Resolve the web server bind ``(host, port)`` from the environment.
 
     Host and port default to a local-only address and can be overridden with
-    the ``{PROJECT}_HOST`` / ``{PROJECT}_PORT`` environment variables.
+    the ``{PROJECT}_HOST`` / ``{PROJECT}_PORT`` environment variables, where
+    ``{PROJECT}`` is the uppercased project name with dashes normalized to
+    underscores so it is a valid shell variable name.
+
+    Returns:
+        tuple[str, int]: The resolved ``(host, port)`` pair.
+
+    Raises:
+        SystemExit: If ``{PROJECT}_PORT`` is set to a non-integer value.
     """
     import os  # noqa: PLC0415
 
+    prefix = PROJECT_NAME.upper().replace("-", "_")
+    host = os.environ.get(f"{prefix}_HOST", "127.0.0.1")
+    raw_port = os.environ.get(f"{prefix}_PORT", "8000")
+    try:
+        port = int(raw_port)
+    except ValueError as exc:
+        msg = f"Invalid {prefix}_PORT={raw_port!r}; expected an integer."
+        raise SystemExit(msg) from exc
+    return host, port
+
+
+def main() -> None:
+    """Entry point for the web application."""
     import uvicorn  # noqa: PLC0415
 
-    host = os.environ.get(f"{PROJECT_NAME.upper()}_HOST", "127.0.0.1")
-    port = int(os.environ.get(f"{PROJECT_NAME.upper()}_PORT", "8000"))
+    host, port = resolve_bind()
     uvicorn.run(app, host=host, port=port)

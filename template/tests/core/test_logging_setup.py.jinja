@@ -1,0 +1,34 @@
+"""Tests for the logging setup module."""
+
+from __future__ import annotations
+
+import logging
+
+import pytest
+
+from {{github_repo_name}}.core.logging_setup import _resolve_level
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("DEBUG", logging.DEBUG),
+        ("info", logging.INFO),
+        ("Warning", logging.WARNING),
+        ("ERROR", logging.ERROR),
+        ("CRITICAL", logging.CRITICAL),
+    ],
+)
+def test_resolve_level_known(name: str, expected: int) -> None:
+    """Known level names resolve to their numeric value, case-insensitively."""
+    assert _resolve_level(name) == expected
+
+
+def test_resolve_level_unknown_falls_back_to_info(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An unknown level falls back to INFO and reports it to stderr."""
+    assert _resolve_level("DEGUB") == logging.INFO
+
+    captured = capsys.readouterr()
+    assert "DEGUB" in captured.err
