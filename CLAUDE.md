@@ -89,14 +89,17 @@ uv run --locked tox run -e docs-server
 uv run --locked tox run -e profile
 ```
 
-### Linting and Pre-commit
+### Linting and Git Hooks
+
+This repo uses [prek](https://prek.j178.dev) (a Rust pre-commit replacement)
+configured via `prek.toml`.
 
 ```bash
-# Run pre-commit hooks on all files
-pre-commit run --all-files
+# Run hooks on all files
+prek run --all-files
 
-# Install pre-commit hooks
-pre-commit install
+# Install the git hooks
+prek install
 ```
 
 ## Template Architecture
