@@ -49,12 +49,16 @@ jobs:
           # full history and tags.
           fetch-depth: 0
 
-      - name: Set up mise
-        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac  # v2
+      - name: Set up uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
 
       - name: Render template
+        # uvx provides copier without mise; the later `uv run` steps execute in
+        # ../rendered, where a mise shim would not resolve the repo's tools.
         run: >
-          copier copy --data-file .example-input.yml
+          uvx copier copy --data-file .example-input.yml
           ${{ matrix.scenario.data }}
           --defaults --trust --vcs-ref=HEAD . ../rendered
 
