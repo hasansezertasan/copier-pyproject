@@ -21,7 +21,7 @@ jobs:
       issues: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
 
       - name: Run opencode
         uses: sst/opencode/github@11e47f91496005aab4d7c5a2d0a7da5d2651b4ac  # v1.17.8
