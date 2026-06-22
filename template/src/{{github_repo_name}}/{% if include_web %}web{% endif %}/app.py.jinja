@@ -159,6 +159,9 @@ def resolve_bind() -> tuple[str, int]:
         port = int(raw_port)
     except ValueError as exc:
         msg = f"Invalid {prefix}_PORT={raw_port!r}; expected an integer."
+        # Log before exiting so the cause reaches structured log sinks, not just
+        # the SystemExit message printed to stderr by the interpreter.
+        logger.error(msg)
         raise SystemExit(msg) from exc
     return host, port
 

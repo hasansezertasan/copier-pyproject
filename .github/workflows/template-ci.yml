@@ -5,14 +5,11 @@ name: Template CI
   push:
     branches: [main, master]
   pull_request:
-
 concurrency:
   group: template-ci-${{ github.ref }}
   cancel-in-progress: true
-
 permissions:
   contents: read
-
 jobs:
   render:
     name: Render & test (${{ matrix.scenario.name }})
@@ -28,16 +25,11 @@ jobs:
           # Kitchen sink with FastAPI + Redis worker + pydantic settings + codecov.
           - name: full-fastapi-redis
             data: >-
-              --data include_cli=true --data include_web=true
-              --data web_framework=fastapi --data include_gui=true
-              --data include_tui=true --data include_mcp=true
-              --data include_worker=true --data worker_broker=redis
-              --data include_pydantic_settings=true --data include_codecov=true
+              --data include_cli=true --data include_web=true --data web_framework=fastapi --data include_gui=true --data include_tui=true --data include_mcp=true --data include_worker=true --data worker_broker=redis --data include_pydantic_settings=true --data include_codecov=true
           # Exercise the other web framework and broker branches.
           - name: litestar-kafka
             data: >-
-              --data include_web=true --data web_framework=litestar
-              --data include_worker=true --data worker_broker=kafka
+              --data include_web=true --data web_framework=litestar --data include_worker=true --data worker_broker=kafka
           # Compiles the Cython extension during the wheel build.
           - name: c-extensions
             data: --data include_c_extensions=true
@@ -48,24 +40,31 @@ jobs:
           # hatch-vcs (in generated projects) and copier --vcs-ref=HEAD need
           # full history and tags.
           fetch-depth: 0
-
       - name: Set up uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
           enable-cache: true
-
       - name: Render template
         # uvx provides copier without mise; the later `uv run` steps execute in
         # ../rendered, where a mise shim would not resolve the repo's tools.
         run: >
-          uvx copier copy --data-file .example-input.yml
-          ${{ matrix.scenario.data }}
-          --defaults --trust --vcs-ref=HEAD . ../rendered
+          uvx copier copy --data-file .example-input.yml ${{ matrix.scenario.data }} --defaults --trust --vcs-ref=HEAD . ../rendered
 
       - name: Style checks
         working-directory: ../rendered
         run: uv run tox run -e style
-
       - name: Tests
         working-directory: ../rendered
         run: uv run tox run -e 3.12
+      - name: Verify Cython extension is built and importable
+        # The package __init__ swallows a missing-extension ImportError with a
+        # warning, and the generated test_c_extension uses importorskip, so a
+        # build hook that silently produces no .so would still pass green. Build
+        # a wheel and import the compiled symbol to fail loudly if it doesn't.
+        if: matrix.scenario.name == 'c-extensions'
+        working-directory: ../rendered
+        run: |
+          uv build --wheel
+          wheels=(dist/*.whl)
+          uv run --no-project --with "${wheels[0]}" python -c \
+            "from example._c_extension import fibonacci_cython; assert fibonacci_cython(10) == 55"

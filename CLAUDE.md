@@ -237,7 +237,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 For generated projects to publish to PyPI:
 
-1. Go to https://pypi.org/manage/account/publishing/
+1. Go to <https://pypi.org/manage/account/publishing/>
 2. Add pending publisher with:
    - PyPI Project Name: `<package-name>`
    - Owner: `<github-username>`
@@ -300,6 +300,7 @@ Always test changes by:
 3. Running tests: `cd example && uv run --locked tox run`
 
 For features with choices (like `worker_broker`), test multiple combinations:
+
 ```bash
 copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=kafka --defaults --trust . /tmp/test-kafka --force
 copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=rabbitmq --defaults --trust . /tmp/test-rabbitmq --force

@@ -128,6 +128,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 {%- endif %}
+{% if include_c_extensions %}
+  # For C-extension projects the Release carries only this job's single sdist +
+  # ubuntu wheel; the full per-platform wheel matrix is published to PyPI by
+  # build-wheels.yml (which runs on the same release event). The Release assets
+  # are therefore an intentional subset of what lands on PyPI.
+{% endif %}
   attach-github-release:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release

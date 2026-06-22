@@ -1,0 +1,38 @@
+"""Tests for the compiled Cython extension.
+
+The package ``__init__`` swallows a missing-extension ``ImportError`` with a
+warning, so the import-only smoke test passes even when the extension is
+absent. These tests exercise the compiled symbols directly to catch a build
+that compiles but misbehaves. Under ``tox`` the package is installed from an
+sdist, so the extension is always compiled and these run; ``importorskip``
+keeps them from failing in editable dev installs where it is not built.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+pytest.importorskip(
+    "{{github_repo_name}}._c_extension",
+    reason="Cython extension is not compiled in this environment.",
+)
+
+
+def test_fibonacci_cython() -> None:
+    """The Cython ``fibonacci_cython`` matches the known sequence."""
+    from {{github_repo_name}}._c_extension import fibonacci_cython  # noqa: PLC0415
+
+    assert fibonacci_cython(0) == 0
+    assert fibonacci_cython(1) == 1
+    assert fibonacci_cython(10) == 55
+
+
+def test_example_extension_roundtrip() -> None:
+    """``ExampleExtension`` stores, mutates, and returns its value."""
+    from {{github_repo_name}}._c_extension import ExampleExtension  # noqa: PLC0415
+
+    extension = ExampleExtension(5)
+    assert extension.get_value() == 5
+
+    extension.set_value(41)
+    assert extension.increment() == 42

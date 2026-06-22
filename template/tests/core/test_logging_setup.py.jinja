@@ -6,7 +6,8 @@ import logging
 
 import pytest
 
-from {{github_repo_name}}.core.logging_setup import _resolve_level
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.logging_setup import _resolve_level, setup_logger
 
 
 @pytest.mark.parametrize(
@@ -32,3 +33,23 @@ def test_resolve_level_unknown_falls_back_to_info(
 
     captured = capsys.readouterr()
     assert "DEGUB" in captured.err
+
+
+def test_setup_logger_returns_configured_project_logger() -> None:
+    """``setup_logger`` returns the project logger with handlers attached."""
+    configured = setup_logger()
+
+    assert configured.name == PROJECT_NAME
+    # A file handler and a console handler are wired up.
+    assert configured.handlers
+
+
+def test_setup_logger_is_idempotent() -> None:
+    """Repeated calls reuse the same logger without duplicating handlers."""
+    first = setup_logger()
+    handler_count = len(first.handlers)
+
+    second = setup_logger()
+
+    assert second is first
+    assert len(second.handlers) == handler_count
