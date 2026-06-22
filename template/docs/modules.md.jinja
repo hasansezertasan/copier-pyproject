@@ -1,1 +1,42 @@
 # Modules
+
+An overview of the packages that make up {{github_repo_name}}.
+
+## Core (`{{github_repo_name}}.core`)
+
+Always-included infrastructure:
+
+- `config` — application settings{% if include_pydantic_settings %} (pydantic-settings){% endif %}
+- `dirs` — project directory locations under `~/.{{github_repo_name}}`
+- `logging_setup` — centralized logging configuration
+
+## Utilities (`{{github_repo_name}}.utils`)
+
+Shared helper functions.
+{% if include_cli %}
+## CLI (`{{github_repo_name}}.cli`)
+
+Typer command-line interface exposing `version` and `info` commands.
+{% endif %}{% if include_web %}
+## Web (`{{github_repo_name}}.web`)
+
+{% if web_framework == "fastapi" %}FastAPI{% else %}Litestar{% endif %} application exposing `/version` and `/info` endpoints.
+{% endif %}{% if include_gui %}
+## GUI (`{{github_repo_name}}.gui`)
+
+Tkinter launcher that displays project information.
+{% endif %}{% if include_tui %}
+## TUI (`{{github_repo_name}}.tui`)
+
+Textual terminal user interface.
+{% endif %}{% if include_mcp %}
+## MCP (`{{github_repo_name}}.mcp`)
+
+Model Context Protocol server exposing `version` and `info` tools.
+{% endif %}{% if include_worker %}
+## Worker (`{{github_repo_name}}.worker`)
+
+FastStream worker processing messages from {{worker_broker}}.
+{% endif %}
+
+<!-- TODO @{{github_user}}: Document your own modules here as the project grows. -->

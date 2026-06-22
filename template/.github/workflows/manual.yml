@@ -24,6 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Runs a single command using the runners shell
+      # Runs a single command using the runners shell.
+      # Pass the input through `env` rather than interpolating it directly into
+      # `run:` to avoid shell injection from untrusted input.
       - name: Send greeting
-        run: echo "Hello ${{ inputs.name }}"
+        env:
+          NAME: ${{ inputs.name }}
+        run: echo "Hello $NAME"

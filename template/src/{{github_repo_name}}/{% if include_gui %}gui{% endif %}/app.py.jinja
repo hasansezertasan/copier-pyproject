@@ -15,7 +15,11 @@ class GuiDisplayError(RuntimeError):
 
 
 def build_info_message() -> str:
-    """Return a short application information message for display."""
+    """Return a short application information message for display.
+
+    Returns:
+        str: A multi-line summary of the project name, version, and platform.
+    """
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
         version = distribution.version
@@ -34,10 +38,14 @@ def build_info_message() -> str:
 
 
 def _display_message(message: str) -> None:
-    """Show the information message in a small Tkinter dialog."""
+    """Show the information message in a small Tkinter dialog.
+
+    Raises:
+        GuiDisplayError: If Tkinter is unavailable or the window cannot open.
+    """
     try:
-        import tkinter as tk
-        from tkinter import TclError, messagebox
+        import tkinter as tk  # noqa: PLC0415
+        from tkinter import TclError, messagebox  # noqa: PLC0415
     except ImportError as exc:
         msg = "Tkinter is not available."
         raise GuiDisplayError(msg) from exc
@@ -53,8 +61,16 @@ def _display_message(message: str) -> None:
         root.destroy()
 
 
-def main(show_window: bool = True) -> int:
-    """Entry point for the GUI script."""
+def main(*, show_window: bool = True) -> int:
+    """Entry point for the GUI script.
+
+    Args:
+        show_window: When ``False``, write the info to stdout instead of
+            opening a window (useful for headless environments and tests).
+
+    Returns:
+        int: ``0`` on success, ``1`` if the window could not be displayed.
+    """
     info_message = build_info_message()
     logger.info("GUI entry point invoked. show_window=%s", show_window)
 

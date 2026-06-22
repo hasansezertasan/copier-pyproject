@@ -1,8 +1,11 @@
 ---
-{%- set redis_enabled = include_redis or (include_worker and worker_broker == 'redis') -%}
+{% set redis_enabled = include_redis or (include_worker and worker_broker == 'redis') -%}
 {%- set redis_image = (redis_backend ~ ':latest') if include_redis else 'redis:latest' -%}
 {%- set redis_cli = 'valkey-cli' if (include_redis and redis_backend == 'valkey') else 'redis-cli' -%}
-{%- set has_healthy_deps = include_postgres or redis_enabled -%}
+{%- set kafka_enabled = include_worker and worker_broker == 'kafka' -%}
+{%- set nats_enabled = include_worker and worker_broker == 'nats' -%}
+{%- set rabbitmq_enabled = include_worker and worker_broker == 'rabbitmq' -%}
+{%- set has_healthy_deps = include_postgres or redis_enabled or kafka_enabled or nats_enabled or rabbitmq_enabled -%}
 services:
   # Update this to the name of the service you want to work with in your docker-compose.yml file
   devcontainer:
@@ -20,7 +23,8 @@ services:
     command: sleep infinity
 {%- if include_postgres or redis_enabled %}
     env_file:
-      - ../.env
+      - path: ../.env
+        required: false
 {%- endif %}
 {%- if include_vpn %}
     # Share the vpn service's network namespace so all devcontainer traffic
@@ -31,7 +35,8 @@ services:
 {%- if has_healthy_deps or include_vpn %}
     depends_on:
 {%- if include_vpn %}
-      - vpn
+      vpn:
+        condition: service_started
 {%- endif %}
 {%- if include_postgres %}
       postgres:
@@ -41,13 +46,26 @@ services:
       redis:
         condition: service_healthy
 {%- endif %}
+{%- if kafka_enabled %}
+      kafka:
+        condition: service_healthy
+{%- endif %}
+{%- if rabbitmq_enabled %}
+      rabbitmq:
+        condition: service_healthy
+{%- endif %}
+{%- if nats_enabled %}
+      nats:
+        condition: service_started
+{%- endif %}
 {%- endif %}
 {%- if include_postgres %}
   postgres:
     image: postgres:latest
     restart: unless-stopped
     env_file:
-      - ../.env
+      - path: ../.env
+        required: false
     ports:
       - "5432:5432"
     volumes:
@@ -67,7 +85,8 @@ services:
     image: {{ redis_image }}
     restart: unless-stopped
     env_file:
-      - ../.env
+      - path: ../.env
+        required: false
     ports:
       - "6379:6379"
     volumes:
@@ -88,7 +107,8 @@ services:
     image: rabbitmq:4.0.9-management
     restart: unless-stopped
     env_file:
-      - ../.env
+      - path: ../.env
+        required: false
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
@@ -99,6 +119,11 @@ services:
       options:
         max-size: 10m
         max-file: "3"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 {%- endif -%}
 {%- if worker_broker == "kafka" %}
   kafka:
@@ -117,6 +142,11 @@ services:
       options:
         max-size: 10m
         max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
 {%- endif -%}
 {%- if worker_broker == "nats" %}
   nats:
@@ -139,7 +169,8 @@ services:
     image: dpage/pgadmin4:latest
     restart: unless-stopped
     env_file:
-      - ../.env
+      - path: ../.env
+        required: false
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}

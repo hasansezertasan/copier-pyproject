@@ -1,8 +1,23 @@
 """Top-level package for the project."""
 {% if include_c_extensions %}
+import logging
+
 try:
     from {{github_repo_name}}._c_extension import ExampleExtension, fibonacci_cython
-except ImportError:
-    # Fallback if Cython extension is not available
-    pass
+except ImportError as exc:
+    # Warn at import time rather than passing silently or logging at debug:
+    # logging is not configured yet, so only WARNING+ reaches stderr (via
+    # logging.lastResort), keeping a genuine build/ABI failure discoverable
+    # instead of surfacing later as a confusing missing-name error. The trade
+    # off is a warning on every run of an editable dev install, where the
+    # extension is not compiled — hence the packaging hint in the message.
+    logging.getLogger(__name__).warning(
+        "C extension {{github_repo_name}}._c_extension is unavailable (%s); "
+        "ExampleExtension and fibonacci_cython will not be importable. It is "
+        "compiled during packaging (uv build / tox), so editable dev installs "
+        "may not include it.",
+        exc,
+    )
+else:
+    __all__ = ["ExampleExtension", "fibonacci_cython"]
 {% endif %}

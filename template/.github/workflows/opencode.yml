@@ -1,11 +1,10 @@
+---
 name: opencode
-
 on:
   issue_comment:
     types: [created]
   pull_request_review_comment:
     types: [created]
-
 jobs:
   opencode:
     if: |
@@ -21,10 +20,10 @@ jobs:
       issues: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
-
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - name: Run opencode
-        uses: sst/opencode/github@latest
+        # Pinned instead of @latest; bump via your dependency automation.
+        uses: sst/opencode/github@11e47f91496005aab4d7c5a2d0a7da5d2651b4ac  # v1.17.8
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:

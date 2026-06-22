@@ -19,16 +19,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
 
       - name: Set up Python
-        uses: actions/setup-python@v6.1.0
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version-file: .python-version
 
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@v7.1.0
+        uses: astral-sh/setup-uv@3259c6206f993105e3a61b142c2d97bf4b9ef83d  # v7.1.0
         with:
           enable-cache: true
 
@@ -36,7 +36,7 @@ jobs:
         run: uv build --wheel
 
       - name: Store wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: wheels-{% raw %}${{ matrix.os }}{% endraw %}
           path: dist/*.whl
@@ -48,16 +48,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
 
       - name: Set up Python
-        uses: actions/setup-python@v6.1.0
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
         with:
           python-version-file: .python-version
 
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@v7.1.0
+        uses: astral-sh/setup-uv@3259c6206f993105e3a61b142c2d97bf4b9ef83d  # v7.1.0
         with:
           enable-cache: true
 
@@ -65,7 +65,7 @@ jobs:
         run: uv build --sdist
 
       - name: Store source distribution
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -75,20 +75,22 @@ jobs:
     name: Upload to PyPI
     runs-on: ubuntu-latest
     needs: [build_wheels, build_sdist]
-    if: github.event_name == 'release' || github.event_name == 'push'
+    # Sole publisher for C-extension projects: it carries the per-platform
+    # wheels plus the sdist. cd.yml deliberately skips PyPI publishing when
+    # C extensions are enabled so the two workflows never race on upload.
+    if: github.event_name == 'release'
+    permissions:
+      id-token: write  # IMPORTANT: Mandatory for Trusted Publishing
+    environment:
+      name: publish
+      url: https://pypi.org/project/{{github_repo_name}}/
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
         with:
           path: dist/
+          merge-multiple: true
 
-      - name: Set up Python
-        uses: actions/setup-python@v6.1.0
-        with:
-          python-version-file: .python-version
-
-      - name: Publish to PyPI
-        env:
-          UV_PUBLISH_TOKEN: {% raw %}${{ secrets.PYPI_TOKEN }}{% endraw %}
-        run: uv publish dist/*/*
+      - name: Publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1

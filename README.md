@@ -42,6 +42,11 @@ Copier will prompt for:
 - `include_trunk` (include Trunk linting/formatting)
 - `include_commitizen` (include Commitizen)
 - `include_precommit` (use pre-commit hooks)
+- `include_postgres` (include PostgreSQL service in devcontainer)
+- `include_redis` (include Redis/Valkey service in devcontainer)
+- `redis_backend` (redis/valkey - when `include_redis` is enabled)
+- `include_pgadmin` (include pgAdmin - when `include_postgres` is enabled)
+- `include_adminer` (include Adminer - when `include_postgres` is enabled)
 - `include_dbeaver` (include CloudBeaver database UI in devcontainer)
 - `include_vpn` (include OpenVPN sidecar in devcontainer)
 
@@ -58,7 +63,7 @@ Copier will prompt for:
 - Style gate: `uv run --locked tox run -e style`
 - Full test suite: `uv run --locked tox run`
 - Run the CLI (if included): `uv run --locked <repo-name> version`
-- Run the FastAPI app (if included): `uv run --locked fastapi dev <repo-name>.web:app`
+- Run the web app (if included): `uv run --locked <repo-name>-web`
 - Serve docs locally: `uv run --only-group docs mkdocs serve` (deploys via GitHub Pages on release)
 - Optional tooling: `trunk check` for aggregated linting (if configured); `pants lint ::` for Pants-based linting (if configured).
 

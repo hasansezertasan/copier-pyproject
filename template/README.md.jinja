@@ -58,12 +58,14 @@ pip install {{github_repo_name}}
 ```
 
 {% endif %}
+{% if include_gui %}
 ### GUI
 
 ```bash
 {{github_repo_name}}-gui
 ```
 
+{% endif %}
 {% if include_tui %}
 ### TUI
 
@@ -78,10 +80,23 @@ An interactive terminal user interface displays project information. Press 'q' t
 ### Web
 
 ```bash
-fastapi dev {{github_repo_name}}.app:app
+{{github_repo_name}}-web
 ```
 
+{% if web_framework == "fastapi" %}
 Open <http://127.0.0.1:8000/docs> for the interactive API documentation.
+{% else %}
+Open <http://127.0.0.1:8000/schema> for the interactive API documentation.
+{% endif %}
+{% endif %}
+{% if include_mcp %}
+### MCP
+
+Run the Model Context Protocol server:
+
+```bash
+{{github_repo_name}}-mcp
+```
 {% endif %}
 {% if include_worker %}
 ### Worker
@@ -160,9 +175,10 @@ If you have any questions or need help, feel free to open an issue on the [GitHu
 ## Features
 
 {% if include_cli %}- **CLI Application**: Command-line interface built with Typer{% endif %}
-{% if include_web %}- **Web API**: FastAPI-based web application with automatic API documentation{% endif %}
+{% if include_web %}- **Web API**: {% if web_framework == "fastapi" %}FastAPI{% else %}Litestar{% endif %}-based web application with automatic API documentation{% endif %}
 {% if include_gui %}- **GUI Application**: Desktop interface built with Tkinter{% endif %}
 {% if include_tui %}- **TUI Application**: Terminal user interface built with Textual{% endif %}
+{% if include_mcp %}- **MCP Server**: Model Context Protocol server exposing tools to AI clients{% endif %}
 {% if include_worker %}- **Message Queue Worker**: FastStream-based worker for processing messages from {{worker_broker}}{% endif %}
 {% if include_c_extensions %}- **C Extensions**: High-performance Cython extensions for computationally intensive tasks{% endif %}
 {% if include_pydantic_settings %}- **Configuration Management**: Type-safe settings using Pydantic{% endif %}

@@ -1,0 +1,72 @@
+"""Hatchling build hook that compiles the project's Cython extension.
+
+Hatchling has no notion of a standalone ``build.py`` (that is a setuptools
+convention), so Cython compilation is wired in through a custom build hook.
+This module discovers any C sources under ``_c_src``, cythonizes the ``.pyx``
+file in place, and folds the resulting compiled artifacts into the wheel while
+marking it as platform-specific (non pure-Python).
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from hatchling.builders.hooks.plugin.interface import BuildHookInterface
+
+PACKAGE = "{{github_repo_name}}"
+
+
+class CythonBuildHook(BuildHookInterface):
+    """Compile the Cython extension during the wheel build."""
+
+    PLUGIN_NAME = "custom"
+
+    def initialize(self, version: str, build_data: dict[str, Any]) -> None:  # noqa: ARG002 - signature fixed by BuildHookInterface
+        """Cythonize and compile the extension, then include it in the wheel."""
+        # Imported lazily: these are build-only dependencies that are absent
+        # from the lint/type-check environment.
+        from Cython.Build import cythonize  # noqa: PLC0415
+        from setuptools import Extension  # noqa: PLC0415
+        from setuptools.dist import Distribution  # noqa: PLC0415
+
+        root = Path(self.root)
+        package_dir = root / "src" / PACKAGE
+        c_src_dir = package_dir / "_c_src"
+
+        # Recursively collect any hand-written C/C++ sources to compile in.
+        c_sources = [
+            str(path)
+            for path in c_src_dir.rglob("*")
+            if path.suffix in {".c", ".cpp", ".cc"}
+        ]
+
+        extension = Extension(
+            f"{PACKAGE}._c_extension",
+            sources=[str(package_dir / "_c_extension.pyx"), *c_sources],
+            include_dirs=[str(package_dir), str(c_src_dir)],
+        )
+
+        # Compilation failures propagate: a wheel that is supposed to carry the
+        # compiled extension must never be published silently degraded. The
+        # per-platform ``fail-fast: false`` matrix in build-wheels.yml isolates
+        # a failing target without blocking the others.
+        ext_modules = cythonize([extension], language_level=3)
+
+        distribution = Distribution({"ext_modules": ext_modules})
+        command = distribution.get_command_obj("build_ext")
+        command.ensure_finalized()
+        command.run()
+
+        # The wheel now contains a compiled binary, so it is no longer portable.
+        build_data["pure_python"] = False
+        build_data["infer_tag"] = True
+
+        # build_ext writes artifacts under its build_lib in package layout
+        # (e.g. ``<build_lib>/{{github_repo_name}}/_c_extension....so``); that
+        # relative path is exactly where each file belongs inside the wheel.
+        build_lib = Path(command.build_lib).resolve()
+        for output in command.get_outputs():
+            on_disk = Path(output).resolve()
+            in_wheel = on_disk.relative_to(build_lib)
+            build_data["force_include"][str(on_disk)] = str(in_wheel)

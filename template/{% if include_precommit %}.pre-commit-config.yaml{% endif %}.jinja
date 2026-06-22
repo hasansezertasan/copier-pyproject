@@ -171,7 +171,7 @@ repos:
     hooks:
       - id: pytest
         name: Pytest Test Runner
-        entry: ./venv/bin/pytest tests
-        language: python
+        entry: uv run --locked pytest tests
+        language: system
         pass_filenames: false
         always_run: true

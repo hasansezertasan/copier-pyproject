@@ -14,7 +14,32 @@ import sys
 from logging.handlers import RotatingFileHandler
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.config import settings
 from {{github_repo_name}}.core.dirs import LOG_FILE_PATH, ROOT_FOLDER_PATH
+
+
+def _resolve_level(name: str) -> int:
+    """Translate a level name (e.g. ``"DEBUG"``) to its numeric value.
+
+    Falls back to ``logging.INFO`` for unknown names so a bad config value
+    never crashes logging setup. Because the fallback would otherwise be
+    invisible (an operator who typo'd ``DEGUB`` would silently get INFO), an
+    unrecognized name is reported to ``stderr`` so it stays discoverable.
+
+    Args:
+        name: A logging level name such as ``"DEBUG"`` or ``"WARNING"``.
+
+    Returns:
+        int: The numeric logging level, or ``logging.INFO`` if unrecognized.
+    """
+    level = getattr(logging, name.upper(), None)
+    if isinstance(level, int):
+        return level
+    print(  # noqa: T201 - logging is not configured yet at this point
+        f"Unknown log level {name!r}; falling back to INFO.",
+        file=sys.stderr,
+    )
+    return logging.INFO
 
 
 def setup_logger() -> logging.Logger:
@@ -26,8 +51,9 @@ def setup_logger() -> logging.Logger:
     Returns:
         logging.Logger: Configured logger for the project.
     """
+    level = _resolve_level(settings.log_level)
     logger_ = logging.getLogger(PROJECT_NAME)
-    logger_.setLevel(logging.INFO)
+    logger_.setLevel(level)
 
     # Only add handlers if they haven't been added yet
     if not logger_.handlers:
@@ -38,7 +64,7 @@ def setup_logger() -> logging.Logger:
         file_handler = RotatingFileHandler(
             LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
         )
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(level)
 
         # Create a console handler for errors only
         console_handler = logging.StreamHandler(sys.stderr)

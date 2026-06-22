@@ -1,0 +1,11 @@
+{
+  // Mirrors template/.markdownlint-cli2.jsonc so the template repo lints its
+  // own docs the same way it configures generated projects. MD013 (line
+  // length) is disabled: prose docs (CLAUDE.md, JOURNAL.md, ADRs) wrap freely.
+  "config": {
+    "default": true,
+    "MD013": false,
+  },
+  "globs": ["**/*.md", "**/*.markdown"],
+  "gitignore": true,
+}

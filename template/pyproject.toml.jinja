@@ -78,14 +78,14 @@ dependencies = []
 {% endif %}
 {% if include_tui %}tui = ["textual>=0.50.0"]{% endif %}
 {% if include_mcp %}mcp = ["mcp>=1.0.0"]{% endif %}
-{% if include_worker %}worker = ["faststream[{{worker_broker}}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
+{% if include_worker %}worker = ["faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
 all = [
     {% if include_cli %}"typer>=0.20.0",{% endif %}
     {% if include_web %}{% if web_framework == "fastapi" %}"fastapi[all]>=0.123.5",{% endif %}{% if web_framework == "litestar" %}"litestar[standard]>=2.0.0",{% endif %}{% endif %}
     {% if include_tui %}"textual>=0.50.0",{% endif %}
     {% if include_mcp %}"mcp>=1.0.0",{% endif %}
-    {% if include_worker %}"faststream[{{worker_broker}}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",{% endif %}
+    {% if include_worker %}"faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",{% endif %}
     {% if include_pydantic_settings %}"pydantic-settings>=2.0.0",{% endif %}
 ]
 
@@ -183,7 +183,7 @@ pre-commit = [
 
 [build-system]
 {% if include_c_extensions %}
-requires = ["hatchling", "hatch-vcs", "cython>=3.0.0"]
+requires = ["hatchling", "hatch-vcs", "cython>=3.0.0", "setuptools>=70"]
 {% else %}
 requires = ["hatchling", "hatch-vcs"]
 {% endif %}
@@ -218,7 +218,15 @@ allow-direct-references = true
 
 
 [tool.hatch.build.targets.sdist]
-include = ["/README.md", "LICENSE", "/{{github_repo_name}}", "/tests"]
+# The package uses a src layout, so the source tree lives under /src (not
+# /{{github_repo_name}}); including /src ships the actual modules -- and, for
+# C-extension projects, the .pyx/.pxd sources needed to compile from the sdist.
+include = ["/README.md", "LICENSE", "/src", "/tests"]
+{% if include_c_extensions %}
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
+{% endif %}
 
 {% if include_commitizen %}
 [tool.commitizen]
@@ -238,7 +246,14 @@ version_scheme = "pep404"
 # addopts = "-rXs --strict-config --strict-markers"
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
-filterwarnings = ["error"]
+filterwarnings = [
+  "error",
+{%- if include_web and web_framework == "fastapi" %}
+  # Starlette's TestClient emits a forward-compat deprecation about httpx/httpx2.
+  # It is harmless for tests, so don't let `error` promote it to a failure.
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
+{%- endif %}
+]
 testpaths = ["tests"]
 xfail_strict = true
 
@@ -264,8 +279,21 @@ skip_covered = true
 
 
 [tool.vulture]
-ignore_decorators = ["@app.command", "@app.get"]
-ignore_names = ["CONFIG_FILE_PATH"]
+# Framework-invoked handlers: Typer commands, FastAPI routes, FastStream
+# lifecycle hooks, and the MCP tool dispatcher.
+ignore_decorators = [
+  "@app.command",
+  "@app.get",
+  "@app.after_startup",
+  "@app.after_shutdown",
+  "@server.call_tool",
+]
+# Public API surfaces vulture cannot see being used: ``main`` entry points are
+# referenced only via pyproject scripts, ``model_config`` is consumed by
+# pydantic-settings, ``logger`` is imported only by optional components, the MCP
+# ``arguments`` parameter is mandated by the call_tool signature, and the Textual
+# names (CSS/compose/on_mount/title/BINDINGS) are invoked by the TUI framework.
+ignore_names = ["CONFIG_FILE_PATH", "logger", "main", "model_config"{% if include_mcp %}, "arguments"{% endif %}{% if include_tui %}, "CSS", "compose", "on_mount", "title", "BINDINGS"{% endif %}]
 min_confidence = 60
 paths = ["src", "tests"]
 
@@ -315,6 +343,17 @@ author = "{{author_full_name}} <{{author_email}}>"
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
+{% if include_pydantic_settings %}
+[tool.ruff.lint.flake8-type-checking]
+# Pydantic evaluates annotations at runtime, so imports used only in model
+# field annotations (e.g. `pathlib.Path`) must NOT be moved into a
+# `TYPE_CHECKING` block — doing so breaks model construction.
+runtime-evaluated-base-classes = [
+  "pydantic.BaseModel",
+  "pydantic_settings.BaseSettings",
+]
+{% endif %}
+
 
 [tool.ruff.lint.mccabe]
 max-complexity = 5
@@ -329,8 +368,11 @@ convention = "pep257"
 
 
 [tool.ruff.lint.per-file-ignores]
-"./tests/*.py" = ["S101", "PLR2004"]
-"./examples/*.py" = ["INP001"]
+# Recursive glob so nested test packages (tests/cli, tests/gui, ...) are covered.
+# Tests legitimately use asserts/magic values, reach into package internals, and
+# don't need return-value documentation on their fixtures and helpers.
+"tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
+"examples/*.py" = ["INP001"]
 
 
 [tool.ruff.lint.pyupgrade]
@@ -375,13 +417,13 @@ project-includes = ["src"]
 
 
 [tool.tox]
+# The ``worker`` env is intentionally omitted: it starts a broker-bound process
+# and would hang/fail under ``tox run`` in CI (where no broker is available).
+# The worker is covered by its pytest TestBroker suite; run it on demand with
+# ``tox -e worker`` when a broker is up (e.g. inside the devcontainer).
 env_list = [
     "style",
     {% if include_cli %}"cli",{% endif %}
-    {% if include_web %}"web",{% endif %}
-    {% if include_tui %}"tui",{% endif %}
-    {% if include_worker %}"worker",{% endif %}
-    {% if include_pydantic_settings %}"config",{% endif %}
     "3.14",
     "3.13",
     "3.12",
@@ -394,6 +436,9 @@ requires = ["tox>=4"]
 [tool.tox.env_run_base]
 commands = [
   [
+    "coverage",
+    "run",
+    "--module",
     "pytest",
     "-v",
     "--tb=short",
@@ -406,8 +451,20 @@ constrain_package_deps = true
 dependency_groups = ["test"]
 description = "Run the tests under {base_python}"
 env_tmp_dir = "{toxworkdir}/tmp/{envname}"
+# Arms coverage-enable-subprocess so xdist/subprocess workers are measured too;
+# `coverage run` plus `parallel = true` writes per-env data files that the CI
+# `coverage combine` step merges.
+set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
 extras = ["all"]
+{% if include_c_extensions %}
+# The compiled extension makes each wheel ABI-specific. Distributing as an sdist
+# lets every environment compile it against its own interpreter, producing a
+# correctly tagged wheel per Python version; a single shared pre-built wheel
+# (e.g. cp310) cannot install under other versions (cp312, ...).
+package = "sdist"
+{% else %}
 package = "wheel"
+{% endif %}
 runner = "uv-venv-runner"
 use_frozen_constraints = true
 wheel_build_env = ".pkg"
@@ -475,16 +532,20 @@ commands = [
   ],
   # ["yamlfmt", "."],
 ]
-dependency_groups = ["style"]
+# `test` is included so the type checkers that scope tests (e.g. ty) can
+# resolve pytest and other test-only imports.
+dependency_groups = ["style", "test"]
 description = "Run Checkers, Linters and Formatters"
 runner = "uv-venv-runner"
 
 
+{% if include_precommit %}
 [tool.tox.env.pre-commit]
 commands = [["pre-commit", "run", "--all-files"]]
 dependency_groups = ["pre-commit"]
 description = "Run pre-commit hooks"
 runner = "uv-venv-runner"
+{% endif %}
 
 
 [tool.tox.env.docs-build]
@@ -522,6 +583,8 @@ runner = "uv-venv-runner"
 {% endif %}
 
 {% if include_worker %}
+# On-demand only (not in env_list): starts a broker-bound worker, so run it with
+# ``tox -e worker`` when a broker is reachable. CI relies on the pytest suite.
 [tool.tox.env.worker]
 commands = [["{{github_repo_name}}-worker", { replace = "posargs", extend = true }]]
 description = "Run the message queue worker application."

@@ -1,9 +1,11 @@
 """MCP (Model Context Protocol) server for the project."""
+# mypy: disable-error-code="untyped-decorator, no-untyped-call"
 
 from __future__ import annotations
 
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
+from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -16,8 +18,12 @@ server = Server(name="{{github_repo_name}}")
 
 
 @server.list_tools()
-async def list_tools() -> list[Tool]:
-    """List available MCP tools."""
+async def list_tools() -> list[Tool]:  # noqa: RUF029  (MCP requires an async handler)
+    """List available MCP tools.
+
+    Returns:
+        list[Tool]: The tools this server exposes to MCP clients.
+    """
     return [
         Tool(
             name="version",
@@ -33,8 +39,19 @@ async def list_tools() -> list[Tool]:
 
 
 @server.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[TextContent]:  # noqa: ARG001
-    """Handle MCP tool calls."""
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:  # noqa: ARG001, RUF029
+    """Handle MCP tool calls.
+
+    Args:
+        name: The name of the tool to invoke (``version`` or ``info``).
+        arguments: The tool arguments (unused by the built-in tools).
+
+    Returns:
+        list[TextContent]: The tool result as MCP text content.
+
+    Raises:
+        ValueError: If an unknown tool name is requested.
+    """
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
     except PackageNotFoundError:
@@ -77,6 +94,6 @@ async def run_server() -> None:
 
 def main() -> None:
     """Entry point for the MCP server."""
-    import asyncio
+    import asyncio  # noqa: PLC0415
 
     asyncio.run(run_server())

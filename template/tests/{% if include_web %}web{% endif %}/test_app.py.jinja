@@ -14,13 +14,40 @@ from litestar.testing import TestClient
 {% endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.web.app import app
+from {{github_repo_name}}.web.app import app, resolve_bind
+
+# Mirror the env prefix the implementation derives from the project name.
+ENV_PREFIX = f"{PROJECT_NAME.upper().replace('-', '_')}_"
 
 
 @pytest.fixture
 def client() -> TestClient:
     """Fixture that provides a test client for the web application."""
     return TestClient(app)
+
+
+def test_resolve_bind_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The server binds to a local-only address and port 8000 by default."""
+    monkeypatch.delenv(f"{ENV_PREFIX}HOST", raising=False)
+    monkeypatch.delenv(f"{ENV_PREFIX}PORT", raising=False)
+
+    assert resolve_bind() == ("127.0.0.1", 8000)
+
+
+def test_resolve_bind_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Host and port are overridable via the prefixed environment variables."""
+    monkeypatch.setenv(f"{ENV_PREFIX}HOST", "10.0.0.5")
+    monkeypatch.setenv(f"{ENV_PREFIX}PORT", "9000")
+
+    assert resolve_bind() == ("10.0.0.5", 9000)
+
+
+def test_resolve_bind_invalid_port(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A non-integer port fails loudly with SystemExit rather than a traceback."""
+    monkeypatch.setenv(f"{ENV_PREFIX}PORT", "not-a-number")
+
+    with pytest.raises(SystemExit):
+        resolve_bind()
 
 
 def test_version_endpoint(client: TestClient) -> None:

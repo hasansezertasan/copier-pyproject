@@ -1,0 +1,55 @@
+"""Tests for the logging setup module."""
+
+from __future__ import annotations
+
+import logging
+
+import pytest
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.logging_setup import _resolve_level, setup_logger
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("DEBUG", logging.DEBUG),
+        ("info", logging.INFO),
+        ("Warning", logging.WARNING),
+        ("ERROR", logging.ERROR),
+        ("CRITICAL", logging.CRITICAL),
+    ],
+)
+def test_resolve_level_known(name: str, expected: int) -> None:
+    """Known level names resolve to their numeric value, case-insensitively."""
+    assert _resolve_level(name) == expected
+
+
+def test_resolve_level_unknown_falls_back_to_info(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An unknown level falls back to INFO and reports it to stderr."""
+    assert _resolve_level("DEGUB") == logging.INFO
+
+    captured = capsys.readouterr()
+    assert "DEGUB" in captured.err
+
+
+def test_setup_logger_returns_configured_project_logger() -> None:
+    """``setup_logger`` returns the project logger with handlers attached."""
+    configured = setup_logger()
+
+    assert configured.name == PROJECT_NAME
+    # A file handler and a console handler are wired up.
+    assert configured.handlers
+
+
+def test_setup_logger_is_idempotent() -> None:
+    """Repeated calls reuse the same logger without duplicating handlers."""
+    first = setup_logger()
+    handler_count = len(first.handlers)
+
+    second = setup_logger()
+
+    assert second is first
+    assert len(second.handlers) == handler_count
