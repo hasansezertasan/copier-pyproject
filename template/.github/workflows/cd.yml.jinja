@@ -6,8 +6,17 @@ on:
     types: [published]
 jobs:
   build:
+{%- if include_c_extensions %}
+    name: Build the Package on {% raw %}${{ matrix.os }}{% endraw %}
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+{%- else %}
     runs-on: ubuntu-latest
     name: Build the Package
+{%- endif %}
     steps:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
@@ -25,6 +34,18 @@ jobs:
       - name: Restore cache
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
+{%- if include_c_extensions %}
+      - name: Build the wheel
+        run: uv build --wheel --no-sources --quiet
+      - name: Build the source distribution
+        if: {% raw %}${{ matrix.os == 'ubuntu-latest' }}{% endraw %}
+        run: uv build --sdist --no-sources --quiet
+      - name: Upload package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: package-distributions-{% raw %}${{ matrix.os }}{% endraw %}
+          path: dist/
+{%- else %}
       - name: Build the Package
         run: uv build --no-sources --quiet
       - name: Upload package
@@ -32,7 +53,8 @@ jobs:
         with:
           name: package-distributions
           path: dist/
-{% if not include_c_extensions %}
+{%- endif %}
+
   pypi-publish:
     runs-on: ubuntu-latest
     name: Publish to PyPI
@@ -47,11 +69,16 @@ jobs:
     - name: Download package
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
       with:
+{%- if include_c_extensions %}
+        pattern: package-distributions-*
+        path: dist/
+        merge-multiple: true
+{%- else %}
         name: package-distributions
         path: dist/
+{%- endif %}
     - name: Publish distribution to PyPI
       uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
-{% endif %}
 {% if include_pycrucible %}
   build-executables:
     name: Build Executables
@@ -128,24 +155,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 {%- endif %}
-{% if include_c_extensions %}
-  # For C-extension projects the Release carries only this job's single sdist +
-  # ubuntu wheel; the full per-platform wheel matrix is published to PyPI by
-  # build-wheels.yml (which runs on the same release event). The Release assets
-  # are therefore an intentional subset of what lands on PyPI.
-{% endif %}
   attach-github-release:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
-    needs: {% if include_c_extensions %}{% if include_pycrucible %}[build, build-executables]{% else %}build{% endif %}{% else %}{% if include_pycrucible %}[pypi-publish, build-executables]{% else %}pypi-publish{% endif %}{% endif %}
+    needs: {% if include_pycrucible %}[pypi-publish, build-executables]{% else %}pypi-publish{% endif %}
     permissions:
       contents: write  # IMPORTANT: Mandatory for GitHub Release
     steps:
     - name: Download package
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
       with:
+{%- if include_c_extensions %}
+        pattern: package-distributions-*
+        path: dist/
+        merge-multiple: true
+{%- else %}
         name: package-distributions
         path: dist/
+{%- endif %}
 {% if include_pycrucible %}
     - name: Download executables
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4

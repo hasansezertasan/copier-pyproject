@@ -229,9 +229,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
    - Codecov coverage steps are conditional on `include_codecov`
 2. **CD** (`cd.yml.jinja`): PyPI trusted publishing on GitHub Release
-3. **Build Wheels** (`build-wheels.yml`): Multi-platform Cython wheels (conditional on `include_c_extensions`)
-4. **Release automation**: release-please, release-it, or release-drafter (configurable)
-5. **PR title linting**: Validates conventional commits format
+   - When `include_c_extensions` is set, the `build` job runs as a per-platform
+     `fail-fast: false` matrix (Ubuntu/Windows/macOS) producing the multi-platform
+     Cython wheels + sdist; a single `pypi-publish` job uploads them all
+3. **Release automation**: release-please, release-it, or release-drafter (configurable)
+4. **PR title linting**: Validates conventional commits format
 
 ### PyPI Trusted Publishing Setup
 
