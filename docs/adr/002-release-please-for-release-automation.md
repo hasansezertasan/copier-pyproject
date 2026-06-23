@@ -85,7 +85,7 @@ release-please should be wired:
 
 - The `release_automation` variable is removed from `copier.yml`; the release-it
   and release-drafter config + workflow files are deleted; the three release-please
-  files (`release-please-config.json`, `.release-please-manifest.json`,
+  files (`.github/release-please-config.json`, `.github/release-please-manifest.json`,
   `.github/workflows/release-please.yml`) become unconditional.
 - Generated projects now always include a release-please pipeline. The previous
   `none` escape hatch is gone — projects that want no automation must delete the
@@ -99,9 +99,13 @@ release-please should be wired:
   `build-executables` (PyCrucible) / `docker-publish` (web) → `attach-github-release`
   → `finalize-release`. All post-`release-please` jobs gate on
   `release_created == 'true'`. The release is created `draft: true`, artifacts are
-  attached to the draft, and `finalize-release` un-drafts it (firing
-  `release: published`, which `gh-pages.yml` still consumes) and reconciles the
-  phantom next-release PR (close + bounded re-dispatch).
+  attached to the draft, and `finalize-release` un-drafts it and reconciles the
+  phantom next-release PR (close + bounded re-dispatch). Docs deployment is the
+  `deploy-docs` job (`needs: finalize-release`) inside this same workflow, which
+  runs `mkdocs gh-deploy` — it lives here rather than reacting to
+  `release: published` because an event fired by `finalize-release`'s
+  `GITHUB_TOKEN` cannot trigger a separate workflow. `gh-pages.yml` is retained
+  only for manual `workflow_dispatch` redeploys.
 - **Trusted publishing entry workflow changed.** Because the PyPI publish step is
   inline in `release-please.yml` (not a reusable `cd.yml`), the PyPI Trusted
   Publisher must register `release-please.yml` as the workflow filename. README and

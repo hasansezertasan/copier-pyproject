@@ -10,7 +10,7 @@ Key architecture:
 
 - Template files use `.jinja` extension and contain variables like `{{github_repo_name}}`, `{{author_full_name}}`, etc.
 - Template variables are defined in `copier.yml`
-- The `example/` directory shows a rendered example using `.example-input.yml` as answers
+- The `example/` directory is a gitignored, locally-generated rendering (see `.gitignore`); regenerate it from `.example-input.yml` to smoke-test the template. Note: `.example-input.yml` disables every optional component, so the run commands below for CLI/web/etc. apply only after enabling those options (or to any other generated project)
 - Generated projects use uv for dependency management, hatchling for builds, tox for testing, and include full CI/CD automation
 
 ## Development Commands
@@ -232,7 +232,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:
    - `release-please`: opens/maintains a release PR from Conventional Commits on
      push to `main`; on merge, tags the commit and creates a **draft** GitHub
-     Release (`draft: true` in `release-please-config.json`). Exposes
+     Release (`draft: true` in `.github/release-please-config.json`). Exposes
      `release_created`, `tag_name`, `version` as outputs.
    - All later jobs gate on `needs.release-please.outputs.release_created == 'true'`.
    - `build`: builds with uv. When `include_c_extensions` is set, runs as a
@@ -283,7 +283,7 @@ section, including ready-to-run `gh repo edit` / `gh api` commands and the PyPI
 trusted-publishing registration — keep that section in sync when these
 requirements change.
 
-Bump rules follow `release-please-config.json`: `feat` → minor, `fix`/`perf` →
+Bump rules follow `.github/release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`
 keeps breaking changes at a minor bump while pre-1.0.
 

@@ -14,7 +14,7 @@ Performed a comprehensive analysis of the copier-pyproject template to understan
 
 - The template generates modern Python packages with 30+ configurable options
 - Supports 7 optional components: CLI (Typer), Web (FastAPI/Litestar), GUI (Tkinter), TUI (Textual), MCP server, Worker (FastStream), C Extensions (Cython)
-- Includes 13 linting/formatting tools, 99% coverage requirement, and multi-platform CI
+- Includes 11 linting/formatting tools, 99% coverage requirement, and multi-platform CI
 - CD workflow supports PyPI trusted publishing, Docker Hub + GHCR, PyCrucible executables
 - 130 template files using Jinja2 with conditional file inclusion
 
