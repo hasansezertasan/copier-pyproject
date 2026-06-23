@@ -35,6 +35,7 @@
 - [Analysis](#analysis)
 - [Contributing](#contributing-heart)
 - [Development](#development-toolbox)
+- [Releasing](#releasing)
 - [Disclaimer](#disclaimer)
 - [License](#license-scroll)
 {% if include_changelog %}- [Changelog](#changelog-memo){% endif %}
@@ -244,12 +245,12 @@ Run the CI pipeline:
 uv run --locked tox run
 ```
 
-### `docs`
+### `docs-build`
 
 Build the documentation site:
 
 ```sh
-uv run --locked tox run -e docs
+uv run --locked tox run -e docs-build
 ```
 
 ### `docs-server`
@@ -259,6 +260,10 @@ Start the live-reloading docs server:
 ```sh
 uv run --locked tox run -e docs-server
 ```
+
+## Releasing
+
+Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version{% if include_changelog %} and `CHANGELOG.md`{% endif %}; merging it tags the release and publishes to PyPI. See the [Contributing Guidelines](./CONTRIBUTING.md#releasing) for the commit conventions and the one-time [Repository setup](./CONTRIBUTING.md#repository-setup-one-time) (squash-merge settings, Actions permissions, release immutability, and PyPI trusted publishing).
 
 ## Credits
 

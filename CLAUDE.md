@@ -149,7 +149,6 @@ Devcontainer services:
 
 Tooling options:
 
-- `release_automation` - none/release-please/release-it/release-drafter
 - `dependency_management` - none/renovate/dependabot
 - `include_changelog` - Keep a Changelog format (else link to GitHub Releases)
 - `include_citation` - CITATION.cff file
@@ -228,12 +227,65 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
    - Codecov coverage steps are conditional on `include_codecov`
-2. **CD** (`cd.yml.jinja`): PyPI trusted publishing on GitHub Release
-   - When `include_c_extensions` is set, the `build` job runs as a per-platform
-     `fail-fast: false` matrix (Ubuntu/Windows/macOS) producing the multi-platform
-     Cython wheels + sdist; a single `pypi-publish` job uploads them all
-3. **Release automation**: release-please, release-it, or release-drafter (configurable)
-4. **PR title linting**: Validates conventional commits format
+2. **Release + CD** (`release-please.yml.jinja`): one unified workflow (there is
+   no separate `cd.yml`). Standardized on release-please — no longer configurable
+   (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:
+   - `release-please`: opens/maintains a release PR from Conventional Commits on
+     push to `main`; on merge, tags the commit and creates a **draft** GitHub
+     Release (`draft: true` in `release-please-config.json`). Exposes
+     `release_created`, `tag_name`, `version` as outputs.
+   - All later jobs gate on `needs.release-please.outputs.release_created == 'true'`.
+   - `build`: builds with uv. When `include_c_extensions` is set, runs as a
+     per-platform `fail-fast: false` matrix (Ubuntu/Windows/macOS) producing the
+     multi-platform Cython wheels + sdist; `pypi-publish` uploads them all.
+   - `pypi-publish`: trusted publishing (`id-token: write`, environment `publish`).
+   - `build-executables` (when `include_pycrucible`) / `docker-publish` (when
+     `include_web`): conditional matrix jobs. Docker tags feed
+     `needs.release-please.outputs.tag_name` into the metadata-action `value=`
+     because a push-triggered run has no tag ref.
+   - `attach-github-release`: uploads artifacts to the still-draft release.
+   - `finalize-release`: un-drafts the release and reconciles the phantom
+     next-release PR (close + re-dispatch — bounded to one re-run).
+   - `deploy-docs` (`needs: finalize-release`): runs `mkdocs gh-deploy`. Lives in
+     this workflow rather than reacting to `release: published` because an event
+     fired by `finalize-release`'s `GITHUB_TOKEN` cannot trigger another workflow
+     (the same loop-prevention rule that forces the `workflow_dispatch`
+     re-dispatch above). `gh-pages.yml` is kept only for manual redeploys.
+   - Versions come from git tags via hatch-vcs, so release-please never edits a
+     static version literal and `uv.lock` cannot desync.
+3. **PR title linting** (`check-pr-title.yml`): validates the **PR title** (not
+   individual commits) against Conventional Commits via
+   `amannn/action-semantic-pull-request`.
+
+### Required Merge Strategy (release-please depends on it)
+
+release-please derives version bumps and changelog sections solely from the
+Conventional Commit messages that land on `main`. This template validates the
+**PR title** but not in-PR commits, so generated repos **must use "Squash and
+merge" with the squash commit message set to the PR title** — that is the only
+strategy under which the lint-validated title becomes the commit on `main`.
+Merge-commit and rebase-merge promote unvalidated branch commits and will cause
+release-please to miss or mis-bump releases.
+
+Configure each generated repo (Settings → General → Pull Requests):
+
+- Allow squash merging (ideally disable merge commits and rebase merging).
+- Set the squash "Default commit message" to **"Pull request title"**.
+- Enable **Automatically delete head branches**.
+- Keep `check-pr-title` as a required status check.
+
+release-please also needs **Settings → Actions → General → Workflow permissions
+→ Allow GitHub Actions to create and approve pull requests** enabled, or it
+cannot open/maintain the release PR. Generated repos should additionally enable
+**release immutability** (Settings → General). The generated
+`CONTRIBUTING.md` documents all of these as a one-time "Repository setup"
+section, including ready-to-run `gh repo edit` / `gh api` commands and the PyPI
+trusted-publishing registration — keep that section in sync when these
+requirements change.
+
+Bump rules follow `release-please-config.json`: `feat` → minor, `fix`/`perf` →
+patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`
+keeps breaking changes at a minor bump while pre-1.0.
 
 ### PyPI Trusted Publishing Setup
 
@@ -244,7 +296,8 @@ For generated projects to publish to PyPI:
    - PyPI Project Name: `<package-name>`
    - Owner: `<github-username>`
    - Repository: `<repo-name>`
-   - Workflow: `cd.yml`
+   - Workflow: `release-please.yml` (the publish step is inline in this workflow,
+     so this is the filename PyPI's OIDC check matches — not a reusable `cd.yml`)
    - Environment: `publish`
 
 ## Code Style Guidelines

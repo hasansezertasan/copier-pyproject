@@ -80,15 +80,6 @@ include_pydantic_settings:
   type: bool
   default: true
   help: "Use pydantic-settings for type-safe configuration management?"
-release_automation:
-  type: str
-  default: release-please
-  choices:
-    - none
-    - release-please
-    - release-it
-    - release-drafter
-  help: "Choose the release automation system to use"
 dependency_management:
   type: str
   default: renovate

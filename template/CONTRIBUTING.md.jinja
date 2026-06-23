@@ -144,7 +144,110 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/{{gith
 
 ### Commit Messages
 
-<!-- TODO @{{github_user}}: Work in progress. -->
+This project uses [release-please](https://github.com/googleapis/release-please)
+for automated versioning and changelog generation, which reads the
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) that land
+on `main`. Please format contributions accordingly:
+
+- `feat:` — a new feature (triggers a **minor** release)
+- `fix:` — a bug fix (triggers a **patch** release)
+- `feat!:` or a `BREAKING CHANGE:` footer — a breaking change (a **major**
+  release once past `1.0.0`; while pre-`1.0.0` it is treated as a minor bump)
+- `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `deps:`, `chore:`,
+  `style:` — other changes, surfaced in the changelog by type
+
+> **Important:** because pull requests are squash-merged (see below), the
+> **pull request title** is what becomes the commit on `main` — so it is the PR
+> title, not your individual commits, that must follow Conventional Commits. The
+> `Lint PR` workflow enforces this and will block a non-conforming title.
+
+### Branch Names
+
+Name branches with the [Conventional Branch](https://conventional-branch.github.io/)
+format — a type prefix followed by a short, kebab-case description:
+
+- `feat/add-config-loader`, `fix/login-timeout`, `docs/update-readme`,
+  `chore/bump-deps`, `refactor/extract-client`
+
+Never commit directly to `main` (or `master`). `main` is integration-only:
+every change lands through a pull request so it gets CI, the PR-title lint, and
+review before merge. Create a branch, push it, and open a PR.
+
+### Pull Requests
+
+- Open the PR against `main` with a Conventional Commits **title**.
+- PRs are merged with **"Squash and merge"**; the squash commit message is the
+  PR title. This keeps `main` history one-commit-per-PR and lets release-please
+  compute the next version and changelog deterministically.
+
+## Releasing
+
+Releases are fully automated — maintainers do not bump versions or edit the
+changelog by hand:
+
+1. As Conventional Commits land on `main`, release-please opens and maintains a
+   **release PR** that bumps the version{% if include_changelog %} and updates `CHANGELOG.md`{% endif %}.
+2. Merging that release PR tags the commit and publishes the release; the
+   version is derived from the git tag via `hatch-vcs`, and the package is
+   published to PyPI through trusted publishing.
+
+### Repository setup (one-time)
+
+A few repository settings must be in place for the automated release flow to
+work. Each can be applied from the GitHub UI or with the
+[`gh` CLI](https://cli.github.com/) commands shown below.
+
+**1. Pull request / merge strategy.** Squash merging must be the only merge
+method, with the squash commit message defaulting to the PR title — that is the
+only configuration under which the lint-validated PR title becomes the commit on
+`main` that release-please reads. Also delete head branches on merge to keep the
+branch list clean:
+
+```sh
+gh repo edit {{github_user}}/{{github_repo_name}} \
+  --enable-squash-merge \
+  --enable-merge-commit=false \
+  --enable-rebase-merge=false \
+  --enable-auto-merge=false \
+  --delete-branch-on-merge \
+  --squash-merge-commit-message=pr-title
+```
+
+(UI: **Settings → General → Pull Requests** — enable **Allow squash merging**,
+disable merge commits and rebase merging, set the squash **"Default commit
+message"** to **"Pull request title"**, and enable **Automatically delete head
+branches**.)
+
+**2. Let Actions open the release PR.** release-please runs as a GitHub Action
+and opens/maintains the release pull request, so the repo must allow Actions to
+create and approve pull requests:
+
+```sh
+gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/actions/permissions/workflow \
+  -F default_workflow_permissions=read \
+  -F can_approve_pull_request_reviews=true
+```
+
+(UI: **Settings → Actions → General → Workflow permissions** — enable **Allow
+GitHub Actions to create and approve pull requests**.)
+
+**3. Enable release immutability.** Once published, a release's tag and assets
+can no longer be moved or overwritten, which protects the integrity of what gets
+distributed. Enable it under **Settings → General → ... → Enable release
+immutability** (currently a UI-only toggle).
+
+**4. PyPI trusted publishing.** The release workflow publishes to PyPI via
+[trusted publishing](https://docs.pypi.org/trusted-publishers/) (OIDC — no API
+tokens or secrets to manage). Register the publisher once at
+[PyPI → Publishing](https://pypi.org/manage/account/publishing/) under
+**"Add a new pending publisher"**:
+
+- **PyPI Project Name:** `{{github_repo_name}}`
+- **Owner:** `{{github_user}}`
+- **Repository name:** `{{github_repo_name}}`
+- **Workflow name:** `release-please.yml` — the publish step lives inline in this
+  workflow, so this is the filename PyPI's OIDC check matches.
+- **Environment name:** `publish`
 
 ## Join The Project Team
 

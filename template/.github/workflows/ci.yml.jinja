@@ -7,6 +7,29 @@ on:
   pull_request:
     branches: [main, master]
 jobs:
+{%- if include_precommit %}
+  hooks:
+    name: Run prek hooks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Run prek hooks
+        run: uv run --locked --group pre-commit prek run --all-files --show-diff-on-failure
+{%- endif %}
   ci:
     strategy:
       fail-fast: false
@@ -40,16 +63,19 @@ jobs:
         run: |
           env || true
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - name: Set up Python
-        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version-file: .python-version
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@3259c6206f993105e3a61b142c2d97bf4b9ef83d  # v7.1.0
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
           enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
       - name: Restore cache
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
@@ -63,12 +89,15 @@ jobs:
           uv run coverage report --show-missing
           uv run coverage xml
       - name: Upload coverage
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac  # v5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v6.0.2
+        with:
+          files: ./coverage.xml
+          token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
 {% endif %}
 
   check:
     if: always()
-    needs: [ci]
+    needs: {% if include_precommit %}[ci, hooks]{% else %}[ci]{% endif %}
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed

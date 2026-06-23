@@ -1,9 +1,11 @@
 ---
 name: Github Pages
+# Automatic docs deployment on release lives in the `deploy-docs` job of
+# release-please.yml, because a `release: published` event fired by that
+# workflow's GITHUB_TOKEN cannot trigger a separate workflow. This workflow is
+# kept for manual, on-demand docs redeploys via the Actions tab.
 on:
   workflow_dispatch:
-  release:
-    types: [published]
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -24,6 +26,9 @@ jobs:
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
           enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
       - name: Restore cache
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
