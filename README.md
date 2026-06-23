@@ -94,9 +94,14 @@ Enable PyPI once per project for `.github/workflows/release-please.yml`:
 7. Set `Environment name` to `publish` (or your chosen env).
 8. Save.
 
-### Docker Hub setup (if `include_web` is enabled)
+### Container image publishing (if `include_web` is enabled)
 
-Enable Docker Hub publishing (integrated in `.github/workflows/release-please.yml`):
+On release, the workflow always publishes multi-arch images (amd64/arm64) to the
+GitHub Container Registry (`ghcr.io/<owner>/<repo>`) using the built-in
+`GITHUB_TOKEN` — no extra setup required.
+
+Docker Hub publishing is optional and runs only when the `DOCKERHUB_USERNAME`
+secret is set (integrated in `.github/workflows/release-please.yml`):
 
 1. Create a [Docker Hub Access Token](https://hub.docker.com/settings/security).
 2. In your GitHub repository, go to Settings → Secrets and variables → Actions.
