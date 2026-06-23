@@ -41,7 +41,7 @@ jobs:
 {%- endif %}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
           # hatch-vcs derives the version from the git tag, so fetch full history
           # and tags. `force-tag-creation` in the release-please config makes
@@ -50,12 +50,12 @@ jobs:
           # stamp the previous version.
           fetch-depth: 0
       - name: Set up Python
-        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
           python-version-file: .python-version
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@3259c6206f993105e3a61b142c2d97bf4b9ef83d  # v7.1.0
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
           enable-cache: true
       - name: Restore cache
@@ -117,7 +117,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - name: Build with PyCrucible
         uses: razorblade23/pycrucible-action@4a9aeaf7ed124775839031963dcd5295e67ac5f6  # v1.0.5
         with:
@@ -144,7 +144,7 @@ jobs:
       DOCKERHUB_USERNAME: {% raw %}${{ secrets.DOCKERHUB_USERNAME }}{% endraw %}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3
       - name: Set up Docker Buildx
@@ -259,3 +259,35 @@ jobs:
             gh pr close "$pr" --delete-branch --repo {% raw %}"${{ github.repository }}"{% endraw %}
           fi
           gh workflow run {% raw %}"${{ github.workflow }}" --ref "${{ github.ref_name }}" --repo "${{ github.repository }}"{% endraw %}
+
+  deploy-docs:
+    runs-on: ubuntu-latest
+    name: Deploy Docs
+    # Deploy docs inline after the release is published. The `release: published`
+    # event that finalize-release emits cannot trigger a separate workflow,
+    # because events fired by the GITHUB_TOKEN do not start new workflow runs
+    # (the workflow_dispatch exception is why finalize-release re-dispatches
+    # itself above). So docs deployment must live in this workflow as a job.
+    needs: [release-please, finalize-release]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    permissions:
+      contents: write  # IMPORTANT: Mandatory for GitHub Pages
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
+      - name: Restore cache
+        if: steps.setup-uv.outputs.cache-hit == 'true'
+        run: echo "Cache was restored"
+      - name: Build and Deploy Docs
+        run: uv run --only-group docs mkdocs gh-deploy --clean
