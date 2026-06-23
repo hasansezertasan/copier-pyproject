@@ -1,11 +1,33 @@
 ---
-name: CD
+name: Release
 on:
   workflow_dispatch:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+permissions: {}
 jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    name: Release Please
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: {% raw %}${{ steps.release.outputs.release_created }}{% endraw %}
+      tag_name: {% raw %}${{ steps.release.outputs.tag_name }}{% endraw %}
+      version: {% raw %}${{ steps.release.outputs.version }}{% endraw %}
+    steps:
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7  # v5.0.0
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
   build:
+    needs: release-please
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
 {%- if include_c_extensions %}
     name: Build the Package on {% raw %}${{ matrix.os }}{% endraw %}
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
@@ -21,6 +43,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6
         with:
+          # hatch-vcs derives the version from the git tag, so fetch full history
+          # and tags. `force-tag-creation` in the release-please config makes
+          # release-please create the tag immediately — GitHub otherwise withholds
+          # a draft release's tag until it is published, which would make hatch-vcs
+          # stamp the previous version.
           fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548  # v6.1.0
@@ -58,13 +85,14 @@ jobs:
   pypi-publish:
     runs-on: ubuntu-latest
     name: Publish to PyPI
-    needs: build
+    needs: [release-please, build]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       id-token: write  # IMPORTANT: Mandatory for Trusted Publishing (gh-action-pypi-publish)
     # Specifying a GitHub environment is optional, but strongly encouraged
     environment:
       name: publish
-      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ github.ref_name }}{% endraw %}
+      url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
     steps:
     - name: Download package
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
@@ -82,7 +110,8 @@ jobs:
 {% if include_pycrucible %}
   build-executables:
     name: Build Executables
-    needs: build
+    needs: [release-please, build]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -103,7 +132,8 @@ jobs:
 {%- if include_web %}
   docker-publish:
     name: Publish Docker Image
-    needs: build
+    needs: [release-please, build]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -138,10 +168,12 @@ jobs:
           images: |
             {% raw %}${{ env.DOCKERHUB_USERNAME != '' && format('docker.io/{0}', github.repository) || '' }}{% endraw %}
             ghcr.io/{% raw %}${{ github.repository }}{% endraw %}
+          # No tag ref is present on a push-triggered run, so feed the
+          # release-please version into the semver patterns explicitly.
           tags: |
-            type=semver,pattern={{"{{"}}version{{"}}"}}
-            type=semver,pattern={{"{{"}}major{{"}}"}}.{{"{{"}}minor{{"}}"}}
-            type=semver,pattern={{"{{"}}major{{"}}"}}
+            type=semver,pattern={{"{{"}}version{{"}}"}},value={% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+            type=semver,pattern={{"{{"}}major{{"}}"}}.{{"{{"}}minor{{"}}"}},value={% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+            type=semver,pattern={{"{{"}}major{{"}}"}},value={% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
             type=raw,value=latest,enable={{"{{"}}is_default_branch{{"}}"}}
             type=sha,prefix=
       - name: Build and push Docker image
@@ -158,7 +190,9 @@ jobs:
   attach-github-release:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
-    needs: {% if include_pycrucible %}[pypi-publish, build-executables]{% else %}pypi-publish{% endif %}
+    needs: {% if include_pycrucible %}[release-please, pypi-publish, build-executables]{% else %}[release-please, pypi-publish]{% endif %}
+
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: write  # IMPORTANT: Mandatory for GitHub Release
     steps:
@@ -181,9 +215,47 @@ jobs:
         path: dist/executables/
         merge-multiple: true
 {% endif %}
-{% raw %}
-    - name: Attach Build Artifacts to GitHub Release
+    - name: Attach Build Artifacts to the draft release
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: gh release upload ${{ github.ref_name }} ./dist/* --clobber
-{% endraw %}
+        GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+      run: gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} ./dist/* --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
+
+  finalize-release:
+    runs-on: ubuntu-latest
+    name: Publish the GitHub Release
+    needs: {% if include_web %}[release-please, pypi-publish, attach-github-release, docker-publish]{% else %}[release-please, pypi-publish, attach-github-release]{% endif %}
+
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    permissions:
+      contents: write  # IMPORTANT: Mandatory to un-draft the GitHub Release
+      pull-requests: write  # IMPORTANT: Mandatory to close the phantom release PR
+      actions: write  # IMPORTANT: Mandatory to re-dispatch this workflow
+    steps:
+      - name: Publish the draft release
+        env:
+          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+        run: gh release edit {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --draft=false --repo {% raw %}"${{ github.repository }}"{% endraw %}
+      - name: Reconcile the next release PR against the now-published release
+        # release-please derives its commit range from the latest *published*
+        # GitHub Release and ignores drafts. The release-please job above may have
+        # opened the next release PR in this same run while this release was still
+        # a draft, so that PR was computed with no baseline and re-lists shipped
+        # commits as a phantom bump. release-please will NOT self-heal: a later
+        # run with no new commits just skips, leaving the orphan PR open. So close
+        # it now that the release is published, then re-dispatch. The re-dispatch
+        # sees the published release and recreates a CORRECT next PR only if real
+        # unreleased commits exist; otherwise it stops without reaching this job,
+        # so the re-trigger is bounded to one run. (workflow_dispatch is the
+        # documented exception to GITHUB_TOKEN loop-prevention, so no PAT needed.)
+        env:
+          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+        run: |
+          pr="$(gh pr list --state open \
+            --repo {% raw %}"${{ github.repository }}"{% endraw %} \
+            --head {% raw %}"release-please--branches--${{ github.ref_name }}"{% endraw %} \
+            --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            echo "Closing phantom release PR #$pr"
+            gh pr close "$pr" --delete-branch --repo {% raw %}"${{ github.repository }}"{% endraw %}
+          fi
+          gh workflow run {% raw %}"${{ github.workflow }}" --ref "${{ github.ref_name }}" --repo "${{ github.repository }}"{% endraw %}

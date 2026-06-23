@@ -8,7 +8,7 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 - Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
 - QA stack: pytest with coverage/xdist/reruns (and `.codecov.yml`), ruff, mypy, pyright, ty, pyrefly, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint.
 - Docs and site: MkDocs scaffold (`docs/index.md`) with GitHub Pages deploy workflow.
-- Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), configurable release automation (release-please/release-it/release-drafter), PR title linting, issue/PR templates, dependency management (Renovate/Dependabot), optional Commitizen, pre-commit (with pre-commit-uv), devcontainer, VS Code launch config, gitignore, FUNDING, and LICENSE.
+- Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, issue/PR templates, dependency management (Renovate/Dependabot), optional Commitizen, pre-commit (with pre-commit-uv), devcontainer, VS Code launch config, gitignore, FUNDING, and LICENSE.
 - Extra tooling: Optional Trunk config (hadolint/markdownlint/etc.), Pants config, `.dockerignore`, badge-rich README template, and enhanced VS Code launch.json for debugging (current file, tests, attach, entry points).
 
 ## Inputs
@@ -32,7 +32,6 @@ Copier will prompt for:
 - `include_profiling` (include profiling and performance tools)
 - `include_pycrucible` (include PyCrucible for standalone executables)
 - `include_pydantic_settings` (use pydantic-settings for configuration)
-- `release_automation` (none/release-please/release-it/release-drafter)
 - `dependency_management` (none/renovate/dependabot)
 - `include_changelog` (include CHANGELOG.md)
 - `include_citation` (include CITATION.cff)
@@ -71,26 +70,33 @@ Copier will prompt for:
 
 ## Release automation
 
-Publishing a GitHub release triggers `.github/workflows/cd.yml.jinja` to build with uv and push to PyPI using trusted publishing. Docs deploy from releases via `.github/workflows/gh-pages.yml`, and CI runs on macOS/Linux/Windows via `.github/workflows/ci.yml.jinja`.
+Release automation is standardized on [release-please](https://github.com/googleapis/release-please) (see [ADR-002](docs/adr/002-release-please-for-release-automation.md)). A single unified workflow, `.github/workflows/release-please.yml`, orchestrates the whole release:
 
-If you prefer release PRs or manual bumping, `release-please-config.json` and `.release-it.json` are provided alongside release-drafter.
+1. On push to `main`, release-please opens a release PR derived from your Conventional Commits.
+2. Merging that PR creates the git tag and a **draft** GitHub Release.
+3. The same workflow then builds with uv, publishes to PyPI via trusted publishing, attaches the build artifacts to the draft, and only then **un-drafts** the release — so the release is never visible without its artifacts.
+4. Un-drafting fires `release: published`, which deploys docs via `.github/workflows/gh-pages.yml`.
+
+CI runs on macOS/Linux/Windows via `.github/workflows/ci.yml.jinja`.
+
+Versions are derived from git tags by hatch-vcs (`dynamic = ["version"]`), so release-please never edits a static version literal and `uv.lock` cannot desync. `bump-minor-pre-major` keeps pre-1.0 projects pre-1.0.
 
 ### PyPI Trusted Publishing setup
 
-Enable PyPI once per project for `.github/workflows/cd.yml`:
+Enable PyPI once per project for `.github/workflows/release-please.yml`:
 
 1. Open [Trusted Publisher Management](https://pypi.org/manage/account/publishing/).
 2. Under "Add a new pending publisher", pick "GitHub".
 3. Set `PyPI Project Name` to your package name.
 4. Set `Owner` to your GitHub username.
 5. Set `Repository name` to your repo name.
-6. Set `Workflow name` to `cd.yml` (or your workflow filename).
+6. Set `Workflow name` to `release-please.yml`. The PyPI publish step lives in this workflow (not a reusable one), so this is the filename PyPI's OIDC check matches against.
 7. Set `Environment name` to `publish` (or your chosen env).
 8. Save.
 
 ### Docker Hub setup (if `include_web` is enabled)
 
-Enable Docker Hub publishing (integrated in `.github/workflows/cd.yml`):
+Enable Docker Hub publishing (integrated in `.github/workflows/release-please.yml`):
 
 1. Create a [Docker Hub Access Token](https://hub.docker.com/settings/security).
 2. In your GitHub repository, go to Settings → Secrets and variables → Actions.
@@ -101,32 +107,34 @@ Enable Docker Hub publishing (integrated in `.github/workflows/cd.yml`):
 
 ### Release steps
 
-1. Draft a GitHub Release (tag = version).
-2. Update `CHANGELOG.md` with the new version details.
-3. Publish the release.
-4. `cd.yml` will build the wheel/sdist with uv, publish to PyPI via trusted publishing, and upload artifacts to the GitHub Release.
-5. If `include_web` is enabled, `cd.yml` also builds and pushes Docker images to Docker Hub.
-6. If `include_pycrucible` is enabled, `cd.yml` also builds standalone executables for Windows, macOS, and Linux.
+Releases are driven by Conventional Commits — you do not draft releases by hand:
 
-### CD workflow structure
+1. Land `feat:` / `fix:` commits on `main`. release-please opens (and keeps updating) a release PR with the computed version bump and changelog.
+2. Merge the release PR when you want to ship. This creates the git tag and a draft GitHub Release.
+3. The `release-please.yml` workflow then builds the wheel/sdist with uv, publishes to PyPI via trusted publishing, attaches artifacts to the draft, and un-drafts the release.
+4. If `include_web` is enabled it also builds and pushes multi-arch Docker images; if `include_pycrucible` is enabled it also builds standalone executables for Windows, macOS, and Linux and attaches them to the release.
 
-The unified `cd.yml` orchestrates all release jobs:
+### Release workflow structure
+
+The unified `release-please.yml` orchestrates every release job; all jobs after `release-please` run only when a release was created:
 
 ```text
-build ─────┬──► pypi-publish ──────────────────────┐
-           │                                       │
-           ├──► build-executables (if pycrucible) ─┼──► attach-github-release
-           │    (parallel: ubuntu/windows/macos)   │
-           │                                       │
-           └──► docker-publish (if web) ───────────┘
-                (pushes to Docker Hub independently)
+release-please ─► build ─┬──► pypi-publish ─────────────────────┐
+                         │                                      │
+                         ├──► build-executables (if pycrucible) ┼─► attach-github-release ─► finalize-release
+                         │    (parallel: ubuntu/windows/macos)  │                            (un-draft + reconcile)
+                         │                                      │
+                         └──► docker-publish (if web) ──────────┘
+                              (pushes to Docker Hub independently)
 ```
 
-- **build**: Builds the Python wheel/sdist with uv
+- **release-please**: Opens/maintains the release PR; on merge, tags and creates the draft release
+- **build**: Builds the Python wheel/sdist with uv (matrix per-OS when `include_c_extensions`)
 - **pypi-publish**: Publishes to PyPI via trusted publishing
 - **build-executables**: Builds standalone executables for 3 platforms (conditional)
 - **docker-publish**: Builds and pushes multi-arch Docker images (conditional)
-- **attach-github-release**: Attaches all artifacts to the GitHub Release
+- **attach-github-release**: Attaches all artifacts to the still-draft release
+- **finalize-release**: Un-drafts the release (firing `release: published`) and reconciles the next release PR
 
 ## Author
 

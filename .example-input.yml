@@ -16,7 +16,6 @@ include_c_extensions: false
 include_profiling: false
 include_pycrucible: false
 include_pydantic_settings: false
-release_automation: none
 dependency_management: none
 include_changelog: false
 include_citation: false
