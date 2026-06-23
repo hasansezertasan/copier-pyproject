@@ -119,13 +119,12 @@ Releases are driven by Conventional Commits — you do not draft releases by han
 The unified `release-please.yml` orchestrates every release job; all jobs after `release-please` run only when a release was created:
 
 ```text
-release-please ─► build ─┬──► pypi-publish ─────────────────────┐
-                         │                                      │
-                         ├──► build-executables (if pycrucible) ┼─► attach-github-release ─► finalize-release ─► deploy-docs
-                         │    (parallel: ubuntu/windows/macos)  │                            (un-draft + reconcile)   (mkdocs gh-deploy)
-                         │                                      │
-                         └──► docker-publish (if web) ──────────┘
-                              (pushes to Docker Hub independently)
+release-please ─► build ─┬─► pypi-publish ──────────┐
+                         │                          ▼
+                         ├─► build-executables ─► attach-github-release ─┐
+                         │   (if pycrucible)                             ▼
+                         └─► docker-publish ─────────────────────────► finalize-release ─► deploy-docs
+                             (if web)                                   (un-draft + reconcile)   (mkdocs gh-deploy)
 ```
 
 - **release-please**: Opens/maintains the release PR; on merge, tags and creates the draft release
