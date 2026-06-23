@@ -75,7 +75,7 @@ Release automation is standardized on [release-please](https://github.com/google
 1. On push to `main`, release-please opens a release PR derived from your Conventional Commits.
 2. Merging that PR creates the git tag and a **draft** GitHub Release.
 3. The same workflow then builds with uv, publishes to PyPI via trusted publishing, attaches the build artifacts to the draft, and only then **un-drafts** the release — so the release is never visible without its artifacts.
-4. Un-drafting fires `release: published`, which deploys docs via `.github/workflows/gh-pages.yml`.
+4. Once the release is un-drafted, the workflow's `deploy-docs` job publishes the docs with `mkdocs gh-deploy`. Docs deploy inline here (rather than via a `release: published` trigger) because an event fired by `GITHUB_TOKEN` cannot start another workflow; `.github/workflows/gh-pages.yml` is kept for manual redeploys only.
 
 CI runs on macOS/Linux/Windows via `.github/workflows/ci.yml.jinja`.
 
@@ -121,8 +121,8 @@ The unified `release-please.yml` orchestrates every release job; all jobs after 
 ```text
 release-please ─► build ─┬──► pypi-publish ─────────────────────┐
                          │                                      │
-                         ├──► build-executables (if pycrucible) ┼─► attach-github-release ─► finalize-release
-                         │    (parallel: ubuntu/windows/macos)  │                            (un-draft + reconcile)
+                         ├──► build-executables (if pycrucible) ┼─► attach-github-release ─► finalize-release ─► deploy-docs
+                         │    (parallel: ubuntu/windows/macos)  │                            (un-draft + reconcile)   (mkdocs gh-deploy)
                          │                                      │
                          └──► docker-publish (if web) ──────────┘
                               (pushes to Docker Hub independently)
@@ -134,7 +134,8 @@ release-please ─► build ─┬──► pypi-publish ───────�
 - **build-executables**: Builds standalone executables for 3 platforms (conditional)
 - **docker-publish**: Builds and pushes multi-arch Docker images (conditional)
 - **attach-github-release**: Attaches all artifacts to the still-draft release
-- **finalize-release**: Un-drafts the release (firing `release: published`) and reconciles the next release PR
+- **finalize-release**: Un-drafts the release and reconciles the next release PR
+- **deploy-docs**: Publishes the docs with `mkdocs gh-deploy` after the release is un-drafted (inline, since a `GITHUB_TOKEN`-fired `release: published` event can't trigger a separate workflow)
 
 ## Author
 
