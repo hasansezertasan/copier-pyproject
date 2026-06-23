@@ -144,7 +144,45 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/{{gith
 
 ### Commit Messages
 
-<!-- TODO @{{github_user}}: Work in progress. -->
+This project uses [release-please](https://github.com/googleapis/release-please)
+for automated versioning and changelog generation, which reads the
+[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) that land
+on `main`. Please format contributions accordingly:
+
+- `feat:` — a new feature (triggers a **minor** release)
+- `fix:` — a bug fix (triggers a **patch** release)
+- `feat!:` or a `BREAKING CHANGE:` footer — a breaking change (a **major**
+  release once past `1.0.0`; while pre-`1.0.0` it is treated as a minor bump)
+- `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `deps:`, `chore:`,
+  `style:` — other changes, surfaced in the changelog by type
+
+> **Important:** because pull requests are squash-merged (see below), the
+> **pull request title** is what becomes the commit on `main` — so it is the PR
+> title, not your individual commits, that must follow Conventional Commits. The
+> `Lint PR` workflow enforces this and will block a non-conforming title.
+
+### Pull Requests
+
+- Open the PR against `main` with a Conventional Commits **title**.
+- PRs are merged with **"Squash and merge"**; the squash commit message is the
+  PR title. This keeps `main` history one-commit-per-PR and lets release-please
+  compute the next version and changelog deterministically.
+
+## Releasing
+
+Releases are fully automated — maintainers do not bump versions or edit the
+changelog by hand:
+
+1. As Conventional Commits land on `main`, release-please opens and maintains a
+   **release PR** that bumps the version{% if include_changelog %} and updates `CHANGELOG.md`{% endif %}.
+2. Merging that release PR tags the commit and publishes the release; the
+   version is derived from the git tag via `hatch-vcs`, and the package is
+   published to PyPI through trusted publishing.
+
+> **Repository setup (one-time):** in **Settings → General → Pull Requests**,
+> enable **Allow squash merging** (ideally disable merge commits and rebase
+> merging) and set the squash **"Default commit message"** to **"Pull request
+> title"**, so the lint-validated PR title is the message release-please reads.
 
 ## Join The Project Team
 

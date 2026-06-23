@@ -249,7 +249,29 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      (close + re-dispatch — bounded to one re-run).
    - Versions come from git tags via hatch-vcs, so release-please never edits a
      static version literal and `uv.lock` cannot desync.
-3. **PR title linting**: Validates conventional commits format
+3. **PR title linting** (`check-pr-title.yml`): validates the **PR title** (not
+   individual commits) against Conventional Commits via
+   `amannn/action-semantic-pull-request`.
+
+### Required Merge Strategy (release-please depends on it)
+
+release-please derives version bumps and changelog sections solely from the
+Conventional Commit messages that land on `main`. This template validates the
+**PR title** but not in-PR commits, so generated repos **must use "Squash and
+merge" with the squash commit message set to the PR title** — that is the only
+strategy under which the lint-validated title becomes the commit on `main`.
+Merge-commit and rebase-merge promote unvalidated branch commits and will cause
+release-please to miss or mis-bump releases.
+
+Configure each generated repo (Settings → General → Pull Requests):
+
+- Allow squash merging (ideally disable merge commits and rebase merging).
+- Set the squash "Default commit message" to **"Pull request title"**.
+- Keep `check-pr-title` as a required status check.
+
+Bump rules follow `release-please-config.json`: `feat` → minor, `fix`/`perf` →
+patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`
+keeps breaking changes at a minor bump while pre-1.0.
 
 ### PyPI Trusted Publishing Setup
 
