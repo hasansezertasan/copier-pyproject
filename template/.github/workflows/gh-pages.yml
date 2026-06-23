@@ -26,6 +26,9 @@ jobs:
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
           enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
       - name: Restore cache
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
