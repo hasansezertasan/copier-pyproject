@@ -271,7 +271,17 @@ Configure each generated repo (Settings → General → Pull Requests):
 
 - Allow squash merging (ideally disable merge commits and rebase merging).
 - Set the squash "Default commit message" to **"Pull request title"**.
+- Enable **Automatically delete head branches**.
 - Keep `check-pr-title` as a required status check.
+
+release-please also needs **Settings → Actions → General → Workflow permissions
+→ Allow GitHub Actions to create and approve pull requests** enabled, or it
+cannot open/maintain the release PR. Generated repos should additionally enable
+**release immutability** (Settings → General). The generated
+`CONTRIBUTING.md` documents all of these as a one-time "Repository setup"
+section, including ready-to-run `gh repo edit` / `gh api` commands and the PyPI
+trusted-publishing registration — keep that section in sync when these
+requirements change.
 
 Bump rules follow `release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`

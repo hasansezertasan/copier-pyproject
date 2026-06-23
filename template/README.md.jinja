@@ -263,7 +263,7 @@ uv run --locked tox run -e docs-server
 
 ## Releasing
 
-Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version{% if include_changelog %} and `CHANGELOG.md`{% endif %}; merging it tags the release and publishes to PyPI. See the [Contributing Guidelines](./CONTRIBUTING.md#releasing) for the commit conventions and required squash-merge repository setting.
+Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version{% if include_changelog %} and `CHANGELOG.md`{% endif %}; merging it tags the release and publishes to PyPI. See the [Contributing Guidelines](./CONTRIBUTING.md#releasing) for the commit conventions and the one-time [Repository setup](./CONTRIBUTING.md#repository-setup-one-time) (squash-merge settings, Actions permissions, release immutability, and PyPI trusted publishing).
 
 ## Credits
 
