@@ -12,6 +12,7 @@ jobs:
     name: Release Please
     permissions:
       contents: write
+      issues: write  # IMPORTANT: release-please manages PR labels via the Issues API
       pull-requests: write
     outputs:
       release_created: {% raw %}${{ steps.release.outputs.release_created }}{% endraw %}
@@ -28,6 +29,8 @@ jobs:
   build:
     needs: release-please
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    permissions:
+      contents: read  # IMPORTANT: actions/checkout needs read access to the repo
 {%- if include_c_extensions %}
     name: Build the Package on {% raw %}${{ matrix.os }}{% endraw %}
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
@@ -115,6 +118,8 @@ jobs:
     name: Build Executables
     needs: [release-please, build]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    permissions:
+      contents: read  # IMPORTANT: actions/checkout needs read access to the repo
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
