@@ -163,11 +163,17 @@ on `main`. Please format contributions accordingly:
 
 ### Branch Names
 
-Name branches with the [Conventional Branch](https://conventional-branch.github.io/)
-format — a type prefix followed by a short, kebab-case description:
+Name branches with the [Conventional Branch](https://conventionalbranch.org/)
+format — a type prefix followed by a short, lowercase description:
 
-- `feat/add-config-loader`, `fix/login-timeout`, `docs/update-readme`,
-  `chore/bump-deps`, `refactor/extract-client`
+- `feat/add-config-loader`, `fix/login-timeout`, `chore/bump-deps`,
+  `release/2-0-0`, `claude/refactor-client`
+
+The `Lint branch name` workflow enforces this on every pull request (the
+automated `renovate/*` and `release-please--*` branches are exempt). Allowed
+prefixes are exactly those the spec defines: `feature`/`feat`, `bugfix`/`fix`,
+`hotfix`, `release`, `chore`, plus the AI-agent prefixes `ai`, `copilot`,
+`cursor`, `claude`, `codex`.
 
 Never commit directly to `main` (or `master`). `main` is integration-only:
 every change lands through a pull request so it gets CI, the PR-title lint, and
@@ -228,6 +234,9 @@ runs**, not the workflow files):
 
 - `Validate PR title` — the Conventional Commits PR-title lint
   (`check-pr-title.yml`), which release-please depends on.
+- `Validate branch name` — the Conventional Branch lint
+  (`check-branch-name.yml`), which fails a PR whose head branch name does not
+  follow the `<type>/<description>` format.
 - `Verify linked issue` — the linked-issue check (`check-linked-issues.yml`),
   which fails a PR with no linked issue.
 - `Task Completed Checker` — the PR task-list gate (`task-completed-check.yml`),
@@ -239,7 +248,7 @@ gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/branches/main/protectio
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["Validate PR title", "Verify linked issue", "Task Completed Checker"]
+    "contexts": ["Validate PR title", "Validate branch name", "Verify linked issue", "Task Completed Checker"]
   },
   "enforce_admins": null,
   "required_pull_request_reviews": null,
@@ -250,7 +259,7 @@ JSON
 
 (UI: **Settings → Branches → Add branch ruleset** (or **Add rule** for `main`) —
 enable **Require status checks to pass before merging**, then search for and add
-the three contexts above. The contexts only appear in the picker after each check
+the four contexts above. The contexts only appear in the picker after each check
 has run at least once.)
 
 **3. Let Actions open the release PR.** release-please runs as a GitHub Action
