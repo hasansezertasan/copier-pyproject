@@ -2,7 +2,7 @@
 name: Task Completed Check
 on:
   pull_request_target:
-    types: [opened, edited]
+    types: [opened, edited, synchronize, reopened]
 jobs:
   task-check:
     name: Check PR task list
