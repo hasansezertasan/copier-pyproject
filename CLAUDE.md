@@ -287,6 +287,13 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    It checks the real `closingIssuesReferences` relationship, not just body text;
    apply the `no-issue` label to bypass the check. Keep it as a required status
    check alongside `check-pr-title`.
+5. **PR task-list completion check** (`task-completed-check.yml`): on
+   `pull_request_target` (`opened`/`edited`), runs
+   `kentaro-m/task-completed-checker-action` to post a check run that fails while
+   any task-list checkbox in the PR description is unticked. Uses
+   `pull_request_target` (least-privilege `checks: write` + `pull-requests: read`)
+   so the check also runs on fork PRs; wrap throwaway lists in
+   `<!-- ignore-task-list-start -->` / `<!-- ignore-task-list-end -->` to skip them.
 
 ### Required Merge Strategy (release-please depends on it)
 

@@ -222,7 +222,38 @@ disable merge commits and rebase merging, set the squash **"Default commit
 message"** to **"Pull request title"**, and enable **Automatically delete head
 branches**.)
 
-**2. Let Actions open the release PR.** release-please runs as a GitHub Action
+**2. Required status checks.** Protect `main` so a PR can only merge once its
+checks pass. Mark these check contexts as required (the names are the **check
+runs**, not the workflow files):
+
+- `Validate PR title` — the Conventional Commits PR-title lint
+  (`check-pr-title.yml`), which release-please depends on.
+- `Verify linked issue` — the linked-issue check (`check-linked-issues.yml`),
+  which fails a PR with no linked issue.
+- `Task Completed Checker` — the PR task-list gate (`task-completed-check.yml`),
+  which fails while any unticked checkbox remains in the PR description.
+
+```sh
+gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/branches/main/protection \
+  --input - <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["Validate PR title", "Verify linked issue", "Task Completed Checker"]
+  },
+  "enforce_admins": null,
+  "required_pull_request_reviews": null,
+  "restrictions": null
+}
+JSON
+```
+
+(UI: **Settings → Branches → Add branch ruleset** (or **Add rule** for `main`) —
+enable **Require status checks to pass before merging**, then search for and add
+the three contexts above. The contexts only appear in the picker after each check
+has run at least once.)
+
+**3. Let Actions open the release PR.** release-please runs as a GitHub Action
 and opens/maintains the release pull request, so the repo must allow Actions to
 create and approve pull requests:
 
@@ -235,32 +266,10 @@ gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/actions/permissions/wor
 (UI: **Settings → Actions → General → Workflow permissions** — enable **Allow
 GitHub Actions to create and approve pull requests**.)
 
-**3. Enable release immutability.** Once published, a release's tag and assets
+**4. Enable release immutability.** Once published, a release's tag and assets
 can no longer be moved or overwritten, which protects the integrity of what gets
 distributed. Enable it under **Settings → General → ... → Enable release
 immutability** (currently a UI-only toggle).
-
-**4. Require the PR checks.** Protect `main` so a PR cannot merge until both the
-PR-title lint and the linked-issue check pass:
-
-```sh
-gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/branches/main/protection \
-  --input - <<'JSON'
-{
-  "required_status_checks": {
-    "strict": true,
-    "contexts": ["Validate PR title", "Verify linked issue"]
-  },
-  "enforce_admins": null,
-  "required_pull_request_reviews": null,
-  "restrictions": null
-}
-JSON
-```
-
-(UI: **Settings → Branches → Add branch ruleset / protection rule** for `main` —
-enable **Require status checks to pass** and select **Validate PR title** and
-**Verify linked issue**.)
 
 **5. PyPI trusted publishing.** The release workflow publishes to PyPI via
 [trusted publishing](https://docs.pypi.org/trusted-publishers/) (OIDC — no API

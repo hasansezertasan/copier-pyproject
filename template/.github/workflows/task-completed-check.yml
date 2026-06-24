@@ -1,0 +1,17 @@
+---
+name: Task Completed Check
+on:
+  pull_request_target:
+    types: [opened, edited]
+jobs:
+  task-check:
+    name: Check PR task list
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: read
+    steps:
+      - name: Check completed tasks
+        uses: kentaro-m/task-completed-checker-action@2ddb65fdd5577bae4a8e82e0564e459677aec893  # v0.1.2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
