@@ -149,11 +149,12 @@ Devcontainer services:
 
 Tooling options:
 
-- `dependency_management` - none/renovate/dependabot
 - `include_citation` - CITATION.cff file
 
 Always included (no toggle): a Keep-a-Changelog `CHANGELOG.md` (maintained by
-release-please), Codecov coverage upload (`.codecov.yml` + CI step), and mise
+release-please), Codecov coverage upload (`.codecov.yml` + CI step), Renovate
+dependency management (`renovate.json` — Dependabot and the `none` opt-out were
+removed; there is no longer a `dependency_management` option), and mise
 (`mise.toml` + devcontainer feature) for tool version management and task
 running. Pants and Trunk were removed entirely — the tox `style` env is the sole
 lint/build orchestrator (see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).

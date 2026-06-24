@@ -80,14 +80,6 @@ include_pydantic_settings:
   type: bool
   default: true
   help: "Use pydantic-settings for type-safe configuration management?"
-dependency_management:
-  type: str
-  default: renovate
-  choices:
-    - none
-    - renovate
-    - dependabot
-  help: "Choose the dependency management tool to use"
 include_citation:
   type: bool
   default: true
