@@ -119,6 +119,14 @@ Required inputs:
 
 - `github_user`, `github_repo_name`, `author_full_name`, `author_email`, `short_description`
 
+Free-form metadata:
+
+- `package_keywords` - extra comma-separated PyPI keywords prepended to the generated
+  `keywords` list (default empty); the template's own base keywords plus tooling and
+  enabled-component keywords are always appended automatically. (The classifiers list
+  is still auto-generated from enabled components — it carries a `TODO` marker for the
+  generated project's author to fill in project-specific classifiers.)
+
 Optional components (all boolean):
 
 - `include_cli` - Typer CLI
