@@ -1,0 +1,132 @@
+# Configuration file for `prek`, a fast Rust-native pre-commit replacement.
+# See https://prek.j178.dev for more information.
+#:schema https://www.schemastore.org/prek.json
+#
+# Hook revisions are kept current by Renovate (see the customManagers block in
+# renovate.json). There is no pre-commit.ci integration and no sync-with-uv
+# hook — Renovate owns every `rev` bump, including the tools shared with the uv
+# `style` dependency group.
+default_language_version.python = "python3.10"
+default_stages = ["pre-commit", "pre-push"]
+exclude = '''(?x)^(
+    # Editor/debugger JSON configs that carry comments or trailing commas
+    \.devcontainer/devcontainer\.json$
+    |\.vscode/launch\.json$
+    |\.zed/debug\.json$
+
+    # VCS and Python build/virtualenv directories
+    |\.git
+    |\.hg
+    |\.mypy_cache
+    |\.nox
+    |\.tox
+    |\.venv
+    |_build
+    |buck-out
+    |build
+    |dist
+    |alembic
+)$'''
+
+# Fast Rust-native reimplementations of common pre-commit-hooks. No git clone.
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "check-added-large-files", name = "Check added large files", args = ["--maxkb=1000"] },
+  { id = "check-toml", name = "Check TOML" },
+  { id = "check-json", name = "Check JSON" },
+  { id = "end-of-file-fixer", name = "End of file fixer" },
+  { id = "trailing-whitespace", name = "Trailing whitespace" },
+  { id = "check-merge-conflict", name = "Check Merge Conflict", args = ["--assume-in-merge"] },
+  { id = "detect-private-key", name = "Detect Private Key" },
+]
+
+# check-yaml (--unsafe, needed for mkdocs.yml's `!!python/name` tags),
+# debug-statements and check-ast have no Rust builtin (they need a tag-aware
+# YAML loader / the Python AST), so they stay on the upstream repo. prek runs
+# them correctly, just without the builtin fast path.
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v6.0.0"
+hooks = [
+  { id = "check-yaml", name = "Check YAML", args = ["--unsafe"] },
+  { id = "debug-statements", name = "Debug Statements" },
+  { id = "check-ast", name = "Check AST" },
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/uv-pre-commit"
+rev = "0.9.15"
+hooks = [{ id = "uv-lock", name = "Update the uv lockfile" }]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.19"
+hooks = [
+  { id = "ruff", name = "Ruff Linter" },
+  { id = "ruff-format", name = "Ruff Formatter" },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "basedpyright", name = "basedpyright Type Checker", entry = "uv run --locked --group style basedpyright", language = "system", types = ["python"], pass_filenames = false },
+]
+
+[[repos]]
+repo = "https://github.com/pre-commit/mirrors-mypy"
+rev = "v2.1.0"
+hooks = [
+  { id = "mypy", name = "Mypy Type Checker", additional_dependencies = [{% if include_web %}"fastapi", {% endif %}{% if include_cli %}"typer", {% endif %}{% if include_tui %}"textual", {% endif %}] },
+]
+
+[[repos]]
+repo = "https://github.com/jendrikseipp/vulture"
+rev = "v2.16"
+hooks = [{ id = "vulture", name = "Vulture Linter" }]
+
+[[repos]]
+repo = "https://github.com/crate-ci/typos"
+rev = "v1.47.2"
+hooks = [{ id = "typos", name = "Typos Linter" }]
+
+[[repos]]
+repo = "https://github.com/python-jsonschema/check-jsonschema"
+rev = "0.35.0"
+hooks = [
+  { id = "check-github-actions", name = "Validate GitHub Actions", args = ["--verbose"] },
+]
+
+[[repos]]
+repo = "https://github.com/rhysd/actionlint"
+rev = "v1.7.12"
+hooks = [{ id = "actionlint", name = "Actionlint Linter" }]
+
+[[repos]]
+repo = "https://github.com/adrienverge/yamllint.git"
+rev = "v1.37.1"
+hooks = [{ id = "yamllint", name = "YAML Linter" }]
+
+[[repos]]
+repo = "https://github.com/DavidAnson/markdownlint-cli2"
+rev = "v0.18.1"
+hooks = [{ id = "markdownlint-cli2", name = "Markdown Linter" }]
+
+[[repos]]
+repo = "https://github.com/google/yamlfmt"
+rev = "v0.17.2"
+hooks = [{ id = "yamlfmt", name = "YAML Formatter" }]
+
+[[repos]]
+repo = "https://github.com/commitizen-tools/commitizen"
+rev = "v4.10.0"
+hooks = [
+  { id = "commitizen", name = "Commitizen" },
+  { id = "commitizen-branch", name = "Commitizen Branch", stages = ["pre-push"] },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "pytest", name = "Pytest Test Runner", entry = "uv run --locked pytest tests", language = "system", pass_filenames = false, always_run = true },
+]

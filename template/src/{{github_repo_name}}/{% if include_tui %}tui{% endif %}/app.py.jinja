@@ -5,11 +5,15 @@ from __future__ import annotations
 import platform
 import sys
 from importlib.metadata import Distribution, PackageNotFoundError
+from typing import TYPE_CHECKING, ClassVar, final
 
-from typing import ClassVar
+from typing_extensions import override
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import logger
+
+if TYPE_CHECKING:
+    from textual.binding import BindingType
 
 
 class TuiDisplayError(RuntimeError):
@@ -55,6 +59,7 @@ def _display_tui(message: str) -> None:  # noqa: C901  (lazy imports keep nestin
         msg = "Textual is not available."
         raise TuiDisplayError(msg) from exc
 
+    @final
     class InfoApp(App[None]):
         """Simple TUI application displaying project info."""
 
@@ -95,7 +100,8 @@ def _display_tui(message: str) -> None:  # noqa: C901  (lazy imports keep nestin
         }
         """
 
-        def compose(self) -> ComposeResult:  # noqa: PLR6301  (Textual lifecycle hook)
+        @override
+        def compose(self) -> ComposeResult:
             """Compose the TUI layout.
 
             Yields:
@@ -111,9 +117,7 @@ def _display_tui(message: str) -> None:  # noqa: C901  (lazy imports keep nestin
             self.title = f"{PROJECT_NAME} Info"
 
         # The "quit" action bound below is Textual's built-in App.action_quit.
-        BINDINGS: ClassVar = [
-            ("q", "quit", "Quit"),
-        ]
+        BINDINGS: ClassVar[list[BindingType]] = [("q", "quit", "Quit")]
 
     try:
         app = InfoApp()
@@ -140,14 +144,14 @@ def main(*, show_tui: bool = True) -> int:
 
     if not show_tui:
         logger.info("TUI display skipped; writing info to stdout.")
-        sys.stdout.write(f"{info_message}\n")
+        _ = sys.stdout.write(f"{info_message}\n")
         return 0
 
     try:
         _display_tui(info_message)
     except TuiDisplayError:
         logger.exception("Failed to display TUI; falling back to stdout.")
-        sys.stdout.write(f"{info_message}\n")
+        _ = sys.stdout.write(f"{info_message}\n")
         return 1
 
     logger.info("TUI application closed successfully.")

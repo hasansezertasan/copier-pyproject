@@ -11,10 +11,7 @@ import typer
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import logger
 
-app = typer.Typer(
-    name="{{github_repo_name}}",
-    no_args_is_help=True,
-)
+app = typer.Typer(name="{{github_repo_name}}", no_args_is_help=True)
 
 
 @app.command(name="version")
@@ -35,8 +32,7 @@ def show_version() -> None:
     except PackageNotFoundError:
         logger.error("Package metadata not found for %s", PROJECT_NAME)
         typer.echo(
-            f"Error: Package '{PROJECT_NAME}' metadata not found. "
-            "Is the package installed correctly?",
+            f"Error: Package '{PROJECT_NAME}' metadata not found. Is the package installed correctly?",  # noqa: E501
             err=True,
         )
         raise typer.Exit(code=1) from None
@@ -65,8 +61,7 @@ def info() -> None:
     except PackageNotFoundError:
         logger.error("Package metadata not found for %s", PROJECT_NAME)
         typer.echo(
-            f"Error: Package '{PROJECT_NAME}' metadata not found. "
-            "Is the package installed correctly?",
+            f"Error: Package '{PROJECT_NAME}' metadata not found. Is the package installed correctly?",  # noqa: E501
             err=True,
         )
         raise typer.Exit(code=1) from None
@@ -77,8 +72,8 @@ def info() -> None:
     typer.echo(f"Python Version: {python_version} ({python_implementation})")
     typer.echo(f"Platform: {platform.system()}")
     logger.info("Application information displayed successfully.")
+{%- if include_tui %}
 
-{% if include_tui %}
 
 @app.command()
 def interactive() -> None:
@@ -89,9 +84,10 @@ def interactive() -> None:
     """
     from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
-    main()
-{% endif %}
-{% if include_gui %}
+    _ = main()
+{%- endif %}
+{%- if include_gui %}
+
 
 @app.command()
 def gui() -> None:
@@ -102,9 +98,10 @@ def gui() -> None:
     """
     from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
-    main()
-{% endif %}
-{% if include_web %}
+    _ = main()
+{%- endif %}
+{%- if include_web %}
+
 
 @app.command()
 def web() -> None:
@@ -119,4 +116,4 @@ def web() -> None:
 
     host, port = resolve_bind()
     uvicorn.run(web_app, host=host, port=port)
-{% endif %}
+{%- endif %}

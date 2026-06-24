@@ -88,38 +88,10 @@ dependency_management:
     - renovate
     - dependabot
   help: "Choose the dependency management tool to use"
-include_changelog:
-  type: bool
-  default: true
-  help: "Use conventional changelog format (Keep a Changelog)? If false, CHANGELOG.md links to GitHub Releases instead."
 include_citation:
   type: bool
   default: true
   help: "Include CITATION.cff file for software citation?"
-include_codecov:
-  type: bool
-  default: true
-  help: "Include Codecov configuration for code coverage reporting?"
-include_mise:
-  type: bool
-  default: true
-  help: "Include mise configuration for tool version management and task running?"
-include_pants:
-  type: bool
-  default: true
-  help: "Include Pants build system configuration?"
-include_trunk:
-  type: bool
-  default: true
-  help: "Include Trunk configuration for linting and formatting?"
-include_commitizen:
-  type: bool
-  default: true
-  help: "Include Commitizen for automated version bumping and changelog generation?"
-include_precommit:
-  type: bool
-  default: false
-  help: "Include pre-commit hooks configuration?"
 include_postgres:
   type: bool
   default: false

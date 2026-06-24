@@ -38,7 +38,7 @@
 - [Releasing](#releasing)
 - [Disclaimer](#disclaimer)
 - [License](#license-scroll)
-{% if include_changelog %}- [Changelog](#changelog-memo){% endif %}
+- [Changelog](#changelog-memo)
 
 ## Screenshots
 
@@ -183,7 +183,7 @@ If you have any questions or need help, feel free to open an issue on the [GitHu
 {% if include_worker %}- **Message Queue Worker**: FastStream-based worker for processing messages from {{worker_broker}}{% endif %}
 {% if include_c_extensions %}- **C Extensions**: High-performance Cython extensions for computationally intensive tasks{% endif %}
 {% if include_pydantic_settings %}- **Configuration Management**: Type-safe settings using Pydantic{% endif %}
-- **Type Safety**: Full type hints with mypy, pyright, and other type checkers
+- **Type Safety**: Full type hints checked by mypy, basedpyright, ty, pyrefly, and zuban
 - **Code Quality**: Comprehensive linting and formatting with ruff
 - **Testing**: pytest with coverage reporting and parallel execution
 - **Documentation**: MkDocs-powered documentation with GitHub Pages deployment
@@ -263,7 +263,7 @@ uv run --locked tox run -e docs-server
 
 ## Releasing
 
-Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version{% if include_changelog %} and `CHANGELOG.md`{% endif %}; merging it tags the release and publishes to PyPI. See the [Contributing Guidelines](./CONTRIBUTING.md#releasing) for the commit conventions and the one-time [Repository setup](./CONTRIBUTING.md#repository-setup-one-time) (squash-merge settings, Actions permissions, release immutability, and PyPI trusted publishing).
+Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version and `CHANGELOG.md`; merging it tags the release and publishes to PyPI. See the [Contributing Guidelines](./CONTRIBUTING.md#releasing) for the commit conventions and the one-time [Repository setup](./CONTRIBUTING.md#repository-setup-one-time) (squash-merge settings, Actions permissions, release immutability, and PyPI trusted publishing).
 
 ## Credits
 
@@ -273,11 +273,9 @@ This package was created with [Copier](https://github.com/copier-org/copier) and
 
 This project is licensed under the [MIT License](https://spdx.org/licenses/MIT.html).
 
-{% if include_changelog %}
 ## Changelog :memo:
 
 For a detailed list of changes, please refer to the [CHANGELOG](./CHANGELOG.md).
-{% endif %}
 
 <!-- Refs -->
 [author]: https://github.com/{{github_user}}

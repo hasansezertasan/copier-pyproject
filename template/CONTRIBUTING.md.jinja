@@ -186,7 +186,7 @@ Releases are fully automated — maintainers do not bump versions or edit the
 changelog by hand:
 
 1. As Conventional Commits land on `main`, release-please opens and maintains a
-   **release PR** that bumps the version{% if include_changelog %} and updates `CHANGELOG.md`{% endif %}.
+   **release PR** that bumps the version and updates `CHANGELOG.md`.
 2. Merging that release PR tags the commit and publishes the release; the
    version is derived from the git tag via `hatch-vcs`, and the package is
    published to PyPI through trusted publishing.

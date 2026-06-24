@@ -14,10 +14,10 @@ dynamic = ["version"]
 keywords = [
     "command-line", "cli", "package", "metadata", "pypi", "python",
     "template", "copier", "scaffold", "boilerplate", "uv", "hatch",
-    "tox", "pytest", "ruff", "mypy", "pyright",
+    "tox", "pytest", "ruff", "mypy", "basedpyright",
     "type-hints", "typed", "modern-python",
     "ci-cd", "github-actions", "automation", "mkdocs",
-    "pre-commit", "linting", "testing", "coverage", "release-automation",
+    "prek", "linting", "testing", "coverage", "release-automation",
     {% if include_cli %}"typer",{% endif %}
     {% if include_web %}{% if web_framework == "fastapi" %}"fastapi",{% endif %}{% if web_framework == "litestar" %}"litestar",{% endif %} "docker",{% endif %}
     {% if include_tui %}"textual", "tui",{% endif %}
@@ -76,7 +76,7 @@ dependencies = []
 {% if web_framework == "fastapi" %}web = ["fastapi[all]>=0.123.5"]{% endif %}
 {% if web_framework == "litestar" %}web = ["litestar[standard]>=2.0.0"]{% endif %}
 {% endif %}
-{% if include_tui %}tui = ["textual>=0.50.0"]{% endif %}
+{% if include_tui %}tui = ["textual>=0.50.0", "typing-extensions>=4.4.0"]{% endif %}
 {% if include_mcp %}mcp = ["mcp>=1.0.0"]{% endif %}
 {% if include_worker %}worker = ["faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
@@ -91,7 +91,7 @@ all = [
 
 
 [project.urls]
-{% if include_changelog %}changelog = "https://github.com/{{github_user}}/{{github_repo_name}}/blob/main/CHANGELOG.md"{% endif %}
+changelog = "https://github.com/{{github_user}}/{{github_repo_name}}/blob/main/CHANGELOG.md"
 documentation = "https://{{github_user}}.github.io/{{github_repo_name}}"
 homepage = "https://github.com/{{github_user}}/{{github_repo_name}}"
 issues = "https://github.com/{{github_user}}/{{github_repo_name}}/issues"
@@ -122,23 +122,20 @@ dev = [
   { include-group = "test" },
 ]
 style = [
-  "actionlint-py==1.7.9.24",
-  "basedpyright==1.36.1",
-  "editorconfig-checker==3.6.0",
-  "mypy==1.19.1",
-  "pyrefly==0.46.0",
-  "pyright==1.1.407",
-  "ruff==0.14.9",
-  "slotscheck==0.19.1",
+  "actionlint-py==1.7.12.24",
+  "basedpyright==1.39.8",
+  "editorconfig-checker==3.6.1",
+  "mypy==2.1.0",
+  "pyrefly==1.1.1",
+  "ruff==0.15.19",
+  "slotscheck==0.20.0",
   "taplo==0.9.3",
-  "ty==0.0.2",
-  "typos==1.40.0",
-  "validate-pyproject[all]==0.24.1",
-  "vulture==2.14",
-  "zuban==0.3.0",
-  # "bandit==1.9.2",
+  "ty==0.0.53",
+  "typos==1.47.2",
+  "validate-pyproject[all]==0.25",
+  "vulture==2.16",
+  "zuban==0.9.0",
   # "google-yamlfmt",
-  # "pyupgrade-directories",
   # "shellcheck-makefile>=1.27.3",
   # "shellcheck-py>=0.10.0.1",
   # "types-PyYAML",
@@ -166,18 +163,15 @@ docs = [
     "mkdocs-material==9.1.1",
 ]
 tool = [
-  {% if include_commitizen %}"commitizen==4.10.0",{% endif %}
+  "commitizen==4.10.0",
   {% if include_c_extensions %}"cython>=3.0.0",{% endif %}
   {% if include_profiling %}"py-spy>=0.4.0", "scalene>=1.5.0", "snakeviz>=2.2.0",{% endif %}
   # "marimo==0.15.2",
-  # "bump-my-version==1.2.4",
   # "inflection==0.5.1",
   # "copier==9.11.0",
 ]
-pre-commit = [
-    "prek==0.2.23",
-    "pre-commit-uv==4.2.0",
-    "pre-commit==4.5.0",
+prek = [
+    "prek==0.4.3",
 ]
 
 
@@ -228,19 +222,12 @@ include = ["/README.md", "LICENSE", "/src", "/tests"]
 path = "hatch_build.py"
 {% endif %}
 
-{% if include_commitizen %}
 [tool.commitizen]
-major_version_zero = true
+# Commit-authoring and message linting only. release-please owns version
+# bumping, git tagging, and CHANGELOG.md (see .github/release-please-config.json),
+# so the bump/tag/changelog settings are intentionally omitted here to avoid two
+# tools competing over the same tags and changelog file.
 name = "cz_conventional_commits"
-tag_format = "v$version"
-{% if include_changelog %}
-update_changelog_on_bump = true
-{% else %}
-update_changelog_on_bump = false
-{% endif %}
-version_provider = "scm"
-version_scheme = "pep404"
-{% endif %}
 
 [tool.pytest.ini_options]
 # addopts = "-rXs --strict-config --strict-markers"
@@ -373,6 +360,12 @@ convention = "pep257"
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
 "examples/*.py" = ["INP001"]
+{%- if include_c_extensions %}
+# The top-level package __init__ deliberately warns at import time when the
+# compiled C extension is unavailable. That import-failure handling is logic, not
+# a re-export, so the preview rule RUF067 (non-empty-init-module) does not apply.
+"src/{{github_repo_name}}/__init__.py" = ["RUF067"]
+{%- endif %}
 
 
 [tool.ruff.lint.pyupgrade]
@@ -390,12 +383,25 @@ python_version = "3.10"
 strict = true
 
 
-[tool.pyright]
+[tool.basedpyright]
 exclude = [".venv"]
 include = ["src/{{github_repo_name}}"]
 pythonVersion = "3.10"
 venv = ".venv"
-venvPath = ".venv"
+# venvPath is the directory *containing* the venv, not the venv itself; ".venv"
+# here would make basedpyright look for ".venv/.venv". Use "." so both the venv
+# and basedpyright's strict ruleset resolve the project's installed deps.
+venvPath = "."
+{%- if include_c_extensions %}
+# The Cython extension ships a `.pyi` stub, but its compiled module lives in the
+# build output rather than the `src/` tree basedpyright analyzes, so the
+# stub-without-source check always fires on the package `__init__` import.
+reportMissingModuleSource = "none"
+# ruff's formatter owns formatting and keeps the wrapped warning message in
+# `__init__` implicitly concatenated; basedpyright strict would otherwise flag
+# it, and the line cannot be merged without tripping E501. Defer to the formatter.
+reportImplicitStringConcatenation = "none"
+{%- endif %}
 
 
 [tool.ty.src]
@@ -492,7 +498,7 @@ commands = [
     "3.14",
   ],
   [
-    "pyright",
+    "basedpyright",
   ],
   [
     "ty",
@@ -501,6 +507,11 @@ commands = [
   [
     "pyrefly",
     "check",
+  ],
+  [
+    "zuban",
+    "check",
+    "src",
   ],
   [
     "vulture",
@@ -539,13 +550,11 @@ description = "Run Checkers, Linters and Formatters"
 runner = "uv-venv-runner"
 
 
-{% if include_precommit %}
-[tool.tox.env.pre-commit]
-commands = [["pre-commit", "run", "--all-files"]]
-dependency_groups = ["pre-commit"]
-description = "Run pre-commit hooks"
+[tool.tox.env.prek]
+commands = [["prek", "run", "--all-files"]]
+dependency_groups = ["prek"]
+description = "Run prek hooks"
 runner = "uv-venv-runner"
-{% endif %}
 
 
 [tool.tox.env.docs-build]

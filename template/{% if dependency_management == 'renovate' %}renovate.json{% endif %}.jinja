@@ -3,5 +3,16 @@
   "dependencyDashboard": true,
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "labels": ["internal"],
-  "semanticCommits": "enabled"
+  "semanticCommits": "enabled",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update rev pins for prek hooks (Renovate's built-in pre-commit manager only reads .pre-commit-config.yaml, not prek.toml)",
+      "managerFilePatterns": ["/(^|/)prek\\.toml$/"],
+      "matchStrings": [
+        "repo\\s*=\\s*\"https://github\\.com/(?<depName>[^\"]+?)(?:\\.git)?\"\\s*\\n\\s*rev\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "datasourceTemplate": "github-tags"
+    }
+  ]
 }

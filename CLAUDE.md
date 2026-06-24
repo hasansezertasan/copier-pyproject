@@ -47,7 +47,7 @@ uv sync
 # Run tests across all Python versions
 uv run --locked tox run
 
-# Run style checks (ruff, mypy, pyright, ty, pyrefly, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint)
+# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint)
 uv run --locked tox run -e style
 
 # Run specific Python version tests
@@ -76,8 +76,8 @@ uv run --locked example-mcp
 # Run the worker (if include_worker=true)
 uv run --locked example-worker
 
-# Run pre-commit hooks
-uv run --locked tox run -e pre-commit
+# Run prek hooks
+uv run --locked tox run -e prek
 
 # Build docs
 uv run --locked tox run -e docs-build
@@ -150,12 +150,37 @@ Devcontainer services:
 Tooling options:
 
 - `dependency_management` - none/renovate/dependabot
-- `include_changelog` - Keep a Changelog format (else link to GitHub Releases)
 - `include_citation` - CITATION.cff file
-- `include_pants`, `include_codecov`, `include_trunk`
-- `include_mise` - mise for tool version management and task running
-- `include_commitizen` - Commitizen versioning
-- `include_precommit` - pre-commit hooks
+
+Always included (no toggle): a Keep-a-Changelog `CHANGELOG.md` (maintained by
+release-please), Codecov coverage upload (`.codecov.yml` + CI step), and mise
+(`mise.toml` + devcontainer feature) for tool version management and task
+running. Pants and Trunk were removed entirely — the tox `style` env is the sole
+lint/build orchestrator (see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
+
+Commitizen (Conventional Commit authoring/linting) is **always included** — it
+is no longer gated behind an `include_commitizen` option. release-please still
+owns versioning/changelog; Commitizen only authors/lints messages (see
+[ADR-004](../docs/adr/004-commitizen-as-commit-helper-not-release-tool.md)).
+
+Git hooks are **always included** (there is no `include_precommit`
+option). They are run via [prek](https://prek.j178.dev), a Rust-native
+pre-commit replacement, configured by a native `prek.toml` (not a
+`.pre-commit-config.yaml`). The dependency group is `prek` and contains only
+`prek`; both the tox `prek` env (`tox run -e prek`) and the CI `hooks` job invoke
+`prek run --all-files`.
+
+The tox `style` env (backed by the uv-managed `style` dependency group) is the
+canonical lint/type-check runner for the full suite; the prek-run `prek.toml` is
+the fast local/CI gate. Its hook `rev` pins are kept current by Renovate (a
+`customManagers` regex entry in `renovate.json`, since Renovate's built-in
+pre-commit manager only reads `.pre-commit-config.yaml`). There is no
+pre-commit.ci integration and no `sync-with-uv` hook — Renovate owns every
+bump, including the tools shared with the uv `style` group.
+
+The tox `style` env is the *single* lint/type-check orchestrator for a generated
+project — there is no Pants or Trunk config to drift against it (both were
+removed; see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
 
 ### Generated Project Structure
 
@@ -198,7 +223,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 - `devcontainer` - Main development container (always included)
   - Uses `ghcr.io/astral-sh/uv:python3.14-bookworm-slim` image directly (no Dockerfile)
-  - `devcontainer.json.jinja` features: `git:1` (always), `mise:1` (when `include_mise`)
+  - `devcontainer.json.jinja` features: `git:1` and `mise:1` (both always)
   - When `include_vpn` is true, devcontainer sets `network_mode: "service:vpn"` and depends on the `vpn` service so all traffic routes through the VPN tunnel
   - `depends_on` waits on `condition: service_healthy` for services that define a healthcheck (postgres, redis, kafka, rabbitmq) and `service_started` for the rest (nats, vpn)
 - Database services (conditional):
@@ -226,7 +251,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ### CI/CD Workflows
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
-   - Codecov coverage steps are conditional on `include_codecov`
+   - Codecov coverage upload runs unconditionally (needs the `CODECOV_TOKEN` secret)
 2. **Release + CD** (`release-please.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
    (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:

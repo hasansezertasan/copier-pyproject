@@ -8,14 +8,12 @@
 # Test single: uv run --locked pytest tests/test_file.py -v
 # Test version: uv run --locked tox run -e 3.10
 # Lint/style: uv run --locked tox run -e style
-# Pre-commit: uv run --locked tox run -e pre-commit
+# Prek hooks: uv run --locked tox run -e prek
 # Build: uv build
 # Run CLI: uv run --locked <repo-name> version
 # Run FastAPI: uv run --locked fastapi dev <repo-name>.web.app:app
 # Serve docs: uv run --only-group docs mkdocs serve
 # Profile: uv run --locked tox run -e profile (if profiling enabled)
-# Trunk check: trunk check (if configured)
-# Pants lint: pants lint :: (if configured)
 ```
 
 ## Code Style Guidelines
@@ -26,6 +24,6 @@
 - **Naming**: snake_case vars/functions, PascalCase classes, UPPER_CASE constants
 - **Error Handling**: Specific exceptions with context
 - **Structure**: Code in `src/{{github_repo_name}}/`, tests in `tests/`
-- **Tools**: Ruff (full rules, complexity ≤5), MyPy/Pyright strict, pytest + coverage, pre-commit
+- **Tools**: Ruff (full rules, complexity ≤5), five type checkers (mypy, basedpyright strict, ty, pyrefly, zuban), pytest + coverage, prek
 - **Template**: `.jinja` files, `{{variables}}`, `{% raw %}` for Jinja escaping
-- **Optional Tools**: mise for task running (configurable via `include_mise`); Commitizen for version management (configurable via `include_commitizen`)
+- **Always included**: mise (tool versions + task running), Codecov coverage upload, a Keep-a-Changelog `CHANGELOG.md`, and Commitizen for Conventional Commit authoring/linting (versioning/changelog are handled by release-please)

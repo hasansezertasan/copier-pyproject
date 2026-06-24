@@ -7,7 +7,6 @@ on:
   pull_request:
     branches: [main, master]
 jobs:
-{%- if include_precommit %}
   hooks:
     name: Run prek hooks
     runs-on: ubuntu-latest
@@ -28,8 +27,7 @@ jobs:
             pyproject.toml
             uv.lock
       - name: Run prek hooks
-        run: uv run --locked --group pre-commit prek run --all-files --show-diff-on-failure
-{%- endif %}
+        run: uv run --locked --group prek prek run --all-files --show-diff-on-failure
   ci:
     strategy:
       fail-fast: false
@@ -81,7 +79,6 @@ jobs:
         run: echo "Cache was restored"
       - name: Run the tests
         run: uv run --locked tox run
-{% if include_codecov %}
       # https://github.com/marketplace/actions/alls-green#why used for branch protection checks
       - name: Coverage
         run: |
@@ -93,11 +90,10 @@ jobs:
         with:
           files: ./coverage.xml
           token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
-{% endif %}
 
   check:
     if: always()
-    needs: {% if include_precommit %}[ci, hooks]{% else %}[ci]{% endif %}
+    needs: [ci, hooks]
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed

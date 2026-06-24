@@ -6,12 +6,11 @@ import platform
 from importlib.metadata import Distribution
 
 import pytest
-{% if web_framework == "fastapi" %}
+{% if web_framework == "fastapi" -%}
 from fastapi.testclient import TestClient
-{% endif %}
-{% if web_framework == "litestar" %}
+{%- elif web_framework == "litestar" -%}
 from litestar.testing import TestClient
-{% endif %}
+{%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.web.app import app, resolve_bind
@@ -75,12 +74,11 @@ def test_version_endpoint(client: TestClient) -> None:
     """
     response = client.get("/version")
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-{% if web_framework == "fastapi" %}
+{%- if web_framework == "fastapi" %}
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
-{% endif %}
-{% if web_framework == "litestar" %}
+{%- elif web_framework == "litestar" %}
     assert "text/plain" in response.headers["content-type"]
-{% endif %}
+{%- endif %}
 
     distribution = Distribution.from_name(PROJECT_NAME)
     expected_version = distribution.version
@@ -169,8 +167,8 @@ def test_info_endpoint_structure(client: TestClient) -> None:
     assert actual_keys == expected_keys, (
         f"Expected keys {expected_keys}, got {actual_keys}"
     )
+{%- if web_framework == "fastapi" %}
 
-{% if web_framework == "fastapi" %}
 
 def test_openapi_docs_available(client: TestClient) -> None:
     """Test that OpenAPI documentation is available.
@@ -198,8 +196,8 @@ def test_openapi_docs_available(client: TestClient) -> None:
     assert openapi_response.status_code == 200, (
         "OpenAPI schema (/openapi.json) should be available"
     )
-{% endif %}
-{% if web_framework == "litestar" %}
+{%- elif web_framework == "litestar" %}
+
 
 def test_openapi_schema_available(client: TestClient) -> None:
     """Test that OpenAPI schema is available.
@@ -222,4 +220,4 @@ def test_openapi_schema_available(client: TestClient) -> None:
     """
     openapi_response = client.get("/schema/openapi.json")
     assert openapi_response.status_code == 200, "OpenAPI schema should be available"
-{% endif %}
+{%- endif %}

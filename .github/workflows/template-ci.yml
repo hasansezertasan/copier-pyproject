@@ -22,10 +22,10 @@ jobs:
           # Bare template — only the always-on core/utils modules.
           - name: minimal
             data: ""
-          # Kitchen sink with FastAPI + Redis worker + pydantic settings + codecov.
+          # Kitchen sink with FastAPI + Redis worker + pydantic settings.
           - name: full-fastapi-redis
             data: >-
-              --data include_cli=true --data include_web=true --data web_framework=fastapi --data include_gui=true --data include_tui=true --data include_mcp=true --data include_worker=true --data worker_broker=redis --data include_pydantic_settings=true --data include_codecov=true
+              --data include_cli=true --data include_web=true --data web_framework=fastapi --data include_gui=true --data include_tui=true --data include_mcp=true --data include_worker=true --data worker_broker=redis --data include_pydantic_settings=true
           # Exercise the other web framework and broker branches.
           - name: litestar-kafka
             data: >-

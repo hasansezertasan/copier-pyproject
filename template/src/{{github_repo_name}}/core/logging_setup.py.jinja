@@ -36,8 +36,7 @@ def _resolve_level(name: str) -> int:
     if isinstance(level, int):
         return level
     print(  # noqa: T201 - logging is not configured yet at this point
-        f"Unknown log level {name!r}; falling back to INFO.",
-        file=sys.stderr,
+        f"Unknown log level {name!r}; falling back to INFO.", file=sys.stderr
     )
     return logging.INFO
 

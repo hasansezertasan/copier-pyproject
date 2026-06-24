@@ -62,15 +62,11 @@ broker = RedisBroker(os.getenv("REDIS_URL", "redis://localhost:6379"))
 app = FastStream(broker)
 
 version_response_publisher = broker.publisher(
-    "version-responses",
-    description="Publishes version response messages",
+    "version-responses", description="Publishes version response messages"
 )
 
 
-@broker.subscriber(
-    "version-requests",
-    description="Handles version request messages",
-)
+@broker.subscriber("version-requests", description="Handles version request messages")
 async def handle_version_request(msg: VersionRequest, logger: Logger) -> None:
     """Handle incoming version request messages.
 
@@ -88,7 +84,7 @@ async def handle_version_request(msg: VersionRequest, logger: Logger) -> None:
         platform=platform.system(),
     )
 
-    await version_response_publisher.publish(response)
+    _ = await version_response_publisher.publish(response)
     app_logger.info("Sent version response for request: %s", msg.request_id)
 
 
@@ -113,9 +109,7 @@ def main() -> None:
 
     try:
         import uvloop  # noqa: PLC0415
-
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     except ImportError:
-        pass
-
-    asyncio.run(app.run())
+        asyncio.run(app.run())
+    else:
+        uvloop.run(app.run())

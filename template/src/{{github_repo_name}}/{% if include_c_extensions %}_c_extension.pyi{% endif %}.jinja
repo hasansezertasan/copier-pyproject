@@ -1,8 +1,6 @@
 # Type hints for Cython extension module
 # This file provides type information for the compiled Cython code
 
-from typing import overload
-
 class ExampleExtension:
     def __init__(self, value: int = 0) -> None: ...
     def get_value(self) -> int: ...
