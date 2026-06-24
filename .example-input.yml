@@ -16,7 +16,6 @@ include_c_extensions: false
 include_profiling: false
 include_pycrucible: false
 include_pydantic_settings: false
-include_citation: false
 include_postgres: false
 include_redis: false
 redis_backend: redis

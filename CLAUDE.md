@@ -147,14 +147,13 @@ Devcontainer services:
 - `include_dbeaver` - CloudBeaver database management UI
 - `include_vpn` - OpenVPN client
 
-Tooling options:
-
-- `include_citation` - CITATION.cff file
-
 Always included (no toggle): a Keep-a-Changelog `CHANGELOG.md` (maintained by
 release-please), Codecov coverage upload (`.codecov.yml` + CI step), Renovate
 dependency management (`renovate.json` — Dependabot and the `none` opt-out were
-removed; there is no longer a `dependency_management` option), and mise
+removed; there is no longer a `dependency_management` option), a `CITATION.cff`
+file with a `validate-citation.yml` workflow (the `include_citation` toggle was
+removed — it is now always rendered and validated via
+`citation-file-format/cffconvert-github-action`), and mise
 (`mise.toml` + devcontainer feature) for tool version management and task
 running. Pants and Trunk were removed entirely — the tox `style` env is the sole
 lint/build orchestrator (see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).

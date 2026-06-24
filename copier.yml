@@ -80,10 +80,6 @@ include_pydantic_settings:
   type: bool
   default: true
   help: "Use pydantic-settings for type-safe configuration management?"
-include_citation:
-  type: bool
-  default: true
-  help: "Include CITATION.cff file for software citation?"
 include_postgres:
   type: bool
   default: false
