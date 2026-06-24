@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import platform
 from importlib.metadata import Distribution
-
-import pytest
+from typing import TYPE_CHECKING
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.gui import app as gui_app
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def test_build_info_message_contains_metadata() -> None:

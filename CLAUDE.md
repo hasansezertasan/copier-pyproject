@@ -76,8 +76,8 @@ uv run --locked example-mcp
 # Run the worker (if include_worker=true)
 uv run --locked example-worker
 
-# Run pre-commit hooks
-uv run --locked tox run -e pre-commit
+# Run prek hooks
+uv run --locked tox run -e prek
 
 # Build docs
 uv run --locked tox run -e docs-build
@@ -156,18 +156,27 @@ Tooling options:
 - `include_pants` - Pants build system (default `false`; opt-in)
 - `include_trunk` - Trunk meta-linter (default `false`; opt-in)
 - `include_mise` - mise for tool version management and task running
-- `include_commitizen` - Commitizen for Conventional Commit authoring/linting (release-please owns versioning/changelog; see [ADR-004](../docs/adr/004-commitizen-as-commit-helper-not-release-tool.md))
 
-Pre-commit hooks are **always included** (there is no `include_precommit`
-option). They are run via [prek](https://prek.j178.dev) — the dependency group is
-`pre-commit` but contains only `prek`, and both the tox `pre-commit` env
-(`tox run -e pre-commit`) and the CI `hooks` job invoke `prek run --all-files`.
+Commitizen (Conventional Commit authoring/linting) is **always included** — it
+is no longer gated behind an `include_commitizen` option. release-please still
+owns versioning/changelog; Commitizen only authors/lints messages (see
+[ADR-004](../docs/adr/004-commitizen-as-commit-helper-not-release-tool.md)).
+
+Git hooks are **always included** (there is no `include_precommit`
+option). They are run via [prek](https://prek.j178.dev), a Rust-native
+pre-commit replacement, configured by a native `prek.toml` (not a
+`.pre-commit-config.yaml`). The dependency group is `prek` and contains only
+`prek`; both the tox `prek` env (`tox run -e prek`) and the CI `hooks` job invoke
+`prek run --all-files`.
 
 The tox `style` env (backed by the uv-managed `style` dependency group) is the
-canonical lint/type-check runner for the full suite; the prek-run
-`.pre-commit-config.yaml` is the fast local/CI gate. Its hook versions are kept
-aligned with the uv `style` group by the `sync-with-uv` hook, so the two never
-drift. `include_pants` and `include_trunk` default to `false` so a default
+canonical lint/type-check runner for the full suite; the prek-run `prek.toml` is
+the fast local/CI gate. Its hook `rev` pins are kept current by Renovate (a
+`customManagers` regex entry in `renovate.json`, since Renovate's built-in
+pre-commit manager only reads `.pre-commit-config.yaml`). There is no
+pre-commit.ci integration and no `sync-with-uv` hook — Renovate owns every
+bump, including the tools shared with the uv `style` group.
+`include_pants` and `include_trunk` default to `false` so a default
 project's *full* lint suite lives in one place; enable them only when you
 specifically want Pants' build system or Trunk's extra IaC/secret scanners. See
 [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md).

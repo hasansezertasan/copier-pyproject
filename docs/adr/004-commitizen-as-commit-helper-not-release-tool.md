@@ -74,7 +74,7 @@ name = "cz_conventional_commits"
 The release-coupled keys — `tag_format`, `version_provider`, `version_scheme`,
 `major_version_zero`, and `update_changelog_on_bump` — are removed so `cz bump`
 has no configured tagging/changelog behavior to compete with release-please. The
-`commitizen` / `commitizen-branch` pre-commit hooks remain (message linting), and
+`commitizen` / `commitizen-branch` prek hooks remain (message linting), and
 `include_commitizen` stays an opt-in.
 
 This refines ADR-002: the relationship between Commitizen and release-please is not
@@ -98,16 +98,17 @@ well-formed Conventional Commits, release-please *consumes* them.
 
 ## Consequences
 
-- A generated project with `include_commitizen=true` gets a `[tool.commitizen]`
-  block containing only `name`; `cz bump` is not configured to tag or write a
-  changelog.
-- `include_commitizen`'s help text, and the `CLAUDE.md` / `AGENTS.md` descriptions,
-  are updated to describe it as commit authoring/linting, not "version bumping and
-  changelog generation."
+- Every generated project gets a `[tool.commitizen]` block containing only
+  `name`; `cz bump` is not configured to tag or write a changelog. Commitizen is
+  always included — the `include_commitizen` toggle was removed (it had already
+  defaulted to `true`, and its commit hooks were unconditional, so the gate only
+  added inconsistency).
+- The `CLAUDE.md` / `AGENTS.md` descriptions describe it as commit
+  authoring/linting, not "version bumping and changelog generation."
 - The commit-message linting role overlaps with `check-pr-title.yml` given the
   required squash-by-PR-title merge strategy (the squashed commit is the validated
   PR title, so per-commit messages are discarded on merge). This redundancy is
   accepted: the hook gives fast local feedback while authoring, before the PR
-  exists. Projects that find it noisy can disable `include_commitizen`.
+  exists.
 - The commented-out `bump-my-version` entry in the `tool` dependency group — a
   vestige of the same pre-release-please bumping approach — is removed.

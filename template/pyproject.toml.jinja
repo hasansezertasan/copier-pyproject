@@ -17,7 +17,7 @@ keywords = [
     "tox", "pytest", "ruff", "mypy", "basedpyright",
     "type-hints", "typed", "modern-python",
     "ci-cd", "github-actions", "automation", "mkdocs",
-    "pre-commit", "linting", "testing", "coverage", "release-automation",
+    "prek", "linting", "testing", "coverage", "release-automation",
     {% if include_cli %}"typer",{% endif %}
     {% if include_web %}{% if web_framework == "fastapi" %}"fastapi",{% endif %}{% if web_framework == "litestar" %}"litestar",{% endif %} "docker",{% endif %}
     {% if include_tui %}"textual", "tui",{% endif %}
@@ -163,15 +163,15 @@ docs = [
     "mkdocs-material==9.1.1",
 ]
 tool = [
-  {% if include_commitizen %}"commitizen==4.10.0",{% endif %}
+  "commitizen==4.10.0",
   {% if include_c_extensions %}"cython>=3.0.0",{% endif %}
   {% if include_profiling %}"py-spy>=0.4.0", "scalene>=1.5.0", "snakeviz>=2.2.0",{% endif %}
   # "marimo==0.15.2",
   # "inflection==0.5.1",
   # "copier==9.11.0",
 ]
-pre-commit = [
-    "prek==0.2.23",
+prek = [
+    "prek==0.4.3",
 ]
 
 
@@ -222,14 +222,12 @@ include = ["/README.md", "LICENSE", "/src", "/tests"]
 path = "hatch_build.py"
 {% endif %}
 
-{% if include_commitizen %}
 [tool.commitizen]
 # Commit-authoring and message linting only. release-please owns version
 # bumping, git tagging, and CHANGELOG.md (see .github/release-please-config.json),
 # so the bump/tag/changelog settings are intentionally omitted here to avoid two
 # tools competing over the same tags and changelog file.
 name = "cz_conventional_commits"
-{% endif %}
 
 [tool.pytest.ini_options]
 # addopts = "-rXs --strict-config --strict-markers"
@@ -362,6 +360,12 @@ convention = "pep257"
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
 "examples/*.py" = ["INP001"]
+{%- if include_c_extensions %}
+# The top-level package __init__ deliberately warns at import time when the
+# compiled C extension is unavailable. That import-failure handling is logic, not
+# a re-export, so the preview rule RUF067 (non-empty-init-module) does not apply.
+"src/{{github_repo_name}}/__init__.py" = ["RUF067"]
+{%- endif %}
 
 
 [tool.ruff.lint.pyupgrade]
@@ -388,6 +392,16 @@ venv = ".venv"
 # here would make basedpyright look for ".venv/.venv". Use "." so both the venv
 # and basedpyright's strict ruleset resolve the project's installed deps.
 venvPath = "."
+{%- if include_c_extensions %}
+# The Cython extension ships a `.pyi` stub, but its compiled module lives in the
+# build output rather than the `src/` tree basedpyright analyzes, so the
+# stub-without-source check always fires on the package `__init__` import.
+reportMissingModuleSource = "none"
+# ruff's formatter owns formatting and keeps the wrapped warning message in
+# `__init__` implicitly concatenated; basedpyright strict would otherwise flag
+# it, and the line cannot be merged without tripping E501. Defer to the formatter.
+reportImplicitStringConcatenation = "none"
+{%- endif %}
 
 
 [tool.ty.src]
@@ -536,10 +550,10 @@ description = "Run Checkers, Linters and Formatters"
 runner = "uv-venv-runner"
 
 
-[tool.tox.env.pre-commit]
+[tool.tox.env.prek]
 commands = [["prek", "run", "--all-files"]]
-dependency_groups = ["pre-commit"]
-description = "Run pre-commit hooks via prek"
+dependency_groups = ["prek"]
+description = "Run prek hooks"
 runner = "uv-venv-runner"
 
 

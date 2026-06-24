@@ -27,7 +27,7 @@ jobs:
             pyproject.toml
             uv.lock
       - name: Run prek hooks
-        run: uv run --locked --group pre-commit prek run --all-files --show-diff-on-failure
+        run: uv run --locked --group prek prek run --all-files --show-diff-on-failure
   ci:
     strategy:
       fail-fast: false

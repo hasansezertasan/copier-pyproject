@@ -1,8 +1,8 @@
 """Configurations for the project."""
 
 from __future__ import annotations
-{% if include_pydantic_settings %}
 
+{% if include_pydantic_settings -%}
 from pathlib import Path
 from typing import ClassVar
 
@@ -34,11 +34,9 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False, description="Enable debug mode")
     log_level: str = Field(default="INFO", description="Logging level")
     config_dir: Path = Field(
-        default=ROOT_FOLDER_PATH,
-        description="Configuration directory",
+        default=ROOT_FOLDER_PATH, description="Configuration directory"
     )
-{% else %}
-
+{%- else -%}
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -78,14 +76,12 @@ class Settings:
     example ``MY_PROJECT_LOG_LEVEL``.
     """
 
-    debug: bool = field(
-        default_factory=lambda: _env("DEBUG", "").lower() in _TRUTHY
-    )
+    debug: bool = field(default_factory=lambda: _env("DEBUG", "").lower() in _TRUTHY)
     log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
     config_dir: Path = field(
         default_factory=lambda: Path(_env("CONFIG_DIR", str(ROOT_FOLDER_PATH)))
     )
-{% endif %}
+{%- endif %}
 
 
 # Global settings instance

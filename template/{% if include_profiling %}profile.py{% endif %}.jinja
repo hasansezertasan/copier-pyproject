@@ -25,7 +25,7 @@ Examples:
     # Run the app normally
     python profile.py run
 """
-# ruff: noqa: T201, A005, S404, S603, PLC0415, C901, PLR2004
+# ruff: noqa: T201, A005, S404, S603, PLW0717{% if include_cli or include_web or include_tui %}, PLC0415{% endif %}
 
 from __future__ import annotations
 
@@ -39,21 +39,21 @@ MIN_ARGS = 2
 
 def run_app() -> None:
     """Run the main application for profiling."""
-{% if include_cli %}
+{%- if include_cli %}
     from {{github_repo_name}}.cli.app import app
 
     app()
-{% elif include_web %}
+{%- elif include_web %}
     from {{github_repo_name}}.web.app import main
 
     main()
-{% elif include_tui %}
+{%- elif include_tui %}
     from {{github_repo_name}}.tui.app import main
 
     main()
-{% else %}
+{%- else %}
     print("No main entry point found. Please modify profile.py to run your app.")
-{% endif %}
+{%- endif %}
 
 
 def profile_pyspy() -> None:
@@ -70,12 +70,10 @@ def profile_scalene() -> None:
         result = subprocess.run(cmd, check=False)
         if result.returncode != 0:
             print(
-                f"Error: scalene exited with code {result.returncode}",
-                file=sys.stderr,
+                f"Error: scalene exited with code {result.returncode}", file=sys.stderr
             )
             print(
-                "Make sure scalene is installed: pip install scalene",
-                file=sys.stderr,
+                "Make sure scalene is installed: pip install scalene", file=sys.stderr
             )
             sys.exit(result.returncode)
     except FileNotFoundError:

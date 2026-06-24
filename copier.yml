@@ -112,10 +112,6 @@ include_trunk:
   type: bool
   default: false
   help: "Include Trunk meta-linter configuration? (Off by default to avoid duplicating the tox 'style' env; enable only if you want Trunk's extra IaC/secret scanners.)"
-include_commitizen:
-  type: bool
-  default: true
-  help: "Include Commitizen for writing/linting Conventional Commit messages? (Version bumping and changelogs are handled by release-please.)"
 include_postgres:
   type: bool
   default: false

@@ -23,7 +23,6 @@ include_pants: false
 include_codecov: false
 include_mise: false
 include_trunk: false
-include_commitizen: false
 include_postgres: false
 include_redis: false
 redis_backend: redis

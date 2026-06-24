@@ -7,13 +7,16 @@ pydantic-settings and stdlib backends, so they hold regardless of the
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.config import Settings
 from {{github_repo_name}}.core.dirs import ROOT_FOLDER_PATH
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Mirror the prefix the implementation derives from the project name.
 ENV_PREFIX = f"{PROJECT_NAME.upper().replace('-', '_')}_"

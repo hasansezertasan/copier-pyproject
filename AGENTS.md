@@ -8,7 +8,7 @@
 # Test single: uv run --locked pytest tests/test_file.py -v
 # Test version: uv run --locked tox run -e 3.10
 # Lint/style: uv run --locked tox run -e style
-# Pre-commit: uv run --locked tox run -e pre-commit
+# Prek hooks: uv run --locked tox run -e prek
 # Build: uv build
 # Run CLI: uv run --locked <repo-name> version
 # Run FastAPI: uv run --locked fastapi dev <repo-name>.web.app:app
@@ -26,6 +26,7 @@
 - **Naming**: snake_case vars/functions, PascalCase classes, UPPER_CASE constants
 - **Error Handling**: Specific exceptions with context
 - **Structure**: Code in `src/{{github_repo_name}}/`, tests in `tests/`
-- **Tools**: Ruff (full rules, complexity ≤5), five type checkers (mypy, basedpyright strict, ty, pyrefly, zuban), pytest + coverage, pre-commit
+- **Tools**: Ruff (full rules, complexity ≤5), five type checkers (mypy, basedpyright strict, ty, pyrefly, zuban), pytest + coverage, prek
 - **Template**: `.jinja` files, `{{variables}}`, `{% raw %}` for Jinja escaping
-- **Optional Tools**: mise for task running (configurable via `include_mise`); Commitizen for Conventional Commit authoring/linting (configurable via `include_commitizen`; versioning/changelog are handled by release-please)
+- **Optional Tools**: mise for task running (configurable via `include_mise`)
+- **Always included**: Commitizen for Conventional Commit authoring/linting (versioning/changelog are handled by release-please)

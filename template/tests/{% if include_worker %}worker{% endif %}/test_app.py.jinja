@@ -68,13 +68,12 @@ async def test_handle_version_request() -> None:
     """Test version request handler processes message and publishes response."""
     async with TestBroker(broker) as tb:
         await tb.publish(
-            VersionRequest(request_id="test-request-001"),
-            "version-requests",
+            VersionRequest(request_id="test-request-001"), "version-requests"
         )
 
-        handle_version_request.mock.assert_called_once_with(
-            {"request_id": "test-request-001"},
-        )
+        handle_version_request.mock.assert_called_once_with({
+            "request_id": "test-request-001"
+        })
 
         version_response_publisher.mock.assert_called_once()
         published = version_response_publisher.mock.call_args[0][0]

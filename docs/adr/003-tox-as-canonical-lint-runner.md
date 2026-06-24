@@ -12,10 +12,10 @@ checkers:
 - The tox `style` environment, whose tool versions come from the uv-managed
   `style` dependency group in `pyproject.toml` (the project's single declared
   source of truth for tool versions).
-- A `.pre-commit-config.yaml` (run via prek), whose hook `rev:` values pin tool
-  versions — though the `sync-with-uv` hook is present to derive them from the uv
-  lockfile. (This config was originally gated behind an `include_precommit`
-  toggle; it is now always included — see the Decision.)
+- A native `prek.toml` (run via prek), whose hook `rev` values pin tool
+  versions — bumped by a Renovate `customManagers` regex entry. (This config was
+  originally gated behind an `include_precommit` toggle; it is now always
+  included — see the Decision.)
 - An optional Trunk config (`include_trunk`), whose `.trunk/trunk.yaml` pins each
   linter to its own `@version`.
 - An optional Pants config (`include_pants`), which carries its own
@@ -26,7 +26,7 @@ default-generated project shipped **three** lint orchestrators (tox, Pants,
 Trunk) declaring overlapping tools — `ruff`, `mypy`, `taplo`, `actionlint`,
 `vulture`, `typos`, `yamllint` — each pinned in its own place and bumped by its
 own mechanism (the dependency-management tool for the uv group, pre-commit.ci
-autoupdate or `sync-with-uv` for hooks, `trunk upgrade` for Trunk).
+autoupdate or `sync-with-uv` for the prek hooks, `trunk upgrade` for Trunk).
 
 These pins had already drifted in practice. At the time of this decision the same
 tool resolved to different versions across orchestrators:
@@ -48,15 +48,16 @@ The uv-backed tox `style` environment is the single canonical runner for the
 **full** lint/type-check suite. `include_pants` and `include_trunk` now default
 to `false`.
 
-Pre-commit hooks are always included (the `include_precommit` toggle is removed)
-and run via prek as a fast local/CI gate — not a second full suite. Their hook
-versions are derived from the uv `style` group by the `sync-with-uv` hook, so the
-prek gate and the tox suite cannot drift apart. This overlap is deliberate and
-version-safe: fast feedback while editing, authoritative coverage in tox.
+Git hooks are always included (the `include_precommit` toggle is removed) and run
+via prek (configured by a native `prek.toml`) as a fast local/CI gate — not a
+second full suite. Both the prek `rev` pins and the uv `style` group are kept
+current by Renovate, so the prek gate and the tox suite track the same upstream
+releases. This overlap is deliberate: fast feedback while editing, authoritative
+coverage in tox.
 
 A default-generated project therefore has exactly one *authoritative* lint suite
-(tox `style`, sourced from the uv `style` group) plus a version-synced prek gate —
-not three independently-pinned orchestrators. Pants and Trunk remain available as
+(tox `style`, sourced from the uv `style` group) plus a Renovate-maintained prek
+gate — not three independently-pinned orchestrators. Pants and Trunk remain available as
 explicit opt-ins for projects that specifically want them — Pants as a build
 system, Trunk for its extra IaC/secret scanners (`checkov`, `trufflehog`,
 `hadolint`) that the core suite does not cover.
@@ -72,19 +73,21 @@ system, Trunk for its extra IaC/secret scanners (`checkov`, `trufflehog`,
 - **Opt-in, not deleted.** Pants and Trunk solve real problems for some projects
   (monorepo builds; aggregated IaC/secret scanning). Demoting them to opt-in
   removes the default-path duplication without taking the option away.
-- **The half-built intent is now consistent.** The `sync-with-uv` pre-commit hook
-  already signalled that uv was meant to be the source of truth; Pants and Trunk
-  simply floated free of it. This completes that intent.
+- **One updater, not many.** Renovate bumps both the uv `style` group and the
+  prek `rev` pins; the default project no longer relies on `sync-with-uv`,
+  pre-commit.ci, or `trunk upgrade` running in parallel. Pants and Trunk, when
+  opted in, still carry their own update mechanisms.
 
 ## Consequences
 
 - A default project no longer ships `pants.toml` or `.trunk/`. Projects that want
   them must pass `include_pants=true` / `include_trunk=true`.
-- The always-on prek gate overlaps the tox `style` env by design; `sync-with-uv`
-  keeps its hook versions aligned with the uv `style` group, so the overlap costs
-  duplicate execution (fast local feedback) but never causes version drift. When a
-  contributor additionally opts into Trunk, that orchestrator is expected to be
-  narrowed to the scanners the core suite lacks.
+- The always-on prek gate overlaps the tox `style` env by design; Renovate keeps
+  both the prek `rev` pins and the uv `style` group current, so the overlap costs
+  duplicate execution (fast local feedback) and at most a brief window where two
+  Renovate PRs land separately, not sustained version drift. When a contributor
+  additionally opts into Trunk, that orchestrator is expected to be narrowed to
+  the scanners the core suite lacks.
 - Aggregated linting docs and `AGENTS.md` commands that mention `trunk check` /
   `pants lint ::` remain valid but are now conditional-only ("if configured").
 - The number of type checkers invoked by the `style` env (mypy, pyright, ty,

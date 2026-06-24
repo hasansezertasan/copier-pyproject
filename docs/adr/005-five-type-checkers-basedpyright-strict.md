@@ -95,7 +95,7 @@ no concession remains.
 
 - A default generated project type-checks with mypy (two Python versions),
   basedpyright (strict), ty, pyrefly, and zuban; `pyright` is no longer installed
-  or invoked. The pre-commit `pyright` hook is replaced by a local `basedpyright`
+  or invoked. The prek `pyright` hook is replaced by a local `basedpyright`
   hook run through uv.
 - Projects that include the TUI gain a `typing_extensions` dependency (via the
   `tui` extra) for `@override` on Python 3.10/3.11.

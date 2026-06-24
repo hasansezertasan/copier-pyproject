@@ -62,15 +62,11 @@ broker = RedisBroker(os.getenv("REDIS_URL", "redis://localhost:6379"))
 app = FastStream(broker)
 
 version_response_publisher = broker.publisher(
-    "version-responses",
-    description="Publishes version response messages",
+    "version-responses", description="Publishes version response messages"
 )
 
 
-@broker.subscriber(
-    "version-requests",
-    description="Handles version request messages",
-)
+@broker.subscriber("version-requests", description="Handles version request messages")
 async def handle_version_request(msg: VersionRequest, logger: Logger) -> None:
     """Handle incoming version request messages.
 

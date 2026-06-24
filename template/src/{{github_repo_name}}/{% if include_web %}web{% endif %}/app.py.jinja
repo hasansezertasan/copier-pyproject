@@ -6,19 +6,15 @@ from __future__ import annotations
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
 {% if web_framework == "fastapi" %}
-
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
-{% endif %}
-{% if web_framework == "litestar" %}
-
+{%- elif web_framework == "litestar" %}
 from litestar import Litestar, get
 from litestar.exceptions import HTTPException as LitestarHTTPException
-{% endif %}
+{%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import logger
-
 {% if web_framework == "fastapi" %}
 app = FastAPI(title="{{github_repo_name}}")
 
@@ -75,9 +71,7 @@ def get_info() -> JSONResponse:
     }
     logger.info("Application information displayed successfully.")
     return JSONResponse(content=payload)
-{% endif %}
-{% if web_framework == "litestar" %}
-
+{%- elif web_framework == "litestar" %}
 
 @get("/version", media_type="text/plain", sync_to_thread=False)
 def get_version() -> str:
@@ -133,7 +127,7 @@ def get_info() -> dict[str, str]:
 
 
 app = Litestar(route_handlers=[get_version, get_info])
-{% endif %}
+{%- endif %}
 
 
 def resolve_bind() -> tuple[str, int]:

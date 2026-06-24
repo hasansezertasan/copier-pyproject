@@ -1,7 +1,8 @@
 """Module entrypoint for the project."""
-{% if include_cli %}
+{%- if include_cli %}
+
 from {{github_repo_name}}.cli import app
 
 if __name__ == "__main__":
     app()
-{% endif %}
+{%- endif %}
