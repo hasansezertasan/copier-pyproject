@@ -9,7 +9,7 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 - QA stack: pytest with coverage/xdist/reruns (and `.codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint.
 - Docs and site: MkDocs scaffold (`docs/index.md`) with GitHub Pages deploy workflow.
 - Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, issue/PR templates, dependency management (Renovate/Dependabot), always-on Commitizen and git hooks (run via prek), devcontainer, VS Code launch config, gitignore, FUNDING, and LICENSE.
-- Extra tooling: Optional Trunk config (hadolint/markdownlint/etc.), Pants config, `.dockerignore`, badge-rich README template, and enhanced VS Code launch.json for debugging (current file, tests, attach, entry points).
+- Extra tooling: `.dockerignore`, badge-rich README template, and enhanced VS Code launch.json for debugging (current file, tests, attach, entry points).
 
 ## Inputs
 
@@ -33,12 +33,7 @@ Copier will prompt for:
 - `include_pycrucible` (include PyCrucible for standalone executables)
 - `include_pydantic_settings` (use pydantic-settings for configuration)
 - `dependency_management` (none/renovate/dependabot)
-- `include_changelog` (include CHANGELOG.md)
 - `include_citation` (include CITATION.cff)
-- `include_pants` (opt-in: Pants build system; default off — tox/uv are canonical)
-- `include_codecov` (include Codecov configuration)
-- `include_mise` (include mise for tool version management and task running)
-- `include_trunk` (opt-in: Trunk meta-linter; default off — the tox `style` env is the canonical linter)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
 - `redis_backend` (redis/valkey - when `include_redis` is enabled)
@@ -62,7 +57,6 @@ Copier will prompt for:
 - Run the CLI (if included): `uv run --locked <repo-name> version`
 - Run the web app (if included): `uv run --locked <repo-name>-web`
 - Serve docs locally: `uv run --only-group docs mkdocs serve` (deploys via GitHub Pages on release)
-- Optional tooling: `trunk check` for aggregated linting (if configured); `pants lint ::` for Pants-based linting (if configured).
 
 `.example-input.yml` provides default values for all template options.
 

@@ -14,8 +14,6 @@
 # Run FastAPI: uv run --locked fastapi dev <repo-name>.web.app:app
 # Serve docs: uv run --only-group docs mkdocs serve
 # Profile: uv run --locked tox run -e profile (if profiling enabled)
-# Trunk check: trunk check (if configured)
-# Pants lint: pants lint :: (if configured)
 ```
 
 ## Code Style Guidelines
@@ -28,5 +26,4 @@
 - **Structure**: Code in `src/{{github_repo_name}}/`, tests in `tests/`
 - **Tools**: Ruff (full rules, complexity ≤5), five type checkers (mypy, basedpyright strict, ty, pyrefly, zuban), pytest + coverage, prek
 - **Template**: `.jinja` files, `{{variables}}`, `{% raw %}` for Jinja escaping
-- **Optional Tools**: mise for task running (configurable via `include_mise`)
-- **Always included**: Commitizen for Conventional Commit authoring/linting (versioning/changelog are handled by release-please)
+- **Always included**: mise (tool versions + task running), Codecov coverage upload, a Keep-a-Changelog `CHANGELOG.md`, and Commitizen for Conventional Commit authoring/linting (versioning/changelog are handled by release-please)

@@ -150,12 +150,13 @@ Devcontainer services:
 Tooling options:
 
 - `dependency_management` - none/renovate/dependabot
-- `include_changelog` - Keep a Changelog format (else link to GitHub Releases)
 - `include_citation` - CITATION.cff file
-- `include_codecov` - Codecov coverage upload
-- `include_pants` - Pants build system (default `false`; opt-in)
-- `include_trunk` - Trunk meta-linter (default `false`; opt-in)
-- `include_mise` - mise for tool version management and task running
+
+Always included (no toggle): a Keep-a-Changelog `CHANGELOG.md` (maintained by
+release-please), Codecov coverage upload (`.codecov.yml` + CI step), and mise
+(`mise.toml` + devcontainer feature) for tool version management and task
+running. Pants and Trunk were removed entirely — the tox `style` env is the sole
+lint/build orchestrator (see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
 
 Commitizen (Conventional Commit authoring/linting) is **always included** — it
 is no longer gated behind an `include_commitizen` option. release-please still
@@ -176,10 +177,10 @@ the fast local/CI gate. Its hook `rev` pins are kept current by Renovate (a
 pre-commit manager only reads `.pre-commit-config.yaml`). There is no
 pre-commit.ci integration and no `sync-with-uv` hook — Renovate owns every
 bump, including the tools shared with the uv `style` group.
-`include_pants` and `include_trunk` default to `false` so a default
-project's *full* lint suite lives in one place; enable them only when you
-specifically want Pants' build system or Trunk's extra IaC/secret scanners. See
-[ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md).
+
+The tox `style` env is the *single* lint/type-check orchestrator for a generated
+project — there is no Pants or Trunk config to drift against it (both were
+removed; see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
 
 ### Generated Project Structure
 
@@ -222,7 +223,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 - `devcontainer` - Main development container (always included)
   - Uses `ghcr.io/astral-sh/uv:python3.14-bookworm-slim` image directly (no Dockerfile)
-  - `devcontainer.json.jinja` features: `git:1` (always), `mise:1` (when `include_mise`)
+  - `devcontainer.json.jinja` features: `git:1` and `mise:1` (both always)
   - When `include_vpn` is true, devcontainer sets `network_mode: "service:vpn"` and depends on the `vpn` service so all traffic routes through the VPN tunnel
   - `depends_on` waits on `condition: service_healthy` for services that define a healthcheck (postgres, redis, kafka, rabbitmq) and `service_started` for the rest (nats, vpn)
 - Database services (conditional):
@@ -250,7 +251,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ### CI/CD Workflows
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
-   - Codecov coverage steps are conditional on `include_codecov`
+   - Codecov coverage upload runs unconditionally (needs the `CODECOV_TOKEN` secret)
 2. **Release + CD** (`release-please.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
    (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:

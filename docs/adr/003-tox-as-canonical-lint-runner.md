@@ -2,7 +2,17 @@
 
 ## Status
 
-Accepted
+Accepted. **Superseded in part (2026-06): Pants and Trunk were removed
+entirely** — see the Update note below.
+
+## Update (2026-06): Pants and Trunk removed
+
+The opt-in path this ADR established was subsequently dropped. `include_pants`
+and `include_trunk` are gone, along with `pants.toml` and `.trunk/`. The tox
+`style` env (plus the always-on prek gate) is now the *sole* lint/build
+orchestrator a generated project ships, so nothing can drift against it. The
+present-tense "remain available as explicit opt-ins" language below is retained
+for historical context but no longer holds.
 
 ## Context
 
@@ -57,10 +67,9 @@ coverage in tox.
 
 A default-generated project therefore has exactly one *authoritative* lint suite
 (tox `style`, sourced from the uv `style` group) plus a Renovate-maintained prek
-gate — not three independently-pinned orchestrators. Pants and Trunk remain available as
-explicit opt-ins for projects that specifically want them — Pants as a build
-system, Trunk for its extra IaC/secret scanners (`checkov`, `trufflehog`,
-`hadolint`) that the core suite does not cover.
+gate — not three independently-pinned orchestrators. (At the time of this ADR,
+Pants and Trunk were demoted to opt-ins rather than deleted; both were removed
+entirely in the 2026-06 update above.)
 
 ## Rationale
 
@@ -80,16 +89,16 @@ system, Trunk for its extra IaC/secret scanners (`checkov`, `trufflehog`,
 
 ## Consequences
 
-- A default project no longer ships `pants.toml` or `.trunk/`. Projects that want
-  them must pass `include_pants=true` / `include_trunk=true`.
+- A generated project ships neither `pants.toml` nor `.trunk/` (the
+  `include_pants` / `include_trunk` toggles were removed in the update above).
 - The always-on prek gate overlaps the tox `style` env by design; Renovate keeps
   both the prek `rev` pins and the uv `style` group current, so the overlap costs
   duplicate execution (fast local feedback) and at most a brief window where two
   Renovate PRs land separately, not sustained version drift. When a contributor
   additionally opts into Trunk, that orchestrator is expected to be narrowed to
   the scanners the core suite lacks.
-- Aggregated linting docs and `AGENTS.md` commands that mention `trunk check` /
-  `pants lint ::` remain valid but are now conditional-only ("if configured").
+- The `trunk check` / `pants lint ::` commands were removed from `README.md` and
+  `AGENTS.md`; there is no longer any Pants/Trunk path to document.
 - The number of type checkers invoked by the `style` env (mypy, pyright, ty,
   pyrefly) is a separate concern not addressed here; see future work on trimming
   preview-stage checkers.

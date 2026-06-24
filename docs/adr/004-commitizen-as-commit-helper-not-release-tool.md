@@ -23,7 +23,7 @@ Conventional-Commit-driven **release** pipeline. As shipped, the template's
 major_version_zero = true
 name = "cz_conventional_commits"
 tag_format = "v$version"
-update_changelog_on_bump = true   # when include_changelog
+update_changelog_on_bump = true
 version_provider = "scm"
 version_scheme = "pep404"
 ```

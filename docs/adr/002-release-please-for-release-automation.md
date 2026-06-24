@@ -11,7 +11,7 @@ values — `none`, `release-please`, `release-it`, `release-drafter`. Each non-`
 value generated its own workflow and config files and carried its own versioning,
 changelog, and triggering model. Offering all three multiplied the integration
 surface: release-drafter's config branched on `dependency_management`,
-release-please paired with `include_changelog`/`include_commitizen`, and each tool
+release-please paired with the changelog and Commitizen tooling, and each tool
 needed a distinct version-bump story while all three ultimately had to converge on
 the single `cd.yml` PyPI publish step. Maintaining and testing that matrix for a
 feature that every generated project configures exactly once was disproportionate.
