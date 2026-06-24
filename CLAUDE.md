@@ -287,6 +287,22 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    It checks the real `closingIssuesReferences` relationship, not just body text;
    apply the `no-issue` label to bypass the check. Keep it as a required status
    check alongside `check-pr-title`.
+5. **Branch-name linting** (`check-branch-name.yml`): validates the PR's **head
+   branch name** (`github.head_ref`) against the
+   [Conventional Branch](https://conventionalbranch.org/) format
+   (`<type>/<description>`). Allowed prefixes are exactly the spec's set —
+   `feature`/`feat`, `bugfix`/`fix`, `hotfix`, `release`, `chore`, plus the
+   AI-agent prefixes `ai`/`copilot`/`cursor`/`claude`/`codex` — **not** the
+   broader Conventional Commits type set (`docs`, `style`, `refactor`, etc. are
+   commit types, not branch types). It is a dependency-free inline shell regex (no marketplace action — the
+   maintained options were either abandoned or on a deprecated Node runtime), run
+   under `pull_request_target` with `pull-requests: write` so it can post a sticky
+   failure comment on fork PRs, mirroring `check-pr-title.yml`. The `renovate/*`
+   and `release-please--*` automation branches are whitelisted so bot PRs are
+   never blocked. Branch names never reach `main` (squash-merge uses the PR
+   title), so this is repo hygiene — not load-bearing for release-please. Keep it
+   as a required status check (context: **Validate branch name**) alongside
+   `check-pr-title` and `check-linked-issues`.
 
 ### Required Merge Strategy (release-please depends on it)
 
