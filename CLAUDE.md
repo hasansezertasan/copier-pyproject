@@ -281,6 +281,12 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 3. **PR title linting** (`check-pr-title.yml`): validates the **PR title** (not
    individual commits) against Conventional Commits via
    `amannn/action-semantic-pull-request`.
+4. **Linked-issue check** (`check-linked-issues.yml`): fails a PR that has no
+   linked issue (the GitHub *Development* relationship, created by a `Closes #N`
+   keyword in the PR body) via `nearform-actions/github-action-check-linked-issues`.
+   It checks the real `closingIssuesReferences` relationship, not just body text;
+   apply the `no-issue` label to bypass the check. Keep it as a required status
+   check alongside `check-pr-title`.
 
 ### Required Merge Strategy (release-please depends on it)
 
