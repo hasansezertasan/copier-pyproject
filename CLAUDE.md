@@ -148,7 +148,7 @@ Devcontainer services:
 - `include_vpn` - OpenVPN client
 
 Always included (no toggle): a Keep-a-Changelog `CHANGELOG.md` (maintained by
-release-please), Codecov coverage upload (`.codecov.yml` + CI step), Renovate
+release-please), Codecov coverage upload (`.github/codecov.yml` + CI step), Renovate
 dependency management (`.github/renovate.json` — Dependabot and the `none` opt-out were
 removed; there is no longer a `dependency_management` option), a `CITATION.cff`
 file with a `validate-citation.yml` workflow (the `include_citation` toggle was
