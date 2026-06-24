@@ -1,0 +1,17 @@
+---
+name: Check Linked Issues
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+jobs:
+  check-linked-issues:
+    name: Verify linked issue
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: write
+    steps:
+      - name: Check for a linked issue
+        uses: nearform-actions/github-action-check-linked-issues@7140e2e01aa0c18b8ac61bddf5e89abde1ca760e  # v1.8.3
+        id: check_linked_issues
+        # Pass the `no-issue` label to a pull request to bypass this check.
