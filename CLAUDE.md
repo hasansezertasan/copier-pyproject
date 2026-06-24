@@ -47,7 +47,7 @@ uv sync
 # Run tests across all Python versions
 uv run --locked tox run
 
-# Run style checks (ruff, mypy, pyright, ty, pyrefly, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint)
+# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint)
 uv run --locked tox run -e style
 
 # Run specific Python version tests

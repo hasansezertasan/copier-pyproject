@@ -26,6 +26,6 @@
 - **Naming**: snake_case vars/functions, PascalCase classes, UPPER_CASE constants
 - **Error Handling**: Specific exceptions with context
 - **Structure**: Code in `src/{{github_repo_name}}/`, tests in `tests/`
-- **Tools**: Ruff (full rules, complexity ≤5), MyPy/Pyright strict, pytest + coverage, pre-commit
+- **Tools**: Ruff (full rules, complexity ≤5), five type checkers (mypy, basedpyright strict, ty, pyrefly, zuban), pytest + coverage, pre-commit
 - **Template**: `.jinja` files, `{{variables}}`, `{% raw %}` for Jinja escaping
 - **Optional Tools**: mise for task running (configurable via `include_mise`); Commitizen for Conventional Commit authoring/linting (configurable via `include_commitizen`; versioning/changelog are handled by release-please)

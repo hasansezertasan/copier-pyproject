@@ -79,19 +79,22 @@ repos:
       - id: uv-lock
         name: Update the uv lockfile
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.7
+    rev: v0.15.19
     hooks:
       - id: ruff
         name: Ruff Linter
       - id: ruff-format
         name: Ruff Formatter
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.407
+  - repo: local
     hooks:
-      - id: pyright
-        name: Pyright Type Checker
+      - id: basedpyright
+        name: basedpyright Type Checker
+        entry: uv run --locked --group style basedpyright
+        language: system
+        types: [python]
+        pass_filenames: false
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
+    rev: v2.1.0
     hooks:
       - id: mypy
         name: Mypy Type Checker
@@ -100,19 +103,12 @@ repos:
           {% if include_cli %}- "typer"{% endif %}
           {% if include_tui %}- "textual"{% endif %}
   - repo: https://github.com/jendrikseipp/vulture
-    rev: v2.14
+    rev: v2.16
     hooks:
       - id: vulture
         name: Vulture Linter
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.7
-    hooks:
-      - id: bandit
-        name: Bandit Security Linter
-        args: ["-c", "pyproject.toml"]
-        additional_dependencies: ["bandit[toml]"]
   - repo: https://github.com/crate-ci/typos
-    rev: v1.40.0
+    rev: v1.47.2
     hooks:
       - id: typos
         name: Typos Linter
@@ -123,7 +119,7 @@ repos:
         name: Validate GitHub Actions
         args: ["--verbose"]
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.7
+    rev: v1.7.12
     hooks:
       - id: actionlint
         name: Actionlint Linter

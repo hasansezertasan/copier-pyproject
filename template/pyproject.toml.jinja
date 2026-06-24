@@ -14,7 +14,7 @@ dynamic = ["version"]
 keywords = [
     "command-line", "cli", "package", "metadata", "pypi", "python",
     "template", "copier", "scaffold", "boilerplate", "uv", "hatch",
-    "tox", "pytest", "ruff", "mypy", "pyright",
+    "tox", "pytest", "ruff", "mypy", "basedpyright",
     "type-hints", "typed", "modern-python",
     "ci-cd", "github-actions", "automation", "mkdocs",
     "pre-commit", "linting", "testing", "coverage", "release-automation",
@@ -76,7 +76,7 @@ dependencies = []
 {% if web_framework == "fastapi" %}web = ["fastapi[all]>=0.123.5"]{% endif %}
 {% if web_framework == "litestar" %}web = ["litestar[standard]>=2.0.0"]{% endif %}
 {% endif %}
-{% if include_tui %}tui = ["textual>=0.50.0"]{% endif %}
+{% if include_tui %}tui = ["textual>=0.50.0", "typing-extensions>=4.4.0"]{% endif %}
 {% if include_mcp %}mcp = ["mcp>=1.0.0"]{% endif %}
 {% if include_worker %}worker = ["faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
@@ -122,23 +122,20 @@ dev = [
   { include-group = "test" },
 ]
 style = [
-  "actionlint-py==1.7.9.24",
-  "basedpyright==1.36.1",
-  "editorconfig-checker==3.6.0",
-  "mypy==1.19.1",
-  "pyrefly==0.46.0",
-  "pyright==1.1.407",
-  "ruff==0.14.9",
-  "slotscheck==0.19.1",
+  "actionlint-py==1.7.12.24",
+  "basedpyright==1.39.8",
+  "editorconfig-checker==3.6.1",
+  "mypy==2.1.0",
+  "pyrefly==1.1.1",
+  "ruff==0.15.19",
+  "slotscheck==0.20.0",
   "taplo==0.9.3",
-  "ty==0.0.2",
-  "typos==1.40.0",
-  "validate-pyproject[all]==0.24.1",
-  "vulture==2.14",
-  "zuban==0.3.0",
-  # "bandit==1.9.2",
+  "ty==0.0.53",
+  "typos==1.47.2",
+  "validate-pyproject[all]==0.25",
+  "vulture==2.16",
+  "zuban==0.9.0",
   # "google-yamlfmt",
-  # "pyupgrade-directories",
   # "shellcheck-makefile>=1.27.3",
   # "shellcheck-py>=0.10.0.1",
   # "types-PyYAML",
@@ -382,12 +379,15 @@ python_version = "3.10"
 strict = true
 
 
-[tool.pyright]
+[tool.basedpyright]
 exclude = [".venv"]
 include = ["src/{{github_repo_name}}"]
 pythonVersion = "3.10"
 venv = ".venv"
-venvPath = ".venv"
+# venvPath is the directory *containing* the venv, not the venv itself; ".venv"
+# here would make basedpyright look for ".venv/.venv". Use "." so both the venv
+# and basedpyright's strict ruleset resolve the project's installed deps.
+venvPath = "."
 
 
 [tool.ty.src]
@@ -484,7 +484,7 @@ commands = [
     "3.14",
   ],
   [
-    "pyright",
+    "basedpyright",
   ],
   [
     "ty",
@@ -493,6 +493,11 @@ commands = [
   [
     "pyrefly",
     "check",
+  ],
+  [
+    "zuban",
+    "check",
+    "src",
   ],
   [
     "vulture",

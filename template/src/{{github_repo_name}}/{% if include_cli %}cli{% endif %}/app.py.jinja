@@ -35,8 +35,8 @@ def show_version() -> None:
     except PackageNotFoundError:
         logger.error("Package metadata not found for %s", PROJECT_NAME)
         typer.echo(
-            f"Error: Package '{PROJECT_NAME}' metadata not found. "
-            "Is the package installed correctly?",
+            f"Error: Package '{PROJECT_NAME}' metadata not found. Is the package installed correctly?",  # noqa: E501
+
             err=True,
         )
         raise typer.Exit(code=1) from None
@@ -65,8 +65,8 @@ def info() -> None:
     except PackageNotFoundError:
         logger.error("Package metadata not found for %s", PROJECT_NAME)
         typer.echo(
-            f"Error: Package '{PROJECT_NAME}' metadata not found. "
-            "Is the package installed correctly?",
+            f"Error: Package '{PROJECT_NAME}' metadata not found. Is the package installed correctly?",  # noqa: E501
+
             err=True,
         )
         raise typer.Exit(code=1) from None
@@ -89,7 +89,7 @@ def interactive() -> None:
     """
     from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
-    main()
+    _ = main()
 {% endif %}
 {% if include_gui %}
 
@@ -102,7 +102,7 @@ def gui() -> None:
     """
     from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
-    main()
+    _ = main()
 {% endif %}
 {% if include_web %}
 
