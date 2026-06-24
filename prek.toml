@@ -48,7 +48,7 @@ rev = "v0.17.2"
 hooks = [{ id = "yamlfmt", name = "YAML Formatter", args = ["-conf", ".github/yamlfmt.yml"] }]
 [[repos]]
 repo = "https://github.com/asottile/pyupgrade"
-rev = "v3.15.0"
+rev = "v3.21.2"
 hooks = [{ id = "pyupgrade", args = ["--py38-plus"] }]
 
 # djLint is intentionally omitted. It is an HTML/Django-template linter whose
