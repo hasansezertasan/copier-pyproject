@@ -170,14 +170,11 @@ tool = [
   {% if include_c_extensions %}"cython>=3.0.0",{% endif %}
   {% if include_profiling %}"py-spy>=0.4.0", "scalene>=1.5.0", "snakeviz>=2.2.0",{% endif %}
   # "marimo==0.15.2",
-  # "bump-my-version==1.2.4",
   # "inflection==0.5.1",
   # "copier==9.11.0",
 ]
 pre-commit = [
     "prek==0.2.23",
-    "pre-commit-uv==4.2.0",
-    "pre-commit==4.5.0",
 ]
 
 
@@ -230,16 +227,11 @@ path = "hatch_build.py"
 
 {% if include_commitizen %}
 [tool.commitizen]
-major_version_zero = true
+# Commit-authoring and message linting only. release-please owns version
+# bumping, git tagging, and CHANGELOG.md (see .github/release-please-config.json),
+# so the bump/tag/changelog settings are intentionally omitted here to avoid two
+# tools competing over the same tags and changelog file.
 name = "cz_conventional_commits"
-tag_format = "v$version"
-{% if include_changelog %}
-update_changelog_on_bump = true
-{% else %}
-update_changelog_on_bump = false
-{% endif %}
-version_provider = "scm"
-version_scheme = "pep404"
 {% endif %}
 
 [tool.pytest.ini_options]
@@ -539,13 +531,11 @@ description = "Run Checkers, Linters and Formatters"
 runner = "uv-venv-runner"
 
 
-{% if include_precommit %}
 [tool.tox.env.pre-commit]
-commands = [["pre-commit", "run", "--all-files"]]
+commands = [["prek", "run", "--all-files"]]
 dependency_groups = ["pre-commit"]
-description = "Run pre-commit hooks"
+description = "Run pre-commit hooks via prek"
 runner = "uv-venv-runner"
-{% endif %}
 
 
 [tool.tox.env.docs-build]

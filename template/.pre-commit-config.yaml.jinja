@@ -99,15 +99,6 @@ repos:
           {% if include_web %}- "fastapi"{% endif %}
           {% if include_cli %}- "typer"{% endif %}
           {% if include_tui %}- "textual"{% endif %}
-  - repo: https://github.com/psf/black
-    rev: 24.2.0
-    hooks:
-      - id: black
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: ["--profile", "black"]
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.14
     hooks:
@@ -120,13 +111,6 @@ repos:
         name: Bandit Security Linter
         args: ["-c", "pyproject.toml"]
         additional_dependencies: ["bandit[toml]"]
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
-    hooks:
-      - id: codespell
-        name: Codespell Spell Checker
-        additional_dependencies:
-          - tomli
   - repo: https://github.com/crate-ci/typos
     rev: v1.40.0
     hooks:

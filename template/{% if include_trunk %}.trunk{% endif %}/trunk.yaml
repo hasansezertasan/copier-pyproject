@@ -20,11 +20,9 @@ lint:
   enabled:
     - actionlint@1.7.9
     - bandit@1.8.6
-    - black@25.1.0
     - checkov@3.2.461
     - git-diff-check
     - hadolint@2.12.1-beta
-    - markdownlint@0.45.0
     - markdownlint-cli2@0.18.1
     - mypy@1.19.0
     - prettier@3.6.2

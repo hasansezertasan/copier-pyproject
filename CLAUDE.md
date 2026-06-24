@@ -152,10 +152,25 @@ Tooling options:
 - `dependency_management` - none/renovate/dependabot
 - `include_changelog` - Keep a Changelog format (else link to GitHub Releases)
 - `include_citation` - CITATION.cff file
-- `include_pants`, `include_codecov`, `include_trunk`
+- `include_codecov` - Codecov coverage upload
+- `include_pants` - Pants build system (default `false`; opt-in)
+- `include_trunk` - Trunk meta-linter (default `false`; opt-in)
 - `include_mise` - mise for tool version management and task running
-- `include_commitizen` - Commitizen versioning
-- `include_precommit` - pre-commit hooks
+- `include_commitizen` - Commitizen for Conventional Commit authoring/linting (release-please owns versioning/changelog; see [ADR-004](../docs/adr/004-commitizen-as-commit-helper-not-release-tool.md))
+
+Pre-commit hooks are **always included** (there is no `include_precommit`
+option). They are run via [prek](https://prek.j178.dev) — the dependency group is
+`pre-commit` but contains only `prek`, and both the tox `pre-commit` env
+(`tox run -e pre-commit`) and the CI `hooks` job invoke `prek run --all-files`.
+
+The tox `style` env (backed by the uv-managed `style` dependency group) is the
+canonical lint/type-check runner for the full suite; the prek-run
+`.pre-commit-config.yaml` is the fast local/CI gate. Its hook versions are kept
+aligned with the uv `style` group by the `sync-with-uv` hook, so the two never
+drift. `include_pants` and `include_trunk` default to `false` so a default
+project's *full* lint suite lives in one place; enable them only when you
+specifically want Pants' build system or Trunk's extra IaC/secret scanners. See
+[ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md).
 
 ### Generated Project Structure
 

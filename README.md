@@ -8,7 +8,7 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 - Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
 - QA stack: pytest with coverage/xdist/reruns (and `.codecov.yml`), ruff, mypy, pyright, ty, pyrefly, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint.
 - Docs and site: MkDocs scaffold (`docs/index.md`) with GitHub Pages deploy workflow.
-- Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, issue/PR templates, dependency management (Renovate/Dependabot), optional Commitizen, pre-commit (with pre-commit-uv), devcontainer, VS Code launch config, gitignore, FUNDING, and LICENSE.
+- Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, issue/PR templates, dependency management (Renovate/Dependabot), optional Commitizen, always-on pre-commit hooks (run via prek), devcontainer, VS Code launch config, gitignore, FUNDING, and LICENSE.
 - Extra tooling: Optional Trunk config (hadolint/markdownlint/etc.), Pants config, `.dockerignore`, badge-rich README template, and enhanced VS Code launch.json for debugging (current file, tests, attach, entry points).
 
 ## Inputs
@@ -35,12 +35,11 @@ Copier will prompt for:
 - `dependency_management` (none/renovate/dependabot)
 - `include_changelog` (include CHANGELOG.md)
 - `include_citation` (include CITATION.cff)
-- `include_pants` (include Pants build system)
+- `include_pants` (opt-in: Pants build system; default off — tox/uv are canonical)
 - `include_codecov` (include Codecov configuration)
 - `include_mise` (include mise for tool version management and task running)
-- `include_trunk` (include Trunk linting/formatting)
-- `include_commitizen` (include Commitizen)
-- `include_precommit` (use pre-commit hooks)
+- `include_trunk` (opt-in: Trunk meta-linter; default off — the tox `style` env is the canonical linter)
+- `include_commitizen` (include Commitizen for Conventional Commit authoring/linting; release-please owns versioning/changelog)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
 - `redis_backend` (redis/valkey - when `include_redis` is enabled)
