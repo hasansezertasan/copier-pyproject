@@ -1,6 +1,6 @@
----
-title: "Pull Request Template"
----
+<!-- omit in toc -->
+# Pull Request
+
 ## Description
 
 <!--- Describe your changes in detail -->
