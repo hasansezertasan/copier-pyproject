@@ -4,6 +4,7 @@ github_repo_name: example
 author_full_name: Hasan Sezer Taşan
 author_email: hasansezertasan@gmail.com
 short_description: A Python project example.
+package_keywords: "example, demo"
 include_cli: false
 include_web: false
 web_framework: fastapi

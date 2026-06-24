@@ -20,6 +20,7 @@ Copier will prompt for:
 - `author_full_name`
 - `author_email`
 - `short_description`
+- `package_keywords` (extra comma-separated PyPI keywords; tooling/component keywords are added automatically)
 - `include_cli` (include Typer CLI)
 - `include_web` (include web API)
 - `web_framework` (fastapi/litestar - when `include_web` is enabled)

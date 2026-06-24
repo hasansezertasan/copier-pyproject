@@ -10,8 +10,8 @@ maintainers = [
   { name = "{{author_full_name}}", email = "{{author_email}}" },
 ]
 dynamic = ["version"]
-# TODO @{{github_user}}: Fill in the missing keywords...
 keywords = [
+    {% for keyword in package_keywords.split(",") if keyword.strip() %}"{{ keyword.strip() }}", {% endfor %}
     "command-line", "cli", "package", "metadata", "pypi", "python",
     "template", "copier", "scaffold", "boilerplate", "uv", "hatch",
     "tox", "pytest", "ruff", "mypy", "basedpyright",
