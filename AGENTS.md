@@ -12,7 +12,7 @@
 # Build: uv build
 # Run CLI: uv run --locked <repo-name> version
 # Run FastAPI: uv run --locked fastapi dev <repo-name>.web.app:app
-# Serve docs: uv run --only-group docs mkdocs serve
+# Serve docs: uv run --locked tox run -e docs-server
 # Profile: uv run --locked tox run -e profile (if profiling enabled)
 ```
 

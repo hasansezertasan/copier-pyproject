@@ -1,0 +1,67 @@
+Usage
+=====
+
+As a library
+------------
+
+To use ``{{github_repo_name}}`` in a project:
+
+.. code-block:: python
+
+   import {{github_repo_name}}
+{% if include_cli %}
+As a command-line tool
+----------------------
+
+To use ``{{github_repo_name}}`` as a command-line tool:
+
+.. code-block:: sh
+
+   {{github_repo_name}} version
+   {{github_repo_name}} info
+{% endif %}{% if include_web %}
+As a web application
+--------------------
+
+To run the {{web_framework}} web application:
+
+.. code-block:: sh
+
+   {{github_repo_name}}-web
+{% endif %}{% if include_gui %}
+As a GUI application
+--------------------
+
+To launch the GUI application:
+
+.. code-block:: sh
+
+   {{github_repo_name}}-gui
+{% endif %}{% if include_tui %}
+As a TUI
+--------
+
+To launch the terminal user interface:
+
+.. code-block:: sh
+
+   {{github_repo_name}}-tui
+{% endif %}{% if include_mcp %}
+As an MCP server
+----------------
+
+To run the Model Context Protocol server:
+
+.. code-block:: sh
+
+   {{github_repo_name}}-mcp
+{% endif %}{% if include_worker %}
+As a message queue worker
+-------------------------
+
+To run the {{worker_broker}} worker:
+
+.. code-block:: sh
+
+   {{github_repo_name}}-worker
+{% endif %}

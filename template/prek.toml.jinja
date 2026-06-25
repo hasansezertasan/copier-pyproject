@@ -40,15 +40,14 @@ hooks = [
   { id = "detect-private-key", name = "Detect Private Key" },
 ]
 
-# check-yaml (--unsafe, needed for mkdocs.yml's `!!python/name` tags),
-# debug-statements and check-ast have no Rust builtin (they need a tag-aware
+# check-yaml, debug-statements and check-ast have no Rust builtin (they need a
 # YAML loader / the Python AST), so they stay on the upstream repo. prek runs
 # them correctly, just without the builtin fast path.
 [[repos]]
 repo = "https://github.com/pre-commit/pre-commit-hooks"
 rev = "v6.0.0"
 hooks = [
-  { id = "check-yaml", name = "Check YAML", args = ["--unsafe"] },
+  { id = "check-yaml", name = "Check YAML" },
   { id = "debug-statements", name = "Debug Statements" },
   { id = "check-ast", name = "Check AST" },
 ]

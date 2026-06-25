@@ -1,0 +1,65 @@
+"""Sphinx configuration for {{github_repo_name}}.
+
+See https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""
+
+from __future__ import annotations
+
+# -- Project information -----------------------------------------------------
+project = "{{github_repo_name}}"
+author = "{{ author_full_name }}"
+copyright = "2025, {{ author_full_name }}"  # noqa: A001
+
+# -- General configuration ---------------------------------------------------
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.autosectionlabel",
+    "sphinx.ext.viewcode",
+    "sphinx_design",
+    "sphinx_copybutton",
+    "sphinx_togglebutton",
+    "sphinx_paramlinks",
+    "auto_pytabs.sphinx_ext",
+    "myst_parser",
+{% if include_cli %}    "sphinx_click",
+{% endif %}]
+
+# Both reStructuredText and (via MyST) Markdown source files are supported.
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+# autosectionlabel can emit duplicate-label warnings across documents; the
+# document prefix keeps them unique and the suppression keeps builds quiet.
+autosectionlabel_prefix_document = True
+suppress_warnings = ["autosectionlabel.*"]
+
+# -- Autodoc / Napoleon ------------------------------------------------------
+autodoc_default_options = {
+    "members": True,
+    "show-inheritance": True,
+    "member-order": "bysource",
+}
+autodoc_typehints = "description"
+autoclass_content = "both"
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
+
+# -- Intersphinx -------------------------------------------------------------
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+{% if include_pydantic_settings or include_worker %}    "pydantic": ("https://docs.pydantic.dev/latest", None),
+{% endif %}}
+
+# -- HTML output (Shibuya theme) ---------------------------------------------
+# https://shibuya.lepture.com/
+html_theme = "shibuya"
+html_title = "{{github_repo_name}}"
+html_theme_options = {
+    "accent_color": "amber",
+    "github_url": "https://github.com/{{github_user}}/{{github_repo_name}}",
+}

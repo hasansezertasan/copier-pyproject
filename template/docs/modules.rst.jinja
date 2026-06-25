@@ -1,0 +1,68 @@
+Modules
+=======
+
+An overview of the packages that make up ``{{github_repo_name}}``.
+The API reference below is generated automatically from the source docstrings.
+
+Core (``{{github_repo_name}}.core``)
+{{ '-' * (github_repo_name | length + 24) }}
+
+Always-included infrastructure.
+
+.. automodule:: {{github_repo_name}}.core.config
+
+.. automodule:: {{github_repo_name}}.core.dirs
+
+.. automodule:: {{github_repo_name}}.core.logging_setup
+
+Utilities (``{{github_repo_name}}.utils``)
+{{ '-' * (github_repo_name | length + 24) }}
+
+Shared helper functions.
+
+.. automodule:: {{github_repo_name}}.utils
+{% if include_cli %}
+CLI (``{{github_repo_name}}.cli``)
+{{ '-' * (github_repo_name | length + 24) }}
+
+Typer command-line interface exposing ``version`` and ``info`` commands.
+
+.. automodule:: {{github_repo_name}}.cli.app
+{% endif %}{% if include_web %}
+Web (``{{github_repo_name}}.web``)
+{{ '-' * (github_repo_name | length + 24) }}
+
+{% if web_framework == "fastapi" %}FastAPI{% else %}Litestar{% endif %} application exposing ``/version`` and ``/info`` endpoints.
+
+.. automodule:: {{github_repo_name}}.web.app
+{% endif %}{% if include_gui %}
+GUI (``{{github_repo_name}}.gui``)
+{{ '-' * (github_repo_name | length + 24) }}
+
+Tkinter launcher that displays project information.
+
+.. automodule:: {{github_repo_name}}.gui.app
+{% endif %}{% if include_tui %}
+TUI (``{{github_repo_name}}.tui``)
+{{ '-' * (github_repo_name | length + 24) }}
+
+Textual terminal user interface.
+
+.. automodule:: {{github_repo_name}}.tui.app
+{% endif %}{% if include_mcp %}
+MCP (``{{github_repo_name}}.mcp``)
+{{ '-' * (github_repo_name | length + 24) }}
+
+Model Context Protocol server exposing ``version`` and ``info`` tools.
+
+.. automodule:: {{github_repo_name}}.mcp.app
+{% endif %}{% if include_worker %}
+Worker (``{{github_repo_name}}.worker``)
+{{ '-' * (github_repo_name | length + 24) }}
+
+FastStream worker processing messages from {{worker_broker}}.
+
+.. automodule:: {{github_repo_name}}.worker.app
+{% endif %}
+
+.. TODO @{{github_user}}: Document your own modules here as the project grows.
