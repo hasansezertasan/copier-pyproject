@@ -102,7 +102,7 @@ release-please should be wired:
   attached to the draft, and `finalize-release` un-drafts it and reconciles the
   phantom next-release PR (close + bounded re-dispatch). Docs deployment is the
   `deploy-docs` job (`needs: finalize-release`) inside this same workflow, which
-  runs `mkdocs gh-deploy` — it lives here rather than reacting to
+  builds the Sphinx docs and runs `ghp-import` — it lives here rather than reacting to
   `release: published` because an event fired by `finalize-release`'s
   `GITHUB_TOKEN` cannot trigger a separate workflow. `gh-pages.yml` is retained
   only for manual `workflow_dispatch` redeploys.

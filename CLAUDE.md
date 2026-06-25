@@ -279,11 +279,14 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    - `attach-github-release`: uploads artifacts to the still-draft release.
    - `finalize-release`: un-drafts the release and reconciles the phantom
      next-release PR (close + re-dispatch — bounded to one re-run).
-   - `deploy-docs` (`needs: finalize-release`): runs `mkdocs gh-deploy`. Lives in
+   - `deploy-docs` (`needs: finalize-release`): builds the Sphinx docs and runs
+     `ghp-import` to publish them. Lives in
      this workflow rather than reacting to `release: published` because an event
      fired by `finalize-release`'s `GITHUB_TOKEN` cannot trigger another workflow
      (the same loop-prevention rule that forces the `workflow_dispatch`
      re-dispatch above). `gh-pages.yml` is kept only for manual redeploys.
+     Docs are built with Sphinx + the Shibuya theme (autodoc API reference),
+     not MkDocs (see [ADR-006](../docs/adr/006-sphinx-shibuya-for-documentation.md)).
    - Versions come from git tags via hatch-vcs, so release-please never edits a
      static version literal and `uv.lock` cannot desync.
 3. **PR title linting** (`check-pr-title.yml`): validates the **PR title** (not
