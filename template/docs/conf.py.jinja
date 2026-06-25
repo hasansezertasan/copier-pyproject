@@ -5,10 +5,12 @@ See https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 # -- Project information -----------------------------------------------------
 project = "{{github_repo_name}}"
 author = "{{ author_full_name }}"
-copyright = "2025, {{ author_full_name }}"  # noqa: A001
+copyright = f"{datetime.now(tz=timezone.utc):%Y}, {{ author_full_name }}"  # noqa: A001
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -27,10 +29,7 @@ extensions = [
 {% endif %}]
 
 # Both reStructuredText and (via MyST) Markdown source files are supported.
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".md": "markdown",
-}
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # autosectionlabel can emit duplicate-label warnings across documents; the
@@ -49,11 +48,17 @@ autoclass_content = "both"
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 
+# -- auto-pytabs -------------------------------------------------------------
+# Keep the version tabs in sync with this project's supported Python range
+# (requires-python >= 3.10, classifiers/CI up to 3.14). auto-pytabs otherwise
+# defaults to (3, 7), which would mislabel the rendered examples.
+auto_pytabs_min_version = (3, 10)
+auto_pytabs_max_version = (3, 14)
+
 # -- Intersphinx -------------------------------------------------------------
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-{% if include_pydantic_settings or include_worker %}    "pydantic": ("https://docs.pydantic.dev/latest", None),
-{% endif %}}
+intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
+{% if include_pydantic_settings or include_worker or include_web %}intersphinx_mapping["pydantic"] = ("https://docs.pydantic.dev/latest", None)
+{% endif %}
 
 # -- HTML output (Shibuya theme) ---------------------------------------------
 # https://shibuya.lepture.com/
