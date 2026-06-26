@@ -90,10 +90,178 @@ jobs:
         with:
           files: ./coverage.xml
           token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
+{% if include_launcher or include_freezer or include_compiler %}
+  # Build-only PR guards: build each enabled standalone executable (ADR-007)
+  # against the PR diff so a dependency or Python bump that breaks packaging fails
+  # HERE, against the offending change, instead of silently at release time. The
+  # test suite always runs the source tree, never the built binary, so these jobs
+  # are the only thing that exercises packaging before a release. Each verifies the
+  # binary was produced, smoke-runs it for a CLI project, and uploads a 7-day
+  # preview artifact a reviewer can launch-test. They mirror the release-please.yml
+  # build jobs but never publish.
+{% endif %}
+{% if include_launcher %}
+  build-launcher-check:
+    name: Build Launcher (PyCrucible) on {% raw %}${{ matrix.os }}{% endraw %}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux
+          - os: windows-latest
+            label: windows
+          - os: macos-latest
+            label: macos
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+      - name: Build with PyCrucible
+        uses: razorblade23/pycrucible-action@4a9aeaf7ed124775839031963dcd5295e67ac5f6  # v1.0.5
+        with:
+          source: '.'
+          output: './dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}'
+      - name: Verify the launcher was produced
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(./dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}*)
+          bin="${files[0]:-}"
+          test -n "$bin" || { echo "::error::PyCrucible produced no launcher"; exit 1; }
+          test -s "$bin" || { echo "::error::launcher is empty"; exit 1; }
+          [ "$RUNNER_OS" = Windows ] || test -x "$bin" || { echo "::error::launcher is not executable"; exit 1; }
+{% if include_cli %}
+      - name: Smoke-run the launcher (CLI --help)
+        # First run bootstraps uv + downloads the interpreter, then runs the CLI.
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(./dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}*)
+          bin="${files[0]:-}"
+          echo "Running $bin --help"
+          "$bin" --help
+{% endif %}
+      - name: Upload launcher preview
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: {{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}-preview
+          path: './dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}*'
+          retention-days: 7
+{% endif %}
+{% if include_freezer %}
+  build-freezer-check:
+    name: Build Freezer (PyInstaller) on {% raw %}${{ matrix.os }}{% endraw %}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            ext: ""
+          - os: windows-latest
+            ext: ".exe"
+          - os: macos-latest
+            ext: ""
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Build with PyInstaller
+        run: uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clean --noconfirm
+      - name: Verify the bundle was produced
+        shell: bash
+        run: |
+          bin="./dist/{{github_repo_name}}{% raw %}${{ matrix.ext }}{% endraw %}"
+          test -s "$bin" || { echo "::error::PyInstaller produced no executable"; exit 1; }
+          [ "$RUNNER_OS" = Windows ] || test -x "$bin" || { echo "::error::executable is not runnable"; exit 1; }
+{% if include_cli %}
+      - name: Smoke-run the bundle (CLI --help)
+        shell: bash
+        run: |
+          echo "Running ./dist/{{github_repo_name}}{% raw %}${{ matrix.ext }}{% endraw %} --help"
+          "./dist/{{github_repo_name}}{% raw %}${{ matrix.ext }}{% endraw %}" --help
+{% endif %}
+      - name: Upload freezer preview
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: {{github_repo_name}}-freezer-{% raw %}${{ matrix.os }}{% endraw %}-preview
+          path: './dist/{{github_repo_name}}{% raw %}${{ matrix.ext }}{% endraw %}'
+          retention-days: 7
+{% endif %}
+{% if include_compiler %}
+  build-compiler-check:
+    name: Build Compiler (Nuitka) on {% raw %}${{ matrix.os }}{% endraw %}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux
+          - os: windows-latest
+            label: windows
+          - os: macos-latest
+            label: macos
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Build with Nuitka
+        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || (matrix.os == 'macos-latest' && '--macos-create-app-bundle' || '') }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
+      - name: Verify the binary was produced
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(./dist/{{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %}*)
+          bin="${files[0]:-}"
+          test -n "$bin" || { echo "::error::Nuitka produced no binary"; exit 1; }
+          test -s "$bin" || { echo "::error::binary is empty"; exit 1; }
+          [ "$RUNNER_OS" = Windows ] || test -x "$bin" || { echo "::error::binary is not executable"; exit 1; }
+{% if include_cli %}
+      - name: Smoke-run the binary (CLI --help)
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(./dist/{{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %}*)
+          bin="${files[0]:-}"
+          echo "Running $bin --help"
+          "$bin" --help
+{% endif %}
+      - name: Upload compiler preview
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: {{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %}-preview
+          path: './dist/{{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %}*'
+          retention-days: 7
+{% endif %}
 
   check:
     if: always()
-    needs: [ci, hooks]
+    needs: [ci, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}]
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed

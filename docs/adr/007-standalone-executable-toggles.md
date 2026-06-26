@@ -101,6 +101,14 @@ keep the door open to add a fourth architecture later without restructuring.
   `--output-filename` (it otherwise emits a generic `__main__.bin`), and
   PyInstaller — whose `.spec` `name=` can't see the CI matrix — is renamed after
   the build.
+- Each enabled toggle also adds a build-only `build-<tool>-check` job to the PR
+  CI workflow (`ci.yml`), per-OS and `fail-fast: false`, that builds the
+  executable on every PR/push so a dependency or Python bump that breaks
+  packaging fails against the offending diff rather than silently at release time
+  (the test suite always runs the source tree, never the built binary). The check
+  verifies the binary was produced, smoke-runs it with `--help` for a CLI project,
+  and uploads a short-retention preview artifact for reviewers. It mirrors the
+  release build commands but never publishes, and gates the `check` job.
 - All three builds target the package's `__main__.py` as their single runnable
   entrypoint, so the component-selection logic (CLI/GUI/TUI/web/MCP/worker → the
   callable that actually launches the app) lives in `__main__.py` and nowhere

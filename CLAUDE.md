@@ -267,6 +267,16 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
    - Codecov coverage upload runs unconditionally (needs the `CODECOV_TOKEN` secret)
+   - When `include_launcher`/`include_freezer`/`include_compiler` are set, adds
+     matching `build-{launcher,freezer,compiler}-check` jobs (per-OS, `fail-fast:
+     false`) that build the standalone executable on every PR/push — a build-only
+     packaging guard so a dep/Python bump that breaks bundling fails against the
+     offending diff instead of silently at release time (the test suite never
+     exercises the built binary). Each verifies the binary was produced,
+     smoke-runs it with `--help` when `include_cli` is set, and uploads a 7-day
+     preview artifact. They mirror the `release-please.yml` build jobs but never
+     publish, and they gate the `check` aggregation job. See
+     [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
 2. **Release + CD** (`release-please.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
    (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:

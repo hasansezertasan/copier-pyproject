@@ -39,8 +39,10 @@ jobs:
           # (validate-pyproject, taplo, actionlint) lints them — the heavy
           # nuitka/pyinstaller/pycrucible deps live in the `tool` group, which
           # only the `profile` env installs, so they are not pulled here.
+          # include_cli so the CLI-gated "Smoke-run" build-check steps in ci.yml
+          # render and get actionlint-ed (the smoke step is identical across tools).
           - name: launcher
-            data: --data include_launcher=true
+            data: --data include_launcher=true --data include_cli=true
           - name: freezer
             data: --data include_freezer=true
           - name: compiler
