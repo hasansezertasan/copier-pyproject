@@ -62,8 +62,20 @@ echo "Python: $(python --version)"
 echo "Virtual Environment: $VIRTUAL_ENV"
 '''
 
-[tasks.package]
-description = "Build standalone executable with PyCrucible"
-alias = "pkg"
-run = "pycrucible -e . -o ./dist/${PROJECT_NAME}"
 {% endraw %}
+{% if include_launcher %}
+[tasks.package]
+description = "Build a uv-bootstrap launcher executable with PyCrucible"
+alias = "pkg"
+run = "uv run --locked --group tool pycrucible -e . -o ./dist/{{github_repo_name}}"
+{% endif %}
+{% if include_freezer %}
+[tasks.freeze]
+description = "Build a self-contained offline executable with PyInstaller"
+run = "uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clean --noconfirm"
+{% endif %}
+{% if include_compiler %}
+[tasks.compile]
+description = "Build a compiled native executable with Nuitka"
+run = "uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist {% if include_cli %}src/{{github_repo_name}}/cli/app.py{% elif include_gui %}src/{{github_repo_name}}/gui/app.py{% elif include_tui %}src/{{github_repo_name}}/tui/app.py{% elif include_web %}src/{{github_repo_name}}/web/app.py{% else %}src/{{github_repo_name}}/__main__.py{% endif %}"
+{% endif %}

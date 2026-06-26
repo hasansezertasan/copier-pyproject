@@ -96,7 +96,8 @@ release-please should be wired:
 - **The keycast pipeline is implemented, not deferred.** `cd.yml` is deleted and
   its jobs are folded into a single unified `release-please.yml`: `release-please`
   → `build` (matrix when `include_c_extensions`) → `pypi-publish` → conditional
-  `build-executables` (PyCrucible) / `docker-publish` (web) → `attach-github-release`
+  `build-launcher`/`build-freezer`/`build-compiler` (standalone executables — see
+  [ADR-007](007-offline-freezer-alongside-pycrucible.md)) / `docker-publish` (web) → `attach-github-release`
   → `finalize-release`. All post-`release-please` jobs gate on
   `release_created == 'true'`. The release is created `draft: true`, artifacts are
   attached to the draft, and `finalize-release` un-drafts it and reconciles the

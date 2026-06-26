@@ -78,10 +78,18 @@ include_profiling:
   type: bool
   default: false
   help: "Include profiling and performance tools (py-spy, scalene, cProfile)?"
-include_pycrucible:
+include_launcher:
   type: bool
   default: false
-  help: "Include PyCrucible configuration for building standalone executables?"
+  help: "Include a uv-bootstrap launcher (PyCrucible) for a small online-first-run executable?"
+include_compiler:
+  type: bool
+  default: false
+  help: "Include a compiler (Nuitka) to build a compiled native executable?"
+include_freezer:
+  type: bool
+  default: false
+  help: "Include an offline freezer (PyInstaller) for a self-contained bundled executable?"
 include_pydantic_settings:
   type: bool
   default: true

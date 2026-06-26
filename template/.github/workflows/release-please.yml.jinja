@@ -113,14 +113,15 @@ jobs:
 {%- endif %}
     - name: Publish distribution to PyPI
       uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
-{% if include_pycrucible %}
-  build-executables:
-    name: Build Executables
+{% if include_launcher %}
+  build-launcher:
+    name: Build Launcher (PyCrucible)
     needs: [release-please, build]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: read  # IMPORTANT: actions/checkout needs read access to the repo
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
@@ -134,7 +135,71 @@ jobs:
       - name: Upload executable
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
-          name: {{github_repo_name}}-executable-{% raw %}${{ matrix.os }}{% endraw %}
+          name: {{github_repo_name}}-executable-launcher-{% raw %}${{ matrix.os }}{% endraw %}
+          path: ./dist/
+{% endif %}
+{% if include_freezer %}
+  build-freezer:
+    name: Build Freezer (PyInstaller)
+    needs: [release-please, build]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    permissions:
+      contents: read  # IMPORTANT: actions/checkout needs read access to the repo
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          fetch-depth: 0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Build with PyInstaller
+        run: uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clean --noconfirm
+      - name: Upload executable
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: {{github_repo_name}}-executable-freezer-{% raw %}${{ matrix.os }}{% endraw %}
+          path: ./dist/
+{% endif %}
+{% if include_compiler %}
+  build-compiler:
+    name: Build Compiler (Nuitka)
+    needs: [release-please, build]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    permissions:
+      contents: read  # IMPORTANT: actions/checkout needs read access to the repo
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          fetch-depth: 0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Build with Nuitka
+        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist {% if include_cli %}src/{{github_repo_name}}/cli/app.py{% elif include_gui %}src/{{github_repo_name}}/gui/app.py{% elif include_tui %}src/{{github_repo_name}}/tui/app.py{% elif include_web %}src/{{github_repo_name}}/web/app.py{% else %}src/{{github_repo_name}}/__main__.py{% endif %}
+      - name: Upload executable
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: {{github_repo_name}}-executable-compiler-{% raw %}${{ matrix.os }}{% endraw %}
           path: ./dist/
 {% endif %}
 {%- if include_web %}
@@ -198,7 +263,7 @@ jobs:
   attach-github-release:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
-    needs: {% if include_pycrucible %}[release-please, pypi-publish, build-executables]{% else %}[release-please, pypi-publish]{% endif %}
+    needs: [release-please, pypi-publish{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
 
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
@@ -215,7 +280,7 @@ jobs:
         name: package-distributions
         path: dist/
 {%- endif %}
-{% if include_pycrucible %}
+{% if include_launcher or include_freezer or include_compiler %}
     - name: Download executables
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
       with:

@@ -137,7 +137,13 @@ Optional components (all boolean):
 - `include_worker` - FastStream message queue worker
 - `include_c_extensions` - Cython support with multi-platform wheels
 - `include_profiling` - py-spy, scalene, cProfile tools
-- `include_pycrucible` - PyCrucible for standalone executables
+- `include_launcher` - uv-bootstrap launcher (PyCrucible) — small executable, downloads Python+deps on first run
+- `include_compiler` - compiler (Nuitka) — source compiled to a native machine-code executable
+- `include_freezer` - offline freezer (PyInstaller) — self-contained bundle, no Python on target
+
+  These three standalone-executable toggles are independent and combinable; each
+  maps to one architectural category (launcher / compiler / freezer). See
+  [ADR-007](../docs/adr/007-offline-freezer-alongside-pycrucible.md).
 - `include_pydantic_settings` - pydantic-settings for config
 
 Framework/broker choices (when parent option is enabled):
@@ -215,6 +221,7 @@ Other conditional files:
 
 - `_c_extension.pyx`, `.pxd`, `.pyi` - Cython extension files
 - `profile.py` - Profiling script
+- `<pkg>.spec` - PyInstaller spec file (conditional on `include_freezer`)
 
 Test packages mirror source structure in `tests/`:
 
@@ -272,8 +279,14 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      per-platform `fail-fast: false` matrix (Ubuntu/Windows/macOS) producing the
      multi-platform Cython wheels + sdist; `pypi-publish` uploads them all.
    - `pypi-publish`: trusted publishing (`id-token: write`, environment `publish`).
-   - `build-executables` (when `include_pycrucible`) / `docker-publish` (when
-     `include_web`): conditional matrix jobs. Docker tags feed
+   - `build-launcher` (when `include_launcher`, PyCrucible) / `build-freezer`
+     (when `include_freezer`, PyInstaller) / `build-compiler` (when
+     `include_compiler`, Nuitka) / `docker-publish` (when
+     `include_web`): conditional matrix jobs. The three executable jobs are
+     independent `fail-fast: false` matrices producing per-platform artifacts
+     named `<repo>-executable-{launcher,freezer,compiler}-<os>`, all caught by
+     `attach-github-release`'s `<repo>-executable-*` download pattern (see
+     [ADR-007](../docs/adr/007-offline-freezer-alongside-pycrucible.md)). Docker tags feed
      `needs.release-please.outputs.tag_name` into the metadata-action `value=`
      because a push-triggered run has no tag ref.
    - `attach-github-release`: uploads artifacts to the still-draft release.

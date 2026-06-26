@@ -25,6 +25,10 @@ keywords = [
     {% if include_worker %}"faststream", "message-queue", "{{worker_broker}}",{% endif %}
     {% if include_pydantic_settings %}"pydantic",{% endif %}
     {% if include_c_extensions %}"cython", "c-extensions", "performance",{% endif %}
+    {% if include_launcher or include_compiler or include_freezer %}"standalone", "executable",{% endif %}
+    {% if include_launcher %}"pycrucible", "launcher",{% endif %}
+    {% if include_compiler %}"nuitka", "compiler",{% endif %}
+    {% if include_freezer %}"pyinstaller", "freezer",{% endif %}
 ]
 # TODO @{{github_user}}: Fill in the missing classifiers...
 classifiers = [
@@ -175,6 +179,9 @@ tool = [
   "commitizen==4.10.0",
   {% if include_c_extensions %}"cython>=3.0.0",{% endif %}
   {% if include_profiling %}"py-spy>=0.4.0", "scalene>=1.5.0", "snakeviz>=2.2.0",{% endif %}
+  {% if include_launcher %}"pycrucible>=0.4.6",{% endif %}
+  {% if include_compiler %}"nuitka>=2.0.0",{% endif %}
+  {% if include_freezer %}"pyinstaller>=6.0.0",{% endif %}
   # "marimo==0.15.2",
   # "inflection==0.5.1",
   # "copier==9.11.0",
@@ -613,7 +620,7 @@ description = "Run the message queue worker application."
 runner = "uv-venv-runner"
 {% endif %}
 
-{% if include_pycrucible %}
+{% if include_launcher %}
 [tool.pycrucible]
 {% if include_cli %}
 entrypoint = "src/{{github_repo_name}}/cli/app.py"
