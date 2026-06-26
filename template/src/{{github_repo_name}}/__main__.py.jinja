@@ -1,8 +1,65 @@
-"""Module entrypoint for the project."""
+"""Module entrypoint for the project.
+
+This is the single runnable entrypoint used by ``python -m {{github_repo_name}}``
+and by every standalone-executable build (PyCrucible launcher, PyInstaller
+freezer, Nuitka compiler — see ADR-007). The build tools all target this file,
+so the component-selection logic lives here and nowhere else.
+"""
 {%- if include_cli %}
 
 from {{github_repo_name}}.cli import app
 
-if __name__ == "__main__":
+
+def main() -> None:
+    """Run the CLI application."""
     app()
+{%- elif include_gui %}
+
+from {{github_repo_name}}.gui.app import main as _entry
+
+
+def main() -> None:
+    """Launch the GUI application."""
+    _entry()
+{%- elif include_tui %}
+
+from {{github_repo_name}}.tui.app import main as _entry
+
+
+def main() -> None:
+    """Launch the TUI application."""
+    _entry()
+{%- elif include_web %}
+
+from {{github_repo_name}}.web.app import main as _entry
+
+
+def main() -> None:
+    """Run the web application."""
+    _entry()
+{%- elif include_mcp %}
+
+from {{github_repo_name}}.mcp.app import main as _entry
+
+
+def main() -> None:
+    """Run the MCP server."""
+    _entry()
+{%- elif include_worker %}
+
+from {{github_repo_name}}.worker.app import main as _entry
+
+
+def main() -> None:
+    """Run the message queue worker."""
+    _entry()
+{%- else %}
+
+
+def main() -> None:
+    """No runnable application component is enabled for this project."""
 {%- endif %}
+
+
+if __name__ == "__main__":
+    main()

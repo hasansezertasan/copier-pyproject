@@ -622,17 +622,9 @@ runner = "uv-venv-runner"
 
 {% if include_launcher %}
 [tool.pycrucible]
-{% if include_cli %}
-entrypoint = "src/{{github_repo_name}}/cli/app.py"
-{% elif include_gui %}
-entrypoint = "src/{{github_repo_name}}/gui/app.py"
-{% elif include_tui %}
-entrypoint = "src/{{github_repo_name}}/tui/app.py"
-{% elif include_web %}
-entrypoint = "uvicorn {{github_repo_name}}.web.app:app --host 0.0.0.0 --port 8000"
-{% else %}
+# The single runnable entrypoint (see src/{{github_repo_name}}/__main__.py),
+# which dispatches to the enabled component (CLI/GUI/TUI/web/...).
 entrypoint = "src/{{github_repo_name}}/__main__.py"
-{% endif %}
 
 [tool.pycrucible.options]
 debug = false

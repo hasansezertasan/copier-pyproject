@@ -195,7 +195,7 @@ jobs:
             pyproject.toml
             uv.lock
       - name: Build with Nuitka
-        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist {% if include_cli %}src/{{github_repo_name}}/cli/app.py{% elif include_gui %}src/{{github_repo_name}}/gui/app.py{% elif include_tui %}src/{{github_repo_name}}/tui/app.py{% elif include_web %}src/{{github_repo_name}}/web/app.py{% else %}src/{{github_repo_name}}/__main__.py{% endif %}
+        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist src/{{github_repo_name}}/__main__.py
       - name: Upload executable
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:

@@ -90,10 +90,21 @@ keep the door open to add a fourth architecture later without restructuring.
   next to the renamed `build-launcher` (PyCrucible) job; all three are
   independent and their artifacts are attached to the still-draft release by
   `attach-github-release`. See [ADR-002](002-release-please-for-release-automation.md).
+- All three builds target the package's `__main__.py` as their single runnable
+  entrypoint, so the component-selection logic (CLI/GUI/TUI/web/MCP/worker → the
+  callable that actually launches the app) lives in `__main__.py` and nowhere
+  else. `__main__.py` is generalized from the previous CLI-only form into a
+  universal entry that defines/imports a `main()` for whichever component is
+  enabled. This keeps the spec, the Nuitka command, and `[tool.pycrucible]` free
+  of duplicated entrypoint conditionals, and — critically — ensures the produced
+  binary *runs* the app rather than merely importing a module that defines but
+  never invokes it.
 - For PyInstaller a `{{github_repo_name}}.spec.jinja` is rendered for a
-  reproducible, editable build; Nuitka's flags live in the mise task and the CI
-  step (Nuitka has no spec-file equivalent); PyCrucible keeps its `[tool.pycrucible]`
-  config block.
+  reproducible, editable build, and the generated `.gitignore` un-ignores that
+  one spec (the default `*.spec` ignore would otherwise keep it uncommitted and
+  break the release workflow's fresh-checkout build); Nuitka's flags live in the
+  mise task and the CI step (Nuitka has no spec-file equivalent); PyCrucible
+  keeps its `[tool.pycrucible]` config block.
 - The mise `package` task is split into per-architecture tasks
   (`package`/`compile`/`freeze`) each properly gated. This also fixes a latent
   bug: `mise.toml.jinja` wrapped its whole body in one `{% raw %}` block, so the

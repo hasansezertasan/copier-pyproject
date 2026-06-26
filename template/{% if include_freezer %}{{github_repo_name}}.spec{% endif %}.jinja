@@ -3,17 +3,10 @@
 # Produces a single self-contained executable that needs no Python on the target.
 # -*- mode: python ; coding: utf-8 -*-
 
-{% if include_cli -%}
-entry_point = "src/{{github_repo_name}}/cli/app.py"
-{% elif include_gui -%}
-entry_point = "src/{{github_repo_name}}/gui/app.py"
-{% elif include_tui -%}
-entry_point = "src/{{github_repo_name}}/tui/app.py"
-{% elif include_web -%}
-entry_point = "src/{{github_repo_name}}/web/app.py"
-{% else -%}
+# The single runnable entrypoint (see src/{{github_repo_name}}/__main__.py),
+# which dispatches to the enabled component (CLI/GUI/TUI/web/...).
 entry_point = "src/{{github_repo_name}}/__main__.py"
-{% endif %}
+
 a = Analysis(
     [entry_point],
     pathex=["src"],

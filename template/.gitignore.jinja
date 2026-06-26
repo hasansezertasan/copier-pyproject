@@ -120,6 +120,10 @@ MANIFEST
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+{%- if include_freezer %}
+# ...except the committed PyInstaller spec the release workflow builds from.
+!{{github_repo_name}}.spec
+{%- endif %}
 
 # Installer logs
 pip-log.txt
