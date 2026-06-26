@@ -31,7 +31,9 @@ Copier will prompt for:
 - `worker_broker` (kafka/nats/rabbitmq/redis - when `include_worker` is enabled)
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
-- `include_pycrucible` (include PyCrucible for standalone executables)
+- `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
+- `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
+- `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
 - `include_pydantic_settings` (use pydantic-settings for configuration)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
@@ -108,25 +110,26 @@ Releases are driven by Conventional Commits — you do not draft releases by han
 1. Land `feat:` / `fix:` commits on `main`. release-please opens (and keeps updating) a release PR with the computed version bump and changelog.
 2. Merge the release PR when you want to ship. This creates the git tag and a draft GitHub Release.
 3. The `release-please.yml` workflow then builds the wheel/sdist with uv, publishes to PyPI via trusted publishing, attaches artifacts to the draft, and un-drafts the release.
-4. If `include_web` is enabled it also builds and pushes multi-arch Docker images; if `include_pycrucible` is enabled it also builds standalone executables for Windows, macOS, and Linux and attaches them to the release.
+4. If `include_web` is enabled it also builds and pushes multi-arch Docker images; if any of `include_launcher` (PyCrucible), `include_compiler` (Nuitka), or `include_freezer` (PyInstaller) is enabled it also builds standalone executables for Windows, macOS, and Linux and attaches them to the release.
 
 ### Release workflow structure
 
 The unified `release-please.yml` orchestrates every release job; all jobs after `release-please` run only when a release was created:
 
 ```text
-release-please ─► build ─┬─► pypi-publish ──────────┐
-                         │                          ▼
-                         ├─► build-executables ─► attach-github-release ─┐
-                         │   (if pycrucible)                             ▼
-                         └─► docker-publish ─────────────────────────► finalize-release ─► deploy-docs
-                             (if web)                                   (un-draft + reconcile)   (sphinx-build + ghp-import)
+release-please ─► build ─┬─► pypi-publish ────────┐
+                         ├─► build-launcher ──────┤
+                         ├─► build-freezer ───────┼─► attach-github-release ─┐
+                         ├─► build-compiler ──────┘                          │
+                         │   (if launcher / freezer / compiler)              ▼
+                         └─► docker-publish ───────────────────────────────► finalize-release        ► deploy-docs
+                             (if web)                                        (un-draft + reconcile)    (sphinx-build + ghp-import)
 ```
 
 - **release-please**: Opens/maintains the release PR; on merge, tags and creates the draft release
 - **build**: Builds the Python wheel/sdist with uv (matrix per-OS when `include_c_extensions`)
 - **pypi-publish**: Publishes to PyPI via trusted publishing
-- **build-executables**: Builds standalone executables for 3 platforms (conditional)
+- **build-launcher** / **build-freezer** / **build-compiler**: Build standalone executables for 3 platforms via PyCrucible / PyInstaller / Nuitka respectively (each conditional and independent)
 - **docker-publish**: Builds and pushes multi-arch Docker images (conditional)
 - **attach-github-release**: Attaches all artifacts to the still-draft release
 - **finalize-release**: Un-drafts the release and reconciles the next release PR

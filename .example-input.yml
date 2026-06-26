@@ -15,7 +15,9 @@ include_worker: false
 worker_broker: kafka
 include_c_extensions: false
 include_profiling: false
-include_pycrucible: false
+include_launcher: false
+include_compiler: false
+include_freezer: false
 include_pydantic_settings: false
 include_postgres: false
 include_redis: false
