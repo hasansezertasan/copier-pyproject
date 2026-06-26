@@ -1,10 +1,10 @@
 """Tests for the package's runnable entrypoint (``python -m {{github_repo_name}}``)."""
 
 import importlib
+{%- if not (include_cli or include_gui or include_tui or include_web or include_mcp or include_worker) %}
 
-{% if not (include_cli or include_gui or include_tui or include_web or include_mcp or include_worker) %}
 import pytest
-{% endif %}
+{%- endif %}
 
 
 def test_main_is_callable() -> None:
@@ -27,10 +27,11 @@ def test_main_is_callable() -> None:
 {%- elif include_gui or include_tui or include_web or include_mcp or include_worker %}
     # Every non-CLI component is dispatched through an imported ``_entry``
     # callable; assert the wiring imported it (guards the if/elif precedence).
-    assert callable(main_module._entry)
+    # Read from the module namespace to avoid a private-member-access lint.
+    assert callable(vars(main_module)["_entry"])
 {%- endif %}
+{%- if not (include_cli or include_gui or include_tui or include_web or include_mcp or include_worker) %}
 
-{% if not (include_cli or include_gui or include_tui or include_web or include_mcp or include_worker) %}
 
 def test_main_exits_loudly_when_no_component() -> None:
     """With no runnable component, ``main()`` exits non-zero instead of no-op-ing.
@@ -44,4 +45,4 @@ def test_main_exits_loudly_when_no_component() -> None:
 
     with pytest.raises(SystemExit):
         main_module.main()
-{% endif %}
+{%- endif %}

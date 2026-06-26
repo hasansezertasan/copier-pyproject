@@ -65,6 +65,8 @@ def main() -> None:
     _entry()
 {%- else %}
 
+import sys
+
 
 def main() -> None:
     """Fail loudly: no runnable application component is enabled.
@@ -74,7 +76,7 @@ def main() -> None:
     a non-zero status and a message rather than a silent no-op, which would look
     like a broken binary to whoever launched it.
     """
-    raise SystemExit(
+    sys.exit(
         "{{github_repo_name}}: no runnable component is enabled "
         "(CLI/GUI/TUI/web/MCP/worker), so there is nothing to run."
     )
