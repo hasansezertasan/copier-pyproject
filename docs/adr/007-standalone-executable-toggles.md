@@ -22,7 +22,7 @@ into (see
 | Architecture | Example tools | Runtime promise |
 |--------------|---------------|-----------------|
 | **launcher** (uv-bootstrap) | **PyCrucible**, PyApp, UVBox | tiny binary; downloads Python+deps on first run; needs network once |
-| **compiler** (source→machine code) | **Nuitka**, mypyc | compiles to C/native; faster startup + some obfuscation; needs a C toolchain to build |
+| **compiler** (source→machine code) | **Nuitka** | compiles to C/native; faster startup + some obfuscation; needs a C toolchain to build |
 | **freezer** (bundle interpreter+deps) | **PyInstaller**, cx_Freeze, py2exe | ships interpreter+stdlib+deps in one artifact; fully offline; no Python on target |
 
 These are not substitutes — they make materially different promises (online
