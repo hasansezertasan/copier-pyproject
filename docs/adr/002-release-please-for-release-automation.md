@@ -97,7 +97,7 @@ release-please should be wired:
   its jobs are folded into a single unified `release-please.yml`: `release-please`
   → `build` (matrix when `include_c_extensions`) → `pypi-publish` → conditional
   `build-launcher`/`build-freezer`/`build-compiler` (standalone executables — see
-  [ADR-007](007-offline-freezer-alongside-pycrucible.md)) / `docker-publish` (web) → `attach-github-release`
+  [ADR-007](007-standalone-executable-toggles.md)) / `docker-publish` (web) → `attach-github-release`
   → `finalize-release`. All post-`release-please` jobs gate on
   `release_created == 'true'`. The release is created `draft: true`, artifacts are
   attached to the draft, and `finalize-release` un-drafts it and reconciles the

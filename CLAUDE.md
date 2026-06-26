@@ -143,7 +143,7 @@ Optional components (all boolean):
 
   These three standalone-executable toggles are independent and combinable; each
   maps to one architectural category (launcher / compiler / freezer). See
-  [ADR-007](../docs/adr/007-offline-freezer-alongside-pycrucible.md).
+  [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
 - `include_pydantic_settings` - pydantic-settings for config
 
 Framework/broker choices (when parent option is enabled):
@@ -286,7 +286,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      independent `fail-fast: false` matrices producing per-platform artifacts
      named `<repo>-executable-{launcher,freezer,compiler}-<os>`, all caught by
      `attach-github-release`'s `<repo>-executable-*` download pattern (see
-     [ADR-007](../docs/adr/007-offline-freezer-alongside-pycrucible.md)). Docker tags feed
+     [ADR-007](../docs/adr/007-standalone-executable-toggles.md)). Docker tags feed
      `needs.release-please.outputs.tag_name` into the metadata-action `value=`
      because a push-triggered run has no tag ref.
    - `attach-github-release`: uploads artifacts to the still-draft release.
