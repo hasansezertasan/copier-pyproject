@@ -123,7 +123,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # label/ext make each binary's filename unique per OS (and per tool across
+        # jobs), so download-artifact's merge-multiple and the release asset names
+        # never collide. See ADR-007.
+        include:
+          - os: ubuntu-latest
+            label: linux
+            ext: ""
+          - os: windows-latest
+            label: windows
+            ext: ".exe"
+          - os: macos-latest
+            label: macos
+            ext: ""
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
@@ -131,12 +143,13 @@ jobs:
         uses: razorblade23/pycrucible-action@4a9aeaf7ed124775839031963dcd5295e67ac5f6  # v1.0.5
         with:
           source: '.'
-          output: './dist/{{github_repo_name}}'
+          output: './dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}'
       - name: Upload executable
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: {{github_repo_name}}-executable-launcher-{% raw %}${{ matrix.os }}{% endraw %}
-          path: ./dist/
+          # Glob so the upload succeeds whether or not the tool added an extension.
+          path: './dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}*'
 {% endif %}
 {% if include_freezer %}
   build-freezer:
@@ -148,7 +161,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # label/ext make each binary's filename unique per OS (and per tool across
+        # jobs), so download-artifact's merge-multiple and the release asset names
+        # never collide. See ADR-007.
+        include:
+          - os: ubuntu-latest
+            label: linux
+            ext: ""
+          - os: windows-latest
+            label: windows
+            ext: ".exe"
+          - os: macos-latest
+            label: macos
+            ext: ""
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
       - name: Checkout repository
@@ -163,12 +188,18 @@ jobs:
             pyproject.toml
             uv.lock
       - name: Build with PyInstaller
-        run: uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clean --noconfirm
+        # The spec's static name="{{github_repo_name}}" can't see the matrix, so
+        # rename the built binary to a unique per-OS name afterwards (bash is used
+        # for a portable mv across the Linux/macOS/Windows runners).
+        shell: bash
+        run: |
+          uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clean --noconfirm
+          mv "dist/{{github_repo_name}}{% raw %}${{ matrix.ext }}{% endraw %}" "dist/{{github_repo_name}}-freezer-{% raw %}${{ matrix.label }}${{ matrix.ext }}{% endraw %}"
       - name: Upload executable
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: {{github_repo_name}}-executable-freezer-{% raw %}${{ matrix.os }}{% endraw %}
-          path: ./dist/
+          path: './dist/{{github_repo_name}}-freezer-{% raw %}${{ matrix.label }}${{ matrix.ext }}{% endraw %}'
 {% endif %}
 {% if include_compiler %}
   build-compiler:
@@ -180,7 +211,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # label/ext make each binary's filename unique per OS (and per tool across
+        # jobs), so download-artifact's merge-multiple and the release asset names
+        # never collide. See ADR-007.
+        include:
+          - os: ubuntu-latest
+            label: linux
+            ext: ""
+          - os: windows-latest
+            label: windows
+            ext: ".exe"
+          - os: macos-latest
+            label: macos
+            ext: ""
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
       - name: Checkout repository
@@ -195,12 +238,19 @@ jobs:
             pyproject.toml
             uv.lock
       - name: Build with Nuitka
-        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist src/{{github_repo_name}}/__main__.py
+        # --output-filename gives a unique per-OS name (Nuitka otherwise emits
+        # "__main__.bin"/".exe", which is neither project- nor OS-specific). For a
+        # GUI app, suppress the console window per-OS (mirrors the freezer's
+        # console=False): --windows-console-mode=disable on Windows, an .app bundle
+        # on macOS. Both flags are platform-specific, so they are matrix-gated to
+        # avoid erroring on the platforms that do not accept them.
+        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || (matrix.os == 'macos-latest' && '--macos-create-app-bundle' || '') }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
       - name: Upload executable
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: {{github_repo_name}}-executable-compiler-{% raw %}${{ matrix.os }}{% endraw %}
-          path: ./dist/
+          # Glob so the upload succeeds whether or not the tool added an extension.
+          path: './dist/{{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %}*'
 {% endif %}
 {%- if include_web %}
   docker-publish:
@@ -291,7 +341,9 @@ jobs:
     - name: Attach Build Artifacts to the draft release
       env:
         GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-      run: gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} ./dist/* --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
+      # Upload every file under dist/ (executables land in dist/executables/, so a
+      # plain ./dist/* glob would pass that subdirectory to gh, which rejects dirs).
+      run: find dist -type f -print0 | xargs -0 gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
 
   finalize-release:
     runs-on: ubuntu-latest

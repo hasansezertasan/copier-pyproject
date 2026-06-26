@@ -1,0 +1,18 @@
+"""Tests for the package's runnable entrypoint (``python -m {{github_repo_name}}``)."""
+
+import importlib
+
+
+def test_main_is_callable() -> None:
+    """The package exposes a callable ``main()`` entrypoint.
+
+    Every standalone-executable build (launcher / freezer / compiler — see
+    ADR-007) targets ``{{github_repo_name}}.__main__:main``, so this pins the
+    contract that the symbol exists and is callable for whichever component is
+    enabled — and for the no-component case, where ``main()`` is a no-op. The
+    module is imported (not executed as ``__main__``), so the app is never
+    actually launched.
+    """
+    main_module = importlib.import_module("{{github_repo_name}}.__main__")
+
+    assert callable(main_module.main)

@@ -90,6 +90,17 @@ keep the door open to add a fourth architecture later without restructuring.
   next to the renamed `build-launcher` (PyCrucible) job; all three are
   independent and their artifacts are attached to the still-draft release by
   `attach-github-release`. See [ADR-002](002-release-please-for-release-automation.md).
+- Each build names its binary `<pkg>-<tool>-<os-label>` (e.g.
+  `myapp-compiler-linux`, `myapp-freezer-windows.exe`) rather than a bare
+  `<pkg>`. This is required for correctness, not cosmetics: `attach-github-release`
+  collects every executable artifact with `download-artifact`'s `merge-multiple`,
+  which flattens them into one directory by *filename*. Without the `<tool>-<os>`
+  qualifier the per-OS binaries (and, with more than one toggle, the per-tool
+  binaries) share a name and silently overwrite each other, dropping platforms
+  from the release. PyCrucible takes the name via `-o`/`output:`, Nuitka via
+  `--output-filename` (it otherwise emits a generic `__main__.bin`), and
+  PyInstaller — whose `.spec` `name=` can't see the CI matrix — is renamed after
+  the build.
 - All three builds target the package's `__main__.py` as their single runnable
   entrypoint, so the component-selection logic (CLI/GUI/TUI/web/MCP/worker → the
   callable that actually launches the app) lives in `__main__.py` and nowhere
@@ -98,7 +109,10 @@ keep the door open to add a fourth architecture later without restructuring.
   enabled. This keeps the spec, the Nuitka command, and `[tool.pycrucible]` free
   of duplicated entrypoint conditionals, and — critically — ensures the produced
   binary *runs* the app rather than merely importing a module that defines but
-  never invokes it.
+  never invokes it. Enabling an executable toggle with no runnable component
+  (CLI/GUI/TUI/web/MCP/worker) selected is a degenerate but allowed combination:
+  `__main__.main()` falls back to a no-op body, so the produced binary builds and
+  runs but does nothing.
 - For PyInstaller a `{{github_repo_name}}.spec.jinja` is rendered for a
   reproducible, editable build, and the generated `.gitignore` un-ignores that
   one spec (the default `*.spec` ignore would otherwise keep it uncommitted and

@@ -623,7 +623,7 @@ runner = "uv-venv-runner"
 {% if include_launcher %}
 [tool.pycrucible]
 # The single runnable entrypoint (see src/{{github_repo_name}}/__main__.py),
-# which dispatches to the enabled component (CLI/GUI/TUI/web/...).
+# which runs whichever component this project enabled (CLI/GUI/TUI/web/...).
 entrypoint = "src/{{github_repo_name}}/__main__.py"
 
 [tool.pycrucible.options]

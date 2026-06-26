@@ -33,6 +33,23 @@ jobs:
           # Compiles the Cython extension during the wheel build.
           - name: c-extensions
             data: --data include_c_extensions=true
+          # Standalone-executable toggles (ADR-007), exercised independently and
+          # combined the way worker_broker is. These render the .spec, the mise
+          # tasks, the tool-group deps, and the build-* release jobs so style
+          # (validate-pyproject, taplo, actionlint) lints them — the heavy
+          # nuitka/pyinstaller/pycrucible deps live in the `tool` group, which
+          # only the `profile` env installs, so they are not pulled here.
+          - name: launcher
+            data: --data include_launcher=true
+          - name: freezer
+            data: --data include_freezer=true
+          - name: compiler
+            data: --data include_compiler=true
+          # All three at once + a GUI, to cover the combined needs-wiring and the
+          # GUI-specific branches (spec console=False, Nuitka per-OS window flags).
+          - name: executables-gui
+            data: >-
+              --data include_launcher=true --data include_freezer=true --data include_compiler=true --data include_gui=true
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
@@ -68,3 +85,19 @@ jobs:
           wheels=(dist/*.whl)
           uv run --no-project --with "${wheels[0]}" python -c \
             "from example._c_extension import fibonacci_cython; assert fibonacci_cython(10) == 55"
+      - name: Verify standalone executables get unique per-tool/per-OS names
+        # template-ci does not build the binaries (the heavy nuitka/pyinstaller/
+        # pycrucible deps live in the `tool` group), so assert at the render level
+        # that each build job names its artifact <pkg>-<tool>-<label>. Bare
+        # ./dist/ paths would let merge-multiple silently overwrite same-named
+        # binaries across tools/OSes and drop platforms from the release (ADR-007).
+        if: matrix.scenario.name == 'executables-gui'
+        working-directory: ../rendered
+        run: |
+          wf=.github/workflows/release-please.yml
+          # The "example-<tool>-" prefix only appears in the new unique-naming
+          # wiring (the artifact name uses "example-executable-<tool>-" instead).
+          for tool in launcher freezer compiler; do
+            grep -q "example-${tool}-" "$wf" \
+              || { echo "::error::release-please.yml does not uniquely name the ${tool} artifact"; exit 1; }
+          done

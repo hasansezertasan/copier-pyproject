@@ -15,20 +15,24 @@ def main() -> None:
     app()
 {%- elif include_gui %}
 
+import sys
+
 from {{github_repo_name}}.gui.app import main as _entry
 
 
 def main() -> None:
     """Launch the GUI application."""
-    _entry()
+    sys.exit(_entry())
 {%- elif include_tui %}
+
+import sys
 
 from {{github_repo_name}}.tui.app import main as _entry
 
 
 def main() -> None:
     """Launch the TUI application."""
-    _entry()
+    sys.exit(_entry())
 {%- elif include_web %}
 
 from {{github_repo_name}}.web.app import main as _entry
