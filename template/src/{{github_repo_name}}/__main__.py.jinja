@@ -76,10 +76,7 @@ def main() -> None:
     a non-zero status and a message rather than a silent no-op, which would look
     like a broken binary to whoever launched it.
     """
-    sys.exit(
-        "{{github_repo_name}}: no runnable component is enabled "
-        "(CLI/GUI/TUI/web/MCP/worker), so there is nothing to run."
-    )
+    sys.exit("No runnable application component is enabled; nothing to run.")
 {%- endif %}
 
 
