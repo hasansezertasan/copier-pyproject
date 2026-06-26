@@ -2,6 +2,10 @@
 
 import importlib
 
+{% if not (include_cli or include_gui or include_tui or include_web or include_mcp or include_worker) %}
+import pytest
+{% endif %}
+
 
 def test_main_is_callable() -> None:
     """The package exposes a callable ``main()`` entrypoint.
@@ -9,10 +13,35 @@ def test_main_is_callable() -> None:
     Every standalone-executable build (launcher / freezer / compiler — see
     ADR-007) targets ``{{github_repo_name}}.__main__:main``, so this pins the
     contract that the symbol exists and is callable for whichever component is
-    enabled — and for the no-component case, where ``main()`` is a no-op. The
-    module is imported (not executed as ``__main__``), so the app is never
-    actually launched.
+    enabled. Importing the module also executes the top-level ``from ... import``
+    for the selected component, so a broken import in the active branch fails
+    here. The module is imported (not executed as ``__main__``), so a runnable
+    component's blocking ``main()`` (server loop, mainloop, ...) is never invoked.
     """
     main_module = importlib.import_module("{{github_repo_name}}.__main__")
 
     assert callable(main_module.main)
+{%- if include_cli %}
+    # CLI dispatch wires the Typer ``app`` into __main__; assert it resolved.
+    assert hasattr(main_module, "app")
+{%- elif include_gui or include_tui or include_web or include_mcp or include_worker %}
+    # Every non-CLI component is dispatched through an imported ``_entry``
+    # callable; assert the wiring imported it (guards the if/elif precedence).
+    assert callable(main_module._entry)
+{%- endif %}
+
+{% if not (include_cli or include_gui or include_tui or include_web or include_mcp or include_worker) %}
+
+def test_main_exits_loudly_when_no_component() -> None:
+    """With no runnable component, ``main()`` exits non-zero instead of no-op-ing.
+
+    This combination (a standalone build with nothing to run) is degenerate but
+    allowed; ``main()`` must fail loudly so the produced binary does not look
+    like a silently broken executable. Safe to invoke here because there is no
+    blocking component behind it.
+    """
+    main_module = importlib.import_module("{{github_repo_name}}.__main__")
+
+    with pytest.raises(SystemExit):
+        main_module.main()
+{% endif %}

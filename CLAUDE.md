@@ -274,8 +274,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      offending diff instead of silently at release time (the test suite never
      exercises the built binary). Each verifies the binary was produced,
      smoke-runs it with `--help` when `include_cli` is set, and uploads a 7-day
-     preview artifact. They mirror the `release-please.yml` build jobs but never
-     publish, and they gate the `check` aggregation job. See
+     preview artifact. They closely follow the `release-please.yml` build jobs
+     (same setup + build commands), skipping the release-only rename/publish
+     steps, and they gate the `check` aggregation job. See
      [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
 2. **Release + CD** (`release-please.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable

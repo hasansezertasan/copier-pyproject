@@ -123,22 +123,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # label/ext make each binary's filename unique per OS (and per tool across
+        # label makes each binary's filename unique per OS (and per tool across
         # jobs), so download-artifact's merge-multiple and the release asset names
-        # never collide. See ADR-007.
+        # never collide. PyCrucible names via output:/`-o` + a `*` upload glob, so
+        # no per-OS `ext` is needed here (unlike the freezer's post-build mv).
+        # See ADR-007.
         include:
           - os: ubuntu-latest
             label: linux
-            ext: ""
           - os: windows-latest
             label: windows
-            ext: ".exe"
           - os: macos-latest
             label: macos
-            ext: ""
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          # PyCrucible embeds the source tree; hatch-vcs needs full history + tags
+          # to stamp the correct version into the embedded project (mirrors `build`).
+          fetch-depth: 0
       - name: Build with PyCrucible
         uses: razorblade23/pycrucible-action@4a9aeaf7ed124775839031963dcd5295e67ac5f6  # v1.0.5
         with:
@@ -180,6 +183,10 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
           fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version-file: .python-version
       - name: Setup uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
@@ -230,6 +237,10 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
           fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version-file: .python-version
       - name: Setup uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
@@ -240,11 +251,14 @@ jobs:
       - name: Build with Nuitka
         # --output-filename gives a unique per-OS name (Nuitka otherwise emits
         # "__main__.bin"/".exe", which is neither project- nor OS-specific). For a
-        # GUI app, suppress the console window per-OS (mirrors the freezer's
-        # console=False): --windows-console-mode=disable on Windows, an .app bundle
-        # on macOS. Both flags are platform-specific, so they are matrix-gated to
-        # avoid erroring on the platforms that do not accept them.
-        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || (matrix.os == 'macos-latest' && '--macos-create-app-bundle' || '') }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
+        # GUI app on Windows, suppress the console window with
+        # --windows-console-mode=disable (mirrors the freezer's console=False); the
+        # flag is Windows-only, so it is matrix-gated to avoid erroring elsewhere.
+        # macOS needs no equivalent — a --onefile binary launched from Finder runs
+        # without a terminal — and --macos-create-app-bundle is deliberately NOT
+        # used: it emits a .app *directory*, which would break the single-file
+        # verify/upload steps (and the merge-multiple release attach). See ADR-007.
+        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --warn-implicit-exceptions --warn-unusual-code {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || '' }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
       - name: Upload executable
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
@@ -341,9 +355,15 @@ jobs:
     - name: Attach Build Artifacts to the draft release
       env:
         GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-      # Upload every file under dist/ (executables land in dist/executables/, so a
-      # plain ./dist/* glob would pass that subdirectory to gh, which rejects dirs).
-      run: find dist -type f -print0 | xargs -0 gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
+      shell: bash
+      run: |
+        # Upload every file under dist/ (executables land in dist/executables/, so a
+        # plain ./dist/* glob would pass that subdirectory to gh, which rejects dirs).
+        # Guard the empty case first: `xargs` with no input never invokes gh and
+        # exits 0, which would silently publish a release with zero assets attached.
+        test "$(find dist -type f | wc -l)" -gt 0 \
+          || { echo "::error::no artifacts found under dist/ to attach to the release"; exit 1; }
+        find dist -type f -print0 | xargs -0 gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
 
   finalize-release:
     runs-on: ubuntu-latest

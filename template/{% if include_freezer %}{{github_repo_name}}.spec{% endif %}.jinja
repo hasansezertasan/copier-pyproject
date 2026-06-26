@@ -32,7 +32,10 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    # TODO @{{github_user}}: UPX is off by default — it is not preinstalled on CI
+    # runners (PyInstaller silently skips it) and has corrupted binaries on macOS
+    # and some Windows setups. Install UPX and flip to True if you want compression.
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console={{ "False" if include_gui else "True" }},

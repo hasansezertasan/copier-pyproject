@@ -119,8 +119,9 @@ keep the door open to add a fourth architecture later without restructuring.
   binary *runs* the app rather than merely importing a module that defines but
   never invokes it. Enabling an executable toggle with no runnable component
   (CLI/GUI/TUI/web/MCP/worker) selected is a degenerate but allowed combination:
-  `__main__.main()` falls back to a no-op body, so the produced binary builds and
-  runs but does nothing.
+  `__main__.main()` falls back to raising `SystemExit` with an explanatory
+  message, so the produced binary builds and exits non-zero with a clear reason
+  rather than silently doing nothing (which would look like a broken binary).
 - For PyInstaller a `{{github_repo_name}}.spec.jinja` is rendered for a
   reproducible, editable build, and the generated `.gitignore` un-ignores that
   one spec (the default `*.spec` ignore would otherwise keep it uncommitted and

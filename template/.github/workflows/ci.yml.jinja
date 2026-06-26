@@ -96,9 +96,13 @@ jobs:
   # HERE, against the offending change, instead of silently at release time. The
   # test suite always runs the source tree, never the built binary, so these jobs
   # are the only thing that exercises packaging before a release. Each verifies the
-  # binary was produced, smoke-runs it for a CLI project, and uploads a 7-day
-  # preview artifact a reviewer can launch-test. They mirror the release-please.yml
-  # build jobs but never publish.
+  # binary was produced and uploads a 7-day preview artifact a reviewer can
+  # launch-test. A CLI project is additionally smoke-run with `--help`; non-CLI
+  # entrypoints (GUI/TUI/web/MCP/worker) block on a UI/server loop and so are only
+  # existence-checked here, never runtime-verified — a reviewer must launch the
+  # preview artifact to confirm those actually run. They closely follow the
+  # release-please.yml build jobs (same setup + build commands) but skip the
+  # release-only steps (the freezer's per-OS rename, and publishing).
 {% endif %}
 {% if include_launcher %}
   build-launcher-check:
@@ -231,7 +235,11 @@ jobs:
             pyproject.toml
             uv.lock
       - name: Build with Nuitka
-        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || (matrix.os == 'macos-latest' && '--macos-create-app-bundle' || '') }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
+        # GUI suppresses the Windows console window only (matrix-gated, Windows-only
+        # flag); macOS needs no equivalent and --macos-create-app-bundle is avoided
+        # because it emits a .app directory that breaks the single-file checks below.
+        # See ADR-007 and the matching release-please.yml job.
+        run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --warn-implicit-exceptions --warn-unusual-code {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || '' }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
       - name: Verify the binary was produced
         shell: bash
         run: |
