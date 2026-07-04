@@ -1,0 +1,81 @@
+"""Integration tests for the worker against a real {{worker_broker}} (ADR-008).
+
+These start a real {{worker_broker}} in a container via testcontainers, so they
+are marked ``integration`` and excluded from the default suite. Run them
+explicitly with ``pytest -m integration`` (Docker required); CI runs them in a
+dedicated Ubuntu-only job.
+"""
+
+from __future__ import annotations
+
+import asyncio
+
+import pytest
+{%- if worker_broker == "kafka" %}
+from testcontainers.kafka import KafkaContainer
+{%- elif worker_broker == "nats" %}
+from testcontainers.nats import NatsContainer
+{%- elif worker_broker == "rabbitmq" %}
+from testcontainers.rabbitmq import RabbitMqContainer
+{%- elif worker_broker == "redis" %}
+from testcontainers.redis import RedisContainer
+{%- endif %}
+
+from {{github_repo_name}}.worker.app import VersionRequest, build_broker
+
+pytestmark = pytest.mark.integration
+
+# How long to wait for the round-trip response before failing.
+_RESPONSE_POLLS = 50
+_POLL_INTERVAL_SECONDS = 0.2
+
+
+async def test_worker_roundtrip_against_real_broker() -> None:
+    """Consume a request and publish a response over a real broker.
+
+    Exercises the actual driver and serialization that the in-memory unit test
+    stubs out: a real {{worker_broker}} is started, the worker's broker is pointed
+    at it, a request is published, and we assert the worker's response arrives on
+    a collector subscriber.
+    """
+{%- if worker_broker == "kafka" %}
+    with KafkaContainer() as container:
+        url = container.get_bootstrap_server()
+{%- elif worker_broker == "nats" %}
+    with NatsContainer() as container:
+        host = container.get_container_host_ip()
+        port = container.get_exposed_port(4222)
+        url = f"nats://{host}:{port}"
+{%- elif worker_broker == "rabbitmq" %}
+    with RabbitMqContainer() as container:
+        host = container.get_container_host_ip()
+        port = container.get_exposed_port(5672)
+        url = f"amqp://guest:guest@{host}:{port}/"
+{%- elif worker_broker == "redis" %}
+    with RedisContainer() as container:
+        host = container.get_container_host_ip()
+        port = container.get_exposed_port(6379)
+        url = f"redis://{host}:{port}"
+{%- endif %}
+        worker_broker = build_broker(url)
+        responses: list[dict[str, object]] = []
+
+        @worker_broker.subscriber("version-responses")
+        async def collect(msg: dict[str, object]) -> None:  # noqa: RUF029
+            """Capture published version responses."""
+            responses.append(msg)
+
+        await worker_broker.start()
+        try:
+            await worker_broker.publish(
+                VersionRequest(request_id="integration-001"), "version-requests"
+            )
+            for _ in range(_RESPONSE_POLLS):
+                if responses:
+                    break
+                await asyncio.sleep(_POLL_INTERVAL_SECONDS)
+        finally:
+            await worker_broker.stop()
+
+    assert responses, "no version response received from the worker"
+    assert responses[0]["request_id"] == "integration-001"

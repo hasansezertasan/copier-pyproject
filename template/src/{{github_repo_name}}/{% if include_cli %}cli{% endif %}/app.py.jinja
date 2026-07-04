@@ -76,7 +76,7 @@ def info() -> None:
 
 
 @app.command()
-def interactive() -> None:
+def interactive() -> None:  # pragma: no cover
     """Start interactive mode for {{github_repo_name}}.
 
     Show application information:
@@ -90,7 +90,7 @@ def interactive() -> None:
 
 
 @app.command()
-def gui() -> None:
+def gui() -> None:  # pragma: no cover
     """Start graphical user interface for {{github_repo_name}}.
 
     Show application information:
@@ -104,7 +104,7 @@ def gui() -> None:
 
 
 @app.command()
-def web() -> None:
+def web() -> None:  # pragma: no cover
     """Start web interface for {{github_repo_name}}.
 
     Show application information:

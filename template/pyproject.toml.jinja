@@ -160,7 +160,11 @@ test = [
   "pytest-sugar",
   "pytest-asyncio>=0.23.0",
   "dirty-equals",
-  "inline-snapshot"
+  "inline-snapshot",
+{%- if include_worker %}
+  # Integration tests start a real {{worker_broker}} in a container (ADR-008).
+  "testcontainers[{{ 'rabbitmq' if worker_broker == 'rabbitmq' else worker_broker }}]>=4.0.0",
+{%- endif %}
 ]
 docs = [
     "sphinx==8.1.3",
@@ -247,7 +251,17 @@ name = "cz_conventional_commits"
 
 [tool.pytest.ini_options]
 # addopts = "-rXs --strict-config --strict-markers"
+{%- if include_worker %}
+# `integration` tests need a real {{worker_broker}} (started via testcontainers,
+# Docker required), so they are deselected by default. A CLI `-m integration`
+# overrides this addopts default; CI runs them in a dedicated Ubuntu-only job.
+addopts = "-v --tb=short -m 'not integration'"
+markers = [
+  "integration: requires a real broker via testcontainers (run with -m integration)",
+]
+{%- else %}
 addopts = "-v --tb=short"
+{%- endif %}
 asyncio_mode = "auto"
 filterwarnings = [
   "error",
@@ -256,6 +270,14 @@ filterwarnings = [
   # It is harmless for tests, so don't let `error` promote it to a failure.
   "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
 {%- endif %}
+{%- if include_worker %}
+  # testcontainers applies its own deprecated @wait_container_is_ready decorator at
+  # import time. The warning is internal to the library and not actionable here, so
+  # don't let `error` promote it to a collection/test failure (ADR-008). The
+  # integration module is imported during default collection even though its tests
+  # are deselected by the `integration` marker.
+  "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning",
+{%- endif %}
 ]
 testpaths = ["tests"]
 xfail_strict = true
@@ -263,20 +285,47 @@ xfail_strict = true
 
 [tool.coverage.run]
 branch = true
-omit = ["src/**/_version.py"]
+# Match `_version.py` wherever it resolves: `src/...` in editable dev installs and
+# `.../site-packages/...` when tox/CI installs the built wheel or sdist. A
+# `src/**`-only pattern silently misses the installed copy and reports it at 0%.
+omit = ["*/_version.py"{% if include_worker %}, "*/test_integration.py"{% endif %}]
 parallel = true
 source_pkgs = ["{{github_repo_name}}", "tests"]
 
 
 [tool.coverage.paths]
-tests = ["tests", "*/{{github_repo_name}}/tests"]
-{{github_repo_name}} = ["src/{{github_repo_name}}", "*/{{github_repo_name}}/src/{{github_repo_name}}"]
+# Unify coverage data across environments. tox installs the built wheel/sdist into
+# each env's site-packages, so the same source file is measured under a different
+# `.tox/<env>/.../site-packages/{{github_repo_name}}` path per interpreter. Without
+# remapping those back to the canonical `src/` tree, `coverage combine` keeps a
+# separate copy per env and a version-gated line covered in one interpreter but not
+# another is wrongly counted as missed — silently failing the `fail_under` gate.
+{{github_repo_name}} = ["src/{{github_repo_name}}", "*/site-packages/{{github_repo_name}}"]
+tests = ["tests", "*/site-packages/tests"]
 
 
 [tool.coverage.report]
-exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  # Defensive fallback for missing package metadata (broken/uninstalled package).
+  # The test environment always has the package installed, so this branch is
+  # effectively unreachable; excluding it keeps the metadata error-handling honest
+  # without demanding an artificial mock in every component's tests.
+  'except PackageNotFoundError',
+  # Process/UI/server entrypoints: they start a blocking loop (uvicorn, asyncio,
+  # tkinter, textual, stdio) that cannot run under headless CI. The business logic
+  # they call is unit-tested separately. See ADR-008.
+  'def main\(',
+  'async def run_server',
+]
 fail_under = 99
-omit = ["src/**/_version.py"]
+# The integration suite is deselected from the default run (it needs Docker), so
+# its file is imported during collection but never executed — omit it so it does
+# not depress coverage; it runs in its own `integration` env (ADR-008). Patterns
+# match both the `src/` (editable) and installed (`site-packages`) layouts.
+omit = ["*/_version.py"{% if include_worker %}, "*/test_integration.py"{% endif %}]
 show_missing = true
 skip_covered = true
 
@@ -290,13 +339,18 @@ ignore_decorators = [
   "@app.after_startup",
   "@app.after_shutdown",
   "@server.call_tool",
+{%- if include_worker %}
+  # FastStream subscriber callbacks (any broker variable name) are invoked by the
+  # framework, including the collector subscribers in the worker tests.
+  "@*.subscriber",
+{%- endif %}
 ]
 # Public API surfaces vulture cannot see being used: ``main`` entry points are
 # referenced only via pyproject scripts, ``model_config`` is consumed by
 # pydantic-settings, ``logger`` is imported only by optional components, the MCP
 # ``arguments`` parameter is mandated by the call_tool signature, and the Textual
 # names (CSS/compose/on_mount/title/BINDINGS) are invoked by the TUI framework.
-ignore_names = ["CONFIG_FILE_PATH", "logger", "main", "model_config"{% if include_mcp %}, "arguments"{% endif %}{% if include_tui %}, "CSS", "compose", "on_mount", "title", "BINDINGS"{% endif %}]
+ignore_names = ["CONFIG_FILE_PATH", "logger", "main", "model_config"{% if include_mcp %}, "arguments"{% endif %}{% if include_tui %}, "CSS", "compose", "on_mount", "title", "BINDINGS"{% endif %}{% if include_worker %}, "pytestmark"{% endif %}]
 min_confidence = 60
 paths = ["src", "tests"]
 
@@ -617,6 +671,33 @@ runner = "uv-venv-runner"
 [tool.tox.env.worker]
 commands = [["{{github_repo_name}}-worker", { replace = "posargs", extend = true }]]
 description = "Run the message queue worker application."
+runner = "uv-venv-runner"
+
+# On-demand only (not in env_list): the `integration`-marked tests start a real
+# {{worker_broker}} via testcontainers (Docker required), so they are excluded
+# from the default suite and run explicitly with ``tox -e integration``. CI runs
+# this in a dedicated Ubuntu-only job. See ADR-008. The `-m integration` here
+# overrides the `-m "not integration"` default in [tool.pytest.ini_options].
+[tool.tox.env.integration]
+# `-W default::DeprecationWarning` overrides the strict `filterwarnings = ["error"]`
+# default for this env only: real-broker tests exercise the actual driver
+# ({{worker_broker}}, testcontainers), which emit their own third-party deprecation
+# warnings. We care that the round-trip works, not about library deprecation
+# hygiene, so don't let those abort the run. The default suite stays strict.
+commands = [
+  [
+    "pytest",
+    "-m",
+    "integration",
+    "-W",
+    "default::DeprecationWarning",
+    "tests/worker",
+    { replace = "posargs", extend = true },
+  ],
+]
+description = "Run worker broker integration tests against a real broker."
+extras = ["all"]
+dependency_groups = ["test"]
 runner = "uv-venv-runner"
 {% endif %}
 

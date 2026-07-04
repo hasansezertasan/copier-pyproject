@@ -16,13 +16,7 @@ from faststream.rabbit import TestRabbitBroker
 from faststream.redis import TestRedisBroker
 {%- endif %}
 
-from {{github_repo_name}}.worker.app import (
-    VersionRequest,
-    VersionResponse,
-    broker,
-    handle_version_request,
-    version_response_publisher,
-)
+from {{github_repo_name}}.worker.app import VersionRequest, VersionResponse, broker, build_broker
 
 
 def test_version_request_model() -> None:
@@ -46,8 +40,27 @@ def test_version_response_model() -> None:
 
 
 def test_broker_exists() -> None:
-    """Test broker is properly configured."""
+    """Test the default broker is configured."""
     assert broker is not None
+
+
+def test_build_broker_accepts_url() -> None:
+    """``build_broker`` honors an explicit URL and yields a fresh instance.
+
+    This is the seam the integration test relies on to point the worker at a
+    container-started broker (ADR-008); constructing a broker does not connect,
+    so a throwaway address is safe here.
+    """
+{%- if worker_broker == "kafka" %}
+    custom = build_broker("broker:9092")
+{%- elif worker_broker == "nats" %}
+    custom = build_broker("nats://broker:4222")
+{%- elif worker_broker == "rabbitmq" %}
+    custom = build_broker("amqp://guest:guest@broker:5672/")
+{%- elif worker_broker == "redis" %}
+    custom = build_broker("redis://broker:6379")
+{%- endif %}
+    assert custom is not broker
 
 
 {% if worker_broker == "kafka" -%}
@@ -65,19 +78,28 @@ TestBroker = TestRedisBroker
 
 @pytest.mark.asyncio
 async def test_handle_version_request() -> None:
-    """Test version request handler processes message and publishes response."""
-    async with TestBroker(broker) as tb:
-        await tb.publish(
+    """A version request is consumed and a version response is published.
+
+    Uses FastStream's in-memory test broker (no running broker required) and
+    asserts on the *observable* outcome — the response delivered to a collector
+    subscriber — rather than on internal handler/publisher wiring.
+    """
+    test_broker = build_broker()
+    responses: list[dict[str, object]] = []
+
+    @test_broker.subscriber("version-responses")
+    async def collect(msg: dict[str, object]) -> None:  # noqa: RUF029
+        """Capture published version responses."""
+        responses.append(msg)
+
+    async with TestBroker(test_broker):
+        await test_broker.publish(
             VersionRequest(request_id="test-request-001"), "version-requests"
         )
 
-        handle_version_request.mock.assert_called_once_with({
-            "request_id": "test-request-001"
-        })
-
-        version_response_publisher.mock.assert_called_once()
-        published = version_response_publisher.mock.call_args[0][0]
-        assert published["request_id"] == "test-request-001"
-        assert "version" in published
-        assert "python_version" in published
-        assert "platform" in published
+    assert len(responses) == 1
+    published = responses[0]
+    assert published["request_id"] == "test-request-001"
+    assert "version" in published
+    assert "python_version" in published
+    assert "platform" in published

@@ -43,7 +43,7 @@ def build_info_message() -> str:
     )
 
 
-def _display_tui(message: str) -> None:  # noqa: C901  (lazy imports keep nesting)
+def _display_tui(message: str) -> None:  # noqa: C901  # pragma: no cover
     """Display the information message in a Textual TUI application.
 
     Raises:

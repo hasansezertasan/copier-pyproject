@@ -266,10 +266,37 @@ jobs:
           path: './dist/{{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %}*'
           retention-days: 7
 {% endif %}
+{% if include_worker %}
+  worker-integration:
+    name: Worker integration tests ({{worker_broker}})
+    # Ubuntu-only: testcontainers needs a Docker daemon, which GitHub provides on
+    # Linux runners but not macOS/Windows. Runs only the `integration`-marked
+    # tests (deselected from the default matrix in the `ci` job) against a real
+    # {{worker_broker}} started in a container — the one thing that exercises the
+    # real driver and serialization the in-memory unit tests stub out. See ADR-008.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Run worker integration tests
+        run: uv run --locked tox run -e integration
+{% endif %}
 
   check:
     if: always()
-    needs: [ci, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}]
+    needs: [ci, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
     runs-on: ubuntu-latest
     steps:
       - name: Decide whether the needed jobs succeeded or failed
