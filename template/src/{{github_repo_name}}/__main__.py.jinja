@@ -16,7 +16,10 @@ exits non-zero with an explanatory message.
 from {{github_repo_name}}.cli import app
 
 
-def main() -> None:
+# The dispatchers below carry `# pragma: no cover`: invoking them launches the
+# blocking component (CLI loop, GUI mainloop, server, ...), which cannot run
+# under headless CI. tests/test_main.py pins the import wiring and callability.
+def main() -> None:  # pragma: no cover
     """Run the CLI application."""
     app()
 {%- elif include_gui %}
@@ -26,7 +29,7 @@ import sys
 from {{github_repo_name}}.gui.app import main as _entry
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Launch the GUI application."""
     sys.exit(_entry())
 {%- elif include_tui %}
@@ -36,7 +39,7 @@ import sys
 from {{github_repo_name}}.tui.app import main as _entry
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Launch the TUI application."""
     sys.exit(_entry())
 {%- elif include_web %}
@@ -44,7 +47,7 @@ def main() -> None:
 from {{github_repo_name}}.web.app import main as _entry
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Run the web application."""
     _entry()
 {%- elif include_mcp %}
@@ -52,7 +55,7 @@ def main() -> None:
 from {{github_repo_name}}.mcp.app import main as _entry
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Run the MCP server."""
     _entry()
 {%- elif include_worker %}
@@ -60,7 +63,7 @@ def main() -> None:
 from {{github_repo_name}}.worker.app import main as _entry
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Run the message queue worker."""
     _entry()
 {%- else %}

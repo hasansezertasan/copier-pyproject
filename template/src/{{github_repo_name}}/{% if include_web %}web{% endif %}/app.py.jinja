@@ -160,8 +160,12 @@ def resolve_bind() -> tuple[str, int]:
     return host, port
 
 
-def main() -> None:
-    """Entry point for the web application."""
+def main() -> None:  # pragma: no cover
+    """Entry point for the web application.
+
+    Excluded from coverage: it blocks on the uvicorn server loop. The bind
+    resolution it relies on (``resolve_bind``) is unit-tested separately.
+    """
     import uvicorn  # noqa: PLC0415
 
     host, port = resolve_bind()

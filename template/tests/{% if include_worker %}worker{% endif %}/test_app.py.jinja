@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import importlib
+from typing import TYPE_CHECKING
+
 import pytest
 {%- if worker_broker == "kafka" %}
 from faststream.kafka import TestKafkaBroker
@@ -15,8 +18,23 @@ from faststream.rabbit import TestRabbitBroker
 {%- if worker_broker == "redis" %}
 from faststream.redis import TestRedisBroker
 {%- endif %}
+from pydantic import ValidationError
 
-from {{github_repo_name}}.worker.app import VersionRequest, VersionResponse, broker, build_broker
+from {{github_repo_name}}.worker.app import (
+    VersionRequest,
+    VersionResponse,
+    broker,
+    build_broker,
+)
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+# The worker ``__init__`` re-exports the FastStream ``app`` object, which shadows
+# the ``app`` submodule on any attribute-based import (``from ... import app``,
+# ``import ...app as ...``). importlib returns the real module from sys.modules —
+# the object the spies below need to patch.
+worker_app = importlib.import_module("{{github_repo_name}}.worker.app")
 
 
 def test_version_request_model() -> None:
@@ -39,28 +57,61 @@ def test_version_response_model() -> None:
     assert response.platform == "Linux"
 
 
-def test_broker_exists() -> None:
-    """Test the default broker is configured."""
-    assert broker is not None
-
-
-def test_build_broker_accepts_url() -> None:
-    """``build_broker`` honors an explicit URL and yields a fresh instance.
+def test_build_broker_forwards_url(mocker: MockerFixture) -> None:
+    """``build_broker`` forwards an explicit URL to the broker constructor.
 
     This is the seam the integration test relies on to point the worker at a
     container-started broker (ADR-008); constructing a broker does not connect,
-    so a throwaway address is safe here.
+    so a throwaway address is safe here. Spying on the constructor pins that the
+    ``url`` parameter is actually used — a fresh-instance check alone would still
+    pass if the parameter were silently dropped, and that regression would only
+    surface in the Docker-only integration job.
     """
+    spy = mocker.spy(worker_app, "{% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}")
 {%- if worker_broker == "kafka" %}
-    custom = build_broker("broker:9092")
+    url = "broker:9092"
 {%- elif worker_broker == "nats" %}
-    custom = build_broker("nats://broker:4222")
+    url = "nats://broker:4222"
 {%- elif worker_broker == "rabbitmq" %}
-    custom = build_broker("amqp://guest:guest@broker:5672/")
+    url = "amqp://guest:guest@broker:5672/"
 {%- elif worker_broker == "redis" %}
-    custom = build_broker("redis://broker:6379")
+    url = "redis://broker:6379"
 {%- endif %}
+
+    custom = build_broker(url)
+
     assert custom is not broker
+    assert spy.call_args is not None
+    assert spy.call_args.args == (url,)
+
+
+def test_build_broker_env_var_fallback(
+    mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Without an explicit URL, ``build_broker`` reads the broker env var.
+
+    The env var is the primary production configuration path; a typo in its
+    name would otherwise ship silently and only surface on a real deployment.
+    """
+    spy = mocker.spy(worker_app, "{% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}")
+{%- if worker_broker == "kafka" %}
+    url = "env-host:9092"
+    monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", url)
+{%- elif worker_broker == "nats" %}
+    url = "nats://env-host:4222"
+    monkeypatch.setenv("NATS_URL", url)
+{%- elif worker_broker == "rabbitmq" %}
+    url = "amqp://guest:guest@env-host:5672/"
+    monkeypatch.setenv("RABBITMQ_URL", url)
+{%- elif worker_broker == "redis" %}
+    url = "redis://env-host:6379"
+    monkeypatch.setenv("REDIS_URL", url)
+{%- endif %}
+
+    _ = build_broker()
+
+    assert spy.call_args is not None
+    assert spy.call_args.args == (url,)
 
 
 {% if worker_broker == "kafka" -%}
@@ -103,3 +154,27 @@ async def test_handle_version_request() -> None:
     assert "version" in published
     assert "python_version" in published
     assert "platform" in published
+
+
+@pytest.mark.asyncio
+async def test_malformed_request_is_rejected() -> None:
+    """A payload that fails request validation yields no response.
+
+    Pins the worker's only externally reachable error path: FastStream validates
+    the incoming message against ``VersionRequest``; a payload missing
+    ``request_id`` raises a validation error (propagated by the in-memory test
+    broker) and nothing is published to ``version-responses``.
+    """
+    test_broker = build_broker()
+    responses: list[dict[str, object]] = []
+
+    @test_broker.subscriber("version-responses")
+    async def collect(msg: dict[str, object]) -> None:  # noqa: RUF029
+        """Tripwire: runs only if the worker erroneously publishes a response."""
+        responses.append(msg)  # pragma: no cover
+
+    async with TestBroker(test_broker):
+        with pytest.raises(ValidationError):
+            await test_broker.publish({"wrong": "field"}, "version-requests")
+
+    assert responses == []

@@ -25,8 +25,18 @@ from {{github_repo_name}}.worker.app import VersionRequest, build_broker
 
 pytestmark = pytest.mark.integration
 
+# Bound for connecting to the container-started broker, separate from the poll
+# window below, so a connect hang fails with a stage-specific TimeoutError
+# instead of eating the whole test timeout.
+_START_TIMEOUT_SECONDS = 120
 # How long to wait for the round-trip response before failing.
+{%- if worker_broker == "kafka" %}
+# Kafka gets a larger window: consumer-group join and topic auto-creation on a
+# cold runner can take well over the ~10s that suffices for the other brokers.
+_RESPONSE_POLLS = 150
+{%- else %}
 _RESPONSE_POLLS = 50
+{%- endif %}
 _POLL_INTERVAL_SECONDS = 0.2
 
 
@@ -65,17 +75,31 @@ async def test_worker_roundtrip_against_real_broker() -> None:
             """Capture published version responses."""
             responses.append(msg)
 
-        await worker_broker.start()
+        await asyncio.wait_for(worker_broker.start(), timeout=_START_TIMEOUT_SECONDS)
         try:
-            await worker_broker.publish(
-                VersionRequest(request_id="integration-001"), "version-requests"
-            )
+            # (Re)publish inside the poll loop rather than once up front: the
+            # subscription is at-most-once from a cold consumer's perspective
+            # (kafka resolves offsets to "latest", redis pub/sub and core NATS
+            # do not replay), so a single message published before the consumer
+            # is fully live would be dropped and no amount of waiting would
+            # recover it. Re-sending the same request_id is idempotent here.
             for _ in range(_RESPONSE_POLLS):
                 if responses:
                     break
+                await worker_broker.publish(
+                    VersionRequest(request_id="integration-001"), "version-requests"
+                )
                 await asyncio.sleep(_POLL_INTERVAL_SECONDS)
         finally:
             await worker_broker.stop()
 
+    # On failure, the root cause (handler exception, decode error, connection
+    # drop) is in the captured FastStream log output pytest prints below.
     assert responses, "no version response received from the worker"
-    assert responses[0]["request_id"] == "integration-001"
+    first = responses[0]
+    assert first["request_id"] == "integration-001"
+    # The real serialization path is the point of this test (ADR-008): assert
+    # the full payload shape, not just the correlation id.
+    assert "version" in first
+    assert "python_version" in first
+    assert "platform" in first

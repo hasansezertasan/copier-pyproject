@@ -83,16 +83,21 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]: 
     raise ValueError(msg)
 
 
-async def run_server() -> None:
-    """Run the MCP server using stdio transport."""
+async def run_server() -> None:  # pragma: no cover
+    """Run the MCP server using stdio transport.
+
+    Excluded from coverage: it blocks on the stdio transport until the client
+    disconnects. The tool logic it serves (``call_tool``/``list_tools``) is
+    unit-tested separately.
+    """
     logger.info("Starting MCP server for {{github_repo_name}}")
     async with stdio_server() as (read_stream, write_stream):
         init_options = server.create_initialization_options()
         await server.run(read_stream, write_stream, init_options)
 
 
-def main() -> None:
-    """Entry point for the MCP server."""
+def main() -> None:  # pragma: no cover
+    """Entry point for the MCP server. Excluded from coverage: blocks on stdio."""
     import asyncio  # noqa: PLC0415
 
     asyncio.run(run_server())

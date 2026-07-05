@@ -111,7 +111,7 @@ Run the message queue worker:
 The worker connects to {{worker_broker}} and processes messages from the configured queues.
 
 The worker is tested at two levels. Fast unit tests use FastStream's in-memory
-`Test{{worker_broker|capitalize}}Broker` and run as part of the default suite on
+`Test{{ 'Rabbit' if worker_broker == 'rabbitmq' else worker_broker|capitalize }}Broker` and run as part of the default suite on
 every platform — they need no running {{worker_broker}}. A separate integration
 test (marked `integration`) spins up a real {{worker_broker}} via
 [testcontainers](https://testcontainers.com/) and is excluded from the default

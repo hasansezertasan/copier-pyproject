@@ -2,13 +2,27 @@
 
 from __future__ import annotations
 
+import importlib
 import platform
-from importlib.metadata import Distribution
+from importlib.metadata import Distribution, PackageNotFoundError
 
 import pytest
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.mcp.app import call_tool, list_tools
+
+# importlib (not ``from {{github_repo_name}}.mcp import app``) so a re-exported
+# ``app`` attribute in ``__init__`` can never shadow the submodule the
+# monkeypatch below needs to patch (the cli/web/worker packages do exactly that).
+mcp_app = importlib.import_module("{{github_repo_name}}.mcp.app")
+
+
+class _MissingDistribution:
+    """Stub whose ``from_name`` always reports missing package metadata."""
+
+    @staticmethod
+    def from_name(name: str) -> Distribution:
+        raise PackageNotFoundError(name)
 
 
 @pytest.mark.asyncio
@@ -57,3 +71,22 @@ async def test_unknown_tool_raises_error() -> None:
     """Test that calling an unknown tool raises ValueError."""
     with pytest.raises(ValueError, match="Unknown tool"):
         await call_tool("unknown_tool", {})
+
+
+@pytest.mark.asyncio
+async def test_tool_reports_missing_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Tools return an actionable error text when package metadata is missing.
+
+    The MCP contract is a text response, not an exception: a broken install must
+    surface to the MCP client as an explanatory message naming the package.
+    """
+    monkeypatch.setattr(mcp_app, "Distribution", _MissingDistribution)
+
+    result = await call_tool("version", {})
+
+    assert len(result) == 1
+    assert result[0].type == "text"
+    assert "metadata not found" in result[0].text
+    assert PROJECT_NAME in result[0].text

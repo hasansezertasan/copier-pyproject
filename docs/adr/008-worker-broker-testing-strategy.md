@@ -5,15 +5,17 @@
 Accepted (2026-06). Implemented.
 
 > **Revision (during implementation).** The original draft proposed *lazy broker
-> imports* as item 1. Implementation showed that buys nothing for this worker:
-> it has exactly one broker, `faststream[<broker>]` is a mandatory dependency
-> (so the driver is always installed), and the broker is constructed at module
-> top — so the driver is imported at module load regardless of where the
-> `import` statement sits, and the top-level package never imports `worker.app`
-> anyway. The real blocker to integration testing was *construction at import
-> time* (a localhost-bound broker singleton that tests can't retarget). Item 1 is
-> therefore an **env-injectable broker factory**, which is what actually enables
-> a real round-trip integration test. The lazy-import idea is rejected.
+> imports* as item 1. Implementation showed that this buys nothing for this
+> worker: it has exactly one broker, `faststream[<broker>]` is a hard dependency
+> of the `worker` extra and every test/tox environment installs
+> `extras = ["all"]` (so the driver is always present wherever the worker is
+> exercised), and the broker is constructed at module top — so the driver is
+> imported at module load regardless of where the `import` statement sits, and
+> the top-level package never imports `worker.app` anyway. The real blocker to
+> integration testing was *construction at import time* (a localhost-bound
+> broker singleton that tests can't retarget). Item 1 is therefore an
+> **env-injectable broker factory**, which is what actually enables a real
+> round-trip integration test. The lazy-import idea is rejected.
 
 ## Context
 
@@ -36,9 +38,11 @@ platform.
 
 **2. There is no integration test against a real broker.** The generated worker
 tests (`tests/worker/test_app.py`) already use FastStream's in-memory
-`Test<Broker>` context manager with `.mock` assertions — a genuinely good unit
-pattern that needs no running broker, so **that half of the litestar-events PR is
-already present and is not changed here.** What is missing is any test that
+`Test<Broker>` context manager — a genuinely good unit pattern that needs no
+running broker, so that half of the litestar-events PR is already present and is
+**retained** (though the assertions were reworked from `.mock` introspection to
+observable-behavior checks as a consequence of the factory in item 1 — see
+Consequences). What is missing is any test that
 exercises the worker against a *real* broker. The CI `ci` job runs `tox run`
 across the OS matrix but never starts a broker; the `.devcontainer` compose file
 defines broker services, but CI does not use the devcontainer. So a regression in
@@ -70,7 +74,8 @@ A module-level `broker = build_broker()` is still created for the entry point
 
 ```python
 def build_broker(url: str | None = None) -> KafkaBroker:
-    broker = KafkaBroker(url or os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"))
+    default_url = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    broker = KafkaBroker(url if url is not None else default_url)
     publisher = broker.publisher("version-responses", ...)
 
     @broker.subscriber("version-requests", ...)
@@ -147,31 +152,57 @@ while still gaining real-broker coverage on Linux.
   imported during default collection but its body is deselected, so without the
   omit its unexecuted lines would depress coverage below the `fail_under` gate.
 - Filterwarnings: the testcontainers `@wait_container_is_ready` deprecation is
-  ignored globally (worker-only), and the `integration` tox env runs with
-  `-W default::DeprecationWarning` so third-party driver deprecations surfaced by
-  a *real* connection don't abort the run while the default suite stays strict.
+  ignored (worker-only, scoped to the `testcontainers` module — the ini
+  `filterwarnings` module field is a regex, so the prefix matches), and the
+  `integration` tox env runs with a broad `-W default::DeprecationWarning` so
+  third-party deprecations surfaced by a *real* connection don't abort the run
+  while the default suite stays strict. Module-scoping that `-W` demotion was
+  attempted and **rejected**: CLI `-W` module matching is exact (not a regex),
+  and drivers attribute warnings via `stacklevel` to arbitrary caller modules
+  (the redis driver's `lib_name` deprecation surfaces through
+  `redis.asyncio.connection`/faststream frames), so scoped filters miss them
+  and the run aborts. The env also passes `--timeout` (pytest-timeout) so a
+  wedged container or broker connection fails with a traceback instead of
+  hanging until the CI job timeout.
 - **Systemic coverage fix (done here).** Testing the worker surfaced a
   pre-existing, systemic gap: *no* optional-component project reached
   `fail_under = 99` out of the box (web ~96%, worker ~95%, gui/tui/mcp lower),
-  because each component's process/UI entrypoints and defensive fallbacks are
+  because each component's process/UI entrypoints and defensive fallbacks were
   unexercised and `.example-input.yml` disables every component so that path was
-  never CI-validated. Rather than fix the worker alone, the coverage config now
-  excludes these uniformly (see the coverage exclusion note in `CLAUDE.md`):
-  process/UI/server entrypoints (`def main(`, `async def run_server`) and the
-  missing-metadata fallback (`except PackageNotFoundError`) are excluded via
-  `[tool.coverage.report] exclude_lines`; the raw display/launch functions
-  (`_display_message`, `_display_tui`, the CLI `interactive`/`gui`/`web`
-  subcommands, the worker lifecycle hooks, the c-extension `except ImportError`
-  fallback) carry `# pragma: no cover`. All the business logic they call stays
-  covered.
+  never CI-validated. Rather than fix the worker alone, the gap is closed
+  uniformly (see the coverage exclusion note in `CLAUDE.md`), in two ways:
+
+  - **Reachable error handling is tested, not excluded.** The missing-metadata
+    paths that carry real behavior now have unit tests: the web `/version` and
+    `/info` 503 responses, the CLI `version`/`info` exit-code-1 contract, the
+    GUI/TUI "Version: unknown" degradation, and the MCP error-text response.
+  - **Genuinely untestable code carries a per-site `# pragma: no cover`**: the
+    blocking process entrypoints (`main()` in the web/MCP/worker apps and the
+    `__main__` dispatchers, the MCP `run_server`), the raw display/launch
+    functions (`_display_message`, `_display_tui`, the CLI
+    `interactive`/`gui`/`web` subcommands), the worker lifecycle hooks, the
+    c-extension `except ImportError` fallback, and the worker's module-level
+    metadata fallback (unreachable wherever tests run — the package is always
+    installed there).
+
+  An earlier iteration excluded these via blanket `[tool.coverage.report]
+  exclude_lines` regexes (`def main(`, `async def run_server`,
+  `except PackageNotFoundError`). That was **rejected**: a regex matching a
+  `def` line excludes the entire function body, so the patterns silently
+  un-measured the *tested* GUI/TUI `main()` entrypoints and the web 503
+  handlers, making the `fail_under` gate structurally blind to exactly the
+  error handling it exists to protect. Per-site pragmas keep each exclusion
+  decision visible and reviewable next to the code it affects.
 
   The same audit uncovered a subtler, universal defect: the `_version.py` omit
   glob was anchored on `src/**`, but tox/CI installs the built wheel/sdist into
   `.../site-packages/`, so the pattern missed the installed copy and reported
   `_version.py` at 0% — dragging *even the all-disabled base project* to ~92%
   under the real `tox` path (editable `pytest` hid it because there the file
-  really is under `src/`). The omit globs are now filename-anchored
-  (`*/_version.py`, `*/test_integration.py`) so they match both layouts.
+  really is under `src/`). The omit globs are now anchored to match both
+  layouts (`*/_version.py`, and `*/worker/test_integration.py` —
+  directory-anchored so a future `test_integration.py` in another component,
+  which *would* run in the default suite, stays measured).
 
   A related cross-environment defect surfaced only under the *full* multi-env
   `tox run`: `[tool.coverage.paths]` mapped `*/{pkg}/src/{pkg}`, which never

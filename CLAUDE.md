@@ -446,23 +446,34 @@ For generated projects to publish to PyPI:
    [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md)). Because
    `.example-input.yml` disables every component, a component's coverage is only
    validated when you generate it explicitly — do that and run the suite. Unit-test
-   the business logic; for genuinely untestable process/UI/server entrypoints,
-   rely on the shared `[tool.coverage.report] exclude_lines` patterns (`def main(`,
-   `async def run_server`, `except PackageNotFoundError`) or add `# pragma: no cover`
-   to the specific launch/display function (as the CLI launcher subcommands, the
-   GUI/TUI `_display_*` helpers, and the worker lifecycle hooks do).
+   the business logic *including reachable error handling* (metadata-failure
+   paths are tested via a `_MissingDistribution` monkeypatch stub — see the
+   web/cli/gui/tui/mcp tests); only for genuinely untestable blocking
+   entrypoints add `# pragma: no cover` to the specific launch/display function
+   (as the `main()` entrypoints, the CLI launcher subcommands, the GUI/TUI
+   `_display_*` helpers, and the worker lifecycle hooks do). Do **not** add
+   blanket `exclude_lines` regexes for these — see the convention below.
 
 ### Coverage exclusion convention
 
 Generated projects enforce `fail_under = 99`. Entrypoints that start a blocking
-loop (`main()`, `run_server`, real tkinter/textual/uvicorn/stdio code) and the
-defensive `except PackageNotFoundError` metadata fallback cannot run under
-headless CI, so they are excluded from coverage — centrally via
-`[tool.coverage.report] exclude_lines` for the recurring patterns, and with
-`# pragma: no cover` on individual launch/display functions (the CLI
-`interactive`/`gui`/`web` subcommands, the GUI/TUI `_display_*` helpers, the
-worker lifecycle hooks, and the c-extension `except ImportError` fallback). The
-logic those entrypoints call is always unit-tested.
+loop (`main()`, `run_server`, real tkinter/textual/uvicorn/stdio code) cannot
+run under headless CI, so each carries a per-site `# pragma: no cover` (the
+web/MCP/worker `main()` entrypoints and `__main__` dispatchers, the MCP
+`run_server`, the CLI `interactive`/`gui`/`web` subcommands, the GUI/TUI
+`_display_*` helpers, the worker lifecycle hooks, the c-extension
+`except ImportError` fallback, and the worker's module-level metadata
+fallback). The logic those entrypoints call is always unit-tested.
+
+Do **not** exclude these via blanket `[tool.coverage.report] exclude_lines`
+regexes (`def main\(`, `except PackageNotFoundError`, ...): a regex matching a
+`def` line excludes the *entire function body*, so such patterns silently
+un-measure any future function with the same name that carries real logic —
+and previously masked the tested GUI/TUI `main()` entrypoints and the web 503
+handlers. Reachable error handling is tested, not excluded: the web `/version`
+and `/info` 503 responses, the CLI metadata-failure exit code, the GUI/TUI
+"Version: unknown" degradation, and the MCP error-text response all have unit
+tests using a `_MissingDistribution` monkeypatch stub.
 
 Coverage measurement spans two layouts: `src/...` in an editable dev install and
 `.../site-packages/...` when tox/CI installs the built wheel/sdist (the tox test
@@ -475,8 +486,11 @@ or the gate silently fails for *every* generated project:
   `coverage combine` keeps a separate copy per env and a version-gated line
   covered in one interpreter but not another counts as missed. This only shows up
   under the full multi-env `tox run`, not a single env or editable `pytest`.
-- `omit` globs must be filename-anchored (`*/_version.py`, `*/test_integration.py`),
-  not `src/**` — a `src/**` pattern misses the installed copy and reports it at 0%.
+- `omit` globs must be anchored to match both layouts (`*/_version.py`,
+  `*/worker/test_integration.py`), not `src/**` — a `src/**` pattern misses the
+  installed copy and reports it at 0%. The integration glob is additionally
+  directory-anchored so a future `test_integration.py` in another component
+  (which *would* run in the default suite) stays measured.
 
 Always verify coverage via the real `tox run` path (installed package, all envs),
 never editable `pytest` — both defects are invisible otherwise. See

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib
+from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING
 
 import pytest
@@ -11,6 +13,20 @@ from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
     from typer.testing import Result
+
+# The cli ``__init__`` re-exports the Typer ``app`` object, which shadows the
+# ``app`` submodule on any attribute-based import (``from ... import app``,
+# ``import ...app as ...``). importlib returns the real module from sys.modules —
+# the object the monkeypatch below needs to patch.
+cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
+
+
+class _MissingDistribution:
+    """Stub whose ``from_name`` always reports missing package metadata."""
+
+    @staticmethod
+    def from_name(name: str) -> Distribution:
+        raise PackageNotFoundError(name)
 
 
 @pytest.fixture
@@ -76,3 +92,24 @@ def test_info(runner: CliRunner) -> None:
     """
     result: Result = runner.invoke(app, ["info"])
     assert result.exit_code == 0, result.output
+
+
+@pytest.mark.parametrize("command", ["version", "info"])
+def test_command_fails_loudly_when_metadata_missing(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, command: str
+) -> None:
+    """Commands exit non-zero with an error when package metadata is missing.
+
+    Given:
+        - Package metadata cannot be resolved (broken/partial install).
+    When:
+        - The `version` or `info` command is invoked.
+    Then:
+        - The command exits with code 1 (the documented ``typer.Exit`` contract)
+          instead of dumping a traceback or silently printing nothing.
+    """
+    monkeypatch.setattr(cli_app, "Distribution", _MissingDistribution)
+
+    result: Result = runner.invoke(app, [command])
+
+    assert result.exit_code == 1

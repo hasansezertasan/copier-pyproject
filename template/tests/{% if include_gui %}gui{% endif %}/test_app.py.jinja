@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import platform
-from importlib.metadata import Distribution
+from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
@@ -11,6 +11,14 @@ from {{github_repo_name}}.gui import app as gui_app
 
 if TYPE_CHECKING:
     import pytest
+
+
+class _MissingDistribution:
+    """Stub whose ``from_name`` always reports missing package metadata."""
+
+    @staticmethod
+    def from_name(name: str) -> Distribution:
+        raise PackageNotFoundError(name)
 
 
 def test_build_info_message_contains_metadata() -> None:
@@ -24,6 +32,18 @@ def test_build_info_message_contains_metadata() -> None:
     assert platform.system() in message
 
 
+def test_build_info_message_handles_missing_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The message degrades to an "unknown" version when metadata is missing."""
+    monkeypatch.setattr(gui_app, "Distribution", _MissingDistribution)
+
+    message = gui_app.build_info_message()
+
+    assert "Version: unknown" in message
+    assert PROJECT_NAME in message
+
+
 def test_main_can_skip_gui(capsys: pytest.CaptureFixture[str]) -> None:
     """When GUI display is skipped, information is printed to stdout."""
     exit_code = gui_app.main(show_window=False)
@@ -31,6 +51,22 @@ def test_main_can_skip_gui(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert exit_code == 0
     assert PROJECT_NAME in captured.out
+
+
+def test_main_displays_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When the window displays successfully, ``main`` returns 0.
+
+    The display helper is stubbed (no real Tkinter under headless CI); this
+    pins the success path — helper called once with the info message, exit 0.
+    """
+    displayed: list[str] = []
+    monkeypatch.setattr(gui_app, "_display_message", displayed.append)
+
+    exit_code = gui_app.main()
+
+    assert exit_code == 0
+    assert len(displayed) == 1
+    assert PROJECT_NAME in displayed[0]
 
 
 def test_main_handles_display_errors(

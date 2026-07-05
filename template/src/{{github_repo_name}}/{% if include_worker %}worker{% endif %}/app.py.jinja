@@ -24,11 +24,17 @@ from pydantic import BaseModel, Field
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import logger as app_logger
 
-# Get version from package metadata
+# Get version from package metadata. The fallback runs only when the package
+# itself is not installed (broken install); it cannot be exercised where tests
+# run, hence the pragma — but log it so a worker reporting 0.0.0 is explainable.
 try:
     _distribution = Distribution.from_name(PROJECT_NAME)
     __version__ = _distribution.version
-except PackageNotFoundError:
+except PackageNotFoundError:  # pragma: no cover
+    app_logger.warning(
+        "Package metadata not found for %s; version falls back to 0.0.0",
+        PROJECT_NAME,
+    )
     __version__ = "0.0.0"
 
 
@@ -84,7 +90,12 @@ def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}Kaf
     @broker.subscriber(
         "version-requests", description="Handles version request messages"
     )
-    async def handle_version_request(msg: VersionRequest, logger: Logger) -> None:
+    # The decorator registers the handler as a side effect; basedpyright cannot
+    # see that use, hence the targeted ignore (vulture is covered by the
+    # `@*.subscriber` entry in [tool.vulture] ignore_decorators).
+    async def handle_version_request(  # pyright: ignore[reportUnusedFunction]
+        msg: VersionRequest, logger: Logger
+    ) -> None:
         """Handle incoming version request messages.
 
         Args:
@@ -102,17 +113,15 @@ def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}Kaf
         )
 
 {%- if worker_broker == "nats" %}
-        # NatsBroker's publish returns None, so the result is not captured (unlike
-        # the other brokers, where basedpyright's reportUnusedCallResult requires it).
+        # The NATS publisher's `publish` returns None, so the result is not captured
+        # (unlike the other brokers, where basedpyright's reportUnusedCallResult
+        # requires it).
         await publisher.publish(response)
 {%- else %}
         _ = await publisher.publish(response)
 {%- endif %}
         app_logger.info("Sent version response for request: %s", msg.request_id)
 
-    # The @subscriber decorator registers the handler as a side effect; reference
-    # it so static analysis does not flag the closure as unused.
-    _ = handle_version_request
     return broker
 
 
@@ -132,16 +141,21 @@ async def on_shutdown() -> None:  # noqa: RUF029  # pragma: no cover
     app_logger.info("Worker shutting down")
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Entry point for the worker application.
 
-    Runs the FastStream application using uvloop if available.
+    Runs the FastStream application using uvloop if available. Excluded from
+    coverage: it blocks on the broker connection until shutdown.
     """
     import asyncio  # noqa: PLC0415
 
     try:
         import uvloop  # noqa: PLC0415
     except ImportError:
+        # Not an error (uvloop is an optional accelerator), but say so: a worker
+        # silently running the default loop is indistinguishable from one on
+        # uvloop when debugging throughput.
+        app_logger.info("uvloop not available; using the default asyncio event loop")
         asyncio.run(app.run())
     else:
         uvloop.run(app.run())
