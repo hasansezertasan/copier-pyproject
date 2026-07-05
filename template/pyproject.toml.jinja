@@ -499,7 +499,15 @@ error-on-warning = true
 python-version = "3.10"
 project-includes = ["src"]
 
+{% if include_freezer %}
+[tool.typos.default.extend-identifiers]
+# `datas` is the PyInstaller `Analysis(datas=...)` / `a.datas` field in
+# {{github_repo_name}}.spec. typos misreads it as `data`, and its pre-commit
+# hook auto-writes fixes, so allowlist it to keep the spec from being rewritten.
+datas = "datas"
 
+
+{% endif %}
 [tool.tox]
 # The ``worker`` env is intentionally omitted: it starts a broker-bound process
 # and would hang/fail under ``tox run`` in CI (where no broker is available).

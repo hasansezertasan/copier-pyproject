@@ -2,8 +2,11 @@
 # template and lints the output instead of running prek here). Scoped to the
 # root, outside `template/`, so generated projects are unaffected.
 #
-# `CPY` is a ruff rule code (flake8-copyright) referenced in the ruff `ignore`
-# list in template/pyproject.toml.jinja. typos misreads it as COPY/CPU only in
-# the `.jinja` source — the rendered `.toml` parses cleanly — so allow the token.
+# `CPY` is a ruff rule code (flake8-copyright) in the ruff `ignore` list in
+# template/pyproject.toml.jinja; `datas` is the PyInstaller `Analysis(datas=...)`
+# / `a.datas` field in the freezer spec template. typos misreads both (CPY as
+# COPY/CPU, datas as data) and — because the hook auto-writes fixes — would
+# rewrite them, so they must be allowlisted here too.
 [default.extend-identifiers]
 CPY = "CPY"
+datas = "datas"
