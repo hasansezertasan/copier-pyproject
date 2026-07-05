@@ -306,8 +306,9 @@ gh secret set DOCKERHUB_TOKEN --repo {{github_user}}/{{github_repo_name}}
 ```
 
 The pair is all-or-nothing: with neither set, the workflow skips Docker Hub
-with a notice and publishes to GHCR only; with only one set, the
-`docker-publish` job fails fast before building anything. The image is pushed
+with a notice and publishes to GHCR only; with only one set, a preflight job
+fails fast and blocks every publish channel (PyPI included) so a
+misconfiguration can never produce a partial release. The image is pushed
 to `docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}`, so the namespace
 follows the Docker Hub account — it does not need to match the GitHub owner.
 {%- endif %}

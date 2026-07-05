@@ -91,7 +91,11 @@ jobs:
   pypi-publish:
     runs-on: ubuntu-latest
     name: Publish to PyPI
-    needs: [release-please, build]
+    {#- Publishing to PyPI is irreversible, so it must not race ahead of the
+        Docker Hub credentials preflight: gate it on the same check that gates
+        docker-publish, or a half-configured secret pair would still let the
+        package publish and then strand the release half-finished. #}
+    needs: [release-please, build{% if include_web %}, docker-publish-preflight{% endif %}]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       id-token: write  # IMPORTANT: Mandatory for Trusted Publishing (gh-action-pypi-publish)
@@ -267,25 +271,26 @@ jobs:
           path: './dist/{{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %}*'
 {% endif %}
 {%- if include_web %}
-  docker-publish:
-    name: Publish Docker Image
-    needs: [release-please, build]
+  docker-publish-preflight:
+    name: Validate Docker Hub Credentials
+    needs: release-please
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    permissions: {}
     env:
       # The `secrets` context is not available in `if:` conditions, so surface
-      # the username through env to gate the optional Docker Hub login. The
-      # token is reduced to a presence flag — never expose the value job-wide.
+      # the username through env. The token is reduced to a presence flag —
+      # never expose the value job-wide.
       DOCKERHUB_USERNAME: {% raw %}${{ secrets.DOCKERHUB_USERNAME }}{% endraw %}
       DOCKERHUB_TOKEN_SET: {% raw %}${{ secrets.DOCKERHUB_TOKEN != '' }}{% endraw %}
     steps:
       # Docker Hub publishing is opt-in via the DOCKERHUB_USERNAME/-TOKEN secret
       # pair, which is all-or-nothing: half-configured means the maintainer
-      # intended to publish there but it cannot work, so fail fast with an
-      # actionable message instead of letting the login step fail cryptically.
+      # intended to publish there but it cannot work. This job gates every
+      # publish job (pypi-publish and docker-publish), so an inconsistent
+      # configuration blocks the whole publish fan-out up front — otherwise the
+      # irreversible PyPI upload could complete while Docker Hub fails, leaving
+      # a stranded half-release.
       - name: Fail on half-configured Docker Hub credentials
         if: {% raw %}${{ (env.DOCKERHUB_USERNAME != '') != (env.DOCKERHUB_TOKEN_SET == 'true') }}{% endraw %}
         run: |
@@ -294,6 +299,19 @@ jobs:
       - name: Note GHCR-only publishing
         if: {% raw %}${{ env.DOCKERHUB_USERNAME == '' }}{% endraw %}
         run: echo "::notice::DOCKERHUB_USERNAME/DOCKERHUB_TOKEN secrets are not set — skipping Docker Hub, publishing to GHCR only."
+  docker-publish:
+    name: Publish Docker Image
+    needs: [release-please, build, docker-publish-preflight]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      # The `secrets` context is not available in `if:` conditions, so surface
+      # the username through env to gate the optional Docker Hub login.
+      DOCKERHUB_USERNAME: {% raw %}${{ secrets.DOCKERHUB_USERNAME }}{% endraw %}
+    steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - name: Set up QEMU

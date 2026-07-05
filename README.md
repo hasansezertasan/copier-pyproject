@@ -112,9 +112,10 @@ Docker Hub publishing is optional, opted into via a pair of repository secrets
    The namespace follows the Docker Hub account, so it does not need to
    match the GitHub owner.
 
-The secret pair is all-or-nothing: with neither set, the job skips Docker Hub
-with a notice and publishes to GHCR only; with exactly one set, it fails fast
-with an actionable error before anything is built. The generated
+The secret pair is all-or-nothing: with neither set, the workflow skips Docker
+Hub with a notice and publishes to GHCR only; with exactly one set, a preflight
+job fails fast and blocks every publish channel (PyPI included) so a
+misconfiguration can never produce a partial release. The generated
 `CONTRIBUTING.md` documents the same setup for contributors to your project.
 
 ### Release steps
