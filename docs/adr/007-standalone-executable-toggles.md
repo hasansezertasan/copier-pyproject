@@ -20,7 +20,7 @@ into (see
 [awesome-python-standalone](https://github.com/hasansezertasan/awesome-python-standalone)):
 
 | Architecture | Example tools | Runtime promise |
-|--------------|---------------|-----------------|
+| -------------- | --------------- | ----------------- |
 | **launcher** (uv-bootstrap) | **PyCrucible**, PyApp, UVBox | tiny binary; downloads Python+deps on first run; needs network once |
 | **compiler** (source→machine code) | **Nuitka** | compiles to C/native; faster startup + some obfuscation; needs a C toolchain to build |
 | **freezer** (bundle interpreter+deps) | **PyInstaller**, cx_Freeze, py2exe | ships interpreter+stdlib+deps in one artifact; fully offline; no Python on target |
@@ -37,7 +37,7 @@ toggles**, one per architecture, each mapped to the strongest representative
 tool of its category:
 
 | Toggle | Tool | Category |
-|--------|------|----------|
+| -------- | ------ | ---------- |
 | `include_launcher` | [PyCrucible](https://github.com/razorblade23/PyCrucible) | uv-bootstrap launcher |
 | `include_compiler` | [Nuitka](https://nuitka.net/) | source→machine-code compiler |
 | `include_freezer` | [PyInstaller](https://pyinstaller.org/) | interpreter+deps freezer |

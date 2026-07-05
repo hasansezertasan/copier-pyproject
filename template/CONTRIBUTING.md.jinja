@@ -203,9 +203,9 @@ changelog by hand:
 
 ### Repository setup (one-time)
 
-A few repository settings must be in place for the automated release flow to
-work. Each can be applied from the GitHub UI or with the
-[`gh` CLI](https://cli.github.com/) commands shown below.
+A few repository settings must be in place for the automated release and
+maintenance workflows to work. Each can be applied from the GitHub UI or with
+the [`gh` CLI](https://cli.github.com/) commands shown below.
 
 **1. Pull request / merge strategy.** Squash merging must be the only merge
 method, with the squash commit message defaulting to the PR title — that is the
@@ -292,9 +292,45 @@ tokens or secrets to manage). Register the publisher once at
 - **Workflow name:** `release-please.yml` — the publish step lives inline in this
   workflow, so this is the filename PyPI's OIDC check matches.
 - **Environment name:** `publish`
+
+**6. Codecov coverage reporting.** CI uploads coverage to
+[Codecov](https://about.codecov.io/) after the test suite runs. Link the
+repository once at [Codecov](https://app.codecov.io/), copy its upload token,
+and set it as a repository secret:
+
+```sh
+gh secret set CODECOV_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+The upload is opt-in and best-effort: with the secret unset, CI records a
+`::notice::` and skips the upload — the build still passes — so coverage
+reporting stays off until you configure it, rather than failing every run.
+
+**7. Documentation site (GitHub Pages).** On release, the `deploy-docs` job
+builds the Sphinx docs and pushes the HTML to a `gh-pages` branch with
+`ghp-import`. GitHub does not serve that branch until Pages is pointed at it.
+The branch is created by the first release that runs `deploy-docs`, so enable
+Pages once after that:
+
+```sh
+gh api -X POST repos/{{github_user}}/{{github_repo_name}}/pages \
+  -f 'source[branch]=gh-pages' -f 'source[path]=/'
+```
+
+(UI: **Settings → Pages → Build and deployment** — set **Source** to **Deploy
+from a branch**, then pick the `gh-pages` branch and the `/ (root)` folder. Use
+the `gh-pages.yml` workflow to redeploy manually.)
+
+**8. Automated dependency updates (Renovate).** Dependency bumps — including the
+`prek.toml` hook `rev`s and pinned GitHub Action digests — are driven by
+`.github/renovate.json`, which is read by the hosted Renovate GitHub App. The
+config is inert until the app is installed: install it once from
+[github.com/apps/renovate](https://github.com/apps/renovate) and grant it access
+to this repository. Renovate then opens an onboarding PR; merge it to start
+receiving update PRs.
 {%- if include_web %}
 
-**6. Docker Hub publishing (optional).** The release workflow always publishes
+**9. Docker Hub publishing (optional).** The release workflow always publishes
 the Docker image to GHCR (`ghcr.io/{{github_user}}/{{github_repo_name}}`) using
 the built-in `GITHUB_TOKEN` — no setup needed. To *additionally* publish to
 Docker Hub, create an [access token](https://app.docker.com/settings/personal-access-tokens)

@@ -87,6 +87,36 @@ Enable PyPI once per project for `.github/workflows/release-please.yml`:
 7. Set `Environment name` to `publish` (or your chosen env).
 8. Save.
 
+### Coverage reporting setup
+
+CI uploads coverage to Codecov after the test suite runs, integrated in
+`.github/workflows/ci.yml`:
+
+1. Open [Codecov](https://app.codecov.io/) and add your repository.
+2. Copy the repository upload token from its Codecov settings.
+3. In your GitHub repository, add it as a repository secret named
+   `CODECOV_TOKEN` (Settings → Secrets and variables → Actions, or
+   `gh secret set CODECOV_TOKEN`).
+
+The upload is opt-in and best-effort: with the secret unset, CI records a
+notice and skips the upload rather than failing the run, so coverage reporting
+stays off until you configure it. The generated `CONTRIBUTING.md` documents the
+same setup for contributors to your project.
+
+### Documentation site and dependency updates
+
+Two more one-time steps are needed after generating a project (both are
+documented in full, with copy-paste commands, in the generated
+`CONTRIBUTING.md` repository-setup section):
+
+- **GitHub Pages** — on release, the `deploy-docs` job pushes the built Sphinx
+  docs to a `gh-pages` branch. Enable Pages once (Source → *Deploy from a
+  branch* → `gh-pages` / root) after the first release creates the branch,
+  otherwise the docs build but are never served.
+- **Renovate** — `.github/renovate.json` is read by the hosted
+  [Renovate app](https://github.com/apps/renovate), which must be installed on
+  the repository once; until then dependency-update PRs never open.
+
 ### Container image publishing (if `include_web` is enabled)
 
 On release, the workflow always publishes multi-arch images (amd64/arm64) to the

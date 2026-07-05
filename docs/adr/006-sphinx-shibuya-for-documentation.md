@@ -30,7 +30,7 @@ the visual target. Investigation showed those sites are **not MkDocs** — they 
 theme. Two flavors exist in that ecosystem:
 
 | Project | Theme | Markup | API docs |
-|---------|-------|--------|----------|
+| --------- | ------- | -------- | ---------- |
 | Litestar | `litestar-sphinx-theme` (git `@v3`, wraps Shibuya) | RST | autodoc + napoleon |
 | Advanced Alchemy | `litestar-sphinx-theme` | RST | autodoc + napoleon |
 | Polyfactory | bare `shibuya` (PyPI) | RST + MyST | autodoc + napoleon |

@@ -33,7 +33,7 @@ version_scheme = "pep404"
 *same three things* from the *same source* (Conventional Commits on `main`):
 
 | Responsibility | release-please | Commitizen (`cz bump`) |
-|----------------|----------------|------------------------|
+| ---------------- | ---------------- | ------------------------ |
 | Derive version bump from commits | yes (`release-please-config.json` bump rules) | yes |
 | Create the `vX.Y.Z` git tag | yes, on release-PR merge | yes (`tag_format = "v$version"`) |
 | Write `CHANGELOG.md` | yes (`changelog-path: CHANGELOG.md`) | yes (`update_changelog_on_bump`) |
@@ -46,7 +46,7 @@ The two pipelines also differ fundamentally in *model*, which is the comparison
 ADR-002 should have made:
 
 | Dimension | release-please pipeline | Commitizen (`cz bump`) pipeline |
-|-----------|-------------------------|----------------------------------|
+| ----------- | ------------------------- | ---------------------------------- |
 | Trigger | Push to `main` opens/maintains a Release PR; merge cuts the release | A `cz bump` invocation (local, or a CI action on push) |
 | Review artifact | The Release PR — version + changelog reviewable *before* any tag | None by default; the bump commit + tag are produced directly |
 | Version source | Git tags via hatch-vcs (`dynamic = ["version"]`); no literal is edited | Commitizen owns the bump and writes the tag/version |

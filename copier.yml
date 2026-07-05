@@ -26,8 +26,7 @@ package_keywords:
   type: str
   default: ""
   help: >-
-    Extra PyPI keywords specific to your project (comma-separated, e.g.
-    "data, async, etl"). Tooling and component keywords are added automatically.
+    Extra PyPI keywords specific to your project (comma-separated, e.g. "data, async, etl"). Tooling and component keywords are added automatically.
 include_cli:
   type: bool
   default: true

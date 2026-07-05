@@ -12,7 +12,7 @@ it should invoke. At that point the `style` dependency group installed **six**
 type checkers while the env invoked only **four**:
 
 | Tool | Installed | Invoked | Notes |
-|------|-----------|---------|-------|
+| ------ | ----------- | --------- | ------- |
 | mypy | yes | yes (×2: `--python-version` 3.10 and 3.14) | reference checker |
 | pyright | yes | yes | Microsoft |
 | basedpyright | yes | **no** | strict superset/fork of pyright |

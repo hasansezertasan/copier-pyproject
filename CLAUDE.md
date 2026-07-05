@@ -280,7 +280,15 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ### CI/CD Workflows
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
-   - Codecov coverage upload runs unconditionally (needs the `CODECOV_TOKEN` secret)
+   - Codecov coverage upload is gated on the `CODECOV_TOKEN` secret: a job-level
+     `CODECOV_TOKEN_SET` presence flag (the `secrets` context is unavailable in
+     `if:`) gates the upload step, and when the secret is unset an Ubuntu-only
+     `::notice::` records a visible skip instead of failing the run — coverage
+     reporting is opt-in/best-effort, not load-bearing for a green build.
+     Forked-PR runs (which never receive secrets) still run the upload so the
+     codecov-action's tokenless fallback reports coverage for external
+     contributors; only same-repo runs with no token hit the visible skip.
+     Setup is documented in the generated `CONTRIBUTING.md` repository-setup section.
    - When `include_launcher`/`include_freezer`/`include_compiler` are set, adds
      matching `build-{launcher,freezer,compiler}-check` jobs (per-OS, `fail-fast:
      false`) that build the standalone executable on every PR/push — a build-only
@@ -376,7 +384,7 @@ Conventional Commit messages that land on `main`. This template validates the
 merge" with the squash commit message set to the PR title** — that is the only
 strategy under which the lint-validated title becomes the commit on `main`.
 Merge-commit and rebase-merge promote unvalidated branch commits and will cause
-release-please to miss or mis-bump releases.
+release-please to miss releases or bump them incorrectly.
 
 Configure each generated repo (Settings → General → Pull Requests):
 

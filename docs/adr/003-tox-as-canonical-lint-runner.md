@@ -42,7 +42,7 @@ These pins had already drifted in practice. At the time of this decision the sam
 tool resolved to different versions across orchestrators:
 
 | Tool | tox `style` group | pre-commit | Trunk |
-|------|-------------------|-----------|-------|
+| ------ | ------------------- | ----------- | ------- |
 | ruff | `0.14.9` | `0.14.7` | `0.14.7` |
 | mypy | `1.19.1` | `1.19.0` | `1.19.0` |
 | actionlint | `1.7.9.24` | `1.7.7` | `1.7.9` |
