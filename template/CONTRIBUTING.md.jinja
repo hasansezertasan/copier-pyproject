@@ -292,6 +292,25 @@ tokens or secrets to manage). Register the publisher once at
 - **Workflow name:** `release-please.yml` — the publish step lives inline in this
   workflow, so this is the filename PyPI's OIDC check matches.
 - **Environment name:** `publish`
+{%- if include_web %}
+
+**6. Docker Hub publishing (optional).** The release workflow always publishes
+the Docker image to GHCR (`ghcr.io/{{github_user}}/{{github_repo_name}}`) using
+the built-in `GITHUB_TOKEN` — no setup needed. To *additionally* publish to
+Docker Hub, create an [access token](https://app.docker.com/settings/personal-access-tokens)
+with **Read & Write** scope and set **both** repository secrets:
+
+```sh
+gh secret set DOCKERHUB_USERNAME --repo {{github_user}}/{{github_repo_name}}
+gh secret set DOCKERHUB_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+The pair is all-or-nothing: with neither set, the workflow skips Docker Hub
+with a notice and publishes to GHCR only; with only one set, the
+`docker-publish` job fails fast before building anything. The image is pushed
+to `docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}`, so the namespace
+follows the Docker Hub account — it does not need to match the GitHub owner.
+{%- endif %}
 
 ## Join The Project Team
 

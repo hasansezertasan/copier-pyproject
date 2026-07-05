@@ -277,9 +277,23 @@ jobs:
       packages: write
     env:
       # The `secrets` context is not available in `if:` conditions, so surface
-      # the username through env to gate the optional Docker Hub login.
+      # the username through env to gate the optional Docker Hub login. The
+      # token is reduced to a presence flag — never expose the value job-wide.
       DOCKERHUB_USERNAME: {% raw %}${{ secrets.DOCKERHUB_USERNAME }}{% endraw %}
+      DOCKERHUB_TOKEN_SET: {% raw %}${{ secrets.DOCKERHUB_TOKEN != '' }}{% endraw %}
     steps:
+      # Docker Hub publishing is opt-in via the DOCKERHUB_USERNAME/-TOKEN secret
+      # pair, which is all-or-nothing: half-configured means the maintainer
+      # intended to publish there but it cannot work, so fail fast with an
+      # actionable message instead of letting the login step fail cryptically.
+      - name: Fail on half-configured Docker Hub credentials
+        if: {% raw %}${{ (env.DOCKERHUB_USERNAME != '') != (env.DOCKERHUB_TOKEN_SET == 'true') }}{% endraw %}
+        run: |
+          echo "::error::Docker Hub publishing is half-configured: set both the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN repository secrets, or neither to publish to GHCR only."
+          exit 1
+      - name: Note GHCR-only publishing
+        if: {% raw %}${{ env.DOCKERHUB_USERNAME == '' }}{% endraw %}
+        run: echo "::notice::DOCKERHUB_USERNAME/DOCKERHUB_TOKEN secrets are not set — skipping Docker Hub, publishing to GHCR only."
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - name: Set up QEMU
@@ -302,8 +316,12 @@ jobs:
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5
         with:
+          # The Docker Hub namespace is the Docker Hub username, which need not
+          # match the GitHub owner — so build the image name from the secret,
+          # not from github.repository. An empty line is dropped by the action,
+          # which is what makes the Docker Hub channel opt-in.
           images: |
-            {% raw %}${{ env.DOCKERHUB_USERNAME != '' && format('docker.io/{0}', github.repository) || '' }}{% endraw %}
+            {% raw %}${{ env.DOCKERHUB_USERNAME != '' && format('docker.io/{0}/{1}', env.DOCKERHUB_USERNAME, github.event.repository.name) || '' }}{% endraw %}
             ghcr.io/{% raw %}${{ github.repository }}{% endraw %}
           # No tag ref is present on a push-triggered run, so feed the
           # release-please version into the semver patterns explicitly.
