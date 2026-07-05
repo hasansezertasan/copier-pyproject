@@ -91,13 +91,17 @@ jobs:
           uv run coverage report --show-missing
           uv run coverage xml
       - name: Upload coverage
-        if: {% raw %}${{ env.CODECOV_TOKEN_SET == 'true' }}{% endraw %}
+        # Upload when the token is set, or on a forked PR (which never receives
+        # secrets) so the codecov-action's tokenless fallback still reports
+        # coverage for external contributors on a public repo. Same-repo runs
+        # with no token fall through to the visible skip below.
+        if: {% raw %}${{ env.CODECOV_TOKEN_SET == 'true' || github.event.pull_request.head.repo.fork }}{% endraw %}
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v6.0.2
         with:
           files: ./coverage.xml
           token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
       - name: Note skipped coverage upload
-        if: {% raw %}${{ env.CODECOV_TOKEN_SET != 'true' && matrix.os == 'ubuntu-latest' }}{% endraw %}
+        if: {% raw %}${{ env.CODECOV_TOKEN_SET != 'true' && !github.event.pull_request.head.repo.fork && matrix.os == 'ubuntu-latest' }}{% endraw %}
         run: echo "::notice::CODECOV_TOKEN secret is not set — skipping the Codecov upload. See CONTRIBUTING.md (Repository setup) to enable coverage reporting."
 {% if include_launcher or include_freezer or include_compiler %}
   # Build-only PR guards: build each enabled standalone executable (ADR-007)

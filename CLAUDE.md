@@ -285,6 +285,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `if:`) gates the upload step, and when the secret is unset an Ubuntu-only
      `::notice::` records a visible skip instead of failing the run — coverage
      reporting is opt-in/best-effort, not load-bearing for a green build.
+     Forked-PR runs (which never receive secrets) still run the upload so the
+     codecov-action's tokenless fallback reports coverage for external
+     contributors; only same-repo runs with no token hit the visible skip.
      Setup is documented in the generated `CONTRIBUTING.md` repository-setup section.
    - When `include_launcher`/`include_freezer`/`include_compiler` are set, adds
      matching `build-{launcher,freezer,compiler}-check` jobs (per-OS, `fail-fast:
