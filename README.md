@@ -93,15 +93,29 @@ On release, the workflow always publishes multi-arch images (amd64/arm64) to the
 GitHub Container Registry (`ghcr.io/<owner>/<repo>`) using the built-in
 `GITHUB_TOKEN` — no extra setup required.
 
-Docker Hub publishing is optional and runs only when the `DOCKERHUB_USERNAME`
-secret is set (integrated in `.github/workflows/release-please.yml`):
+Docker Hub publishing is optional, opted into via a pair of repository secrets
+(integrated in `.github/workflows/release-please.yml`):
 
-1. Create a [Docker Hub Access Token](https://hub.docker.com/settings/security).
-2. In your GitHub repository, go to Settings → Secrets and variables → Actions.
-3. Add two repository secrets:
+1. Open [Personal access tokens](https://app.docker.com/settings/personal-access-tokens)
+   in your Docker Hub account settings.
+2. Click "Generate new token", give it a recognizable description (e.g.
+   `<repo> release workflow`), set an expiration date, and select the
+   **Read & Write** access permission — Write is required to push; do not
+   grant more.
+3. Copy the token; it is shown only once.
+4. In your GitHub repository, go to Settings → Secrets and variables →
+   Actions (or use `gh secret set`) and add two repository secrets:
    - `DOCKERHUB_USERNAME`: Your Docker Hub username
-   - `DOCKERHUB_TOKEN`: Your Docker Hub access token
-4. On release, the workflow will build and push multi-arch images (amd64/arm64) to Docker Hub.
+   - `DOCKERHUB_TOKEN`: The access token from step 3
+5. On release, the workflow will build and push multi-arch images
+   (amd64/arm64) to `docker.io/<DOCKERHUB_USERNAME>/<repo>` alongside GHCR.
+   The namespace follows the Docker Hub account, so it does not need to
+   match the GitHub owner.
+
+The secret pair is all-or-nothing: with neither set, the job skips Docker Hub
+with a notice and publishes to GHCR only; with exactly one set, it fails fast
+with an actionable error before anything is built. The generated
+`CONTRIBUTING.md` documents the same setup for contributors to your project.
 
 ### Release steps
 
