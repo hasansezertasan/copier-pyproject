@@ -20,7 +20,7 @@ The three candidates differ fundamentally in *how a version and a GitHub Release
 get created* (PyPI publishing via `cd.yml` is identical for all):
 
 | Dimension | **release-please** | release-it | release-drafter |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Trigger model | Push → release PR → merge | Manual `workflow_dispatch` + explicit bump | Push/PR → draft → manual publish |
 | Versioning | Automatic from Conventional Commits | Human picks the bump each time | Label-driven semver from PR labels |
 | Changelog | Generates & commits `CHANGELOG.md` | None (manual) | Release notes only, no file |

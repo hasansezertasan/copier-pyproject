@@ -381,7 +381,7 @@ Conventional Commit messages that land on `main`. This template validates the
 merge" with the squash commit message set to the PR title** — that is the only
 strategy under which the lint-validated title becomes the commit on `main`.
 Merge-commit and rebase-merge promote unvalidated branch commits and will cause
-release-please to miss or mis-bump releases.
+release-please to miss releases or bump them incorrectly.
 
 Configure each generated repo (Settings → General → Pull Requests):
 
