@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import importlib
 import platform
-from importlib.metadata import Distribution
+from importlib.metadata import Distribution, PackageNotFoundError
 
 import pytest
 {% if web_framework == "fastapi" -%}
@@ -14,6 +15,20 @@ from litestar.testing import TestClient
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.web.app import app, resolve_bind
+
+# The web ``__init__`` re-exports the ASGI ``app`` object, which shadows the
+# ``app`` submodule on any attribute-based import (``from ... import app``,
+# ``import ...app as ...``). importlib returns the real module from sys.modules —
+# the object the monkeypatch below needs to patch.
+web_app = importlib.import_module("{{github_repo_name}}.web.app")
+
+
+class _MissingDistribution:
+    """Stub whose ``from_name`` always reports missing package metadata."""
+
+    @staticmethod
+    def from_name(name: str) -> Distribution:
+        raise PackageNotFoundError(name)
 
 # Mirror the env prefix the implementation derives from the project name.
 ENV_PREFIX = f"{PROJECT_NAME.upper().replace('-', '_')}_"
@@ -87,6 +102,27 @@ def test_version_endpoint(client: TestClient) -> None:
     )
 
 
+def test_version_endpoint_missing_metadata(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`/version` degrades to a clear 503 when package metadata is unavailable.
+
+    Given:
+        - Package metadata cannot be resolved (broken/partial install).
+    When:
+        - A GET request is made to `/version`.
+    Then:
+        - The response is a 503 whose detail names the missing package, rather
+          than an unhandled 500.
+    """
+    monkeypatch.setattr(web_app, "Distribution", _MissingDistribution)
+
+    response = client.get("/version")
+
+    assert response.status_code == 503, f"Expected 503, got {response.status_code}"
+    assert PROJECT_NAME in response.json()["detail"]
+
+
 def test_info_endpoint(client: TestClient) -> None:
     """Test the `/info` endpoint of the web application.
 
@@ -130,6 +166,27 @@ def test_info_endpoint(client: TestClient) -> None:
 
     assert "platform" in data
     assert data["platform"] == platform.system()
+
+
+def test_info_endpoint_missing_metadata(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`/info` degrades to a clear 503 when package metadata is unavailable.
+
+    Given:
+        - Package metadata cannot be resolved (broken/partial install).
+    When:
+        - A GET request is made to `/info`.
+    Then:
+        - The response is a 503 whose detail names the missing package, rather
+          than an unhandled 500.
+    """
+    monkeypatch.setattr(web_app, "Distribution", _MissingDistribution)
+
+    response = client.get("/info")
+
+    assert response.status_code == 503, f"Expected 503, got {response.status_code}"
+    assert PROJECT_NAME in response.json()["detail"]
 
 
 def test_info_endpoint_structure(client: TestClient) -> None:

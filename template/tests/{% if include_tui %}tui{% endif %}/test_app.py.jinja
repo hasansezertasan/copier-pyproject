@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import platform
-from importlib.metadata import Distribution
+from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
@@ -11,6 +11,14 @@ from {{github_repo_name}}.tui import app as tui_app
 
 if TYPE_CHECKING:
     import pytest
+
+
+class _MissingDistribution:
+    """Stub whose ``from_name`` always reports missing package metadata."""
+
+    @staticmethod
+    def from_name(name: str) -> Distribution:
+        raise PackageNotFoundError(name)
 
 
 def test_build_info_message_contains_metadata() -> None:
@@ -29,6 +37,23 @@ def test_build_info_message_contains_metadata() -> None:
     assert platform.system() in message
 
 
+def test_build_info_message_handles_missing_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The message degrades to an "unknown" version when metadata is missing.
+
+    Given: Package metadata cannot be resolved (broken/partial install)
+    When: build_info_message is called
+    Then: The message reports the version as "unknown" instead of raising
+    """
+    monkeypatch.setattr(tui_app, "Distribution", _MissingDistribution)
+
+    message = tui_app.build_info_message()
+
+    assert "Version: unknown" in message
+    assert PROJECT_NAME in message
+
+
 def test_main_can_skip_tui(capsys: pytest.CaptureFixture[str]) -> None:
     """When TUI display is skipped, information is printed to stdout.
 
@@ -41,6 +66,24 @@ def test_main_can_skip_tui(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert exit_code == 0
     assert PROJECT_NAME in captured.out
+
+
+def test_main_displays_tui(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When the TUI displays successfully, ``main`` returns 0.
+
+    Given: The TUI display helper succeeds (stubbed — no real Textual app
+        under headless CI)
+    When: main is called
+    Then: The helper is called once with the info message and the exit code is 0
+    """
+    displayed: list[str] = []
+    monkeypatch.setattr(tui_app, "_display_tui", displayed.append)
+
+    exit_code = tui_app.main()
+
+    assert exit_code == 0
+    assert len(displayed) == 1
+    assert PROJECT_NAME in displayed[0]
 
 
 def test_main_handles_display_errors(

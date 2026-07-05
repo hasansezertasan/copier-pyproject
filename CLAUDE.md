@@ -57,6 +57,10 @@ uv run --locked tox run -e 3.14
 # Run a single test file
 uv run --locked pytest tests/test_smoke.py -v
 
+# Run worker broker integration tests (if include_worker=true; Docker required).
+# On-demand tox env; marked `integration` and excluded from the default suite (ADR-008).
+uv run --locked tox run -e integration
+
 # Run the CLI (if include_cli=true)
 uv run --locked example version
 uv run --locked example info
@@ -215,7 +219,13 @@ Subpackages (each with `__init__.py` and `app.py`):
 - `gui/` - Tkinter GUI launcher (conditional)
 - `tui/` - Textual TUI (conditional)
 - `mcp/` - MCP server with `version` and `info` tools (conditional)
-- `worker/` - FastStream message queue worker (conditional)
+- `worker/` - FastStream message queue worker (conditional). The broker is built
+  by a `build_broker(url=None)` factory that registers the subscriber/publisher
+  and resolves the connection at call time (not import time), so tests can point
+  a fresh, self-contained broker at a throwaway instance (e.g. testcontainers)
+  without import-order/caching pitfalls; the module still exposes a default
+  `broker = build_broker()` for the entry point. See
+  [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
 
 Other conditional files:
 
@@ -226,6 +236,10 @@ Other conditional files:
 Test packages mirror source structure in `tests/`:
 
 - `tests/cli/`, `tests/web/`, `tests/gui/`, `tests/tui/`, `tests/mcp/`, `tests/worker/` (each conditional)
+- `tests/worker/` holds both the in-memory `Test<Broker>` unit tests (always run)
+  and a testcontainers-backed integration test marked `integration` (excluded
+  from the default run, Docker required); see
+  [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
 
 Entry points configured in `pyproject.toml`:
 
@@ -278,6 +292,14 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      (same setup + build commands), skipping the release-only rename/publish
      steps, and they gate the `check` aggregation job. See
      [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
+   - When `include_worker` is set, adds a single `worker-integration` job —
+     **Ubuntu-only** (Docker is reliably present on GitHub's Ubuntu runners but
+     not macOS/Windows) — that runs `tox run -e integration` (an on-demand tox
+     env invoking `pytest -m integration`) against a real `worker_broker` started
+     via testcontainers. The default OS matrix stays broker-free and fast (the
+     `integration` marker is deselected by default via the pytest `addopts`); this
+     job is the only thing exercising the real driver, and it gates the `check`
+     aggregation job. See [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
 2. **Release + CD** (`release-please.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
    (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:
@@ -420,6 +442,59 @@ For generated projects to publish to PyPI:
    - Add keywords
 6. Update `.example-input.yml` with the new option
 7. Update `README.md` with documentation
+8. Keep the component's coverage at the `fail_under = 99` gate (see
+   [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md)). Because
+   `.example-input.yml` disables every component, a component's coverage is only
+   validated when you generate it explicitly — do that and run the suite. Unit-test
+   the business logic *including reachable error handling* (metadata-failure
+   paths are tested via a `_MissingDistribution` monkeypatch stub — see the
+   web/cli/gui/tui/mcp tests); only for genuinely untestable blocking
+   entrypoints add `# pragma: no cover` to the specific launch/display function
+   (as the `main()` entrypoints, the CLI launcher subcommands, the GUI/TUI
+   `_display_*` helpers, and the worker lifecycle hooks do). Do **not** add
+   blanket `exclude_lines` regexes for these — see the convention below.
+
+### Coverage exclusion convention
+
+Generated projects enforce `fail_under = 99`. Entrypoints that start a blocking
+loop (`main()`, `run_server`, real tkinter/textual/uvicorn/stdio code) cannot
+run under headless CI, so each carries a per-site `# pragma: no cover` (the
+web/MCP/worker `main()` entrypoints and `__main__` dispatchers, the MCP
+`run_server`, the CLI `interactive`/`gui`/`web` subcommands, the GUI/TUI
+`_display_*` helpers, the worker lifecycle hooks, the c-extension
+`except ImportError` fallback, and the worker's module-level metadata
+fallback). The logic those entrypoints call is always unit-tested.
+
+Do **not** exclude these via blanket `[tool.coverage.report] exclude_lines`
+regexes (`def main\(`, `except PackageNotFoundError`, ...): a regex matching a
+`def` line excludes the *entire function body*, so such patterns silently
+un-measure any future function with the same name that carries real logic —
+and previously masked the tested GUI/TUI `main()` entrypoints and the web 503
+handlers. Reachable error handling is tested, not excluded: the web `/version`
+and `/info` 503 responses, the CLI metadata-failure exit code, the GUI/TUI
+"Version: unknown" degradation, and the MCP error-text response all have unit
+tests using a `_MissingDistribution` monkeypatch stub.
+
+Coverage measurement spans two layouts: `src/...` in an editable dev install and
+`.../site-packages/...` when tox/CI installs the built wheel/sdist (the tox test
+env uses `package = "wheel"`/`"sdist"`). Two config settings must account for this
+or the gate silently fails for *every* generated project:
+
+- `[tool.coverage.paths]` must remap the installed tree back to the canonical
+  `src/` tree — `{{pkg}} = ["src/{{pkg}}", "*/site-packages/{{pkg}}"]`. Each tox
+  Python env installs into its own `site-packages`, so without remapping,
+  `coverage combine` keeps a separate copy per env and a version-gated line
+  covered in one interpreter but not another counts as missed. This only shows up
+  under the full multi-env `tox run`, not a single env or editable `pytest`.
+- `omit` globs must be anchored to match both layouts (`*/_version.py`,
+  `*/worker/test_integration.py`), not `src/**` — a `src/**` pattern misses the
+  installed copy and reports it at 0%. The integration glob is additionally
+  directory-anchored so a future `test_integration.py` in another component
+  (which *would* run in the default suite) stays measured.
+
+Always verify coverage via the real `tox run` path (installed package, all envs),
+never editable `pytest` — both defects are invisible otherwise. See
+[ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
 
 ### Modifying Template Variables
 

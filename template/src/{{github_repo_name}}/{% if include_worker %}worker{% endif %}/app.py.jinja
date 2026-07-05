@@ -24,11 +24,17 @@ from pydantic import BaseModel, Field
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import logger as app_logger
 
-# Get version from package metadata
+# Get version from package metadata. The fallback runs only when the package
+# itself is not installed (broken install); it cannot be exercised where tests
+# run, hence the pragma — but log it so a worker reporting 0.0.0 is explainable.
 try:
     _distribution = Distribution.from_name(PROJECT_NAME)
     __version__ = _distribution.version
-except PackageNotFoundError:
+except PackageNotFoundError:  # pragma: no cover
+    app_logger.warning(
+        "Package metadata not found for %s; version falls back to 0.0.0",
+        PROJECT_NAME,
+    )
     __version__ = "0.0.0"
 
 
@@ -47,69 +53,109 @@ class VersionResponse(BaseModel):
     platform: str = Field(..., description="Platform information")
 
 
-{% if worker_broker == "kafka" -%}
-broker = KafkaBroker(os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"))
-{% endif -%}
-{% if worker_broker == "nats" -%}
-broker = NatsBroker(os.getenv("NATS_URL", "nats://localhost:4222"))
-{% endif -%}
-{% if worker_broker == "rabbitmq" -%}
-broker = RabbitBroker(os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"))
-{% endif -%}
-{% if worker_broker == "redis" -%}
-broker = RedisBroker(os.getenv("REDIS_URL", "redis://localhost:6379"))
-{% endif %}
-app = FastStream(broker)
+def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}:
+    """Build the worker broker with its handler and response publisher wired up.
 
-version_response_publisher = broker.publisher(
-    "version-responses", description="Publishes version response messages"
-)
-
-
-@broker.subscriber("version-requests", description="Handles version request messages")
-async def handle_version_request(msg: VersionRequest, logger: Logger) -> None:
-    """Handle incoming version request messages.
+    Connection is resolved at *call* time (not import time) so tests can point a
+    fresh, self-contained broker at a throwaway instance — e.g. one started by
+    testcontainers — without the import-order/caching pitfalls of a module-level
+    singleton (see ADR-008).
 
     Args:
-        msg: The version request message.
-        logger: FastStream logger instance.
-    """
-    app_logger.info("Received version request: %s", msg.request_id)
-    logger.info("Processing version request: %s", msg.request_id)
+        url: Broker connection URL. When ``None``, falls back to the
+            broker-specific environment variable and then a local default.
 
-    response = VersionResponse(
-        request_id=msg.request_id,
-        version=__version__,
-        python_version=platform.python_version(),
-        platform=platform.system(),
+    Returns:
+        A configured broker with the ``version-requests`` subscriber and the
+        ``version-responses`` publisher registered on it.
+    """
+{%- if worker_broker == "kafka" %}
+    default_url = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    broker = KafkaBroker(url if url is not None else default_url)
+{%- elif worker_broker == "nats" %}
+    default_url = os.getenv("NATS_URL", "nats://localhost:4222")
+    broker = NatsBroker(url if url is not None else default_url)
+{%- elif worker_broker == "rabbitmq" %}
+    default_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+    broker = RabbitBroker(url if url is not None else default_url)
+{%- elif worker_broker == "redis" %}
+    default_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    broker = RedisBroker(url if url is not None else default_url)
+{%- endif %}
+
+    publisher = broker.publisher(
+        "version-responses", description="Publishes version response messages"
     )
 
-    _ = await version_response_publisher.publish(response)
-    app_logger.info("Sent version response for request: %s", msg.request_id)
+    @broker.subscriber(
+        "version-requests", description="Handles version request messages"
+    )
+    # The decorator registers the handler as a side effect; basedpyright cannot
+    # see that use, hence the targeted ignore (vulture is covered by the
+    # `@*.subscriber` entry in [tool.vulture] ignore_decorators).
+    async def handle_version_request(  # pyright: ignore[reportUnusedFunction]
+        msg: VersionRequest, logger: Logger
+    ) -> None:
+        """Handle incoming version request messages.
+
+        Args:
+            msg: The version request message.
+            logger: FastStream logger instance.
+        """
+        app_logger.info("Received version request: %s", msg.request_id)
+        logger.info("Processing version request: %s", msg.request_id)
+
+        response = VersionResponse(
+            request_id=msg.request_id,
+            version=__version__,
+            python_version=platform.python_version(),
+            platform=platform.system(),
+        )
+
+{%- if worker_broker == "nats" %}
+        # The NATS publisher's `publish` returns None, so the result is not captured
+        # (unlike the other brokers, where basedpyright's reportUnusedCallResult
+        # requires it).
+        await publisher.publish(response)
+{%- else %}
+        _ = await publisher.publish(response)
+{%- endif %}
+        app_logger.info("Sent version response for request: %s", msg.request_id)
+
+    return broker
+
+
+broker = build_broker()
+app = FastStream(broker)
 
 
 @app.after_startup
-async def on_startup() -> None:  # noqa: RUF029
+async def on_startup() -> None:  # noqa: RUF029  # pragma: no cover
     """Log startup information."""
     app_logger.info("Worker started - version %s", __version__)
 
 
 @app.after_shutdown
-async def on_shutdown() -> None:  # noqa: RUF029
+async def on_shutdown() -> None:  # noqa: RUF029  # pragma: no cover
     """Log shutdown information."""
     app_logger.info("Worker shutting down")
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Entry point for the worker application.
 
-    Runs the FastStream application using uvloop if available.
+    Runs the FastStream application using uvloop if available. Excluded from
+    coverage: it blocks on the broker connection until shutdown.
     """
     import asyncio  # noqa: PLC0415
 
     try:
         import uvloop  # noqa: PLC0415
     except ImportError:
+        # Not an error (uvloop is an optional accelerator), but say so: a worker
+        # silently running the default loop is indistinguishable from one on
+        # uvloop when debugging throughput.
+        app_logger.info("uvloop not available; using the default asyncio event loop")
         asyncio.run(app.run())
     else:
         uvloop.run(app.run())
