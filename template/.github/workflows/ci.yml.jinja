@@ -36,6 +36,11 @@ jobs:
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     name: Run Tests on {% raw %}${{ matrix.os }}{% endraw %}
     timeout-minutes: 10
+    env:
+      # The `secrets` context is not available in `if:` conditions, so surface
+      # CODECOV_TOKEN as a presence flag — never expose the value job-wide.
+      # Codecov upload is opt-in: unset means a visible skip, not a build failure.
+      CODECOV_TOKEN_SET: {% raw %}${{ secrets.CODECOV_TOKEN != '' }}{% endraw %}
     steps:
       - name: System Info
         shell: bash
@@ -86,10 +91,14 @@ jobs:
           uv run coverage report --show-missing
           uv run coverage xml
       - name: Upload coverage
+        if: {% raw %}${{ env.CODECOV_TOKEN_SET == 'true' }}{% endraw %}
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v6.0.2
         with:
           files: ./coverage.xml
           token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
+      - name: Note skipped coverage upload
+        if: {% raw %}${{ env.CODECOV_TOKEN_SET != 'true' && matrix.os == 'ubuntu-latest' }}{% endraw %}
+        run: echo "::notice::CODECOV_TOKEN secret is not set — skipping the Codecov upload. See CONTRIBUTING.md (Repository setup) to enable coverage reporting."
 {% if include_launcher or include_freezer or include_compiler %}
   # Build-only PR guards: build each enabled standalone executable (ADR-007)
   # against the PR diff so a dependency or Python bump that breaks packaging fails
