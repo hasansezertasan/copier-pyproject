@@ -14,13 +14,15 @@
 *.jpeg binary
 *.gif binary
 *.ico binary
-*.svg text
 *.woff binary
 *.woff2 binary
 *.pdf binary
 *.zip binary
 *.gz binary
 *.whl binary
+
+# SVGs are XML: keep them text so they normalize and diff line-by-line.
+*.svg text
 
 # GitHub Linguist overrides — keep language stats and diffs meaningful.
 src/{{github_repo_name}}/_version.py linguist-generated=true
