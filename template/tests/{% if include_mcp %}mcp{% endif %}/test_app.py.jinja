@@ -74,9 +74,7 @@ async def test_unknown_tool_raises_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_tool_reports_missing_metadata(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_tool_reports_missing_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     """Tools return an actionable error text when package metadata is missing.
 
     The MCP contract is a text response, not an exception: a broken install must

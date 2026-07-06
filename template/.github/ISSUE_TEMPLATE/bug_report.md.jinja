@@ -68,19 +68,16 @@ from cobo import ReDoc
 
 app = FastAPI(redoc_url=None)
 
-
 @app.get("/")
 def root() -> Dict[str, str]:
     """Root of the application."""
     return {"Hello": "World"}
-
 
 @app.get("/redoc", response_class=HTMLResponse, include_in_schema=False)
 def get_redoc() -> str:
     """Redoc."""
     0/0  # This will raise a ZeroDivisionError
     return ReDoc(title="ReDoc").render()
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

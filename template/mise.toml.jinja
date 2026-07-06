@@ -61,21 +61,23 @@ echo "Project: $PROJECT_NAME"
 echo "Python: $(python --version)"
 echo "Virtual Environment: $VIRTUAL_ENV"
 '''
+{%- endraw %}
+{%- if include_launcher %}
 
-{% endraw %}
-{% if include_launcher %}
 [tasks.package]
 description = "Build a uv-bootstrap launcher executable with PyCrucible"
 alias = "pkg"
 run = "uv run --locked --group tool pycrucible -e . -o ./dist/{{github_repo_name}}"
-{% endif %}
-{% if include_freezer %}
+{%- endif %}
+{%- if include_freezer %}
+
 [tasks.freeze]
 description = "Build a self-contained offline executable with PyInstaller"
 run = "uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clean --noconfirm"
-{% endif %}
-{% if include_compiler %}
+{%- endif %}
+{%- if include_compiler %}
+
 [tasks.compile]
 description = "Build a compiled native executable with Nuitka"
 run = "uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist src/{{github_repo_name}}/__main__.py"
-{% endif %}
+{%- endif %}

@@ -32,8 +32,7 @@ try:
     __version__ = _distribution.version
 except PackageNotFoundError:  # pragma: no cover
     app_logger.warning(
-        "Package metadata not found for %s; version falls back to 0.0.0",
-        PROJECT_NAME,
+        "Package metadata not found for %s; version falls back to 0.0.0", PROJECT_NAME
     )
     __version__ = "0.0.0"
 
