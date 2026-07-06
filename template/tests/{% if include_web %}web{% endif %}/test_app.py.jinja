@@ -30,6 +30,7 @@ class _MissingDistribution:
     def from_name(name: str) -> Distribution:
         raise PackageNotFoundError(name)
 
+
 # Mirror the env prefix the implementation derives from the project name.
 ENV_PREFIX = f"{PROJECT_NAME.upper().replace('-', '_')}_"
 

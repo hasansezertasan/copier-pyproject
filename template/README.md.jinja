@@ -12,6 +12,7 @@
 
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 [![linting - Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/{{github_user}}/{{github_repo_name}}/badge)](https://scorecard.dev/viewer/?uri=github.com/{{github_user}}/{{github_repo_name}})
 [![GitHub Tag](https://img.shields.io/github/tag/{{github_user}}/{{github_repo_name}}?include_prereleases=&sort=semver&color=black)](https://github.com/{{github_user}}/{{github_repo_name}}/releases/)
 
 [![Downloads](https://pepy.tech/badge/{{github_repo_name}})](https://pepy.tech/project/{{github_repo_name}})
@@ -49,25 +50,25 @@ pip install {{github_repo_name}}
 ```
 
 ## Usage
+{%- if include_cli %}
 
-{% if include_cli %}
 ### CLI
 
 ```bash
 {{github_repo_name}} version
 {{github_repo_name}} info
 ```
+{%- endif %}
+{%- if include_gui %}
 
-{% endif %}
-{% if include_gui %}
 ### GUI
 
 ```bash
 {{github_repo_name}}-gui
 ```
+{%- endif %}
+{%- if include_tui %}
 
-{% endif %}
-{% if include_tui %}
 ### TUI
 
 ```bash
@@ -75,22 +76,19 @@ pip install {{github_repo_name}}
 ```
 
 An interactive terminal user interface displays project information. Press 'q' to exit.
+{%- endif %}
+{%- if include_web %}
 
-{% endif %}
-{% if include_web %}
 ### Web
 
 ```bash
 {{github_repo_name}}-web
 ```
 
-{% if web_framework == "fastapi" %}
-Open <http://127.0.0.1:8000/docs> for the interactive API documentation.
-{% else %}
-Open <http://127.0.0.1:8000/schema> for the interactive API documentation.
-{% endif %}
-{% endif %}
-{% if include_mcp %}
+{% if web_framework == "fastapi" %}Open <http://127.0.0.1:8000/docs> for the interactive API documentation.{% else %}Open <http://127.0.0.1:8000/schema> for the interactive API documentation.{% endif %}
+{%- endif %}
+{%- if include_mcp %}
+
 ### MCP
 
 Run the Model Context Protocol server:
@@ -98,8 +96,9 @@ Run the Model Context Protocol server:
 ```bash
 {{github_repo_name}}-mcp
 ```
-{% endif %}
-{% if include_worker %}
+{%- endif %}
+{%- if include_worker %}
+
 ### Worker
 
 Run the message queue worker:
@@ -120,8 +119,9 @@ run; execute it explicitly (Docker required):
 ```bash
 uv run --locked tox run -e integration
 ```
-{% endif %}
-{% if include_profiling %}
+{%- endif %}
+{%- if include_profiling %}
+
 ### Profiling
 
 Profile your application for performance optimization:
@@ -141,11 +141,11 @@ py-spy top -- python profile.py run
 ```
 
 View cProfile results with:
+
 ```bash
 snakeviz profile.prof
 ```
-
-{% endif %}
+{%- endif %}
 
 ### Debugging
 
@@ -158,7 +158,8 @@ Debug your application in VS Code using the provided launch configurations:
 - **With Profiling**: Debug while profiling with scalene (if profiling enabled).
 
 Select a configuration from the Run and Debug panel in VS Code.
-{% if include_c_extensions %}
+{%- if include_c_extensions %}
+
 ### C Extensions
 
 This package includes high-performance C extensions compiled with Cython.
@@ -176,7 +177,7 @@ print(result)  # 55
 ```
 
 If Cython compilation fails during installation, the package will fall back to pure Python implementations.
-{% endif %}
+{%- endif %}
 
 ## Support :heart:
 
@@ -186,14 +187,30 @@ If you have any questions or need help, feel free to open an issue on the [GitHu
 
 ## Features
 
-{% if include_cli %}- **CLI Application**: Command-line interface built with Typer{% endif %}
-{% if include_web %}- **Web API**: {% if web_framework == "fastapi" %}FastAPI{% else %}Litestar{% endif %}-based web application with automatic API documentation{% endif %}
-{% if include_gui %}- **GUI Application**: Desktop interface built with Tkinter{% endif %}
-{% if include_tui %}- **TUI Application**: Terminal user interface built with Textual{% endif %}
-{% if include_mcp %}- **MCP Server**: Model Context Protocol server exposing tools to AI clients{% endif %}
-{% if include_worker %}- **Message Queue Worker**: FastStream-based worker for processing messages from {{worker_broker}}{% endif %}
-{% if include_c_extensions %}- **C Extensions**: High-performance Cython extensions for computationally intensive tasks{% endif %}
-{% if include_pydantic_settings %}- **Configuration Management**: Type-safe settings using Pydantic{% endif %}
+{% if include_cli -%}
+- **CLI Application**: Command-line interface built with Typer
+{% endif -%}
+{% if include_web -%}
+- **Web API**: {% if web_framework == "fastapi" %}FastAPI{% else %}Litestar{% endif %}-based web application with automatic API documentation
+{% endif -%}
+{% if include_gui -%}
+- **GUI Application**: Desktop interface built with Tkinter
+{% endif -%}
+{% if include_tui -%}
+- **TUI Application**: Terminal user interface built with Textual
+{% endif -%}
+{% if include_mcp -%}
+- **MCP Server**: Model Context Protocol server exposing tools to AI clients
+{% endif -%}
+{% if include_worker -%}
+- **Message Queue Worker**: FastStream-based worker for processing messages from {{worker_broker}}
+{% endif -%}
+{% if include_c_extensions -%}
+- **C Extensions**: High-performance Cython extensions for computationally intensive tasks
+{% endif -%}
+{% if include_pydantic_settings -%}
+- **Configuration Management**: Type-safe settings using Pydantic
+{% endif -%}
 - **Type Safety**: Full type hints checked by mypy, basedpyright, ty, pyrefly, and zuban
 - **Code Quality**: Comprehensive linting and formatting with ruff
 - **Testing**: pytest with coverage reporting and parallel execution

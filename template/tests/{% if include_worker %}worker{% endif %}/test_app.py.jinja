@@ -20,12 +20,7 @@ from faststream.redis import TestRedisBroker
 {%- endif %}
 from pydantic import ValidationError
 
-from {{github_repo_name}}.worker.app import (
-    VersionRequest,
-    VersionResponse,
-    broker,
-    build_broker,
-)
+from {{github_repo_name}}.worker.app import VersionRequest, VersionResponse, broker, build_broker
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture

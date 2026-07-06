@@ -176,6 +176,15 @@ removed — it is now always rendered and validated via
 running. Pants and Trunk were removed entirely — the tox `style` env is the sole
 lint/build orchestrator (see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
 
+Also always included (no toggle): a `SUPPORT.md` community-health file (points to
+docs/issues/discussions and cross-references `SECURITY.md`/`CONTRIBUTING.md`), a
+`.gitattributes` (LF normalization matching the ruff/EditorConfig policy, Linguist
+overrides marking `_version.py`/`CHANGELOG.md`/`uv.lock` as generated and `docs/`
+as documentation, and `export-ignore` archive hygiene), and AI-agent onboarding
+files — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that
+`@AGENTS.md`-imports it so there is a single source of truth (no divergent copies).
+`AGENTS.md` intentionally carries **no** commit-attribution/`Co-Authored-By` block.
+
 Commitizen (Conventional Commit authoring/linting) is **always included** — it
 is no longer gated behind an `include_commitizen` option. release-please still
 owns versioning/changelog; Commitizen only authors/lints messages (see
@@ -375,6 +384,16 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    title), so this is repo hygiene — not load-bearing for release-please. Keep it
    as a required status check (context: **Validate branch name**) alongside
    `check-pr-title` and `check-linked-issues`.
+7. **Supply-chain security** (always included, static workflows):
+   - `codeql.yml`: CodeQL analysis on push/PR to `main` + weekly schedule.
+   - `scorecard.yml` (`ossf/scorecard-action`): OpenSSF Scorecard on
+     `branch_protection_rule`/push/weekly schedule; `publish_results: true` and
+     `id-token: write` so the public Scorecard badge (added to the generated
+     README) resolves, uploading SARIF to code-scanning. Public repos only.
+   - `dependency-review.yml` (`actions/dependency-review-action`): on `pull_request`,
+     **fails on high+ severity** vulnerabilities and comments a summary on failure.
+   All three SHA-pin actions like every other workflow (Renovate
+   `helpers:pinGitHubActionDigests` keeps them current).
 
 ### Required Merge Strategy (release-please depends on it)
 

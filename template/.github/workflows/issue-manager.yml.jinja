@@ -1,5 +1,5 @@
+---
 name: Issue Manager
-
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -14,11 +14,9 @@ on:
     types:
       - labeled
   workflow_dispatch:
-
 permissions:
   issues: write
   pull-requests: write
-
 jobs:
   issue-manager:
     runs-on: ubuntu-latest
@@ -26,7 +24,7 @@ jobs:
       - uses: tiangolo/issue-manager@2fb3484ec9279485df8659e8ec73de262431737d  # 0.6.0
         with:
           token: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-          config: >
+          config: |
             {
               "answered": {
                 "users": ["{{github_user}}"],

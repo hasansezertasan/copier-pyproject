@@ -11,24 +11,54 @@ maintainers = [
 ]
 dynamic = ["version"]
 keywords = [
-    {% for keyword in package_keywords.split(",") if keyword.strip() %}"{{ keyword.strip() }}", {% endfor %}
+{%- for keyword in package_keywords.split(",") if keyword.strip() %}
+    "{{ keyword.strip() }}",
+{%- endfor %}
     "command-line", "cli", "package", "metadata", "pypi", "python",
     "template", "copier", "scaffold", "boilerplate", "uv", "hatch",
     "tox", "pytest", "ruff", "mypy", "basedpyright",
     "type-hints", "typed", "modern-python",
     "ci-cd", "github-actions", "automation", "sphinx",
     "prek", "linting", "testing", "coverage", "release-automation",
-    {% if include_cli %}"typer",{% endif %}
-    {% if include_web %}{% if web_framework == "fastapi" %}"fastapi",{% endif %}{% if web_framework == "litestar" %}"litestar",{% endif %} "docker",{% endif %}
-    {% if include_tui %}"textual", "tui",{% endif %}
-    {% if include_mcp %}"mcp", "model-context-protocol",{% endif %}
-    {% if include_worker %}"faststream", "message-queue", "{{worker_broker}}",{% endif %}
-    {% if include_pydantic_settings %}"pydantic",{% endif %}
-    {% if include_c_extensions %}"cython", "c-extensions", "performance",{% endif %}
-    {% if include_launcher or include_compiler or include_freezer %}"standalone", "executable",{% endif %}
-    {% if include_launcher %}"pycrucible", "launcher",{% endif %}
-    {% if include_compiler %}"nuitka", "compiler",{% endif %}
-    {% if include_freezer %}"pyinstaller", "freezer",{% endif %}
+{%- if include_cli %}
+    "typer",
+{%- endif %}
+{%- if include_web %}
+{%- if web_framework == "fastapi" %}
+    "fastapi",
+{%- endif %}
+{%- if web_framework == "litestar" %}
+    "litestar",
+{%- endif %}
+    "docker",
+{%- endif %}
+{%- if include_tui %}
+    "textual", "tui",
+{%- endif %}
+{%- if include_mcp %}
+    "mcp", "model-context-protocol",
+{%- endif %}
+{%- if include_worker %}
+    "faststream", "message-queue", "{{worker_broker}}",
+{%- endif %}
+{%- if include_pydantic_settings %}
+    "pydantic",
+{%- endif %}
+{%- if include_c_extensions %}
+    "cython", "c-extensions", "performance",
+{%- endif %}
+{%- if include_launcher or include_compiler or include_freezer %}
+    "standalone", "executable",
+{%- endif %}
+{%- if include_launcher %}
+    "pycrucible", "launcher",
+{%- endif %}
+{%- if include_compiler %}
+    "nuitka", "compiler",
+{%- endif %}
+{%- if include_freezer %}
+    "pyinstaller", "freezer",
+{%- endif %}
 ]
 # TODO @{{github_user}}: Fill in the missing classifiers...
 classifiers = [
@@ -85,12 +115,29 @@ dependencies = []
 {% if include_worker %}worker = ["faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
 all = [
-    {% if include_cli %}"typer>=0.20.0",{% endif %}
-    {% if include_web %}{% if web_framework == "fastapi" %}"fastapi[all]>=0.123.5",{% endif %}{% if web_framework == "litestar" %}"litestar[standard]>=2.0.0",{% endif %}{% endif %}
-    {% if include_tui %}"textual>=0.50.0",{% endif %}
-    {% if include_mcp %}"mcp>=1.0.0",{% endif %}
-    {% if include_worker %}"faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",{% endif %}
-    {% if include_pydantic_settings %}"pydantic-settings>=2.0.0",{% endif %}
+{%- if include_cli %}
+    "typer>=0.20.0",
+{%- endif %}
+{%- if include_web %}
+{%- if web_framework == "fastapi" %}
+    "fastapi[all]>=0.123.5",
+{%- endif %}
+{%- if web_framework == "litestar" %}
+    "litestar[standard]>=2.0.0",
+{%- endif %}
+{%- endif %}
+{%- if include_tui %}
+    "textual>=0.50.0",
+{%- endif %}
+{%- if include_mcp %}
+    "mcp>=1.0.0",
+{%- endif %}
+{%- if include_worker %}
+    "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",
+{%- endif %}
+{%- if include_pydantic_settings %}
+    "pydantic-settings>=2.0.0",
+{%- endif %}
 ]
 
 
@@ -181,15 +228,27 @@ docs = [
     "auto-pytabs[sphinx]==0.5.0",
     "myst-parser==4.0.1",
     "ghp-import==2.1.0",
-    {% if include_cli %}"sphinx-click==6.2.0",{% endif %}
+{%- if include_cli %}
+    "sphinx-click==6.2.0",
+{%- endif %}
 ]
 tool = [
   "commitizen==4.10.0",
-  {% if include_c_extensions %}"cython>=3.0.0",{% endif %}
-  {% if include_profiling %}"py-spy>=0.4.0", "scalene>=1.5.0", "snakeviz>=2.2.0",{% endif %}
-  {% if include_launcher %}"pycrucible>=0.4.6",{% endif %}
-  {% if include_compiler %}"nuitka>=2.0.0",{% endif %}
-  {% if include_freezer %}"pyinstaller>=6.0.0",{% endif %}
+{%- if include_c_extensions %}
+  "cython>=3.0.0",
+{%- endif %}
+{%- if include_profiling %}
+  "py-spy>=0.4.0", "scalene>=1.5.0", "snakeviz>=2.2.0",
+{%- endif %}
+{%- if include_launcher %}
+  "pycrucible>=0.4.6",
+{%- endif %}
+{%- if include_compiler %}
+  "nuitka>=2.0.0",
+{%- endif %}
+{%- if include_freezer %}
+  "pyinstaller>=6.0.0",
+{%- endif %}
   # "marimo==0.15.2",
   # "inflection==0.5.1",
   # "copier==9.11.0",
@@ -512,7 +571,9 @@ datas = "datas"
 # ``tox -e worker`` when a broker is up (e.g. inside the devcontainer).
 env_list = [
     "style",
-    {% if include_cli %}"cli",{% endif %}
+{%- if include_cli %}
+    "cli",
+{%- endif %}
     "3.14",
     "3.13",
     "3.12",
@@ -655,7 +716,8 @@ dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
 runner = "uv-venv-runner"
 
-{% if include_profiling %}
+{%- if include_profiling %}
+
 [tool.tox.env.profile]
 commands = [
   [
@@ -667,16 +729,16 @@ commands = [
 dependency_groups = ["tool"]
 description = "Setup environment for profiling with py-spy, scalene, and cProfile"
 runner = "uv-venv-runner"
-{% endif %}
+{%- endif %}
+{%- if include_cli %}
 
-{% if include_cli %}
 [tool.tox.env.cli]
 commands = [["{{github_repo_name}}", "version", { replace = "posargs", extend = true }]]
 description = "Run the CLI application."
 runner = "uv-venv-runner"
-{% endif %}
+{%- endif %}
+{%- if include_worker %}
 
-{% if include_worker %}
 # On-demand only (not in env_list): starts a broker-bound worker, so run it with
 # ``tox -e worker`` when a broker is reachable. CI relies on the pytest suite.
 [tool.tox.env.worker]
@@ -718,9 +780,9 @@ description = "Run worker broker integration tests against a real broker."
 extras = ["all"]
 dependency_groups = ["test"]
 runner = "uv-venv-runner"
-{% endif %}
+{%- endif %}
+{%- if include_launcher %}
 
-{% if include_launcher %}
 [tool.pycrucible]
 # The single runnable entrypoint (see src/{{github_repo_name}}/__main__.py),
 # which runs whichever component this project enabled (CLI/GUI/TUI/web/...).
@@ -733,4 +795,4 @@ extract_to_temp = false
 [tool.pycrucible.patterns]
 include = ["**/**.py", "**/*.toml", "**/*.json", "**/*.yaml", "**/*.yml"]
 exclude = ["**/__pycache__/**", "**/.git/**", "**/tests/**", "**/.venv/**"]
-{% endif %}
+{%- endif %}

@@ -25,7 +25,6 @@ jobs:
         with:
           config-file: .github/release-please-config.json
           manifest-file: .github/release-please-manifest.json
-
   build:
     needs: release-please
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
@@ -87,7 +86,6 @@ jobs:
           name: package-distributions
           path: dist/
 {%- endif %}
-
   pypi-publish:
     runs-on: ubuntu-latest
     name: Publish to PyPI
@@ -104,20 +102,20 @@ jobs:
       name: publish
       url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
     steps:
-    - name: Download package
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
-      with:
+      - name: Download package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
 {%- if include_c_extensions %}
-        pattern: package-distributions-*
-        path: dist/
-        merge-multiple: true
+          pattern: package-distributions-*
+          path: dist/
+          merge-multiple: true
 {%- else %}
-        name: package-distributions
-        path: dist/
+          name: package-distributions
+          path: dist/
 {%- endif %}
-    - name: Publish distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
-{% if include_launcher %}
+      - name: Publish distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
+{%- if include_launcher %}
   build-launcher:
     name: Build Launcher (PyCrucible)
     needs: [release-please, build]
@@ -157,8 +155,8 @@ jobs:
           name: {{github_repo_name}}-executable-launcher-{% raw %}${{ matrix.os }}{% endraw %}
           # Glob so the upload succeeds whether or not the tool added an extension.
           path: './dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}*'
-{% endif %}
-{% if include_freezer %}
+{%- endif %}
+{%- if include_freezer %}
   build-freezer:
     name: Build Freezer (PyInstaller)
     needs: [release-please, build]
@@ -211,8 +209,8 @@ jobs:
         with:
           name: {{github_repo_name}}-executable-freezer-{% raw %}${{ matrix.os }}{% endraw %}
           path: './dist/{{github_repo_name}}-freezer-{% raw %}${{ matrix.label }}${{ matrix.ext }}{% endraw %}'
-{% endif %}
-{% if include_compiler %}
+{%- endif %}
+{%- if include_compiler %}
   build-compiler:
     name: Build Compiler (Nuitka)
     needs: [release-please, build]
@@ -269,7 +267,7 @@ jobs:
           name: {{github_repo_name}}-executable-compiler-{% raw %}${{ matrix.os }}{% endraw %}
           # Glob so the upload succeeds whether or not the tool added an extension.
           path: './dist/{{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %}*'
-{% endif %}
+{%- endif %}
 {%- if include_web %}
   docker-publish-preflight:
     name: Validate Docker Hub Credentials
@@ -364,48 +362,45 @@ jobs:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
     needs: [release-please, pypi-publish{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
-
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: write  # IMPORTANT: Mandatory for GitHub Release
     steps:
-    - name: Download package
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
-      with:
+      - name: Download package
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
 {%- if include_c_extensions %}
-        pattern: package-distributions-*
-        path: dist/
-        merge-multiple: true
+          pattern: package-distributions-*
+          path: dist/
+          merge-multiple: true
 {%- else %}
-        name: package-distributions
-        path: dist/
+          name: package-distributions
+          path: dist/
 {%- endif %}
-{% if include_launcher or include_freezer or include_compiler %}
-    - name: Download executables
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
-      with:
-        pattern: {{github_repo_name}}-executable-*
-        path: dist/executables/
-        merge-multiple: true
-{% endif %}
-    - name: Attach Build Artifacts to the draft release
-      env:
-        GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-      shell: bash
-      run: |
-        # Upload every file under dist/ (executables land in dist/executables/, so a
-        # plain ./dist/* glob would pass that subdirectory to gh, which rejects dirs).
-        # Guard the empty case first: `xargs` with no input never invokes gh and
-        # exits 0, which would silently publish a release with zero assets attached.
-        test "$(find dist -type f | wc -l)" -gt 0 \
-          || { echo "::error::no artifacts found under dist/ to attach to the release"; exit 1; }
-        find dist -type f -print0 | xargs -0 gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
-
+{%- if include_launcher or include_freezer or include_compiler %}
+      - name: Download executables
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          pattern: {{github_repo_name}}-executable-*
+          path: dist/executables/
+          merge-multiple: true
+{%- endif %}
+      - name: Attach Build Artifacts to the draft release
+        env:
+          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+        shell: bash
+        run: |
+          # Upload every file under dist/ (executables land in dist/executables/, so a
+          # plain ./dist/* glob would pass that subdirectory to gh, which rejects dirs).
+          # Guard the empty case first: `xargs` with no input never invokes gh and
+          # exits 0, which would silently publish a release with zero assets attached.
+          test "$(find dist -type f | wc -l)" -gt 0 \
+            || { echo "::error::no artifacts found under dist/ to attach to the release"; exit 1; }
+          find dist -type f -print0 | xargs -0 gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
   finalize-release:
     runs-on: ubuntu-latest
     name: Publish the GitHub Release
     needs: {% if include_web %}[release-please, pypi-publish, attach-github-release, docker-publish]{% else %}[release-please, pypi-publish, attach-github-release]{% endif %}
-
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: write  # IMPORTANT: Mandatory to un-draft the GitHub Release
@@ -440,7 +435,6 @@ jobs:
             gh pr close "$pr" --delete-branch --repo {% raw %}"${{ github.repository }}"{% endraw %}
           fi
           gh workflow run {% raw %}"${{ github.workflow }}" --ref "${{ github.ref_name }}" --repo "${{ github.repository }}"{% endraw %}
-
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs
