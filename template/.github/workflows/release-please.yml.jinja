@@ -390,8 +390,8 @@ jobs:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
         shell: bash
         run: |
-          # Upload every file under dist/ (executables land in dist/executables/, so a
-          # plain ./dist/* glob would pass that subdirectory to gh, which rejects dirs).
+          # Upload every file under dist/{% if include_launcher or include_freezer or include_compiler %} (executables land in dist/executables/, so a
+          # plain ./dist/* glob would pass that subdirectory to gh, which rejects dirs){% endif %}.
           # Guard the empty case first: `xargs` with no input never invokes gh and
           # exits 0, which would silently publish a release with zero assets attached.
           test "$(find dist -type f | wc -l)" -gt 0 \
