@@ -1,7 +1,5 @@
 ---
 _subdirectory: template
-_exclude:
-  - includes
 _tasks:
   - "git init"
 github_user:
@@ -11,7 +9,7 @@ github_repo_name:
   type: str  # Any value will be treated raw as a string
   help: An awesome project needs an awesome name. Tell me yours.
   validator: >-
-    {% if not (github_repo_name | regex_search('^[a-z][a-z0-9\-]+$')) %} github_repo_name must start with a letter, followed one or more letters, digits or dashes all lowercase. {% endif %}
+    {% if not (github_repo_name | regex_search('^[a-z][a-z0-9]*(-[a-z0-9]+)*$')) %} github_repo_name must be lowercase, start with a letter, contain only letters, digits and dashes, and may not start or end with a dash or contain consecutive dashes. {% endif %}
 author_full_name:
   type: str
   help: The full name of the author

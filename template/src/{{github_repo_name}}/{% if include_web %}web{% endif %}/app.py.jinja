@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
 {% if web_framework == "fastapi" %}
@@ -144,8 +145,6 @@ def resolve_bind() -> tuple[str, int]:
     Raises:
         SystemExit: If ``{PROJECT}_PORT`` is set to a non-integer value.
     """
-    import os  # noqa: PLC0415
-
     prefix = PROJECT_NAME.upper().replace("-", "_")
     host = os.environ.get(f"{prefix}_HOST", "127.0.0.1")
     raw_port = os.environ.get(f"{prefix}_PORT", "8000")

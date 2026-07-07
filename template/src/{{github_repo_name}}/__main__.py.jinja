@@ -5,11 +5,13 @@ and by every standalone-executable build (PyCrucible launcher, PyInstaller
 freezer, Nuitka compiler — see ADR-007). The build tools all target this file,
 so the component-selection logic lives here and nowhere else.
 
-When more than one runnable component is enabled, ``main()`` dispatches to the
-first match in this fixed precedence: CLI > GUI > TUI > web > MCP > worker. A
-project that wants a different default entrypoint should edit the dispatch below
-rather than rely on toggle order. With no runnable component enabled, ``main()``
-exits non-zero with an explanatory message.
+The enabled component with the highest precedence — CLI > GUI > TUI > web > MCP >
+worker — is wired to ``main()`` at template-generation time (via the Jinja
+conditionals below), so this file contains exactly one component's launch code,
+not a runtime dispatch. To change the default entrypoint, re-render with a
+different component enabled or edit the import/``main`` binding here directly.
+With no runnable component enabled, ``main()`` exits non-zero with an
+explanatory message.
 """
 {%- if include_cli %}
 

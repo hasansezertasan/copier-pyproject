@@ -1,6 +1,6 @@
 ---
 {% set redis_enabled = include_redis or (include_worker and worker_broker == 'redis') -%}
-{%- set redis_image = (redis_backend ~ ':latest') if include_redis else 'redis:latest' -%}
+{%- set redis_image = ('valkey/valkey:8' if redis_backend == 'valkey' else 'redis:7') if include_redis else 'redis:7' -%}
 {%- set redis_cli = 'valkey-cli' if (include_redis and redis_backend == 'valkey') else 'redis-cli' -%}
 {%- set kafka_enabled = include_worker and worker_broker == 'kafka' -%}
 {%- set nats_enabled = include_worker and worker_broker == 'nats' -%}
@@ -61,11 +61,17 @@ services:
 {%- endif %}
 {%- if include_postgres %}
   postgres:
-    image: postgres:latest
+    image: postgres:17
     restart: unless-stopped
     env_file:
       - path: ../.env
         required: false
+    environment:
+      # Dev-only: allow password-less local connections so the container starts
+      # even without a `.env`. Override POSTGRES_PASSWORD in `.env` for anything
+      # resembling production. Without this the official image refuses to start
+      # and the devcontainer blocks forever on `condition: service_healthy`.
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-trust}
     ports:
       - "5432:5432"
     volumes:
@@ -127,12 +133,17 @@ services:
 {%- endif -%}
 {%- if worker_broker == "kafka" %}
   kafka:
-    image: bitnami/kafka:latest
+    image: bitnami/kafka:3.9
     restart: unless-stopped
     environment:
       KAFKA_CFG_NODE_ID: 0
       KAFKA_CFG_PROCESS_ROLES: controller,broker
       KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      # Clients read this from broker metadata after bootstrap; it must be the
+      # name other compose services (and the devcontainer) reach the broker by.
+      # Without it Bitnami defaults to localhost:9092 and cross-container clients
+      # silently fail to connect — while the localhost healthcheck still passes.
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -150,7 +161,7 @@ services:
 {%- endif -%}
 {%- if worker_broker == "nats" %}
   nats:
-    image: nats:latest
+    image: nats:2.10
     restart: unless-stopped
     command: ["-js", "-m", "8222"]
     ports:
@@ -166,7 +177,7 @@ services:
   pgadmin:
     profiles:
       - tools
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:8
     restart: unless-stopped
     env_file:
       - path: ../.env
@@ -183,7 +194,7 @@ services:
   adminer:
     profiles:
       - tools
-    image: adminer:latest
+    image: adminer:4
     restart: unless-stopped
     ports:
       - "8081:8080"
@@ -194,12 +205,8 @@ services:
   cloudbeaver:
     profiles:
       - tools
-    image: dbeaver/cloudbeaver:latest
+    image: dbeaver/cloudbeaver:24
     restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
     ports:
       - "8978:8978"
 {%- endif -%}

@@ -85,7 +85,6 @@ classifiers = [
   "Topic :: Software Development",
   "Typing :: Typed",
 {% if include_cli %}
-  "Environment :: Console",
   "Topic :: Utilities",
 {% endif %}
 {% if include_web %}
@@ -94,7 +93,6 @@ classifiers = [
   "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
 {% endif %}
 {% if include_tui %}
-  "Environment :: Console",
   "Topic :: Terminals",
 {% endif %}
 {% if include_c_extensions %}
@@ -352,8 +350,10 @@ branch = true
 # Match `_version.py` wherever it resolves: `src/...` in editable dev installs and
 # `.../site-packages/...` when tox/CI installs the built wheel or sdist. A
 # `src/**`-only pattern silently misses the installed copy and reports it at 0%.
+{%- if include_worker %}
 # The integration glob is directory-anchored so a future test_integration.py in
 # another component (which *would* run in the default suite) stays measured.
+{%- endif %}
 omit = ["*/_version.py"{% if include_worker %}, "*/worker/test_integration.py"{% endif %}]
 parallel = true
 source_pkgs = ["{{github_repo_name}}", "tests"]
@@ -383,12 +383,14 @@ exclude_lines = [
   "if TYPE_CHECKING:",
 ]
 fail_under = 99
+# Patterns match both the `src/` (editable) and installed (`site-packages`)
+# layouts (see [tool.coverage.run] omit).
+{%- if include_worker %}
 # The integration suite is deselected from the default run (it needs Docker), so
 # its file is imported during collection but its test bodies are deselected and
 # never run — omit it so it does not depress coverage; it runs in its own
-# `integration` env (ADR-008). Patterns match both the `src/` (editable) and
-# installed (`site-packages`) layouts, and the integration glob is
-# directory-anchored (see [tool.coverage.run] omit).
+# `integration` env (ADR-008). The integration glob is directory-anchored.
+{%- endif %}
 omit = ["*/_version.py"{% if include_worker %}, "*/worker/test_integration.py"{% endif %}]
 show_missing = true
 skip_covered = true
