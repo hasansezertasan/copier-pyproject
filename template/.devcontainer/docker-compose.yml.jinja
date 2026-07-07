@@ -21,6 +21,22 @@ services:
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
+{%- if include_worker %}
+    environment:
+      # Point the worker at the broker by its compose service DNS name. The app's
+      # own defaults use localhost (correct when running outside compose); inside
+      # the devcontainer the broker is a sibling service reachable by name, not on
+      # localhost, so override the default here.
+{%- if worker_broker == "kafka" %}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+{%- elif worker_broker == "nats" %}
+      NATS_URL: ${NATS_URL:-nats://nats:4222}
+{%- elif worker_broker == "rabbitmq" %}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672/}
+{%- elif worker_broker == "redis" %}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+{%- endif %}
+{%- endif %}
 {%- if include_postgres or redis_enabled %}
     env_file:
       - path: ../.env
@@ -73,7 +89,9 @@ services:
       # and the devcontainer blocks forever on `condition: service_healthy`.
       POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-trust}
     ports:
-      - "5432:5432"
+      # Bind to loopback so passwordless (`trust`) Postgres is never reachable
+      # off-box, even on an untrusted network. Compose service DNS is unaffected.
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     logging:
@@ -94,7 +112,8 @@ services:
       - path: ../.env
         required: false
     ports:
-      - "6379:6379"
+      # Loopback-only; reachable from sibling services by DNS name.
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     logging:
@@ -110,7 +129,7 @@ services:
 {%- if include_worker %}
 {%- if worker_broker == "rabbitmq" %}
   rabbitmq:
-    image: rabbitmq:4.0.9-management
+    image: rabbitmq:4-management
     restart: unless-stopped
     env_file:
       - path: ../.env
@@ -119,8 +138,9 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      # Loopback-only; reachable from sibling services by DNS name.
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
     logging:
       options:
         max-size: 10m
@@ -148,7 +168,9 @@ services:
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
     ports:
-      - "9092:9092"
+      # Loopback-only; sibling services reach the broker at kafka:9092 (the
+      # advertised listener above), so this host mapping is dev convenience only.
+      - "127.0.0.1:9092:9092"
     logging:
       options:
         max-size: 10m
@@ -165,8 +187,9 @@ services:
     restart: unless-stopped
     command: ["-js", "-m", "8222"]
     ports:
-      - "4222:4222"
-      - "8222:8222"
+      # Loopback-only; reachable from sibling services by DNS name.
+      - "127.0.0.1:4222:4222"
+      - "127.0.0.1:8222:8222"
     logging:
       options:
         max-size: 10m
