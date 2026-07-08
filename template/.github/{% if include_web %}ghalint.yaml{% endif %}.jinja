@@ -1,0 +1,18 @@
+# ghalint configuration. See https://github.com/suzuki-shunsuke/ghalint.
+#
+# The docker-publish-preflight and docker-publish jobs deliberately expose
+# DOCKERHUB_USERNAME at the *job* env level. GitHub makes neither the `secrets`
+# context nor step-level env available to a step's `if:` condition, so the
+# opt-in Docker Hub publishing gate — which several steps read via
+# `env.DOCKERHUB_USERNAME` in their `if:` — must use a job-level env. ghalint's
+# job_secrets policy cannot know this is intentional, so it is excluded for
+# exactly these two jobs. (The username is not sensitive; the DOCKERHUB_TOKEN is
+# never surfaced job-wide — only as a `!= ''` presence flag and at the login
+# step.) Every other policy stays at ghalint's strict defaults.
+excludes:
+  - policy_name: job_secrets
+    workflow_file_path: .github/workflows/release-please.yml
+    job_name: docker-publish-preflight
+  - policy_name: job_secrets
+    workflow_file_path: .github/workflows/release-please.yml
+    job_name: docker-publish

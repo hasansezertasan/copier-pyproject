@@ -136,7 +136,30 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/{{gith
 
 ### Your First Code Contribution
 
-<!-- TODO @{{github_user}}: Include Setup of env, IDE and typical getting started instructions? -->
+This project uses [uv](https://docs.astral.sh/uv/) for dependencies and
+[mise](https://mise.jdx.dev) for tool version management and task running. To
+set up a local environment:
+
+```bash
+# 1. Trust this repo's mise config, then install the mise-managed tools
+#    (e.g. ghalint, used by the git hooks). mise refuses to run an untrusted
+#    config, so this one-time `trust` is required before `mise install`.
+mise trust
+mise install
+
+# 2. Install the project and all dependency groups
+uv sync
+
+# 3. Install the git hooks (run via prek)
+uv run --locked prek install
+```
+
+Common tasks are exposed as mise tasks (`mise run test`, `mise run style`,
+`mise run lint`, `mise run format`, …); run `mise tasks` to list them. The full
+lint/type-check suite is `uv run --locked tox run -e style`, and the fast git
+hook gate is `uv run --locked tox run -e prek`.
+
+<!-- TODO @{{github_user}}: add any project-specific setup (IDE, services, env vars) -->
 
 ### Improving The Documentation
 

@@ -8,6 +8,7 @@ jobs:
       contents: read
       pull-requests: write
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: "Label Pull Requests"
         uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213  # v6

@@ -6,10 +6,10 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 
 - uv-first workflow with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions from Git tags.
 - Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
-- QA stack: pytest with coverage/xdist/reruns (and `.github/codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint.
+- QA stack: pytest with coverage/xdist/reruns (and `.github/codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, and editorconfig-checker.
 - Docs and site: Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme, autodoc API reference, and a GitHub Pages deploy workflow.
 - Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, linked-issue enforcement, PR task-list completion check, issue/PR templates, `SECURITY.md` policy, `SUPPORT.md`, `CODEOWNERS`, dependency management (Renovate), always-on Commitizen and git hooks (run via prek), always-on `CITATION.cff` with a validation workflow, devcontainer, VS Code launch config, gitignore, `.gitattributes`, FUNDING, and LICENSE.
-- Supply-chain security: CodeQL analysis, OpenSSF Scorecard (with README badge), and a dependency-review gate that blocks PRs introducing high-severity vulnerabilities.
+- Supply-chain security: CodeQL analysis, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks PRs introducing high-severity vulnerabilities, and ghalint enforcing workflow security policy (least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, full-length action SHA pins) — delivered via mise since it ships no PyPI/pre-commit distribution.
 - AI-agent onboarding: a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
 - Extra tooling: `.dockerignore`, badge-rich README template, and enhanced VS Code launch.json for debugging (current file, tests, attach, entry points).
 

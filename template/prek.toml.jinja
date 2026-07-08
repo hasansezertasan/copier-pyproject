@@ -69,6 +69,12 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "basedpyright", name = "basedpyright Type Checker", entry = "uv run --locked --group style basedpyright", language = "system", types = ["python"], pass_filenames = false },
+  # editorconfig-checker is run via the uv `style` group (not an upstream prek
+  # repo) so its version has a single source of truth: its PyPI wrapper lags the
+  # Go release tags, so a separate `rev` pin would drift permanently out of sync
+  # with the `style` group. It reads `.editorconfig-checker.json` and scans the
+  # whole tree (respecting .gitignore), so filenames are not passed.
+  { id = "editorconfig-checker", name = "EditorConfig Checker", entry = "uv run --locked --group style ec", language = "system", pass_filenames = false },
 ]
 
 [[repos]]
@@ -131,5 +137,12 @@ hooks = [
 [[repos]]
 repo = "local"
 hooks = [
+  # ghalint (GitHub Actions workflow security-policy linter) has neither a PyPI
+  # wrapper nor a pre-commit hook, so it cannot join the uv `style` group or be a
+  # standard prek repo hook. It is installed via mise (aqua backend, see
+  # mise.toml) and invoked here as a local system hook — this relies on mise
+  # putting `ghalint` on PATH (`mise install` / an activated mise environment;
+  # the CI `hooks` job runs jdx/mise-action first).
+  { id = "ghalint", name = "ghalint", entry = "ghalint run", language = "system", pass_filenames = false, always_run = true },
   { id = "pytest", name = "Pytest Test Runner", entry = "uv run --locked pytest tests", language = "system", pass_filenames = false, always_run = true },
 ]
