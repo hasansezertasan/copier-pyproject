@@ -393,8 +393,40 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      README) resolves, uploading SARIF to code-scanning. Public repos only.
    - `dependency-review.yml` (`actions/dependency-review-action`): on `pull_request`,
      **fails on high+ severity** vulnerabilities and comments a summary on failure.
-   All three SHA-pin actions like every other workflow (Renovate
-   `helpers:pinGitHubActionDigests` keeps them current).
+   - `check-security.yml.jinja`: an active scanning pass on PR/push to `main` +
+     weekly cron, complementing the three above (which are SAST / repo-posture /
+     PR-diff). Jobs:
+     - `gitleaks` (`gitleaks/gitleaks-action`, always): secret scan over full git
+       history (`fetch-depth: 0`) — catches secrets CodeQL does not and reaches
+       past commits that GitHub's push protection never guarded. Free for
+       personal accounts/public repos; an org must add a `GITLEAKS_LICENSE`
+       secret (noted inline in the workflow).
+     - `pip-audit` (always): `uv export`s the locked shipped deps
+       (`--all-extras --no-dev --no-emit-project --no-hashes`) and audits them
+       with `uvx pip-audit`. `--all-extras` is load-bearing: this template keeps
+       component dependencies under `[project.optional-dependencies]` extras with
+       an empty base `dependencies = []`, so an export without it is empty and
+       the audit/SBOM silently cover nothing. `--all-extras` applies equally to
+       the release `sbom` job's export — though that job omits `--no-hashes`
+       (the SBOM keeps per-pin integrity hashes; only pip-audit drops them, since
+       its resolver would otherwise demand a hash for every transitive pin).
+       Unlike `dependency-review` (PR-diff only, GitHub Advisory
+       DB), this re-audits the *entire* resolved tree against the PyPI Advisory
+       DB on the weekly cron, so a CVE disclosed *after* a dependency merged is
+       caught while it is still pinned.
+     - `trivy-image` (**`include_web` only**): builds the generated `Dockerfile`
+       and scans the image with `aquasecurity/trivy-action`
+       (`severity CRITICAL,HIGH`, `ignore-unfixed: true`, `exit-code: 1`). Gated
+       on `include_web` because that is the only configuration that produces a
+       Dockerfile; the filesystem-scan overlap with `pip-audit` is deliberately
+       avoided (image/OS-layer scanning is the genuine gap).
+   These SHA-pin actions like every other workflow (Renovate
+   `helpers:pinGitHubActionDigests` keeps them current). This is a standalone
+   workflow (like `codeql`/`scorecard`), *not* wired into the `ci.yml` `check`
+   aggregation gate. A CycloneDX **SBOM** (`<repo>-sbom.cdx.json`) is generated
+   from the locked runtime deps by a `sbom` job in `release-please.yml` and
+   attached to each GitHub Release (via `attach-github-release`), not kept as a
+   throwaway CI artifact.
 
 ### Required Merge Strategy (release-please depends on it)
 
