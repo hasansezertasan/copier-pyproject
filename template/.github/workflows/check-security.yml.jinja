@@ -26,12 +26,14 @@ jobs:
           # the diff. GitHub's native push protection only guards new pushes.
           fetch-depth: 0
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.9
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e  # v3.0.0
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
           # gitleaks-action is free for personal accounts and public repos. If you
-          # move this repo under a GitHub *organization*, set a GITLEAKS_LICENSE
-          # secret (https://gitleaks.io) or the action will fail.
+          # move this repo under a GitHub *organization*, add a GITLEAKS_LICENSE
+          # repository/org secret (https://gitleaks.io) — it is wired through
+          # below, but stays empty (and unused) for personal/public repos.
+          GITLEAKS_LICENSE: {% raw %}${{ secrets.GITLEAKS_LICENSE }}{% endraw %}
   pip-audit:
     name: Dependency audit (pip-audit)
     runs-on: ubuntu-latest
