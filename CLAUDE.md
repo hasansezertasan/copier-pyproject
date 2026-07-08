@@ -406,8 +406,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
        with `uvx pip-audit`. `--all-extras` is load-bearing: this template keeps
        component dependencies under `[project.optional-dependencies]` extras with
        an empty base `dependencies = []`, so an export without it is empty and
-       the audit/SBOM silently cover nothing. The same applies to the release
-       `sbom` job's export. Unlike `dependency-review` (PR-diff only, GitHub Advisory
+       the audit/SBOM silently cover nothing. `--all-extras` applies equally to
+       the release `sbom` job's export — though that job omits `--no-hashes`
+       (the SBOM keeps per-pin integrity hashes; only pip-audit drops them, since
+       its resolver would otherwise demand a hash for every transitive pin).
+       Unlike `dependency-review` (PR-diff only, GitHub Advisory
        DB), this re-audits the *entire* resolved tree against the PyPI Advisory
        DB on the weekly cron, so a CVE disclosed *after* a dependency merged is
        caught while it is still pinned.

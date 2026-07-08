@@ -31,8 +31,9 @@ jobs:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
           # gitleaks-action is free for personal accounts and public repos. If you
           # move this repo under a GitHub *organization*, add a GITLEAKS_LICENSE
-          # repository/org secret (https://gitleaks.io) — it is wired through
-          # below, but stays empty (and unused) for personal/public repos.
+          # repository/org secret (https://gitleaks.io) — it is wired into this
+          # step's env (next line), but stays empty (and unused) for
+          # personal/public repos.
           GITLEAKS_LICENSE: {% raw %}${{ secrets.GITLEAKS_LICENSE }}{% endraw %}
   pip-audit:
     name: Dependency audit (pip-audit)
