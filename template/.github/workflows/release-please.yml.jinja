@@ -372,11 +372,47 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 {%- endif %}
+  sbom:
+    name: Generate SBOM (CycloneDX)
+    timeout-minutes: 10
+    needs: release-please
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read  # IMPORTANT: actions/checkout needs read access to the repo
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Export locked runtime dependencies
+        # SBOM describes what ships: resolved deps for every optional extra
+        # (--all-extras; this project keeps its dependencies under extras, so
+        # without it the SBOM is empty), excluding dev tooling and the project.
+        run: uv export --frozen --all-extras --no-dev --no-emit-project --format requirements.txt --output-file requirements-sbom.txt
+      - name: Generate CycloneDX SBOM
+        run: uvx --from cyclonedx-bom cyclonedx-py requirements requirements-sbom.txt --output-format JSON --output-file {{github_repo_name}}-sbom.cdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: {{github_repo_name}}-sbom
+          path: {{github_repo_name}}-sbom.cdx.json
   attach-github-release:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
     timeout-minutes: 10
-    needs: [release-please, pypi-publish{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
+    needs: [release-please, pypi-publish, sbom{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: write  # IMPORTANT: Mandatory for GitHub Release
@@ -400,6 +436,13 @@ jobs:
           path: dist/executables/
           merge-multiple: true
 {%- endif %}
+      - name: Download SBOM
+        # Lands in dist/ so the CycloneDX SBOM is attached to the release
+        # alongside the distributions by the upload step below.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: {{github_repo_name}}-sbom
+          path: dist/
       - name: Attach Build Artifacts to the draft release
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
