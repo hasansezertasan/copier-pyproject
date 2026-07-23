@@ -18,10 +18,13 @@ jobs:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
+          persist-credentials: false
           # Full history so leaked secrets in past commits are found, not just
           # the diff. GitHub's native push protection only guards new pushes.
           fetch-depth: 0
@@ -39,9 +42,13 @@ jobs:
     name: Dependency audit (pip-audit)
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -70,9 +77,13 @@ jobs:
     name: Container image scan (Trivy)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Build the image
         # Build the same Dockerfile that release-please.yml publishes, so the
         # scan reflects what actually ships. Tagged locally; never pushed.

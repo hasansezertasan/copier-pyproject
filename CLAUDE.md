@@ -47,7 +47,7 @@ uv sync
 # Run tests across all Python versions
 uv run --locked tox run
 
-# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint)
+# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker)
 uv run --locked tox run -e style
 
 # Run specific Python version tests
@@ -208,6 +208,39 @@ bump, including the tools shared with the uv `style` group.
 The tox `style` env is the *single* lint/type-check orchestrator for a generated
 project — there is no Pants or Trunk config to drift against it (both were
 removed; see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
+
+**editorconfig-checker** enforces `.editorconfig` (the source of truth) on the
+axes no other tool owns — indent style/size and charset on config/markup files.
+It is delivered via the uv `style` group (PyPI wrapper, command `ec`), invoked
+in both the tox `style` env and a prek `local` hook. Unlike typos/actionlint
+(whose PyPI wrappers track their Go release tags), the `editorconfig-checker`
+PyPI wrapper lags the Go releases, so a separate upstream prek `rev` pin would
+drift permanently out of sync with the `style` group — hence the `local` hook
+(single version source, like `basedpyright`) rather than an upstream repo hook.
+Its `.editorconfig-checker.json` disables the checks other tools already own
+(trailing whitespace + final newline → prek builtins; line endings →
+`.gitattributes`/ruff; `*.py` line length → ruff) and excludes `.rst`/`.md`/`.py`
+whose indentation is semantic/marker-relative (Sphinx, markdownlint, and ruff
+are their authorities). Adding `.jsonc`/`.cff` to the 2-space `.editorconfig`
+glob was a genuine correctness fix it surfaced (both were defaulting to 4).
+
+**ghalint** enforces GitHub Actions workflow *security policy* (a different axis
+from actionlint's *correctness*): least-privilege per-job `permissions`,
+`persist-credentials: false` on checkouts, per-job `timeout-minutes`, full-length
+action SHA pins, and secret-handling policy. It ships **no** PyPI wrapper and
+**no** pre-commit hook, so it cannot join the uv `style` group or be a standard
+prek repo hook; it is delivered via **mise** (`[tools]`
+`"aqua:suzuki-shunsuke/ghalint"`, aqua backend named explicitly) and invoked as a
+prek `local` system hook that relies on mise putting `ghalint` on PATH. The CI
+`hooks` job therefore runs `jdx/mise-action` (SHA-pinned) before `prek run` so
+the binary exists. All shipped workflows are hardened to pass ghalint's strict
+defaults; the only exception is a **web-only** `.github/ghalint.yaml` that
+excludes the `job_secrets` policy for exactly the `docker-publish-preflight` and
+`docker-publish` jobs (they must expose `DOCKERHUB_USERNAME` at job-env because
+GitHub `if:` conditions cannot read the `secrets` context or step-level env).
+The two docs-push jobs (`gh-pages.yml` `deploy`, `release-please.yml`
+`deploy-docs`) set `persist-credentials: false` **and** re-supply `github.token`
+via `git remote set-url` so `ghp-import -p` can still push.
 
 ### Generated Project Structure
 

@@ -9,6 +9,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     name: Deploy Docs
     permissions:
       contents: write  # IMPORTANT: Mandatory for GitHub Pages
@@ -17,6 +18,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
@@ -35,7 +37,12 @@ jobs:
       - name: Build docs
         run: uv run --no-default-groups --extra all --group docs sphinx-build -b html docs docs/_build/html
       - name: Deploy to GitHub Pages
+        env:
+          # The checkout no longer persists credentials, so re-supply the token
+          # to the push remote explicitly (ghp-import -p pushes to gh-pages).
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           uv run --no-default-groups --extra all --group docs ghp-import -n -p -f docs/_build/html

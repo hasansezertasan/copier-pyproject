@@ -10,6 +10,7 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     name: Release Please
+    timeout-minutes: 10
     permissions:
       contents: write
       issues: write  # IMPORTANT: release-please manages PR labels via the Issues API
@@ -27,6 +28,7 @@ jobs:
           manifest-file: .github/release-please-manifest.json
   build:
     needs: release-please
+    timeout-minutes: 15
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: read  # IMPORTANT: actions/checkout needs read access to the repo
@@ -51,6 +53,7 @@ jobs:
           # a draft release's tag until it is published, which would make hatch-vcs
           # stamp the previous version.
           fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -89,6 +92,7 @@ jobs:
   pypi-publish:
     runs-on: ubuntu-latest
     name: Publish to PyPI
+    timeout-minutes: 10
     {#- Publishing to PyPI is irreversible, so it must not race ahead of the
         Docker Hub credentials preflight: gate it on the same check that gates
         docker-publish, or a half-configured secret pair would still let the
@@ -118,6 +122,7 @@ jobs:
 {%- if include_launcher %}
   build-launcher:
     name: Build Launcher (PyCrucible)
+    timeout-minutes: 20
     needs: [release-please, build]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
@@ -144,6 +149,7 @@ jobs:
           # PyCrucible embeds the source tree; hatch-vcs needs full history + tags
           # to stamp the correct version into the embedded project (mirrors `build`).
           fetch-depth: 0
+          persist-credentials: false
       - name: Build with PyCrucible
         uses: razorblade23/pycrucible-action@4a9aeaf7ed124775839031963dcd5295e67ac5f6  # v1.0.5
         with:
@@ -159,6 +165,7 @@ jobs:
 {%- if include_freezer %}
   build-freezer:
     name: Build Freezer (PyInstaller)
+    timeout-minutes: 20
     needs: [release-please, build]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
@@ -185,6 +192,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -213,6 +221,7 @@ jobs:
 {%- if include_compiler %}
   build-compiler:
     name: Build Compiler (Nuitka)
+    timeout-minutes: 20
     needs: [release-please, build]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
@@ -239,6 +248,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -271,6 +281,7 @@ jobs:
 {%- if include_web %}
   docker-publish-preflight:
     name: Validate Docker Hub Credentials
+    timeout-minutes: 5
     needs: release-please
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     runs-on: ubuntu-latest
@@ -299,6 +310,7 @@ jobs:
         run: echo "::notice::DOCKERHUB_USERNAME/DOCKERHUB_TOKEN secrets are not set — skipping Docker Hub, publishing to GHCR only."
   docker-publish:
     name: Publish Docker Image
+    timeout-minutes: 15
     needs: [release-please, build, docker-publish-preflight]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     runs-on: ubuntu-latest
@@ -312,6 +324,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3
       - name: Set up Docker Buildx
@@ -360,6 +374,7 @@ jobs:
 {%- endif %}
   sbom:
     name: Generate SBOM (CycloneDX)
+    timeout-minutes: 10
     needs: release-please
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     runs-on: ubuntu-latest
@@ -368,6 +383,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -394,6 +411,7 @@ jobs:
   attach-github-release:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
+    timeout-minutes: 10
     needs: [release-please, pypi-publish, sbom{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
@@ -440,6 +458,7 @@ jobs:
   finalize-release:
     runs-on: ubuntu-latest
     name: Publish the GitHub Release
+    timeout-minutes: 10
     needs: {% if include_web %}[release-please, pypi-publish, attach-github-release, docker-publish]{% else %}[release-please, pypi-publish, attach-github-release]{% endif %}
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
@@ -478,6 +497,7 @@ jobs:
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs
+    timeout-minutes: 15
     # Deploy docs inline after the release is published. The `release: published`
     # event that finalize-release emits cannot trigger a separate workflow,
     # because events fired by the GITHUB_TOKEN do not start new workflow runs
@@ -492,6 +512,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -510,7 +531,12 @@ jobs:
       - name: Build docs
         run: uv run --no-default-groups --extra all --group docs sphinx-build -b html docs docs/_build/html
       - name: Deploy to GitHub Pages
+        env:
+          # The checkout no longer persists credentials, so re-supply the token
+          # to the push remote explicitly (ghp-import -p pushes to gh-pages).
+          GH_TOKEN: {% raw %}${{ github.token }}{% endraw %}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin {% raw %}"https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"{% endraw %}
           uv run --no-default-groups --extra all --group docs ghp-import -n -p -f docs/_build/html

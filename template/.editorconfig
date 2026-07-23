@@ -26,8 +26,11 @@ indent_size = unset
 indent_style = tab
 end_of_line = crlf
 
-# HTML, CSS, JavaScript, JSON, Markdown, Shell, YAML, TOML files use 2 spaces for indentation
-[*.{css,html,js,json,md,sh,yml,yaml,toml}]
+# HTML, CSS, JavaScript, JSON(C), CFF, Markdown, Shell, YAML, TOML files use 2
+# spaces for indentation. `.jsonc` (JSON-with-comments configs) and `.cff`
+# (Citation File Format, which is YAML) are variants of json/yaml and share
+# their 2-space convention, so they are listed explicitly.
+[*.{css,html,js,json,jsonc,cff,md,sh,yml,yaml,toml}]
 indent_size = 2
 
 # Ignore binary or generated files
