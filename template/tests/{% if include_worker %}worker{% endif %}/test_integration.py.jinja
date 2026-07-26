@@ -12,13 +12,13 @@ import asyncio
 
 import pytest
 {%- if worker_broker == "kafka" %}
-from testcontainers.kafka import KafkaContainer
+from testcontainers.community.kafka import KafkaContainer
 {%- elif worker_broker == "nats" %}
-from testcontainers.nats import NatsContainer
+from testcontainers.community.nats import NatsContainer
 {%- elif worker_broker == "rabbitmq" %}
-from testcontainers.rabbitmq import RabbitMqContainer
+from testcontainers.community.rabbitmq import RabbitMqContainer
 {%- elif worker_broker == "redis" %}
-from testcontainers.redis import RedisContainer
+from testcontainers.community.redis import RedisContainer
 {%- endif %}
 
 from {{github_repo_name}}.worker.app import VersionRequest, build_broker
