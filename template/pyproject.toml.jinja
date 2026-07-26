@@ -208,7 +208,9 @@ test = [
   "inline-snapshot",
 {%- if include_worker %}
   # Integration tests start a real {{worker_broker}} in a container (ADR-008).
-  "testcontainers[{{ worker_broker }}]>=4.0.0",
+  # >=4.15.0 for the `testcontainers.community.*` module namespace (the old
+  # top-level `testcontainers.{{ worker_broker }}` path is deprecated there).
+  "testcontainers[{{ worker_broker }}]>=4.15.0",
   # Bounds each integration test (`--timeout` in the integration tox env) so a
   # wedged container/broker fails with a traceback instead of hanging until the
   # CI job timeout kills the run with no diagnostics.
@@ -225,7 +227,6 @@ docs = [
     "sphinx-paramlinks==0.6.0",
     "auto-pytabs[sphinx]==0.5.0",
     "myst-parser==4.0.1",
-    "ghp-import==2.1.0",
 {%- if include_cli %}
     "sphinx-click==6.2.0",
 {%- endif %}
@@ -686,6 +687,9 @@ commands = [
   ],
   [
     "actionlint",
+  ],
+  [
+    "ec",
   ],
   # ["yamlfmt", "."],
 ]

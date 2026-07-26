@@ -21,6 +21,7 @@ jobs:
   zizmor:
     name: Audit workflows with zizmor
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       security-events: write  # upload SARIF to the code-scanning dashboard
       contents: read  # only needed for private/internal repos
