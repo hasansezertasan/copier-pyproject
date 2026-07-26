@@ -70,7 +70,7 @@ Release automation is standardized on [release-please](https://github.com/google
 1. On push to `main`, release-please opens a release PR derived from your Conventional Commits.
 2. Merging that PR creates the git tag and a **draft** GitHub Release.
 3. The same workflow then builds with uv, publishes to PyPI via trusted publishing, attaches the build artifacts to the draft, and only then **un-drafts** the release — so the release is never visible without its artifacts.
-4. Once the release is un-drafted, the workflow's `deploy-docs` job builds the Sphinx docs and publishes them with `ghp-import`. Docs deploy inline here (rather than via a `release: published` trigger) because an event fired by `GITHUB_TOKEN` cannot start another workflow; `.github/workflows/gh-pages.yml` is kept for manual redeploys only.
+4. Once the release is un-drafted, the workflow's `deploy-docs` job builds the Sphinx docs and publishes them with `JamesIves/github-pages-deploy-action`. Docs deploy inline here (rather than via a `release: published` trigger) because an event fired by `GITHUB_TOKEN` cannot start another workflow; `.github/workflows/gh-pages.yml` is kept for manual redeploys only.
 
 CI runs on macOS/Linux/Windows via `.github/workflows/ci.yml.jinja`.
 
@@ -170,7 +170,7 @@ release-please ─► build ─┬─► pypi-publish ────────�
                          ├─► build-compiler ──────┘                          │
                          │   (if launcher / freezer / compiler)              ▼
                          └─► docker-publish ───────────────────────────────► finalize-release        ► deploy-docs
-                             (if web)                                        (un-draft + reconcile)    (sphinx-build + ghp-import)
+                             (if web)                                        (un-draft + reconcile)    (sphinx-build + pages-deploy)
 ```
 
 - **release-please**: Opens/maintains the release PR; on merge, tags and creates the draft release
@@ -180,7 +180,7 @@ release-please ─► build ─┬─► pypi-publish ────────�
 - **docker-publish**: Builds and pushes multi-arch Docker images (conditional)
 - **attach-github-release**: Attaches all artifacts to the still-draft release
 - **finalize-release**: Un-drafts the release and reconciles the next release PR
-- **deploy-docs**: Builds the Sphinx docs and publishes them with `ghp-import` after the release is un-drafted (inline, since a `GITHUB_TOKEN`-fired `release: published` event can't trigger a separate workflow)
+- **deploy-docs**: Builds the Sphinx docs and publishes them with `JamesIves/github-pages-deploy-action` after the release is un-drafted (inline, since a `GITHUB_TOKEN`-fired `release: published` event can't trigger a separate workflow)
 
 ## Author
 

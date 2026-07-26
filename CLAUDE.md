@@ -231,16 +231,22 @@ action SHA pins, and secret-handling policy. It ships **no** PyPI wrapper and
 **no** pre-commit hook, so it cannot join the uv `style` group or be a standard
 prek repo hook; it is delivered via **mise** (`[tools]`
 `"aqua:suzuki-shunsuke/ghalint"`, aqua backend named explicitly) and invoked as a
-prek `local` system hook that relies on mise putting `ghalint` on PATH. The CI
-`hooks` job therefore runs `jdx/mise-action` (SHA-pinned) before `prek run` so
-the binary exists. All shipped workflows are hardened to pass ghalint's strict
+prek `local` system hook that invokes it through `mise exec -- ghalint run` so
+the mise-managed binary resolves deterministically after `mise install` without
+requiring an activated mise shell (shims on PATH) — only `mise` itself need be on
+PATH. The CI `hooks` job therefore runs `jdx/mise-action` (SHA-pinned) before
+`prek run` so both `mise` and the binary exist. All shipped workflows are hardened to pass ghalint's strict
 defaults; the only exception is a **web-only** `.github/ghalint.yaml` that
 excludes the `job_secrets` policy for exactly the `docker-publish-preflight` and
 `docker-publish` jobs (they must expose `DOCKERHUB_USERNAME` at job-env because
 GitHub `if:` conditions cannot read the `secrets` context or step-level env).
 The two docs-push jobs (`gh-pages.yml` `deploy`, `release-please.yml`
-`deploy-docs`) set `persist-credentials: false` **and** re-supply `github.token`
-via `git remote set-url` so `ghp-import -p` can still push.
+`deploy-docs`) set `persist-credentials: false` and publish via
+`JamesIves/github-pages-deploy-action` (SHA-pinned), which authenticates from its
+`token` input (default `github.token`) without ever writing the token into
+`.git/config` — replacing the earlier hand-rolled `git remote set-url` +
+`ghp-import` push. `.nojekyll` is emitted by the `sphinx.ext.githubpages`
+extension at build time (so `_static/` is served), not by the deploy step.
 
 ### Generated Project Structure
 
@@ -375,8 +381,8 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    - `attach-github-release`: uploads artifacts to the still-draft release.
    - `finalize-release`: un-drafts the release and reconciles the phantom
      next-release PR (close + re-dispatch — bounded to one re-run).
-   - `deploy-docs` (`needs: finalize-release`): builds the Sphinx docs and runs
-     `ghp-import` to publish them. Lives in
+   - `deploy-docs` (`needs: finalize-release`): builds the Sphinx docs and
+     publishes them via `JamesIves/github-pages-deploy-action`. Lives in
      this workflow rather than reacting to `release: published` because an event
      fired by `finalize-release`'s `GITHUB_TOKEN` cannot trigger another workflow
      (the same loop-prevention rule that forces the `workflow_dispatch`

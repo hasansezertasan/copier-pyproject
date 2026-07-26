@@ -531,12 +531,10 @@ jobs:
       - name: Build docs
         run: uv run --no-default-groups --extra all --group docs sphinx-build -b html docs docs/_build/html
       - name: Deploy to GitHub Pages
-        env:
-          # The checkout no longer persists credentials, so re-supply the token
-          # to the push remote explicitly (ghp-import -p pushes to gh-pages).
-          GH_TOKEN: {% raw %}${{ github.token }}{% endraw %}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin {% raw %}"https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"{% endraw %}
-          uv run --no-default-groups --extra all --group docs ghp-import -n -p -f docs/_build/html
+        # Publishes the built HTML to the gh-pages branch. The action does its own
+        # git auth from the token input (default github.token) without writing it
+        # to .git/config, so the checkout above keeps persist-credentials: false.
+        # sphinx.ext.githubpages emits .nojekyll so _static/ is served.
+        uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f  # v4.8.0
+        with:
+          folder: docs/_build/html
