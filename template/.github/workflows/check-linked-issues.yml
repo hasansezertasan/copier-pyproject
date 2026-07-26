@@ -7,6 +7,7 @@ jobs:
   check-linked-issues:
     name: Verify linked issue
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       issues: read
       pull-requests: write

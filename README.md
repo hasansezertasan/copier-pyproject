@@ -6,10 +6,10 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 
 - uv-first workflow with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions from Git tags.
 - Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
-- QA stack: pytest with coverage/xdist/reruns (and `.github/codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint.
+- QA stack: pytest with coverage/xdist/reruns (and `.github/codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, and editorconfig-checker.
 - Docs and site: Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme, autodoc API reference, and a GitHub Pages deploy workflow.
 - Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, linked-issue enforcement, PR task-list completion check, issue/PR templates, `SECURITY.md` policy, `SUPPORT.md`, `CODEOWNERS`, dependency management (Renovate), always-on Commitizen and git hooks (run via prek), always-on `CITATION.cff` with a validation workflow, devcontainer, VS Code launch config, gitignore, `.gitattributes`, FUNDING, and LICENSE.
-- Supply-chain security: CodeQL analysis, OpenSSF Scorecard (with README badge), and a dependency-review gate that blocks PRs introducing high-severity vulnerabilities.
+- Supply-chain security: CodeQL analysis, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks PRs introducing high-severity vulnerabilities, and ghalint enforcing workflow security policy (least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, full-length action SHA pins) — delivered via mise since it ships no PyPI/pre-commit distribution.
 - AI-agent onboarding: a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
 - Extra tooling: `.dockerignore`, badge-rich README template, and enhanced VS Code launch.json for debugging (current file, tests, attach, entry points).
 
@@ -70,7 +70,7 @@ Release automation is standardized on [release-please](https://github.com/google
 1. On push to `main`, release-please opens a release PR derived from your Conventional Commits.
 2. Merging that PR creates the git tag and a **draft** GitHub Release.
 3. The same workflow then builds with uv, publishes to PyPI via trusted publishing, attaches the build artifacts to the draft, and only then **un-drafts** the release — so the release is never visible without its artifacts.
-4. Once the release is un-drafted, the workflow's `deploy-docs` job builds the Sphinx docs and publishes them with `ghp-import`. Docs deploy inline here (rather than via a `release: published` trigger) because an event fired by `GITHUB_TOKEN` cannot start another workflow; `.github/workflows/gh-pages.yml` is kept for manual redeploys only.
+4. Once the release is un-drafted, the workflow's `deploy-docs` job builds the Sphinx docs and publishes them with `JamesIves/github-pages-deploy-action`. Docs deploy inline here (rather than via a `release: published` trigger) because an event fired by `GITHUB_TOKEN` cannot start another workflow; `.github/workflows/gh-pages.yml` is kept for manual redeploys only.
 
 CI runs on macOS/Linux/Windows via `.github/workflows/ci.yml.jinja`.
 
@@ -170,7 +170,7 @@ release-please ─► build ─┬─► pypi-publish ────────�
                          ├─► build-compiler ──────┘                          │
                          │   (if launcher / freezer / compiler)              ▼
                          └─► docker-publish ───────────────────────────────► finalize-release        ► deploy-docs
-                             (if web)                                        (un-draft + reconcile)    (sphinx-build + ghp-import)
+                             (if web)                                        (un-draft + reconcile)    (sphinx-build + pages-deploy)
 ```
 
 - **release-please**: Opens/maintains the release PR; on merge, tags and creates the draft release
@@ -180,7 +180,7 @@ release-please ─► build ─┬─► pypi-publish ────────�
 - **docker-publish**: Builds and pushes multi-arch Docker images (conditional)
 - **attach-github-release**: Attaches all artifacts to the still-draft release
 - **finalize-release**: Un-drafts the release and reconciles the next release PR
-- **deploy-docs**: Builds the Sphinx docs and publishes them with `ghp-import` after the release is un-drafted (inline, since a `GITHUB_TOKEN`-fired `release: published` event can't trigger a separate workflow)
+- **deploy-docs**: Builds the Sphinx docs and publishes them with `JamesIves/github-pages-deploy-action` after the release is un-drafted (inline, since a `GITHUB_TOKEN`-fired `release: published` event can't trigger a separate workflow)
 
 ## Author
 
