@@ -486,9 +486,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      need GitHub Advanced Security, and the upload simply no-ops without it.
 
    The hardening conventions every workflow (new or edited) must keep so the gate
-   stays green — **regular** persona (the hook default; deliberately not `strict`,
-   since Renovate's `helpers:pinGitHubActionDigests` already SHA-pins every
-   `uses:`):
+   stays green — **regular** persona (the hook default; deliberately not the
+   stricter `pedantic` persona, since Renovate's
+   `helpers:pinGitHubActionDigests` already SHA-pins every `uses:`):
    - **`persist-credentials: false`** on every `actions/checkout`, with no
      exceptions — the two docs-push jobs (`gh-pages.yml` `deploy`,
      release-please's `deploy-docs`) publish via `JamesIves/github-pages-deploy-action`,

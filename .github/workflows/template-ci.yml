@@ -88,6 +88,14 @@ jobs:
         working-directory: ../rendered
         run: |
           git add -A
+          # Fail loudly if the render produced no workflows: prek runs a hook only
+          # against matching tracked files and, on zero matches, prints
+          # "no files to check ... Skipped" and exits 0 — which would turn this
+          # gate into a green no-op if the render ever stopped emitting workflows.
+          if [ "$(git ls-files '.github/workflows/*.yml' '.github/workflows/*.yaml' | wc -l)" -eq 0 ]; then
+            echo "::error::no rendered workflows staged for zizmor to audit"
+            exit 1
+          fi
           uv run --group prek prek run zizmor --all-files --show-diff-on-failure
       - name: Style checks
         working-directory: ../rendered

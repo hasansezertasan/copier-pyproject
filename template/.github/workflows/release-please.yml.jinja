@@ -489,9 +489,12 @@ jobs:
         # documented exception to GITHUB_TOKEN loop-prevention, so no PAT needed.)
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-          # ref_name is the pushed branch name (attacker-influenced on forks), so
-          # it and the other GitHub context values are read through env, never
-          # interpolated straight into the shell.
+          # GitHub-context values are read through env and referenced as shell
+          # vars rather than interpolated inline, per the repo's no-untrusted-
+          # context-in-run convention (this also satisfies zizmor's
+          # template-injection audit). This workflow runs only on push to main /
+          # workflow_dispatch, so these values are not fork-controlled here; the
+          # indirection is kept as uniform hygiene.
           REPO: {% raw %}${{ github.repository }}{% endraw %}
           REF_NAME: {% raw %}${{ github.ref_name }}{% endraw %}
           WORKFLOW: {% raw %}${{ github.workflow }}{% endraw %}
