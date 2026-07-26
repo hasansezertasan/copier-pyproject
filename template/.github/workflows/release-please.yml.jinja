@@ -45,6 +45,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
+          persist-credentials: false
           # hatch-vcs derives the version from the git tag, so fetch full history
           # and tags. `force-tag-creation` in the release-please config makes
           # release-please create the tag immediately — GitHub otherwise withholds
@@ -141,6 +142,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
+          persist-credentials: false
           # PyCrucible embeds the source tree; hatch-vcs needs full history + tags
           # to stamp the correct version into the embedded project (mirrors `build`).
           fetch-depth: 0
@@ -184,6 +186,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
@@ -238,6 +241,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
@@ -312,6 +316,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3
       - name: Set up Docker Buildx
@@ -368,6 +374,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -428,6 +436,9 @@ jobs:
       - name: Attach Build Artifacts to the draft release
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+          # Pass GitHub context through env, never interpolated into the shell.
+          TAG_NAME: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+          REPO: {% raw %}${{ github.repository }}{% endraw %}
         shell: bash
         run: |
           # Upload every file under dist/{% if include_launcher or include_freezer or include_compiler %} (executables land in dist/executables/, so a
@@ -436,7 +447,7 @@ jobs:
           # exits 0, which would silently publish a release with zero assets attached.
           test "$(find dist -type f | wc -l)" -gt 0 \
             || { echo "::error::no artifacts found under dist/ to attach to the release"; exit 1; }
-          find dist -type f -print0 | xargs -0 gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
+          find dist -type f -print0 | xargs -0 gh release upload "$TAG_NAME" --clobber --repo "$REPO"
   finalize-release:
     runs-on: ubuntu-latest
     name: Publish the GitHub Release
@@ -450,7 +461,9 @@ jobs:
       - name: Publish the draft release
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-        run: gh release edit {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --draft=false --repo {% raw %}"${{ github.repository }}"{% endraw %}
+          TAG_NAME: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+          REPO: {% raw %}${{ github.repository }}{% endraw %}
+        run: gh release edit "$TAG_NAME" --draft=false --repo "$REPO"
       - name: Reconcile the next release PR against the now-published release
         # release-please derives its commit range from the latest *published*
         # GitHub Release and ignores drafts. The release-please job above may have
@@ -465,16 +478,22 @@ jobs:
         # documented exception to GITHUB_TOKEN loop-prevention, so no PAT needed.)
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+          # ref_name is the pushed branch name (attacker-influenced on forks), so
+          # it and the other GitHub context values are read through env, never
+          # interpolated straight into the shell.
+          REPO: {% raw %}${{ github.repository }}{% endraw %}
+          REF_NAME: {% raw %}${{ github.ref_name }}{% endraw %}
+          WORKFLOW: {% raw %}${{ github.workflow }}{% endraw %}
         run: |
           pr="$(gh pr list --state open \
-            --repo {% raw %}"${{ github.repository }}"{% endraw %} \
-            --head {% raw %}"release-please--branches--${{ github.ref_name }}"{% endraw %} \
+            --repo "$REPO" \
+            --head "release-please--branches--$REF_NAME" \
             --json number --jq '.[0].number // empty')"
           if [ -n "$pr" ]; then
             echo "Closing phantom release PR #$pr"
-            gh pr close "$pr" --delete-branch --repo {% raw %}"${{ github.repository }}"{% endraw %}
+            gh pr close "$pr" --delete-branch --repo "$REPO"
           fi
-          gh workflow run {% raw %}"${{ github.workflow }}" --ref "${{ github.ref_name }}" --repo "${{ github.repository }}"{% endraw %}
+          gh workflow run "$WORKFLOW" --ref "$REF_NAME" --repo "$REPO"
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs
@@ -489,6 +508,10 @@ jobs:
       contents: write  # IMPORTANT: Mandatory for GitHub Pages
     steps:
       - name: Checkout repository
+        # zizmor: ignore[artipacked] — the deploy step below runs `ghp-import -p`,
+        # which `git push`es to the gh-pages branch using the checkout's persisted
+        # GITHUB_TOKEN. persist-credentials: false would break that push; the
+        # contents: write scope is confined to this deploy-only job.
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
         with:
           fetch-depth: 0

@@ -6,14 +6,20 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+# Least-privilege default: no token scopes unless a job opts in below.
+permissions: {}
 jobs:
   hooks:
     name: Run prek hooks
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read  # actions/checkout needs read access to the repo
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -36,6 +42,8 @@ jobs:
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     name: Run Tests on {% raw %}${{ matrix.os }}{% endraw %}
     timeout-minutes: 10
+    permissions:
+      contents: read  # actions/checkout needs read access to the repo
     env:
       # The `secrets` context is not available in `if:` conditions, so surface
       # CODECOV_TOKEN as a presence flag — never expose the value job-wide.
@@ -67,6 +75,8 @@ jobs:
           env || true
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -120,6 +130,8 @@ jobs:
 {%- if include_launcher %}
   build-launcher-check:
     name: Build Launcher (PyCrucible) on {% raw %}${{ matrix.os }}{% endraw %}
+    permissions:
+      contents: read  # actions/checkout needs read access to the repo
     strategy:
       fail-fast: false
       matrix:
@@ -135,6 +147,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Build with PyCrucible
         uses: razorblade23/pycrucible-action@4a9aeaf7ed124775839031963dcd5295e67ac5f6  # v1.0.5
         with:
@@ -170,6 +184,8 @@ jobs:
 {%- if include_freezer %}
   build-freezer-check:
     name: Build Freezer (PyInstaller) on {% raw %}${{ matrix.os }}{% endraw %}
+    permissions:
+      contents: read  # actions/checkout needs read access to the repo
     strategy:
       fail-fast: false
       matrix:
@@ -185,6 +201,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -221,6 +239,8 @@ jobs:
 {%- if include_compiler %}
   build-compiler-check:
     name: Build Compiler (Nuitka) on {% raw %}${{ matrix.os }}{% endraw %}
+    permissions:
+      contents: read  # actions/checkout needs read access to the repo
     strategy:
       fail-fast: false
       matrix:
@@ -236,6 +256,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
@@ -289,9 +311,13 @@ jobs:
     # real driver and serialization the in-memory unit tests stub out. See ADR-008.
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read  # actions/checkout needs read access to the repo
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
         with:
