@@ -62,6 +62,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
+          persist-credentials: false
           # hatch-vcs (in generated projects) and copier --vcs-ref=HEAD need
           # full history and tags.
           fetch-depth: 0
@@ -75,6 +76,27 @@ jobs:
         run: >
           uvx copier copy --data-file .example-input.yml ${{ matrix.scenario.data }} --defaults --trust --vcs-ref=HEAD . ../rendered
 
+      - name: Audit rendered workflows with zizmor
+        # The template's workflows are *.jinja and cannot be scanned directly, so
+        # audit their rendered form here using the generated project's OWN zizmor
+        # prek hook — the exact gate a generated repo runs in CI (the same
+        # zizmor version, not a bare `uvx zizmor` that may pin a different one).
+        # Across the matrix this exercises every conditional workflow branch
+        # (web/worker/executables/...). prek operates on git-tracked files, and
+        # copier's post-copy `git init` leaves the rendered tree untracked, so
+        # stage it first.
+        working-directory: ../rendered
+        run: |
+          git add -A
+          # Fail loudly if the render produced no workflows: prek runs a hook only
+          # against matching tracked files and, on zero matches, prints
+          # "no files to check ... Skipped" and exits 0 — which would turn this
+          # gate into a green no-op if the render ever stopped emitting workflows.
+          if [ "$(git ls-files '.github/workflows/*.yml' '.github/workflows/*.yaml' | wc -l)" -eq 0 ]; then
+            echo "::error::no rendered workflows staged for zizmor to audit"
+            exit 1
+          fi
+          uv run --group prek prek run zizmor --all-files --show-diff-on-failure
       - name: Style checks
         working-directory: ../rendered
         run: uv run tox run -e style

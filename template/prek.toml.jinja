@@ -111,6 +111,16 @@ repo = "https://github.com/rhysd/actionlint"
 rev = "v1.7.12"
 hooks = [{ id = "actionlint", name = "Actionlint Linter" }]
 
+# zizmor statically audits the GitHub Actions workflows for security issues
+# (credential persistence, excessive permissions, template injection, ...). This
+# hook is the blocking gate — it runs in the CI `hooks` job and locally; the
+# .github/workflows/zizmor.yml workflow additionally uploads findings to the
+# Security tab as a non-blocking dashboard. Default (regular) persona.
+[[repos]]
+repo = "https://github.com/zizmorcore/zizmor-pre-commit"
+rev = "v1.9.0"
+hooks = [{ id = "zizmor", name = "Zizmor GitHub Actions Auditor" }]
+
 [[repos]]
 repo = "https://github.com/adrienverge/yamllint.git"
 rev = "v1.37.1"

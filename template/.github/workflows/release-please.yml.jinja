@@ -446,6 +446,9 @@ jobs:
       - name: Attach Build Artifacts to the draft release
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+          # Pass GitHub context through env, never interpolated into the shell.
+          TAG_NAME: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+          REPO: {% raw %}${{ github.repository }}{% endraw %}
         shell: bash
         run: |
           # Upload every file under dist/{% if include_launcher or include_freezer or include_compiler %} (executables land in dist/executables/, so a
@@ -454,7 +457,7 @@ jobs:
           # exits 0, which would silently publish a release with zero assets attached.
           test "$(find dist -type f | wc -l)" -gt 0 \
             || { echo "::error::no artifacts found under dist/ to attach to the release"; exit 1; }
-          find dist -type f -print0 | xargs -0 gh release upload {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --clobber --repo {% raw %}"${{ github.repository }}"{% endraw %}
+          find dist -type f -print0 | xargs -0 gh release upload "$TAG_NAME" --clobber --repo "$REPO"
   finalize-release:
     runs-on: ubuntu-latest
     name: Publish the GitHub Release
@@ -469,7 +472,9 @@ jobs:
       - name: Publish the draft release
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-        run: gh release edit {% raw %}"${{ needs.release-please.outputs.tag_name }}"{% endraw %} --draft=false --repo {% raw %}"${{ github.repository }}"{% endraw %}
+          TAG_NAME: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+          REPO: {% raw %}${{ github.repository }}{% endraw %}
+        run: gh release edit "$TAG_NAME" --draft=false --repo "$REPO"
       - name: Reconcile the next release PR against the now-published release
         # release-please derives its commit range from the latest *published*
         # GitHub Release and ignores drafts. The release-please job above may have
@@ -484,16 +489,25 @@ jobs:
         # documented exception to GITHUB_TOKEN loop-prevention, so no PAT needed.)
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+          # GitHub-context values are read through env and referenced as shell
+          # vars rather than interpolated inline, per the repo's no-untrusted-
+          # context-in-run convention (this also satisfies zizmor's
+          # template-injection audit). This workflow runs only on push to main /
+          # workflow_dispatch, so these values are not fork-controlled here; the
+          # indirection is kept as uniform hygiene.
+          REPO: {% raw %}${{ github.repository }}{% endraw %}
+          REF_NAME: {% raw %}${{ github.ref_name }}{% endraw %}
+          WORKFLOW: {% raw %}${{ github.workflow }}{% endraw %}
         run: |
           pr="$(gh pr list --state open \
-            --repo {% raw %}"${{ github.repository }}"{% endraw %} \
-            --head {% raw %}"release-please--branches--${{ github.ref_name }}"{% endraw %} \
+            --repo "$REPO" \
+            --head "release-please--branches--$REF_NAME" \
             --json number --jq '.[0].number // empty')"
           if [ -n "$pr" ]; then
             echo "Closing phantom release PR #$pr"
-            gh pr close "$pr" --delete-branch --repo {% raw %}"${{ github.repository }}"{% endraw %}
+            gh pr close "$pr" --delete-branch --repo "$REPO"
           fi
-          gh workflow run {% raw %}"${{ github.workflow }}" --ref "${{ github.ref_name }}" --repo "${{ github.repository }}"{% endraw %}
+          gh workflow run "$WORKFLOW" --ref "$REF_NAME" --repo "$REPO"
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs

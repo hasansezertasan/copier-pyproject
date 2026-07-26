@@ -195,7 +195,15 @@ option). They are run via [prek](https://prek.j178.dev), a Rust-native
 pre-commit replacement, configured by a native `prek.toml` (not a
 `.pre-commit-config.yaml`). The dependency group is `prek` and contains only
 `prek`; both the tox `prek` env (`tox run -e prek`) and the CI `hooks` job invoke
-`prek run --all-files`.
+`prek run --all-files`. One of those hooks is `zizmor`
+(`zizmorcore/zizmor-pre-commit`), which statically audits the GitHub Actions
+workflows — it is the **blocking** half of the workflow-hardening setup (see the
+`zizmor.yml` item under CI/CD Workflows below). Because `prek run --all-files`
+runs in the CI `hooks` job, a workflow security regression fails CI with no extra
+job. NOTE: verify zizmor changes with the **prek hook** (`prek run zizmor
+--all-files`), not a bare `uvx zizmor` — the two can pin different zizmor versions
+whose default-persona `dangerous-triggers` behavior differs, and the prek hook is
+what actually gates generated projects.
 
 The tox `style` env (backed by the uv-managed `style` dependency group) is the
 canonical lint/type-check runner for the full suite; the prek-run `prek.toml` is
@@ -466,6 +474,45 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    from the locked runtime deps by a `sbom` job in `release-please.yml` and
    attached to each GitHub Release (via `attach-github-release`), not kept as a
    throwaway CI artifact.
+8. **Workflow hardening + zizmor** (always included). Every generated workflow
+   follows a strict [zizmor](https://docs.zizmor.sh/) posture, enforced two ways:
+   - **Blocking gate:** the `zizmor` prek hook (see the prek section above) runs
+     in the CI `hooks` job and locally; it hard-fails on any finding.
+   - **Dashboard:** `zizmor.yml` (static, `zizmorcore/zizmor-action`, SHA-pinned)
+     uploads SARIF to the Security tab on push/PR to `main`. Non-blocking by
+     design (advanced-security mode never fails on findings); least-privilege
+     (`permissions: {}` top-level, `security-events: write` on the job) and itself
+     passes the audit it runs. Public repos get code scanning free; private repos
+     need GitHub Advanced Security, and the upload simply no-ops without it.
+
+   The hardening conventions every workflow (new or edited) must keep so the gate
+   stays green — **regular** persona (the hook default; deliberately not the
+   stricter `pedantic` persona, since Renovate's
+   `helpers:pinGitHubActionDigests` already SHA-pins every `uses:`):
+   - **`persist-credentials: false`** on every `actions/checkout`, with no
+     exceptions — the two docs-push jobs (`gh-pages.yml` `deploy`,
+     release-please's `deploy-docs`) publish via `JamesIves/github-pages-deploy-action`,
+     which authenticates from its own `token` input rather than the checkout
+     credential (see the docs-deployment note above), so they need no
+     `artipacked` ignore.
+   - **`permissions: {}`** at workflow top-level, with per-job least-privilege
+     grants (only `contents: read` for checkout-only jobs, etc.).
+   - **No untrusted `${{ }}` in `run:` blocks** — GitHub context
+     (`github.ref_name`/`repository`/`workflow`) is passed via `env:` and read as
+     `"$VAR"` (template-injection). The `finalize-release`/`attach-github-release`
+     steps in `release-please.yml` follow this.
+   - **Intentional `pull_request_target`** workflows (`check-pr-title`,
+     `check-branch-name`, `check-linked-issues`, `task-completed-check`, `label`,
+     `issue-manager`) carry a justified `# zizmor: ignore[dangerous-triggers]`:
+     they never check out or execute PR code and read untrusted input only via
+     `env:`, so the trigger is safe. Do not remove these ignores.
+
+   This repo's OWN workflows (`.github/workflows/`) get the same treatment plus a
+   `zizmor.yml` dashboard; this repo's `prek.toml` scopes the hook with
+   `files = '\.github/workflows/.*\.ya?ml$'` so it audits the template's static
+   `.yml` workflows too but skips the un-renderable `*.jinja` templates (whose
+   rendered form is audited by the generated project's own hook, and end-to-end by
+   rendering a project and running `prek run zizmor --all-files` in it).
 
 ### Required Merge Strategy (release-please depends on it)
 

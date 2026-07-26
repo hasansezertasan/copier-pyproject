@@ -1,0 +1,30 @@
+---
+# zizmor security dashboard for this template repository's own workflows. It
+# audits this repo's .github/workflows/ plus the template's static .yml
+# workflows (the .jinja templates are skipped — zizmor cannot parse Jinja; their
+# rendered form is audited by the generated project's own zizmor hook). Findings
+# are uploaded to the Security tab (code scanning) for triage. Non-blocking: it
+# does not fail the build on findings.
+name: zizmor
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+permissions: {}
+jobs:
+  zizmor:
+    name: Audit workflows with zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      security-events: write  # upload SARIF to the code-scanning dashboard
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@6fc4b006235f201fdab3722e17240ab420d580e5  # v0.6.1

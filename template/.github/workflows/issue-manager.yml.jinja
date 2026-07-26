@@ -10,7 +10,10 @@ on:
   issues:
     types:
       - labeled
-  pull_request_target:
+  # Fires only on the `labeled` event so a maintainer's label triggers the
+  # auto-close reminder on PRs (including forks). It is safe here: no PR code is
+  # checked out or executed — the pinned action reads only the label and comments.
+  pull_request_target:  # zizmor: ignore[dangerous-triggers]
     types:
       - labeled
   workflow_dispatch:
