@@ -553,9 +553,11 @@ jobs:
         with:
           folder: docs/_build/html
           # Root docs publish uses the action's default clean: true, which would
-          # wipe the PR preview tree docs-preview.yml maintains. Preserve it. See
-          # ADR-010.
+          # wipe the PR preview tree docs-preview.yml maintains. Preserve it, and
+          # disable the default force-push so a concurrent preview deploy is not
+          # clobbered (the action merges instead of overwriting). See ADR-010.
           clean-exclude: pr-preview/**
+          force: false
   notify-released-issues:
     runs-on: ubuntu-latest
     name: Notify released issues
@@ -567,7 +569,8 @@ jobs:
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       issues: write  # IMPORTANT: comment on the issues this release closed
-      contents: read  # IMPORTANT: read commits/PRs to map the release to issues
+      contents: read  # IMPORTANT: read commits to map the release to issues
+      pull-requests: read  # IMPORTANT: listPullRequestsAssociatedWithCommit needs this
     steps:
       - name: Comment on issues closed by this release
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
@@ -596,11 +599,14 @@ jobs:
             }
 
             // Commits in (previous, this] release, then the PRs that carried them.
-            const { data: comparison } = await github.rest.repos.compareCommitsWithBasehead({
-              owner, repo, basehead: `${previous.tag_name}...${tag}`,
+            // Paginate: the compare endpoint caps at 250 commits per page, so a
+            // large release would otherwise silently miss the tail (github.paginate
+            // aggregates the `.commits` arrays across pages).
+            const commits = await github.paginate(github.rest.repos.compareCommitsWithBasehead, {
+              owner, repo, basehead: `${previous.tag_name}...${tag}`, per_page: 100,
             });
             const prNumbers = new Set();
-            for (const commit of comparison.commits || []) {
+            for (const commit of commits) {
               const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
                 owner, repo, commit_sha: commit.sha,
               });

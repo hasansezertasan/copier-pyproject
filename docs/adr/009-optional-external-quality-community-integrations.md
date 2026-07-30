@@ -34,6 +34,11 @@ All three share the same shape from the template's point of view:
 - With no setup they are **inert or noisy**: a Sonar job with no `SONAR_TOKEN`
   fails; an all-contributors grid nobody maintains goes stale.
 
+The amendment above revises the first point for **all-contributors**: its bundled
+CLI workflow gives it a first-party provisioning path, so of the three only
+Sourcery and SonarCloud strictly depend on an external service. The
+toggle-not-always-on rationale below still holds for all three.
+
 This tension is exactly why they do **not** belong in the always-on base like the
 community-health files (`SUPPORT.md`, `CITATION.cff`, Renovate, Codecov). The
 template's default posture is *self-contained* — a freshly generated project is

@@ -132,9 +132,11 @@ reason those integrations are toggles and these two are not.
   (`release-please.yml` `deploy-docs` and the manual `gh-pages.yml`) use
   `JamesIves/github-pages-deploy-action`, whose default `clean: true` would wipe
   the `pr-preview/` tree on every release; both therefore gain
-  `clean-exclude: pr-preview/**` so live previews survive a release deploy. The
-  preview action deploys only into `pr-preview/pr-<N>/` and preserves siblings,
-  so it never touches the root docs.
+  `clean-exclude: pr-preview/**` so live previews survive a release deploy. They
+  also set `force: false` so the action merges rather than force-pushing
+  `gh-pages` — otherwise a root-docs deploy racing a concurrent preview deploy
+  could overwrite the preview's commit. The preview action deploys only into
+  `pr-preview/pr-<N>/` and preserves siblings, so it never touches the root docs.
 - `CONTRIBUTING.md.jinja` notes that PR docs previews require **GitHub Pages
   enabled** on the repo (already implied by the released-docs deploy), so no new
   provisioning beyond what released docs already need.

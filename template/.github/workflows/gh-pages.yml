@@ -45,5 +45,8 @@ jobs:
         with:
           folder: docs/_build/html
           # Preserve the PR preview tree (pr-preview/**) that docs-preview.yml
-          # maintains — the action's default clean: true would otherwise wipe it.
+          # maintains — the action's default clean: true would otherwise wipe it —
+          # and disable the default force-push so a concurrent preview deploy is
+          # not clobbered.
           clean-exclude: pr-preview/**
+          force: false

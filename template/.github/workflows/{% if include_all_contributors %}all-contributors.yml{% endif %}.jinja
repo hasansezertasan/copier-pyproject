@@ -42,6 +42,10 @@ jobs:
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:
           token: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+          # Target the repo's real default branch explicitly: create-pull-request
+          # otherwise bases the PR on the checked-out ref, which is wrong for a
+          # manual dispatch run from a non-default branch.
+          base: {% raw %}${{ github.event.repository.default_branch }}{% endraw %}
           branch: chore/all-contributors
           delete-branch: true
           commit-message: "docs: update the all-contributors list"

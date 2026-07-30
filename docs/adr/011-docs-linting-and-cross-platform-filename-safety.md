@@ -13,8 +13,8 @@ The template already ships a broad lint/type-check suite
 ([ADR-003](003-tox-as-canonical-lint-runner.md),
 [ADR-005](005-five-type-checkers-basedpyright-strict.md)) and a rich Sphinx docs
 stack ([ADR-006](006-sphinx-shibuya-for-documentation.md)) whose sources are
-reStructuredText. Two small, self-contained gaps remained that surveyed projects
-close and this template did not:
+reStructuredText. Three small, self-contained gaps remained that surveyed
+projects close and this template did not:
 
 1. **No docs linter.** Nothing checks the `.rst` sources for the common markup
    errors Sphinx tolerates silently or reports only as build warnings —

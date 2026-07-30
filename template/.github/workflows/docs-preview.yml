@@ -17,6 +17,12 @@ on:
     branches: [main, master]
     types: [opened, synchronize, reopened, closed]
 permissions: {}
+# Serialize preview deploys per PR so rapid pushes (synchronize) can't race or
+# land out of order on gh-pages. Do not cancel in-flight runs: a cancelled deploy
+# could leave the preview half-updated, so let each finish.
+concurrency:
+  group: docs-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 jobs:
   docs-preview:
     name: Deploy docs preview

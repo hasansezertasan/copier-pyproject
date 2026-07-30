@@ -65,7 +65,7 @@ intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 # Ignore the project's own GitHub URLs: they resolve once the repository is
 # published, so checking them only produces false 404s before the first push.
 # linkcheck then focuses on the external links that actually rot.
-linkcheck_ignore = [r"https://github\.com/{{github_user}}/{{github_repo_name}}"]
+linkcheck_ignore = [r"https://github\.com/{{github_user}}/{{github_repo_name}}(?:[/#?]|$)"]
 
 # -- HTML output (Shibuya theme) ---------------------------------------------
 # https://shibuya.lepture.com/
