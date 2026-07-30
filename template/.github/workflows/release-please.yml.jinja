@@ -599,18 +599,21 @@ jobs:
             }
 
             // Commits in (previous, this] release, then the PRs that carried them.
-            // Paginate: the compare endpoint caps at 250 commits per page, so a
-            // large release would otherwise silently miss the tail (github.paginate
-            // aggregates the `.commits` arrays across pages).
-            const commits = await github.paginate(github.rest.repos.compareCommitsWithBasehead, {
+            // Paginate explicitly: the compare endpoint caps at 250 commits per
+            // page, so a large release would otherwise silently miss the tail. The
+            // iterator reads each page's `data.commits` (unambiguous, unlike
+            // relying on paginate() to normalize the compare response shape).
+            const prNumbers = new Set();
+            const pages = github.paginate.iterator(github.rest.repos.compareCommitsWithBasehead, {
               owner, repo, basehead: `${previous.tag_name}...${tag}`, per_page: 100,
             });
-            const prNumbers = new Set();
-            for (const commit of commits) {
-              const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                owner, repo, commit_sha: commit.sha,
-              });
-              for (const pr of prs) prNumbers.add(pr.number);
+            for await (const { data } of pages) {
+              for (const commit of data.commits || []) {
+                const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner, repo, commit_sha: commit.sha,
+                });
+                for (const pr of prs) prNumbers.add(pr.number);
+              }
             }
 
             // The issues each PR declared it closes (the real Development link,
