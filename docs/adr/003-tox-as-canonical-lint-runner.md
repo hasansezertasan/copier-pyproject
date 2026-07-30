@@ -5,6 +5,11 @@
 Accepted. **Superseded in part (2026-06): Pants and Trunk were removed
 entirely** — see the Update note below.
 
+Amended (2026-07): generated projects now also ship a MegaLinter workflow as an
+additive CI quality layer for repository/config/documentation checks. tox
+`style` remains the authoritative local lint/type-check suite; MegaLinter does
+not replace tox or own Python type/lint policy.
+
 ## Update (2026-06): Pants and Trunk removed
 
 The opt-in path this ADR established was subsequently dropped. `include_pants`
@@ -71,6 +76,13 @@ gate — not three independently-pinned orchestrators. (At the time of this ADR,
 Pants and Trunk were demoted to opt-ins rather than deleted; both were removed
 entirely in the 2026-06 update above.)
 
+MegaLinter is intentionally scoped differently: it runs in CI as a repository
+quality umbrella over formats that benefit from cross-file checks and reports
+(GitHub Actions, Markdown, YAML, shell snippets, editorconfig, and cspell). It
+is configured with `APPLY_FIXES: none`, no GitHub comment/status reporters, and
+no Python linters/type checkers, so it cannot drift against the uv/tox Python
+toolchain or rewrite generated projects during CI.
+
 ## Rationale
 
 - **One source of truth.** Tool versions live in the uv `style` dependency group
@@ -99,6 +111,10 @@ entirely in the 2026-06 update above.)
   the scanners the core suite lacks.
 - The `trunk check` / `pants lint ::` commands were removed from `README.md` and
   `AGENTS.md`; there is no longer any Pants/Trunk path to document.
+- MegaLinter adds a separate CI workflow and `.mega-linter.yml`. Its reports are
+  uploaded as artifacts and `megalinter-reports/` is ignored. The workflow is a
+  broad repository/config/documentation signal; contributors should still use
+  `tox -e style` / `tox -e prek` for local authoritative checks.
 - The number of type checkers invoked by the `style` env (mypy, pyright, ty,
   pyrefly) is a separate concern not addressed here; see future work on trimming
   preview-stage checkers.
