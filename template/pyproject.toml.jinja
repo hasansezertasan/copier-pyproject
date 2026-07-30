@@ -178,6 +178,7 @@ style = [
   "pyrefly==1.1.1",
   "ruff==0.15.19",
   "slotscheck==0.20.0",
+  "sphinx-lint==1.0.2",
   "taplo==0.9.3",
   "ty==0.0.53",
   "typos==1.47.2",
@@ -691,6 +692,10 @@ commands = [
   [
     "ec",
   ],
+  [
+    "sphinx-lint",
+    "docs",
+  ],
   # ["yamlfmt", "."],
 ]
 # `test` is included so the type checkers that scope tests (e.g. ty) can
@@ -720,6 +725,16 @@ commands = [["sphinx-autobuild", "docs", "docs/_build/html"]]
 extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
+runner = "uv-venv-runner"
+
+
+[tool.tox.env.docs-linkcheck]
+# On-demand link checker. Also run weekly (non-blocking) by docs-linkcheck.yml.
+# Hits the network, so it is deliberately not part of the `style` env or PR CI.
+commands = [["sphinx-build", "-b", "linkcheck", "docs", "docs/_build/linkcheck"]]
+extras = ["all"]
+dependency_groups = ["docs"]
+description = "Check documentation for broken links"
 runner = "uv-venv-runner"
 
 {%- if include_profiling %}

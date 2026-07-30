@@ -1,0 +1,33 @@
+---
+# Sourcery configuration — https://docs.sourcery.ai/Configuration/
+# Sourcery is an AI refactoring assistant. This file only configures the bot;
+# install the Sourcery GitHub App on the repository to activate it. See
+# CONTRIBUTING.md (Repository setup).
+ignore:
+  - .git/
+  - .nox/
+  - .tox/
+  - .venv/
+  - venv/
+  - build/
+  - dist/
+  - docs/_build/
+  - htmlcov/
+  - src/{{github_repo_name}}/_version.py
+rule_settings:
+  enable: [default]
+  rule_types:
+    - refactoring
+    - suggestion
+    - comment
+  # Match the project's minimum supported interpreter (requires-python >= 3.10).
+  python_version: "3.10"
+metrics:
+  quality_threshold: 25.0
+github:
+  request_review: author
+  sourcery_branch: sourcery/{base_branch}
+clone_detection:
+  min_lines: 3
+  min_duplicates: 2
+  identical_clones_only: false

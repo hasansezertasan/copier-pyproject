@@ -351,6 +351,13 @@ gh api -X POST repos/{{github_user}}/{{github_repo_name}}/pages \
 from a branch**, then pick the `gh-pages` branch and the `/ (root)` folder. Use
 the `gh-pages.yml` workflow to redeploy manually.)
 
+Once Pages is enabled, `docs-preview.yml` also publishes a live documentation
+preview for each pull request under `pr-preview/pr-<N>/` on the same `gh-pages`
+branch and comments the URL on the PR (removed automatically when the PR closes).
+Previews are built only for pull requests opened from branches on this
+repository — a fork PR receives a read-only token and is skipped — and require no
+extra setup beyond Pages.
+
 **8. Automated dependency updates (Renovate).** Dependency bumps — including the
 `prek.toml` hook `rev`s and pinned GitHub Action digests — are driven by
 `.github/renovate.json`, which is read by the hosted Renovate GitHub App. The
@@ -377,6 +384,48 @@ fails fast and blocks every publish channel (PyPI included) so a
 misconfiguration can never produce a partial release. The image is pushed
 to `docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}`, so the namespace
 follows the Docker Hub account — it does not need to match the GitHub owner.
+{%- endif %}
+{%- if include_sourcery or include_sonarcloud or include_all_contributors %}
+
+### Optional third-party integrations
+
+These are enabled in this project's Copier answers and each needs a one-time
+external setup. Until set up, they are inert — CI stays green.
+{%- if include_sonarcloud %}
+
+**SonarCloud.** The `sonar` job in `ci.yml` uploads static-analysis results and
+coverage to [SonarCloud](https://sonarcloud.io/). Create an organization and a
+project there (project key `{{github_user}}_{{github_repo_name}}`; confirm the
+`sonar.organization` value in `sonar-project.properties`), then generate a token
+and set it as a repository secret:
+
+```sh
+gh secret set SONAR_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+Like the Codecov upload, the scan is opt-in and non-blocking: with the secret
+unset, CI records a `::notice::` and skips it, and fork PRs are skipped entirely
+(they never receive secrets).
+{%- endif %}
+{%- if include_sourcery %}
+
+**Sourcery.** `.sourcery.yaml` configures the
+[Sourcery](https://sourcery.ai/) AI refactoring assistant, but the config is
+inert until the Sourcery GitHub App is installed. Install it once from
+[sourcery.ai](https://sourcery.ai/) (or the GitHub Marketplace) and grant it
+access to this repository; it then reviews pull requests.
+{%- endif %}
+{%- if include_all_contributors %}
+
+**all-contributors.** `.all-contributorsrc` and the README **Contributors**
+section follow the [all-contributors](https://allcontributors.org/)
+specification. Maintain the list with the
+[bot](https://allcontributors.org/docs/en/bot/usage) (comment
+`@all-contributors please add @user for code` on an issue or PR after installing
+it) or the [CLI](https://allcontributors.org/docs/en/cli/usage)
+(`npx all-contributors-cli add <user> <contributions>` then
+`npx all-contributors-cli generate`).
+{%- endif %}
 {%- endif %}
 
 ## Join The Project Team

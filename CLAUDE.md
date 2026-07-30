@@ -47,7 +47,7 @@ uv sync
 # Run tests across all Python versions
 uv run --locked tox run
 
-# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker)
+# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, sphinx-lint)
 uv run --locked tox run -e style
 
 # Run specific Python version tests
@@ -88,6 +88,9 @@ uv run --locked tox run -e docs-build
 
 # Serve docs locally
 uv run --locked tox run -e docs-server
+
+# Check docs for broken links (on-demand; also runs weekly via docs-linkcheck.yml)
+uv run --locked tox run -e docs-linkcheck
 
 # Profiling (if include_profiling=true)
 uv run --locked tox run -e profile
@@ -149,6 +152,18 @@ Optional components (all boolean):
   maps to one architectural category (launcher / compiler / freezer). See
   [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
 - `include_pydantic_settings` - pydantic-settings for config
+- `include_sourcery` - Sourcery AI-refactoring config (`.sourcery.yaml`)
+- `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
+- `include_all_contributors` - all-contributors config (`.all-contributorsrc`) + README section
+
+  These three are opt-in external-SaaS integrations, all `default: false`, each
+  requiring one-time out-of-band setup (install a GitHub App / create a SonarCloud
+  org + `SONAR_TOKEN` secret / run the all-contributors bot). They are toggles
+  (not always-on) precisely to preserve the self-contained "green on first push,
+  zero external accounts" default. The `sonar` job mirrors the Codecov
+  opt-in/non-blocking pattern (gated on the `SONAR_TOKEN` presence flag, skips
+  fork PRs, visible `::notice::` skip when unset, not in the `check` gate). See
+  [ADR-009](../docs/adr/009-optional-external-quality-community-integrations.md).
 
 Framework/broker choices (when parent option is enabled):
 
@@ -397,6 +412,15 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      re-dispatch above). `gh-pages.yml` is kept only for manual redeploys.
      Docs are built with Sphinx + the Shibuya theme (autodoc API reference),
      not MkDocs (see [ADR-006](../docs/adr/006-sphinx-shibuya-for-documentation.md)).
+     The `deploy-docs` publish (and the manual `gh-pages.yml`) set
+     `clean-exclude: pr-preview/**` so a release never wipes the live PR previews
+     `docs-preview.yml` maintains under that path (see ADR-010 below).
+   - `notify-released-issues` (`needs: finalize-release`): a single
+     `actions/github-script` step that maps the release's commit range
+     (previous published tag → this tag) to the PRs that carried it, resolves each
+     PR's `closingIssuesReferences`, and comments the release link on those
+     issues. Inline (no committed script), best-effort. See
+     [ADR-010](../docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
    - Versions come from git tags via hatch-vcs, so release-please never edits a
      static version literal and `uv.lock` cannot desync.
 3. **PR title linting** (`check-pr-title.yml`): validates the **PR title** (not
@@ -513,6 +537,31 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    `.yml` workflows too but skips the un-renderable `*.jinja` templates (whose
    rendered form is audited by the generated project's own hook, and end-to-end by
    rendering a project and running `prek run zizmor --all-files` in it).
+9. **PR documentation previews** (`docs-preview.yml`, always included, static
+   workflow). On `pull_request` (`opened`/`synchronize`/`reopened`/`closed`) it
+   builds the Sphinx docs and hands the lifecycle to `rossjrw/pr-preview-action`
+   (`action: auto`): deploy to `pr-preview/pr-<N>/` on `gh-pages` on
+   open/update, remove on close, with a sticky preview-URL PR comment throughout.
+   Guarded by `if: github.event.pull_request.head.repo.full_name ==
+   github.repository` to **same-repo PRs only** — a fork PR's `GITHUB_TOKEN` is
+   read-only and cannot deploy, so forks are skipped cleanly (fork support awaits
+   the action's v2). Plain `pull_request` (not `pull_request_target`) means no
+   `dangerous-triggers` ignore is needed. Not wired into the `check` gate
+   (best-effort). Previews live under `pr-preview/**`, disjoint from the root docs
+   deploy, and the two `JamesIves` publishes carry `clean-exclude: pr-preview/**`
+   so a release never wipes them. See
+   [ADR-010](../docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
+10. **Docs link check** (`docs-linkcheck.yml`, always included, static workflow).
+   Runs Sphinx's `linkcheck` builder on a **weekly cron** + `workflow_dispatch`
+   to catch dead links/moved anchors in the docs. Deliberately **not** on
+   `pull_request` and **not** in the `check` gate — link checking hits the
+   network and is flaky, so it is non-blocking (same posture as
+   `check-security.yml`'s cron). A matching on-demand `docs-linkcheck` tox env
+   lets maintainers run it locally. Two other docs-lint additions ship alongside
+   it: `sphinx-lint` (a `local` prek hook backed by the `style` group + a tox
+   `style` command, linting the `.rst` sources) and the `check-case-conflict`
+   prek builtin (cross-platform filename-collision guard). See
+   [ADR-011](../docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
 
 ### Required Merge Strategy (release-please depends on it)
 

@@ -44,3 +44,6 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f  # v4.8.0
         with:
           folder: docs/_build/html
+          # Preserve the PR preview tree (pr-preview/**) that docs-preview.yml
+          # maintains — the action's default clean: true would otherwise wipe it.
+          clean-exclude: pr-preview/**

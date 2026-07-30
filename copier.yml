@@ -91,6 +91,21 @@ include_pydantic_settings:
   type: bool
   default: true
   help: "Use pydantic-settings for type-safe configuration management?"
+include_sourcery:
+  type: bool
+  default: false
+  help: >-
+    Include a Sourcery config (.sourcery.yaml) for AI refactoring suggestions? Requires installing the Sourcery GitHub App on the repository.
+include_sonarcloud:
+  type: bool
+  default: false
+  help: >-
+    Include SonarCloud static analysis (sonar-project.properties + a CI job)? Requires a SonarCloud organization and a SONAR_TOKEN repository secret.
+include_all_contributors:
+  type: bool
+  default: false
+  help: >-
+    Include an all-contributors config (.all-contributorsrc) and a README section? Requires the all-contributors bot/CLI to maintain the list.
 include_postgres:
   type: bool
   default: false

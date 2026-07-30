@@ -1,0 +1,24 @@
+# SonarCloud configuration — https://docs.sonarsource.com/sonarcloud/
+# Consumed by the `sonar` job in .github/workflows/ci.yml. Requires a SonarCloud
+# organization and a SONAR_TOKEN repository secret; see CONTRIBUTING.md
+# (Repository setup).
+
+# TODO @{{github_user}}: set this to your SonarCloud organization key (found under
+# your SonarCloud organization's Administration → Organization key). It often, but
+# not always, matches your GitHub owner name.
+sonar.organization={{github_user}}
+sonar.projectKey={{github_user}}_{{github_repo_name}}
+sonar.projectName={{github_repo_name}}
+
+sonar.sources=src
+sonar.tests=tests
+sonar.sourceEncoding=UTF-8
+
+# Coverage is produced by the CI test run (coverage.xml).
+sonar.python.coverage.reportPaths=coverage.xml
+sonar.python.version=3.10, 3.11, 3.12, 3.13, 3.14
+
+# Generated / untestable-at-unit-level paths are excluded from coverage so the
+# quality gate matches the project's own coverage config (see pyproject.toml
+# [tool.coverage] and ADR-008).
+sonar.coverage.exclusions=src/{{github_repo_name}}/_version.py,tests/**/*
