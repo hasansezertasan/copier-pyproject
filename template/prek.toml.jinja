@@ -37,6 +37,7 @@ hooks = [
   { id = "end-of-file-fixer", name = "End of file fixer" },
   { id = "trailing-whitespace", name = "Trailing whitespace" },
   { id = "check-merge-conflict", name = "Check Merge Conflict", args = ["--assume-in-merge"] },
+  { id = "check-case-conflict", name = "Check case conflict" },
   { id = "detect-private-key", name = "Detect Private Key" },
 ]
 
@@ -75,6 +76,11 @@ hooks = [
   # with the `style` group. It reads `.editorconfig-checker.json` and scans the
   # whole tree (respecting .gitignore), so filenames are not passed.
   { id = "editorconfig-checker", name = "EditorConfig Checker", entry = "uv run --locked --group style ec", language = "system", pass_filenames = false },
+  # sphinx-lint is run via the uv `style` group (not an upstream prek repo) so its
+  # version has a single source of truth shared with the tox `style` env — the
+  # same drift-free rationale as editorconfig-checker above. It statically lints
+  # the reStructuredText docs sources (it does not import the project or Sphinx).
+  { id = "sphinx-lint", name = "Sphinx Lint", entry = "uv run --locked --group style sphinx-lint docs", language = "system", files = '\.rst$', pass_filenames = false },
 ]
 
 [[repos]]
@@ -86,7 +92,7 @@ hooks = [
   # mypy's duplicate-module check on the sibling examples/*/main.py demo scripts
   # and (b) surfaces strict-decorator errors in tests/ that the canonical run
   # never checks — neither is part of the shipped, type-checked surface.
-  { id = "mypy", name = "Mypy Type Checker", files = "^src/", additional_dependencies = [{% if include_web %}{% if web_framework == "fastapi" %}"fastapi", {% else %}"litestar", {% endif %}{% endif %}{% if include_cli %}"typer", {% endif %}{% if include_tui %}"textual", {% endif %}{% if include_mcp %}"mcp", {% endif %}{% if include_worker %}"faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]", {% endif %}{% if include_pydantic_settings %}"pydantic-settings", {% endif %}] },
+  { id = "mypy", name = "Mypy Type Checker", files = "^src/", additional_dependencies = [{% if include_web %}{% if web_framework == "fastapi" %}"fastapi", {% else %}"litestar", {% endif %}{% endif %}{% if include_cli %}"typer", {% endif %}{% if include_tui %}"textual", {% endif %}{% if include_mcp %}"mcp>=1.0.0,<2", {% endif %}{% if include_worker %}"faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]", {% endif %}{% if include_pydantic_settings %}"pydantic-settings", {% endif %}] },
 ]
 
 [[repos]]

@@ -1,0 +1,28 @@
+{
+  "projectName": "{{github_repo_name}}",
+  "projectOwner": "{{github_user}}",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitConvention": "angular",
+  "contributorsPerLine": 7,
+  "contributors": [
+    {
+      "login": "{{github_user}}",
+      "name": {{ author_full_name | tojson }},
+      "avatar_url": "https://avatars.githubusercontent.com/{{github_user}}",
+      "profile": "https://github.com/{{github_user}}",
+      "contributions": [
+        "maintenance",
+        "code",
+        "doc",
+        "test",
+        "ideas"
+      ]
+    }
+  ]
+}

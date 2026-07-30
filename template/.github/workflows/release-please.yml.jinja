@@ -552,3 +552,91 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f  # v4.8.0
         with:
           folder: docs/_build/html
+          # Root docs publish uses the action's default clean: true, which would
+          # wipe the PR preview tree docs-preview.yml maintains. Preserve it, and
+          # disable the default force-push so a concurrent preview deploy is not
+          # clobbered (the action merges instead of overwriting). See ADR-010.
+          clean-exclude: pr-preview/**
+          force: false
+  notify-released-issues:
+    runs-on: ubuntu-latest
+    name: Notify released issues
+    timeout-minutes: 10
+    # Runs after the release is published (un-drafted) so the comment links a
+    # live release page. Best-effort: a failure here never affects the already
+    # published release or packages. See ADR-010.
+    needs: [release-please, finalize-release]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    permissions:
+      issues: write  # IMPORTANT: comment on the issues this release closed
+      contents: read  # IMPORTANT: read commits to map the release to issues
+      pull-requests: read  # IMPORTANT: listPullRequestsAssociatedWithCommit needs this
+    steps:
+      - name: Comment on issues closed by this release
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        env:
+          # GitHub-context values pass through env, never interpolated into the
+          # script body (read via process.env) — the repo's no-untrusted-context
+          # convention and zizmor's template-injection audit. These come from the
+          # release-please outputs on a push-to-main run, so they are not
+          # fork-controlled; the indirection is uniform hygiene.
+          TAG_NAME: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+          VERSION: {% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
+        with:
+          script: |
+            const tag = process.env.TAG_NAME;
+            const version = process.env.VERSION;
+            const { owner, repo } = context.repo;
+
+            // The previous published release delimits this release's commit range.
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner, repo, per_page: 100,
+            });
+            const previous = releases.find((r) => !r.draft && r.tag_name !== tag);
+            if (!previous) {
+              core.info("No previous release found; nothing to notify.");
+              return;
+            }
+
+            // Commits in (previous, this] release, then the PRs that carried them.
+            // Paginate explicitly: the compare endpoint caps at 250 commits per
+            // page, so a large release would otherwise silently miss the tail. The
+            // iterator reads each page's `data.commits` (unambiguous, unlike
+            // relying on paginate() to normalize the compare response shape).
+            const prNumbers = new Set();
+            const pages = github.paginate.iterator(github.rest.repos.compareCommitsWithBasehead, {
+              owner, repo, basehead: `${previous.tag_name}...${tag}`, per_page: 100,
+            });
+            for await (const { data } of pages) {
+              for (const commit of data.commits || []) {
+                const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner, repo, commit_sha: commit.sha,
+                });
+                for (const pr of prs) prNumbers.add(pr.number);
+              }
+            }
+
+            // The issues each PR declared it closes (the real Development link,
+            // not just body text).
+            const issues = new Set();
+            const query = "query ($owner: String!, $repo: String!, $pr: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $pr) { closingIssuesReferences(first: 50) { nodes { number } } } } }";
+            for (const pr of prNumbers) {
+              const result = await github.graphql(query, { owner, repo, pr });
+              const nodes = result.repository.pullRequest?.closingIssuesReferences?.nodes || [];
+              for (const node of nodes) issues.add(node.number);
+            }
+            if (issues.size === 0) {
+              core.info("No closed issues linked to this release.");
+              return;
+            }
+
+            const { data: release } = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+            const body = `🎉 This was addressed in [\`${version}\`](${release.html_url}), which has just been released.`;
+            for (const number of issues) {
+              try {
+                await github.rest.issues.createComment({ owner, repo, issue_number: number, body });
+                core.info(`Commented on #${number}`);
+              } catch (error) {
+                core.warning(`Could not comment on #${number}: ${error.message}`);
+              }
+            }

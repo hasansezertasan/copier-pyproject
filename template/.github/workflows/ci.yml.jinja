@@ -116,6 +116,16 @@ jobs:
       - name: Note skipped coverage upload
         if: {% raw %}${{ env.CODECOV_TOKEN_SET != 'true' && !github.event.pull_request.head.repo.fork && matrix.os == 'ubuntu-latest' }}{% endraw %}
         run: echo "::notice::CODECOV_TOKEN secret is not set — skipping the Codecov upload. See CONTRIBUTING.md (Repository setup) to enable coverage reporting."
+{%- if include_sonarcloud %}
+      - name: Upload coverage.xml for SonarCloud
+        # Ubuntu-only so the artifact name is unique (upload-artifact v4 rejects
+        # duplicate names across the matrix). Consumed by the `sonar` job below.
+        if: {% raw %}${{ matrix.os == 'ubuntu-latest' }}{% endraw %}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: coverage-xml
+          path: ./coverage.xml
+{%- endif %}
 {%- if include_launcher or include_freezer or include_compiler %}
   # Build-only PR guards: build each enabled standalone executable (ADR-007)
   # against the PR diff so a dependency or Python bump that breaks packaging fails
@@ -334,6 +344,45 @@ jobs:
             uv.lock
       - name: Run worker integration tests
         run: uv run --locked tox run -e integration
+{%- endif %}
+{%- if include_sonarcloud %}
+  sonar:
+    name: SonarCloud Scan
+    needs: ci
+    # Opt-in and non-blocking, mirroring the Codecov upload: forks never receive
+    # secrets and SonarCloud has no tokenless fallback, so skip fork PRs entirely;
+    # on same-repo runs, the scan step is gated on the SONAR_TOKEN presence flag
+    # (the `secrets` context is unavailable in `if:`) and records a visible skip
+    # instead of failing when the secret is unset. Not wired into the `check`
+    # aggregation gate — quality reporting is best-effort, not merge-blocking.
+    if: {% raw %}${{ github.event.pull_request.head.repo.fork != true }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      SONAR_TOKEN_SET: {% raw %}${{ secrets.SONAR_TOKEN != '' }}{% endraw %}
+    steps:
+      - name: Checkout repository
+        # Full history so SonarCloud can attribute issues to blame/new-code.
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download coverage.xml
+        if: {% raw %}${{ env.SONAR_TOKEN_SET == 'true' }}{% endraw %}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: coverage-xml
+      - name: SonarCloud Scan
+        if: {% raw %}${{ env.SONAR_TOKEN_SET == 'true' }}{% endraw %}
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f  # v8.2.1
+        env:
+          SONAR_TOKEN: {% raw %}${{ secrets.SONAR_TOKEN }}{% endraw %}
+          SONAR_HOST_URL: https://sonarcloud.io
+      - name: Note skipped SonarCloud scan
+        if: {% raw %}${{ env.SONAR_TOKEN_SET != 'true' }}{% endraw %}
+        run: echo "::notice::SONAR_TOKEN secret is not set — skipping the SonarCloud scan. See CONTRIBUTING.md (Repository setup) to enable it."
 {%- endif %}
   check:
     if: always()
