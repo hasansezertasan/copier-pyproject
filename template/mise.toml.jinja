@@ -11,7 +11,15 @@ python = "{{ get_env(name='PYTHON_VERSION', default='3.10') }}"
 # explicitly so resolution does not depend on the mise registry short name. The
 # prek `ghalint` hook and the CI `hooks` job invoke this binary.
 "aqua:suzuki-shunsuke/ghalint" = "1.5.6"
-
+{%- endraw %}
+{%- if include_all_contributors %}
+# all-contributors is a JS CLI delivered via mise's npm backend, so its version
+# is pinned here (Renovate-tracked) and invoked as `mise exec -- all-contributors`
+# by the all-contributors.yml workflow — mirroring ghalint above. mise installs it
+# without node, but running it needs node on PATH (present on CI runners).
+"npm:all-contributors-cli" = "6.26.1"
+{%- endif %}
+{% raw %}
 [tasks.install]
 description = "Install dependencies"
 alias = "i"

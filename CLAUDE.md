@@ -156,13 +156,21 @@ Optional components (all boolean):
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
 - `include_all_contributors` - all-contributors config (`.all-contributorsrc`) + README section
 
-  These three are opt-in external-SaaS integrations, all `default: false`, each
-  requiring one-time out-of-band setup (install a GitHub App / create a SonarCloud
-  org + `SONAR_TOKEN` secret / run the all-contributors bot). They are toggles
-  (not always-on) precisely to preserve the self-contained "green on first push,
-  zero external accounts" default. The `sonar` job mirrors the Codecov
-  opt-in/non-blocking pattern (gated on the `SONAR_TOKEN` presence flag, skips
-  fork PRs, visible `::notice::` skip when unset, not in the `check` gate). See
+  These three are opt-in integrations, all `default: false`, kept as toggles (not
+  always-on) precisely to preserve the self-contained "green on first push, zero
+  external accounts" default. `include_sourcery` (config-only, external App) and
+  `include_sonarcloud` (needs a SonarCloud org + `SONAR_TOKEN` secret) require
+  out-of-band setup; the `sonar` job mirrors the Codecov opt-in/non-blocking
+  pattern (gated on the `SONAR_TOKEN` presence flag, skips fork PRs, visible
+  `::notice::` skip when unset, not in the `check` gate). `include_all_contributors`
+  is more self-contained: besides `.all-contributorsrc` + the README section, it
+  renders an `all-contributors.yml` workflow that runs the all-contributors **CLI**
+  (delivered via mise's npm backend, `mise exec -- all-contributors generate`,
+  mirroring ghalint; version pinned in `mise.toml` and Renovate-tracked) and opens
+  a PR via `peter-evans/create-pull-request` (never pushes to the default branch,
+  so `persist-credentials: false` holds), so the bot/App is optional — it only
+  needs the *Allow Actions to create PRs* setting release-please already requires.
+  See
   [ADR-009](../docs/adr/009-optional-external-quality-community-integrations.md).
 
 Framework/broker choices (when parent option is enabled):

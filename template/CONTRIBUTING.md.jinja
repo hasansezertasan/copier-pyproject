@@ -419,12 +419,17 @@ access to this repository; it then reviews pull requests.
 
 **all-contributors.** `.all-contributorsrc` and the README **Contributors**
 section follow the [all-contributors](https://allcontributors.org/)
-specification. Maintain the list with the
-[bot](https://allcontributors.org/docs/en/bot/usage) (comment
-`@all-contributors please add @user for code` on an issue or PR after installing
-it) or the [CLI](https://allcontributors.org/docs/en/cli/usage)
-(`npx all-contributors-cli add <user> <contributions>` then
-`npx all-contributors-cli generate`).
+specification. The bundled `all-contributors.yml` workflow regenerates the README
+table from `.all-contributorsrc` (on demand via _Actions → All Contributors → Run
+workflow_, and automatically when `.all-contributorsrc` changes on the default
+branch) and opens a PR with the result — this reuses the same _Allow GitHub
+Actions to create and approve pull requests_ setting release-please needs (step
+2/3 above), so no extra setup. To add people, either edit `.all-contributorsrc`
+(or run the [CLI](https://allcontributors.org/docs/en/cli/usage), which is pinned
+in `mise.toml`: `mise exec -- all-contributors add <user> <contributions>`) and
+let the workflow regenerate, or install the
+[bot](https://allcontributors.org/docs/en/bot/usage) for
+`@all-contributors please add @user for code` comments.
 {%- endif %}
 {%- endif %}
 
