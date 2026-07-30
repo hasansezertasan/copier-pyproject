@@ -17,7 +17,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": ["-v", "--tb=short", "${input:testArgs}"],
+      "args": ["-v", "--tb=short"],
       "console": "integratedTerminal",
       "justMyCode": true
     },
@@ -89,17 +89,13 @@
     {% endif %}
   ],
   "inputs": [
+{%- if include_cli %}
     {
       "id": "args",
       "type": "promptString",
-      "default": "version",
-      "description": "CLI arguments (e.g., version, info)"
-    },
-    {
-      "id": "testArgs",
-      "type": "promptString",
       "default": "",
-      "description": "Test arguments (e.g., tests/test_cli.py -v)"
+      "description": "Arguments passed to the {{github_repo_name}} CLI"
     }
+{%- endif %}
   ]
 }

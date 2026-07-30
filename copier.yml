@@ -13,6 +13,16 @@ github_repo_name:
 author_full_name:
   type: str
   help: The full name of the author
+author_given_names:
+  type: str
+  default: "{{ author_full_name.split(' ')[:-1] | join(' ') }}"
+  help: >-
+    The author's given (first) names, used in CITATION.cff. Defaults to a best-effort
+    split of the full name — correct it here for compound surnames or "Last, First" ordering.
+author_family_names:
+  type: str
+  default: "{{ author_full_name.split(' ')[-1] }}"
+  help: The author's family (last) name, used in CITATION.cff.
 author_email:
   type: str
   help: The email of the author
