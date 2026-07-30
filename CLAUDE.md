@@ -167,8 +167,11 @@ Devcontainer services:
 
 Always included (no toggle): a Keep-a-Changelog `CHANGELOG.md` (maintained by
 release-please), Codecov coverage upload (`.github/codecov.yml` + CI step), Renovate
-dependency management (`.github/renovate.json` — Dependabot and the `none` opt-out were
-removed; there is no longer a `dependency_management` option), a `CITATION.cff`
+dependency management (`.github/renovate.json` extends the shared preset
+`github>hasansezertasan/renovate-config:python`, which carries the base
+`config:recommended` + `helpers:pinGitHubActionDigests` policy and the prek-hook
+`customManagers` regex; Dependabot and the `none` opt-out were removed — there is
+no longer a `dependency_management` option), a `CITATION.cff`
 file with a `validate-citation.yml` workflow (the `include_citation` toggle was
 removed — it is now always rendered and validated via
 `citation-file-format/cffconvert-github-action`), and mise
@@ -208,10 +211,12 @@ what actually gates generated projects.
 The tox `style` env (backed by the uv-managed `style` dependency group) is the
 canonical lint/type-check runner for the full suite; the prek-run `prek.toml` is
 the fast local/CI gate. Its hook `rev` pins are kept current by Renovate (a
-`customManagers` regex entry in `.github/renovate.json`, since Renovate's built-in
-pre-commit manager only reads `.pre-commit-config.yaml`). There is no
-pre-commit.ci integration and no `sync-with-uv` hook — Renovate owns every
-bump, including the tools shared with the uv `style` group.
+`customManagers` regex entry supplied by the shared preset
+`.github/renovate.json` extends — `github>hasansezertasan/renovate-config:python`
+— since Renovate's built-in pre-commit manager only reads
+`.pre-commit-config.yaml`). There is no pre-commit.ci integration and no
+`sync-with-uv` hook — Renovate owns every bump, including the tools shared with
+the uv `style` group.
 
 The tox `style` env is the *single* lint/type-check orchestrator for a generated
 project — there is no Pants or Trunk config to drift against it (both were
