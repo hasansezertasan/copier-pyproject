@@ -109,7 +109,7 @@ dependencies = []
 {% if web_framework == "litestar" %}web = ["litestar[standard]>=2.0.0"]{% endif %}
 {% endif %}
 {% if include_tui %}tui = ["textual>=0.50.0", "typing-extensions>=4.4.0"]{% endif %}
-{% if include_mcp %}mcp = ["mcp>=1.0.0"]{% endif %}
+{% if include_mcp %}mcp = ["mcp>=1.0.0,<2"]  # TODO @{{github_user}}: mcp 2.0.0 is a breaking API rewrite (input_schema, new Server API); migrate mcp/app.py before relaxing this cap{% endif %}
 {% if include_worker %}worker = ["faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
 {% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
 all = [
@@ -128,7 +128,7 @@ all = [
     "textual>=0.50.0",
 {%- endif %}
 {%- if include_mcp %}
-    "mcp>=1.0.0",
+    "mcp>=1.0.0,<2",
 {%- endif %}
 {%- if include_worker %}
     "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",
