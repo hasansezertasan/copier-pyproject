@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      contents: read  # only needed for private/internal repos (actions/checkout)
       # Creating and updating labels is an issues-write operation.
       issues: write
     steps:
