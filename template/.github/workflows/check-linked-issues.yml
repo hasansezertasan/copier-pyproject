@@ -9,6 +9,8 @@ on:
 jobs:
   check-linked-issues:
     name: Verify linked issue
+    # Skip automated PRs (Renovate, Dependabot, etc.) — bots never link an issue.
+    if: ${{ !endsWith(github.actor, '[bot]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
