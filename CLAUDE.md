@@ -188,8 +188,14 @@ Devcontainer services:
 - `include_dbeaver` - CloudBeaver database management UI
 - `include_vpn` - OpenVPN client
 
-Always included (no toggle): a Keep-a-Changelog `CHANGELOG.md` (maintained by
-release-please), Codecov coverage upload (`.github/codecov.yml` + CI step), Renovate
+Always included (no toggle): a Keep-a-Changelog `CHANGELOG.md` **created and
+maintained by release-please** — the template does **not** ship a
+`CHANGELOG.md.jinja` seed file. release-please generates `CHANGELOG.md` on its
+first release PR (per `changelog-path` in `.github/release-please-config.json`).
+Do not re-add a seed template: a scaffold-time `CHANGELOG.md` overwrites the
+existing changelog when an already-published project adopts the template via
+`copier copy`/`copier update`, wiping its release history (this happened during a
+real template adoption). Codecov coverage upload (`.github/codecov.yml` + CI step), Renovate
 dependency management (`.github/renovate.json` extends the shared preset
 `github>hasansezertasan/renovate-config:python`, which carries the base
 `config:recommended` + `helpers:pinGitHubActionDigests` policy and the prek-hook
