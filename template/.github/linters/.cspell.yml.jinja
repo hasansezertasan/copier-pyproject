@@ -2,7 +2,9 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json
 $schema: https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json
 version: "0.2"
-language: en
+# The generated Code of Conduct and Contributing guide use British spelling
+# (behaviour, licence, apologising, …), so enable both US and GB dictionaries.
+language: en,en-GB
 dictionaries:
   - softwareTerms
   - companies
@@ -12,6 +14,13 @@ dictionaries:
   - en_US
 allowCompoundWords: true
 words:
+  # Tooling referenced in the generated docs
   - codespell
+  - ghalint
   - megalinter
+  - prek
+  - unticked
   - MYENVPREFIX
+  # Project identifiers, so a project never trips on its own name/handle
+  - {{ github_user }}
+  - {{ github_repo_name }}
