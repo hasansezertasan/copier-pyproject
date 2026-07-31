@@ -675,14 +675,19 @@ commands = [
   [
     "taplo",
     "lint",
+    "*.toml",
   ],
   # NOTE: kept in fix mode (not `--check`) because the rendered TOML is not yet
-  # guaranteed taplo-formatted across every component combination. The scoped
-  # .taplo.toml keeps it off vendored files; making this a strict `--check` gate
-  # is a follow-up that first requires the generated pyproject/prek to be clean.
+  # guaranteed taplo-formatted across every component combination. The `*.toml`
+  # glob is non-recursive, so it scopes taplo to this project's own root TOML
+  # (pyproject/prek/mise) without walking vendored `.tox`/`.venv`/site-packages
+  # trees — no `.taplo.toml` exclude config needed. Making this a strict
+  # `--check` gate is a follow-up that first requires the generated
+  # pyproject/prek to be clean.
   [
     "taplo",
     "format",
+    "*.toml",
   ],
   [
     "validate-pyproject",
