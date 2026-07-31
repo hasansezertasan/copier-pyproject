@@ -10,6 +10,11 @@ on:
     branches: [main]
     paths: [.github/labels.yml]
   workflow_dispatch:
+# Serialize sync runs so a slower older run can't finish last and reset labels
+# to a stale manifest; cancel any in-progress run in favor of the newest.
+concurrency:
+  group: label-sync
+  cancel-in-progress: true
 permissions: {}
 jobs:
   sync:
