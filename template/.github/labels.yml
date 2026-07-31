@@ -1,7 +1,8 @@
 ---
 # Declarative label set for this repository, synced by
-# .github/workflows/label-sync.yml on every push to the default branch. Edit a
-# label here (name, color, description) and the next sync applies it; the sync
+# .github/workflows/label-sync.yml when this file changes on the default branch
+# (or via a manual workflow_dispatch run). Edit a label here (name, color,
+# description) and the next sync applies it; the sync
 # never deletes labels that are absent from this file (skip-delete is enabled),
 # so GitHub's defaults and labels created by other automation are left alone.
 - name: no-issue
