@@ -9,6 +9,8 @@ on:
 jobs:
   task-check:
     name: Check PR task list
+    # Skip automated PRs (Renovate, Dependabot, etc.) — bots leave task checkboxes unticked.
+    if: ${{ !endsWith(github.actor, '[bot]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
