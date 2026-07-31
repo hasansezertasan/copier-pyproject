@@ -86,7 +86,7 @@ release-please should be wired:
 - The `release_automation` variable is removed from `copier.yml`; the release-it
   and release-drafter config + workflow files are deleted; the three release-please
   files (`.github/release-please-config.json`, `.github/release-please-manifest.json`,
-  `.github/workflows/release-please.yml`) become unconditional.
+  `.github/workflows/release.yml`) become unconditional.
 - Generated projects now always include a release-please pipeline. The previous
   `none` escape hatch is gone — projects that want no automation must delete the
   files post-generation. This is an accepted trade-off for a template whose target
@@ -94,7 +94,7 @@ release-please should be wired:
 - `.example-input.yml` no longer sets `release_automation`, so `example/` is
   regenerated with release-please present.
 - **The keycast pipeline is implemented, not deferred.** `cd.yml` is deleted and
-  its jobs are folded into a single unified `release-please.yml`: `release-please`
+  its jobs are folded into a single unified `release.yml`: `release-please`
   → `build` (matrix when `include_c_extensions`) → `pypi-publish` → conditional
   `build-launcher`/`build-freezer`/`build-compiler` (standalone executables — see
   [ADR-007](007-standalone-executable-toggles.md)) / `docker-publish` (web) → `attach-github-release`
@@ -108,8 +108,8 @@ release-please should be wired:
   `GITHUB_TOKEN` cannot trigger a separate workflow. `gh-pages.yml` is retained
   only for manual `workflow_dispatch` redeploys.
 - **Trusted publishing entry workflow changed.** Because the PyPI publish step is
-  inline in `release-please.yml` (not a reusable `cd.yml`), the PyPI Trusted
-  Publisher must register `release-please.yml` as the workflow filename. README and
+  inline in `release.yml` (not a reusable `cd.yml`), the PyPI Trusted
+  Publisher must register `release.yml` as the workflow filename. README and
   CLAUDE.md are updated accordingly.
 - **`draft: true` requires `force-tag-creation: true`** (and
   `release-please-action` v5.0.0). GitHub withholds a draft release's git tag until

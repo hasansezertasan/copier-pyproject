@@ -85,7 +85,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Build the image
-        # Build the same Dockerfile that release-please.yml publishes, so the
+        # Build the same Dockerfile that release.yml publishes, so the
         # scan reflects what actually ships. Tagged locally; never pushed.
         run: docker build -t {{github_repo_name}}:scan .
       - name: Scan the image

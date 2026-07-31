@@ -49,7 +49,7 @@ class CythonBuildHook(BuildHookInterface):
 
         # Compilation failures propagate: a wheel that is supposed to carry the
         # compiled extension must never be published silently degraded. The
-        # per-platform ``fail-fast: false`` matrix in the release-please.yml
+        # per-platform ``fail-fast: false`` matrix in the release.yml
         # build job isolates a failing target without blocking the others.
         ext_modules = cythonize([extension], language_level=3)
 

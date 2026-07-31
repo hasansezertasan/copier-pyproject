@@ -21,7 +21,7 @@ no third-party account:
 
 The template already builds Sphinx docs on every push/release
 ([ADR-006](006-sphinx-shibuya-for-documentation.md)) and already owns the release
-lifecycle via `release-please.yml`
+lifecycle via `release.yml`
 ([ADR-002](002-release-please-for-release-automation.md)), so both features slot
 onto existing machinery rather than introducing new infrastructure.
 
@@ -80,25 +80,25 @@ docs. A live URL is the whole value of the feature; the same-repo subfolder gets
 it without the separate-repo/App provisioning cost.
 
 **Degradation:** the preview publishes to `gh-pages`, which the template already
-uses for released docs (`release-please.yml` `deploy-docs` publishes to the repo
+uses for released docs (`release.yml` `deploy-docs` publishes to the repo
 *root*; previews live under `pr-preview/`, a disjoint path, so they never
 collide). If GitHub Pages is not enabled on the repo the deploy step fails only
 on that PR — the workflow is not wired into the `check` aggregation gate, so it
 never blocks a merge.
 
-### 2. Released-issue notifications — one job in `release-please.yml`
+### 2. Released-issue notifications — one job in `release.yml`
 
-Add a `notify-released-issues` job to `release-please.yml`, gated on
+Add a `notify-released-issues` job to `release.yml`, gated on
 `needs.release-please.outputs.release_created == 'true'` and running after
 `finalize-release` (so it fires only on a real, un-drafted release). It uses a
 single `actions/github-script` step (no committed Python/JS files) to find the
 issues closed by the release and comment the release tag/URL on each, reading the
 `tag_name`/`version` outputs already exposed by the `release-please` job.
 
-Keeping it inline in `release-please.yml` (rather than a separate
+Keeping it inline in `release.yml` (rather than a separate
 `workflow_call` file) matches this template's decision to keep the whole release
 lifecycle in one workflow ([ADR-002](002-release-please-for-release-automation.md),
-which folded `cd.yml` into `release-please.yml`).
+which folded `cd.yml` into `release.yml`).
 
 ### Why always-on rather than a toggle
 
@@ -123,13 +123,13 @@ reason those integrations are toggles and these two are not.
   `pull_request_target`) means **no `dangerous-triggers` ignore is needed**. It
   is *not* wired into the `check` aggregation gate — a preview is best-effort,
   not merge-blocking. `ci.yml` is left unchanged.
-- `release-please.yml.jinja` gains a `notify-released-issues` job gated on
+- `release.yml.jinja` gains a `notify-released-issues` job gated on
   `release_created` and `needs: finalize-release`, using inline `github-script`
   (no new committed scripts).
 - No new `copier.yml` variable — both features are always rendered.
 - Docs previews and released docs share the `gh-pages` branch on **disjoint
   paths** (`pr-preview/**` vs. root). The released-docs deploys
-  (`release-please.yml` `deploy-docs` and the manual `gh-pages.yml`) use
+  (`release.yml` `deploy-docs` and the manual `gh-pages.yml`) use
   `JamesIves/github-pages-deploy-action`, whose default `clean: true` would wipe
   the `pr-preview/` tree on every release; both therefore gain
   `clean-exclude: pr-preview/**` so live previews survive a release deploy. They

@@ -282,7 +282,7 @@ defaults; the only exception is a **web-only** `.github/ghalint.yaml` that
 excludes the `job_secrets` policy for exactly the `docker-publish-preflight` and
 `docker-publish` jobs (they must expose `DOCKERHUB_USERNAME` at job-env because
 GitHub `if:` conditions cannot read the `secrets` context or step-level env).
-The two docs-push jobs (`gh-pages.yml` `deploy`, `release-please.yml`
+The two docs-push jobs (`gh-pages.yml` `deploy`, `release.yml`
 `deploy-docs`) set `persist-credentials: false` and publish via
 `JamesIves/github-pages-deploy-action` (SHA-pinned), which authenticates from its
 `token` input (default `github.token`) without ever writing the token into
@@ -386,7 +386,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      offending diff instead of silently at release time (the test suite never
      exercises the built binary). Each verifies the binary was produced,
      smoke-runs it with `--help` when `include_cli` is set, and uploads a 7-day
-     preview artifact. They closely follow the `release-please.yml` build jobs
+     preview artifact. They closely follow the `release.yml` build jobs
      (same setup + build commands), skipping the release-only rename/publish
      steps, and they gate the `check` aggregation job. See
      [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
@@ -398,7 +398,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `integration` marker is deselected by default via the pytest `addopts`); this
      job is the only thing exercising the real driver, and it gates the `check`
      aggregation job. See [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
-2. **Release + CD** (`release-please.yml.jinja`): one unified workflow (there is
+2. **Release + CD** (`release.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
    (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:
    - `release-please`: opens/maintains a release PR from Conventional Commits on
@@ -514,7 +514,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    `helpers:pinGitHubActionDigests` keeps them current). This is a standalone
    workflow (like `codeql`/`scorecard`), *not* wired into the `ci.yml` `check`
    aggregation gate. A CycloneDX **SBOM** (`<repo>-sbom.cdx.json`) is generated
-   from the locked runtime deps by a `sbom` job in `release-please.yml` and
+   from the locked runtime deps by a `sbom` job in `release.yml` and
    attached to each GitHub Release (via `attach-github-release`), not kept as a
    throwaway CI artifact.
 8. **Workflow hardening + zizmor** (always included). Every generated workflow
@@ -543,7 +543,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    - **No untrusted `${{ }}` in `run:` blocks** — GitHub context
      (`github.ref_name`/`repository`/`workflow`) is passed via `env:` and read as
      `"$VAR"` (template-injection). The `finalize-release`/`attach-github-release`
-     steps in `release-please.yml` follow this.
+     steps in `release.yml` follow this.
    - **Intentional `pull_request_target`** workflows (`check-pr-title`,
      `check-branch-name`, `check-linked-issues`, `task-completed-check`, `label`,
      `issue-manager`) carry a justified `# zizmor: ignore[dangerous-triggers]`:
@@ -621,7 +621,7 @@ For generated projects to publish to PyPI:
    - PyPI Project Name: `<package-name>`
    - Owner: `<github-username>`
    - Repository: `<repo-name>`
-   - Workflow: `release-please.yml` (the publish step is inline in this workflow,
+   - Workflow: `release.yml` (the publish step is inline in this workflow,
      so this is the filename PyPI's OIDC check matches — not a reusable `cd.yml`)
    - Environment: `publish`
 
