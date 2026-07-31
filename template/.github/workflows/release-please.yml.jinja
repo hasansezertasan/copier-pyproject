@@ -45,7 +45,7 @@ jobs:
 {%- endif %}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           # hatch-vcs derives the version from the git tag, so fetch full history
           # and tags. `force-tag-creation` in the release-please config makes
@@ -118,7 +118,7 @@ jobs:
           path: dist/
 {%- endif %}
       - name: Publish distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # release/v1
 {%- if include_launcher %}
   build-launcher:
     name: Build Launcher (PyCrucible)
@@ -144,7 +144,7 @@ jobs:
             label: macos
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           # PyCrucible embeds the source tree; hatch-vcs needs full history + tags
           # to stamp the correct version into the embedded project (mirrors `build`).
@@ -189,7 +189,7 @@ jobs:
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -245,7 +245,7 @@ jobs:
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -323,7 +323,7 @@ jobs:
       DOCKERHUB_USERNAME: {% raw %}${{ secrets.DOCKERHUB_USERNAME }}{% endraw %}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
       - name: Set up QEMU
@@ -382,7 +382,7 @@ jobs:
       contents: read  # IMPORTANT: actions/checkout needs read access to the repo
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
       - name: Set up Python
@@ -523,7 +523,7 @@ jobs:
       contents: write  # IMPORTANT: Mandatory for GitHub Pages
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0
           persist-credentials: false
