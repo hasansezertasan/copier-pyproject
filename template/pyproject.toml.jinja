@@ -198,7 +198,6 @@ style = [
 test = [
   "coverage-enable-subprocess==1.0",
   "coverage[toml]==7.11.0",
-  "pytest-dependency==0.6.0",
   "pytest-mock==3.15.1",
   "pytest-rerunfailures==16.1",
   "pytest-xdist[psutil]==3.8.0",
@@ -630,10 +629,13 @@ commands = [
   [
     "ruff",
     "check",
+    "--no-fix",
   ],
   [
     "ruff",
     "format",
+    "--check",
+    "--diff",
   ],
   [
     "mypy",
@@ -673,10 +675,19 @@ commands = [
   [
     "taplo",
     "lint",
+    "*.toml",
   ],
+  # NOTE: kept in fix mode (not `--check`) because the rendered TOML is not yet
+  # guaranteed taplo-formatted across every component combination. The `*.toml`
+  # glob is non-recursive, so it scopes taplo to this project's own root TOML
+  # (pyproject/prek/mise) without walking vendored `.tox`/`.venv`/site-packages
+  # trees — no `.taplo.toml` exclude config needed. Making this a strict
+  # `--check` gate is a follow-up that first requires the generated
+  # pyproject/prek to be clean.
   [
     "taplo",
     "format",
+    "*.toml",
   ],
   [
     "validate-pyproject",
