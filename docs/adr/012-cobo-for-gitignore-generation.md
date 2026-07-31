@@ -52,8 +52,9 @@ The `include_freezer` (`!{{github_repo_name}}.spec`) and `include_c_extensions`
 (`/src/{{github_repo_name}}/_c_extension.c`) conditionals move out of the
 boilerplate into the author section **below** the end fence, where cobo
 preserves them untouched. This keeps the fence verifiable and puts the
-project's own overrides where they belong. The `!…​.spec` negation still lands
-after the `*.spec` ignore (inside the fence), so it still wins.
+project's own overrides where they belong. The `!…​.spec` negation still lands,
+in file order, after the `*.spec` ignore that sits inside the fence, so it still
+wins.
 
 ### 3. Two lockfiles
 
