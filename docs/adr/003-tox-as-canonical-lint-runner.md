@@ -91,8 +91,8 @@ toolchain or rewrite generated projects during CI.
 - **uv/tox is already the spine.** Generated projects use uv for dependencies and
   tox for the test/style/docs matrix. Making tox the lint runner keeps linting on
   the same spine rather than adding parallel toolchains a contributor must learn.
-- **Opt-in, not deleted _(historical — superseded by the 2026-06 update above;
-  both were later removed entirely)_.** Pants and Trunk solved real problems for
+- **Opt-in, not deleted *(historical — superseded by the 2026-06 update above;
+  both were later removed entirely)*.** Pants and Trunk solved real problems for
   some projects (monorepo builds; aggregated IaC/secret scanning). Demoting them
   to opt-in removed the default-path duplication without taking the option
   away — before they were dropped outright.
