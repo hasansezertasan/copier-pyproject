@@ -1,0 +1,33 @@
+---
+name: Gitignore Drift Check
+# Runs `cobo check` to detect when this repo's cobo-managed .gitignore files
+# (template/.gitignore.jinja and the root .gitignore, both tracked in cobo.lock)
+# have drifted from the upstream github/gitignore templates. `cobo update` hits
+# the network and is inherently flaky, so this runs on a weekly schedule and on
+# demand — never on pull_request. A failure is a maintenance signal (regenerate
+# with `cobo update && cobo sync`), not a merge blocker. Mirrors the workflow
+# the template ships to generated projects. See docs/adr/012.
+"on":
+  workflow_dispatch:
+  schedule:
+    # Weekly, Monday 07:00 UTC.
+    - cron: "0 7 * * 1"
+permissions: {}
+jobs:
+  gitignore-drift:
+    name: Check .gitignore drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      - name: Refresh cobo sources
+        run: uvx cobo update
+      - name: Check for gitignore drift
+        run: uvx cobo check

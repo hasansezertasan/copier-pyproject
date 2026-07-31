@@ -1,6 +1,10 @@
 [tools]
 action-validator = "latest"
 actionlint = "latest"
+# cobo manages the cobo-sealed .gitignore block; `mise install` provides it so
+# the documented `cobo update && cobo sync` regeneration (and `cobo check`)
+# works from a fresh checkout. Delivered via the pipx backend (a PyPI package).
+"pipx:cobo" = "latest"
 cookiecutter = "latest"
 copier = "latest"
 editorconfig-checker = "latest"
