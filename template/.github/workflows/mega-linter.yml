@@ -6,8 +6,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
-permissions:
-  contents: read
+permissions: {}
 concurrency:
   group: mega-linter-${{ github.ref }}
   cancel-in-progress: true
@@ -16,6 +15,8 @@ jobs:
     name: Run MegaLinter
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7

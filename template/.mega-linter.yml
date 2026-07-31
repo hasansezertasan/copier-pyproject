@@ -5,7 +5,6 @@ SHOW_ELAPSED_TIME: true
 CLEAR_REPORT_FOLDER: true
 OUTPUT_DETAIL: detailed
 REPORT_OUTPUT_FOLDER: megalinter-reports
-
 # MegaLinter is an additional CI quality layer. tox/prek remain the canonical
 # local and blocking style runners, so MegaLinter avoids auto-fixes and Python
 # type/lint duplication.
@@ -18,7 +17,6 @@ JSON_REPORTER_OUTPUT_DETAIL: simple
 MARKDOWN_SUMMARY_REPORTER: true
 REPORTERS_MARKDOWN_TYPE: simple
 SARIF_REPORTER: true
-
 ENABLE_LINTERS:
   - ACTION_ACTIONLINT
   - BASH_SHELLCHECK
@@ -26,7 +24,6 @@ ENABLE_LINTERS:
   - MARKDOWN_MARKDOWNLINT
   - SPELL_CSPELL
   - YAML_YAMLLINT
-
 EXCLUDED_DIRECTORIES:
   - .git
   - .mypy_cache
@@ -39,7 +36,6 @@ EXCLUDED_DIRECTORIES:
   - htmlcov
   - megalinter-reports
   - node_modules
-
 ACTION_ACTIONLINT_CONFIG_FILE: .github/actionlint.yaml
 BASH_SHELLCHECK_CONFIG_FILE: .github/linters/.shellcheckrc
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .github/linters/.markdownlint.yml

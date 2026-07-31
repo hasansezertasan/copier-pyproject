@@ -61,7 +61,7 @@ times) is pure overhead for a default project.
 
 The uv-backed tox `style` environment is the single canonical runner for the
 **full** lint/type-check suite. `include_pants` and `include_trunk` now default
-to `false`.
+to `false` (later removed entirely — see the Update note above).
 
 Git hooks are always included (the `include_precommit` toggle is removed) and run
 via prek (configured by a native `prek.toml`) as a fast local/CI gate — not a
