@@ -12,7 +12,10 @@ hooks = [
   { id = "check-yaml", name = "Check YAML" },
   { id = "check-json", name = "Check JSON" },
   { id = "end-of-file-fixer", name = "End of file fixer" },
-  { id = "trailing-whitespace", name = "Trailing whitespace" },
+  # template/.gitignore.jinja is a cobo-sealed block (hash-verified); upstream
+  # github/gitignore ships trailing whitespace on some comment lines, so exclude
+  # it from trimming to keep the seal intact (cobo owns this file — ADR-012).
+  { id = "trailing-whitespace", name = "Trailing whitespace", exclude = '^template/\.gitignore\.jinja$' },
   { id = "check-merge-conflict", name = "Check Merge Conflict", args = [
     "--assume-in-merge",
   ] },
