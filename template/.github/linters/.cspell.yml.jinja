@@ -21,6 +21,8 @@ words:
   - prek
   - unticked
   - MYENVPREFIX
-  # Project identifiers, so a project never trips on its own name/handle
-  - {{ github_user }}
-  - {{ github_repo_name }}
+  # Project identifiers, so a project never trips on its own name/handle.
+  # Quoted so a name that is a YAML boolean/null token (e.g. a repo literally
+  # named "off" or "null") still renders as a string, which cspell requires.
+  - "{{ github_user }}"
+  - "{{ github_repo_name }}"
