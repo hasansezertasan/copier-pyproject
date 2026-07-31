@@ -765,7 +765,7 @@ runner = "uv-venv-runner"
 {%- if include_cli %}
 
 [tool.tox.env.cli]
-commands = [["{{github_repo_name}}", "version", { replace = "posargs", extend = true }]]
+commands = [["{{github_repo_name}}", { replace = "posargs", default = ["version"], extend = true }]]
 description = "Run the CLI application."
 runner = "uv-venv-runner"
 {%- endif %}

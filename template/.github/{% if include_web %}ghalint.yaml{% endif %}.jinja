@@ -12,8 +12,8 @@
 # step.) Every other policy stays at ghalint's strict defaults.
 excludes:
   - policy_name: job_secrets
-    workflow_file_path: .github/workflows/release-please.yml
+    workflow_file_path: .github/workflows/release.yml
     job_name: docker-publish-preflight
   - policy_name: job_secrets
-    workflow_file_path: .github/workflows/release-please.yml
+    workflow_file_path: .github/workflows/release.yml
     job_name: docker-publish
