@@ -65,7 +65,7 @@ Copier will prompt for:
 
 ## Release automation
 
-Release automation is standardized on [release-please](https://github.com/googleapis/release-please) (see [ADR-002](docs/adr/002-release-please-for-release-automation.md)). A single unified workflow, `.github/workflows/release-please.yml`, orchestrates the whole release:
+Release automation is standardized on [release-please](https://github.com/googleapis/release-please) (see [ADR-002](docs/adr/002-release-please-for-release-automation.md)). A single unified workflow, `.github/workflows/release.yml`, orchestrates the whole release:
 
 1. On push to `main`, release-please opens a release PR derived from your Conventional Commits.
 2. Merging that PR creates the git tag and a **draft** GitHub Release.
@@ -78,14 +78,14 @@ Versions are derived from git tags by hatch-vcs (`dynamic = ["version"]`), so re
 
 ### PyPI Trusted Publishing setup
 
-Enable PyPI once per project for `.github/workflows/release-please.yml`:
+Enable PyPI once per project for `.github/workflows/release.yml`:
 
 1. Open [Trusted Publisher Management](https://pypi.org/manage/account/publishing/).
 2. Under "Add a new pending publisher", pick "GitHub".
 3. Set `PyPI Project Name` to your package name.
 4. Set `Owner` to your GitHub username.
 5. Set `Repository name` to your repo name.
-6. Set `Workflow name` to `release-please.yml`. The PyPI publish step lives in this workflow (not a reusable one), so this is the filename PyPI's OIDC check matches against.
+6. Set `Workflow name` to `release.yml`. The PyPI publish step lives in this workflow (not a reusable one), so this is the filename PyPI's OIDC check matches against.
 7. Set `Environment name` to `publish` (or your chosen env).
 8. Save.
 
@@ -126,7 +126,7 @@ GitHub Container Registry (`ghcr.io/<owner>/<repo>`) using the built-in
 `GITHUB_TOKEN` — no extra setup required.
 
 Docker Hub publishing is optional, opted into via a pair of repository secrets
-(integrated in `.github/workflows/release-please.yml`):
+(integrated in `.github/workflows/release.yml`):
 
 1. Open [Personal access tokens](https://app.docker.com/settings/personal-access-tokens)
    in your Docker Hub account settings.
@@ -156,12 +156,12 @@ Releases are driven by Conventional Commits — you do not draft releases by han
 
 1. Land `feat:` / `fix:` commits on `main`. release-please opens (and keeps updating) a release PR with the computed version bump and changelog.
 2. Merge the release PR when you want to ship. This creates the git tag and a draft GitHub Release.
-3. The `release-please.yml` workflow then builds the wheel/sdist with uv, publishes to PyPI via trusted publishing, attaches artifacts to the draft, and un-drafts the release.
+3. The `release.yml` workflow then builds the wheel/sdist with uv, publishes to PyPI via trusted publishing, attaches artifacts to the draft, and un-drafts the release.
 4. If `include_web` is enabled it also builds and pushes multi-arch Docker images; if any of `include_launcher` (PyCrucible), `include_compiler` (Nuitka), or `include_freezer` (PyInstaller) is enabled it also builds standalone executables for Windows, macOS, and Linux and attaches them to the release.
 
 ### Release workflow structure
 
-The unified `release-please.yml` orchestrates every release job; all jobs after `release-please` run only when a release was created:
+The unified `release.yml` orchestrates every release job; all jobs after `release-please` run only when a release was created:
 
 ```text
 release-please ─► build ─┬─► pypi-publish ────────┐
