@@ -5,6 +5,11 @@
 Accepted. **Superseded in part (2026-06): Pants and Trunk were removed
 entirely** — see the Update note below.
 
+Amended (2026-07): generated projects now also ship a MegaLinter workflow as an
+additive CI quality layer for repository/config/documentation checks. tox
+`style` remains the authoritative local lint/type-check suite; MegaLinter does
+not replace tox or own Python type/lint policy.
+
 ## Update (2026-06): Pants and Trunk removed
 
 The opt-in path this ADR established was subsequently dropped. `include_pants`
@@ -56,7 +61,7 @@ times) is pure overhead for a default project.
 
 The uv-backed tox `style` environment is the single canonical runner for the
 **full** lint/type-check suite. `include_pants` and `include_trunk` now default
-to `false`.
+to `false` (later removed entirely — see the Update note above).
 
 Git hooks are always included (the `include_precommit` toggle is removed) and run
 via prek (configured by a native `prek.toml`) as a fast local/CI gate — not a
@@ -71,6 +76,13 @@ gate — not three independently-pinned orchestrators. (At the time of this ADR,
 Pants and Trunk were demoted to opt-ins rather than deleted; both were removed
 entirely in the 2026-06 update above.)
 
+MegaLinter is intentionally scoped differently: it runs in CI as a repository
+quality umbrella over formats that benefit from cross-file checks and reports
+(GitHub Actions, Markdown, YAML, shell snippets, editorconfig, and cspell). It
+is configured with `APPLY_FIXES: none`, no GitHub comment/status reporters, and
+no Python linters/type checkers, so it cannot drift against the uv/tox Python
+toolchain or rewrite generated projects during CI.
+
 ## Rationale
 
 - **One source of truth.** Tool versions live in the uv `style` dependency group
@@ -79,13 +91,16 @@ entirely in the 2026-06 update above.)
 - **uv/tox is already the spine.** Generated projects use uv for dependencies and
   tox for the test/style/docs matrix. Making tox the lint runner keeps linting on
   the same spine rather than adding parallel toolchains a contributor must learn.
-- **Opt-in, not deleted.** Pants and Trunk solve real problems for some projects
-  (monorepo builds; aggregated IaC/secret scanning). Demoting them to opt-in
-  removes the default-path duplication without taking the option away.
+- **Opt-in, not deleted _(historical — superseded by the 2026-06 update above;
+  both were later removed entirely)_.** Pants and Trunk solved real problems for
+  some projects (monorepo builds; aggregated IaC/secret scanning). Demoting them
+  to opt-in removed the default-path duplication without taking the option
+  away — before they were dropped outright.
 - **One updater, not many.** Renovate bumps both the uv `style` group and the
   prek `rev` pins; the default project no longer relies on `sync-with-uv`,
   pre-commit.ci, or `trunk upgrade` running in parallel. Pants and Trunk, when
-  opted in, still carry their own update mechanisms.
+  they were still opt-in, carried their own update mechanisms (historical; both
+  were subsequently removed).
 
 ## Consequences
 
@@ -94,11 +109,15 @@ entirely in the 2026-06 update above.)
 - The always-on prek gate overlaps the tox `style` env by design; Renovate keeps
   both the prek `rev` pins and the uv `style` group current, so the overlap costs
   duplicate execution (fast local feedback) and at most a brief window where two
-  Renovate PRs land separately, not sustained version drift. When a contributor
-  additionally opts into Trunk, that orchestrator is expected to be narrowed to
-  the scanners the core suite lacks.
+  Renovate PRs land separately, not sustained version drift. (Historically, when
+  a contributor additionally opted into Trunk, that orchestrator was expected to
+  be narrowed to the scanners the core suite lacks — moot since Trunk's removal.)
 - The `trunk check` / `pants lint ::` commands were removed from `README.md` and
   `AGENTS.md`; there is no longer any Pants/Trunk path to document.
+- MegaLinter adds a separate CI workflow and `.mega-linter.yml`. Its reports are
+  uploaded as artifacts and `megalinter-reports/` is ignored. The workflow is a
+  broad repository/config/documentation signal; contributors should still use
+  `tox -e style` / `tox -e prek` for local authoritative checks.
 - The number of type checkers invoked by the `style` env (mypy, pyright, ty,
   pyrefly) is a separate concern not addressed here; see future work on trimming
   preview-stage checkers.

@@ -115,7 +115,7 @@ jobs:
           token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
       - name: Note skipped coverage upload
         if: {% raw %}${{ env.CODECOV_TOKEN_SET != 'true' && !github.event.pull_request.head.repo.fork && matrix.os == 'ubuntu-latest' }}{% endraw %}
-        run: echo "::notice::CODECOV_TOKEN secret is not set — skipping the Codecov upload. See CONTRIBUTING.md (Repository setup) to enable coverage reporting."
+        run: echo "::notice::CODECOV_TOKEN secret is not set — skipping the Codecov upload. See .github/CONTRIBUTING.md (Repository setup) to enable coverage reporting."
 {%- if include_sonarcloud %}
       - name: Upload coverage.xml for SonarCloud
         # Ubuntu-only so the artifact name is unique (upload-artifact v4 rejects
@@ -382,7 +382,7 @@ jobs:
           SONAR_HOST_URL: https://sonarcloud.io
       - name: Note skipped SonarCloud scan
         if: {% raw %}${{ env.SONAR_TOKEN_SET != 'true' }}{% endraw %}
-        run: echo "::notice::SONAR_TOKEN secret is not set — skipping the SonarCloud scan. See CONTRIBUTING.md (Repository setup) to enable it."
+        run: echo "::notice::SONAR_TOKEN secret is not set — skipping the SonarCloud scan. See .github/CONTRIBUTING.md (Repository setup) to enable it."
 {%- endif %}
   check:
     if: always()

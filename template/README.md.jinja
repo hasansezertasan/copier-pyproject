@@ -2,6 +2,7 @@
 
 <!-- TODO @{{github_user}}: Make it work, make it right, make it fast. -->
 [![CI](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/ci.yml/badge.svg)](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/ci.yml)
+[![MegaLinter](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/mega-linter.yml/badge.svg)](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/mega-linter.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/{{github_user}}/{{github_repo_name}})](https://codecov.io/gh/{{github_user}}/{{github_repo_name}})
 [![Documentation Status](https://img.shields.io/github/deployments/{{github_user}}/{{github_repo_name}}/github-pages?label=docs)](https://{{github_user}}.github.io/{{github_repo_name}})
 [![PyPI - Version](https://img.shields.io/pypi/v/{{github_repo_name}}.svg)](https://pypi.org/project/{{github_repo_name}})
@@ -262,7 +263,7 @@ This project is maintained by [{{author_full_name}}][author], It's me :wave:
 
 ## Contributing :heart:
 
-Any contributions are welcome! Please follow the [Contributing Guidelines](./CONTRIBUTING.md) to contribute to this project.
+Any contributions are welcome! Please follow the [Contributing Guidelines](./.github/CONTRIBUTING.md) to contribute to this project.
 
 <!-- xc-heading -->
 ## Development :toolbox:
@@ -326,7 +327,7 @@ uv run --locked tox run -e docs-linkcheck
 
 ## Releasing
 
-Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version and `CHANGELOG.md`; merging it tags the release and publishes to PyPI. See the [Contributing Guidelines](./CONTRIBUTING.md#releasing) for the commit conventions and the one-time [Repository setup](./CONTRIBUTING.md#repository-setup-one-time) (squash-merge settings, Actions permissions, release immutability, and PyPI trusted publishing).
+Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version and `CHANGELOG.md`; merging it tags the release and publishes to PyPI. See the [Contributing Guidelines](./.github/CONTRIBUTING.md#releasing) for the commit conventions and the one-time [Repository setup](./.github/CONTRIBUTING.md#repository-setup-one-time) (squash-merge settings, Actions permissions, release immutability, and PyPI trusted publishing).
 
 ## Credits
 
