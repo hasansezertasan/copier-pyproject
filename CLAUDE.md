@@ -186,10 +186,12 @@ Optional components (all boolean):
   `COPYPASTE_JSCPD` — never actionlint/yamllint/markdownlint/editorconfig (prek),
   never cspell (typos is the single spell-checker), never Python (tox), never the
   repository security linters (`check-security.yml` + CodeQL/Scorecard). It runs
-  on the smaller **`cupcake` flavor** image and is **paths-filtered** to the file
-  types those linters target, cutting the dominant image-pull cost that made it
-  slow. Non-blocking (not in the `check` gate, `GITHUB_STATUS_REPORTER: false`),
-  so the paths filter can't wedge a required check. The MegaLinter-only
+  on the smaller **`cupcake` flavor** image, which cuts the dominant image-pull
+  cost that made it slow (the effective per-run lever). It runs on every push/PR
+  to the default branch — **no paths filter**, because `COPYPASTE_JSCPD` scans
+  source so a filter would fire on nearly every PR anyway; an always-run is
+  simpler and more predictable. Non-blocking (not in the `check` gate,
+  `GITHUB_STATUS_REPORTER: false`). The MegaLinter-only
   `.shellcheckrc` is gated with the toggle; the prek-shared configs
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See

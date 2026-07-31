@@ -1,8 +1,15 @@
 # Design: `include_megalinter` — opt-in lean MegaLinter complement
 
 - **Date:** 2026-07-31
-- **Status:** Approved (pending user review of this spec)
+- **Status:** Implemented
 - **Repo:** `copier-pyproject` template
+
+> **Amendment (2026-08-01):** The **paths filter** described below (§3, §File
+> changes, §Risks) was **dropped** during review. Because `COPYPASTE_JSCPD` scans
+> source, the filter fired on nearly every PR anyway (`**.py`), making it a
+> half-optimization with a confusing "why didn't it run?" surface. The workflow
+> now runs on every push/PR to the default branch; the `cupcake` flavor remains
+> the effective per-run cost lever. See ADR-013 (authoritative).
 
 ## Problem
 

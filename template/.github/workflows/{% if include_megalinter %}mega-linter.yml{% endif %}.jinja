@@ -4,33 +4,16 @@ name: MegaLinter
 # prek/tox do not already cover -- shellcheck, hadolint (web Dockerfile), jsonlint,
 # and jscpd clone-detection -- and uploads SARIF findings to the Security tab.
 # tox/prek remain the canonical, blocking style runners; this layer is
-# non-blocking (not in the ci.yml `check` gate, no status reporter) and is
-# paths-filtered to the file types those linters target. It uses the smaller
-# `cupcake` flavor image to cut the pull cost. See ADR-013.
+# non-blocking (not in the ci.yml `check` gate, no status reporter). It uses the
+# smaller `cupcake` flavor image to cut the pull cost. No paths filter: jscpd
+# scans source, so a filter would trigger on nearly every PR anyway -- an
+# always-run is simpler and more predictable. See ADR-013.
 on:
   workflow_dispatch:
   push:
     branches: [main, master]
-    paths:
-      - "**.py"
-      - "**.json"
-      - "**.jsonc"
-      - "**.sh"
-      - "**/Dockerfile*"
-      - .github/workflows/mega-linter.yml
-      - .mega-linter.yml
-      - .github/linters/.shellcheckrc
   pull_request:
     branches: [main, master]
-    paths:
-      - "**.py"
-      - "**.json"
-      - "**.jsonc"
-      - "**.sh"
-      - "**/Dockerfile*"
-      - .github/workflows/mega-linter.yml
-      - .mega-linter.yml
-      - .github/linters/.shellcheckrc
 permissions: {}
 concurrency:
   group: mega-linter-{% raw %}${{ github.ref }}{% endraw %}

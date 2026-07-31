@@ -68,12 +68,14 @@ Deliberately **not** enabled, to avoid duplication:
 - Use the smaller **`cupcake` flavor** image
   (`oxsecurity/megalinter/flavors/cupcake@<sha>`, SHA-pinned, Renovate-tracked),
   which still contains all four enabled linters — the largest, unconditional cut
-  to the dominant image-pull cost.
-- **Paths-filter** the workflow to the file types the enabled linters target
-  (`**.py`, `**.json`, `**.jsonc`, `**.sh`, `**/Dockerfile*`, and the
-  workflow/config files). Because `COPYPASTE_JSCPD` scans source, the filter
-  necessarily includes `**.py`, so the filter's saving is mainly on
-  documentation/config-only PRs; the flavor is what cuts the per-run cost.
+  to the dominant image-pull cost. This is the effective per-run lever.
+- **No paths filter.** An earlier revision paths-filtered the workflow to the
+  file types the enabled linters target, but because `COPYPASTE_JSCPD` scans
+  source the filter necessarily included `**.py` and so fired on nearly every
+  PR — a half-optimization whose only saving was documentation/config-only PRs,
+  at the cost of a confusing "why didn't it run here?" surface. The workflow
+  therefore runs on every push/PR to the default branch; the `cupcake` flavor
+  (not a filter) is what keeps each run cheap.
 - Keep `VALIDATE_ALL_CODEBASE: false` on PRs and `cancel-in-progress`.
 
 ### Non-blocking
