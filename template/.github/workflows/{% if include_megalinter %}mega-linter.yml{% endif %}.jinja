@@ -1,0 +1,66 @@
+---
+name: MegaLinter
+# Optional (include_megalinter) extra CI quality layer. It runs ONLY linters that
+# prek/tox do not already cover -- shellcheck, hadolint (web Dockerfile), jsonlint,
+# and jscpd clone-detection -- and uploads SARIF findings to the Security tab.
+# tox/prek remain the canonical, blocking style runners; this layer is
+# non-blocking (not in the ci.yml `check` gate, no status reporter) and is
+# paths-filtered to the file types those linters target. It uses the smaller
+# `cupcake` flavor image to cut the pull cost. See ADR-013.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - "**.py"
+      - "**.json"
+      - "**.jsonc"
+      - "**.sh"
+      - "**/Dockerfile*"
+      - .github/workflows/mega-linter.yml
+      - .mega-linter.yml
+      - .github/linters/.shellcheckrc
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "**.py"
+      - "**.json"
+      - "**.jsonc"
+      - "**.sh"
+      - "**/Dockerfile*"
+      - .github/workflows/mega-linter.yml
+      - .mega-linter.yml
+      - .github/linters/.shellcheckrc
+permissions: {}
+concurrency:
+  group: mega-linter-{% raw %}${{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+jobs:
+  mega-linter:
+    name: Run MegaLinter
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Run MegaLinter
+        # `cupcake` flavor: smaller image than the default full flavor, yet still
+        # contains every linter enabled in .mega-linter.yml. SHA-pinned and
+        # Renovate-tracked like every other action.
+        uses: oxsecurity/megalinter/flavors/cupcake@ef3e84b8b836d76db562d0f3ed7da61e8fd538bc  # v9
+        env:
+          GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+          VALIDATE_ALL_CODEBASE: {% raw %}${{ github.event_name != 'pull_request' }}{% endraw %}
+      - name: Upload MegaLinter reports
+        if: {% raw %}${{ always() }}{% endraw %}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        with:
+          name: megalinter-reports
+          path: megalinter-reports
+          if-no-files-found: ignore
+          retention-days: 7
