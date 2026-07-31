@@ -91,13 +91,16 @@ toolchain or rewrite generated projects during CI.
 - **uv/tox is already the spine.** Generated projects use uv for dependencies and
   tox for the test/style/docs matrix. Making tox the lint runner keeps linting on
   the same spine rather than adding parallel toolchains a contributor must learn.
-- **Opt-in, not deleted.** Pants and Trunk solve real problems for some projects
-  (monorepo builds; aggregated IaC/secret scanning). Demoting them to opt-in
-  removes the default-path duplication without taking the option away.
+- **Opt-in, not deleted _(historical — superseded by the 2026-06 update above;
+  both were later removed entirely)_.** Pants and Trunk solved real problems for
+  some projects (monorepo builds; aggregated IaC/secret scanning). Demoting them
+  to opt-in removed the default-path duplication without taking the option
+  away — before they were dropped outright.
 - **One updater, not many.** Renovate bumps both the uv `style` group and the
   prek `rev` pins; the default project no longer relies on `sync-with-uv`,
   pre-commit.ci, or `trunk upgrade` running in parallel. Pants and Trunk, when
-  opted in, still carry their own update mechanisms.
+  they were still opt-in, carried their own update mechanisms (historical; both
+  were subsequently removed).
 
 ## Consequences
 
@@ -106,9 +109,9 @@ toolchain or rewrite generated projects during CI.
 - The always-on prek gate overlaps the tox `style` env by design; Renovate keeps
   both the prek `rev` pins and the uv `style` group current, so the overlap costs
   duplicate execution (fast local feedback) and at most a brief window where two
-  Renovate PRs land separately, not sustained version drift. When a contributor
-  additionally opts into Trunk, that orchestrator is expected to be narrowed to
-  the scanners the core suite lacks.
+  Renovate PRs land separately, not sustained version drift. (Historically, when
+  a contributor additionally opted into Trunk, that orchestrator was expected to
+  be narrowed to the scanners the core suite lacks — moot since Trunk's removal.)
 - The `trunk check` / `pants lint ::` commands were removed from `README.md` and
   `AGENTS.md`; there is no longer any Pants/Trunk path to document.
 - MegaLinter adds a separate CI workflow and `.mega-linter.yml`. Its reports are
