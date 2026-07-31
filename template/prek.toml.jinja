@@ -31,12 +31,16 @@ exclude = '''(?x)^(
 [[repos]]
 repo = "builtin"
 hooks = [
-  { id = "check-added-large-files", name = "Check added large files", args = ["--maxkb=1000"] },
+  { id = "check-added-large-files", name = "Check added large files", args = [
+    "--maxkb=1000",
+  ] },
   { id = "check-toml", name = "Check TOML" },
   { id = "check-json", name = "Check JSON" },
   { id = "end-of-file-fixer", name = "End of file fixer" },
   { id = "trailing-whitespace", name = "Trailing whitespace" },
-  { id = "check-merge-conflict", name = "Check Merge Conflict", args = ["--assume-in-merge"] },
+  { id = "check-merge-conflict", name = "Check Merge Conflict", args = [
+    "--assume-in-merge",
+  ] },
   { id = "check-case-conflict", name = "Check case conflict" },
   { id = "detect-private-key", name = "Detect Private Key" },
 ]
