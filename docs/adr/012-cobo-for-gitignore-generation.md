@@ -57,8 +57,10 @@ after the `*.spec` ignore (inside the fence), so it still wins.
 
 ### 3. Two lockfiles
 
-- Repo root `cobo.lock` (`path = template/.gitignore.jinja`) — lets the
-  maintainer run `cobo check`/`sync` on the template source.
+- Repo root `cobo.lock` — two fragments: `template/.gitignore.jinja` (the
+  template source) **and** this repo's own `.gitignore` (dogfooding — the
+  template repo manages its own gitignore with cobo too). `cobo check`/`sync`
+  from the root maintain both.
 - `template/cobo.lock` (`path = .gitignore`) — shipped verbatim to generated
   projects so their `.gitignore` is drift-checkable. Because the rendered fence
   is byte-identical to cobo's LF output, a fresh scaffold passes `cobo check`.

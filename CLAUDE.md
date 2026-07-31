@@ -235,7 +235,8 @@ must stay verbatim boilerplate). The block is sealed with cobo's **`--eol lf`**
 policy (cobo ≥ 0.4.0) so it survives this template's LF-everywhere normalization
 (Copier's Jinja render + git `eol=lf`); a byte-exact seal would make `cobo check`
 report `locally modified` forever in generated projects. Two lockfiles ship:
-root `cobo.lock` (`path = template/.gitignore.jinja`, for the maintainer) and
+root `cobo.lock` (two fragments — `template/.gitignore.jinja` **and** this repo's
+own `.gitignore`, which is cobo-managed too as dogfooding) and
 `template/cobo.lock` (`path = .gitignore`, shipped to generated projects). cobo
 is delivered to generated projects as a mise tool (`pipx:cobo`, Renovate-tracked)
 with a `mise run gitignore-check` task and a weekly, non-blocking
