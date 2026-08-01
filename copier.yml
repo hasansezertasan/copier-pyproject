@@ -9,7 +9,7 @@ github_repo_name:
   type: str  # Used verbatim as the importable Python package name.
   help: An awesome project needs an awesome name. Tell me yours.
   validator: >-
-    {% if not (github_repo_name | regex_search('^[a-z][a-z0-9_]*$')) %} github_repo_name must be a valid Python package name: lowercase, start with a letter, and contain only letters, digits, and underscores. It is used verbatim as the package/import name (src/<name>/, `from <name> import ...`) and the project name, so dashes are not allowed. {% endif %}
+    {% if not (github_repo_name | regex_search('^[a-z][a-z0-9_]*$')) %} github_repo_name must be a valid Python package name: lowercase, start with a letter, and contain only letters, digits, and underscores. It is used verbatim as the package/import name (src/<name>/, `from <name> import ...`) and the project name, so dashes are not allowed. {% elif github_repo_name in ["and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try", "while", "with", "yield"] %} github_repo_name cannot be the Python reserved keyword "{{ github_repo_name }}" — it is used verbatim as the import package name, so `from {{ github_repo_name }} import ...` would be a SyntaxError. Choose a different name. {% endif %}
 author_full_name:
   type: str
   help: The full name of the author
