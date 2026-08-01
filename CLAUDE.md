@@ -696,6 +696,7 @@ For generated projects to publish to PyPI:
    - Add to `all` extras
    - Add entry point if applicable
    - Add keywords
+   - Add the component to the `[tool.importlinter]` `layers` contract (a sibling in the `il_components` list, or — like `cli` — its own orchestrator layer if it imports other components)
 6. Update `.example-input.yml` with the new option
 7. Update `README.md` with documentation
 8. Keep the component's coverage at the `fail_under = 99` gate (see

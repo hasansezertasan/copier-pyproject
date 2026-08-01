@@ -36,8 +36,9 @@ own higher layer captures its legitimate orchestration imports without any
 redundant. It also degrades gracefully: with 0–1 components a dedicated
 `independence` contract is degenerate, whereas this becomes a valid `core > utils`
 contract. `__metadata__` is left outside the contract as an unconstrained
-foundation. The only guarantee deliberately not enforced is `cli -> mcp`/`cli ->
-worker` (harmless — `cli` is the top-level entry point).
+foundation. The only import boundary import-linter cannot forbid is `cli -> mcp`
+/ `cli -> worker` — but `cli` legitimately sits above them as the top-level
+entry point, so this is harmless.
 
 ### 2. `utils` below `core`
 
