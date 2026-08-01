@@ -2,7 +2,9 @@
 
 <!-- TODO @{{github_user}}: Make it work, make it right, make it fast. -->
 [![CI](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/ci.yml/badge.svg)](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/ci.yml)
+{%- if include_megalinter %}
 [![MegaLinter](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/mega-linter.yml/badge.svg)](https://github.com/{{github_user}}/{{github_repo_name}}/actions/workflows/mega-linter.yml)
+{%- endif %}
 [![Coverage](https://img.shields.io/codecov/c/github/{{github_user}}/{{github_repo_name}})](https://codecov.io/gh/{{github_user}}/{{github_repo_name}})
 [![Documentation Status](https://img.shields.io/github/deployments/{{github_user}}/{{github_repo_name}}/github-pages?label=docs)](https://{{github_user}}.github.io/{{github_repo_name}})
 [![PyPI - Version](https://img.shields.io/pypi/v/{{github_repo_name}}.svg)](https://pypi.org/project/{{github_repo_name}})
