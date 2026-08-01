@@ -80,9 +80,20 @@ Deliberately **not** enabled, to avoid duplication:
 
 ### Non-blocking
 
-Unchanged from before: not in the `ci.yml` `check` aggregation gate,
-`GITHUB_STATUS_REPORTER: false`. This is why paths-filtering is safe — a skipped
-run reports no required status context, so it cannot wedge branch protection.
+Non-blocking on three levels, so it never gates a merge by default:
+
+- **Exit code:** `DISABLE_ERRORS: true` — MegaLinter reports findings but exits
+  `0`, so the job stays green rather than posting a red check on every
+  shellcheck/hadolint/jsonlint/jscpd nit. Findings are delivered via the SARIF →
+  Security-tab upload and the reports artifact (the `zizmor.yml` dashboard model),
+  not by failing CI.
+- **Aggregation gate:** not in the `ci.yml` `check` job, so the `alls-green`
+  required check never depends on it.
+- **Status reporter:** `GITHUB_STATUS_REPORTER: false`, so it posts no commit
+  status.
+
+A project that *wants* MegaLinter to gate can require its code-scanning results
+via branch protection — an explicit opt-in, not the default.
 
 ## Consequences
 

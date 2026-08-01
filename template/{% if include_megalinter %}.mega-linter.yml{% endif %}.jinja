@@ -19,6 +19,11 @@ FILTER_REGEX_EXCLUDE: (^|/)CHANGELOG\.md$
 #     plus CodeQL and Scorecard
 # See ADR-013.
 APPLY_FIXES: none
+# Report-only: never fail the job on findings. This layer is non-blocking at the
+# exit-code level (tox/prek are the canonical gates); findings are delivered via
+# the SARIF -> Security-tab upload and the reports artifact, mirroring zizmor.yml.
+# Gate on the code-scanning results via branch protection if you want it to block.
+DISABLE_ERRORS: true
 GITHUB_COMMENT_REPORTER: false
 GITHUB_STATUS_REPORTER: false
 FILEIO_REPORTER: false

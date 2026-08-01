@@ -4,12 +4,20 @@
 - **Status:** Implemented
 - **Repo:** `copier-pyproject` template
 
-> **Amendment (2026-08-01):** The **paths filter** described below (§3, §File
-> changes, §Risks) was **dropped** during review. Because `COPYPASTE_JSCPD` scans
-> source, the filter fired on nearly every PR anyway (`**.py`), making it a
-> half-optimization with a confusing "why didn't it run?" surface. The workflow
-> now runs on every push/PR to the default branch; the `cupcake` flavor remains
-> the effective per-run cost lever. See ADR-013 (authoritative).
+> **Amendment (2026-08-01):** Two changes during review supersede the body below;
+> **[ADR-013](../../../adr/013-megalinter-opt-in-lean-complement.md) is
+> authoritative.**
+>
+> 1. **Paths filter dropped** (affects §3, §File changes, §Risks). Because
+>    `COPYPASTE_JSCPD` scans source, the filter fired on nearly every PR anyway
+>    (`**.py`), making it a half-optimization with a confusing "why didn't it
+>    run?" surface. The workflow now runs on every push/PR to the default branch;
+>    the `cupcake` flavor remains the effective per-run cost lever.
+> 2. **Non-blocking made real at the exit-code level.** The body's "non-blocking"
+>    claim rested only on `check`-gate exclusion + `GITHUB_STATUS_REPORTER: false`,
+>    which do not stop a MegaLinter non-zero exit from posting a red check. The
+>    config now sets `DISABLE_ERRORS: true`, so findings are report-only
+>    (delivered via the SARIF → Security-tab upload), never failing the job.
 
 ## Problem
 
