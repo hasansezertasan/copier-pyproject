@@ -191,7 +191,13 @@ Optional components (all boolean):
   to the default branch — **no paths filter**, because `COPYPASTE_JSCPD` scans
   source so a filter would fire on nearly every PR anyway; an always-run is
   simpler and more predictable. Non-blocking (not in the `check` gate,
-  `GITHUB_STATUS_REPORTER: false`). The MegaLinter-only
+  `GITHUB_STATUS_REPORTER: false`), but the job **does** carry
+  `security-events: write` and pushes MegaLinter's SARIF
+  (`SARIF_REPORTER: true`) to the code-scanning dashboard via
+  `github/codeql-action/upload-sarif` — a real Security-tab upload (not just the
+  `upload-artifact` archive), best-effort (`continue-on-error`, `if: always()`)
+  and mirroring `zizmor.yml`'s free-on-public / GHAS-on-private posture. The
+  MegaLinter-only
   `.shellcheckrc` is gated with the toggle; the prek-shared configs
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See

@@ -105,9 +105,17 @@ run reports no required status context, so it cannot wedge branch protection.
 - `CLAUDE.md` (Optional components) and `README.md` document the toggle — closing
   the prior gap where MegaLinter was shipped but undocumented.
 - No `pyproject.toml` change: MegaLinter is a CI action, not a Python dependency.
+- The job carries `security-events: write` and uploads MegaLinter's SARIF
+  (`SARIF_REPORTER: true`) to the code-scanning dashboard via
+  `github/codeql-action/upload-sarif` — the advertised Security-tab integration
+  is a **real** ingest, not just the `upload-artifact` archive. The upload step is
+  best-effort (`continue-on-error: true`, `if: always()`), mirroring `zizmor.yml`:
+  code scanning is free on public repos and needs GitHub Advanced Security on
+  private ones, so it never fails the job when unavailable.
 - The generated `mega-linter.yml` stays zizmor/ghalint-green like every workflow
-  (`permissions: {}` top-level, per-job least privilege, `persist-credentials:
-  false`, `timeout-minutes`, SHA-pinned `uses:`).
+  (`permissions: {}` top-level, per-job least privilege — `contents: read` +
+  `security-events: write` — `persist-credentials: false`, `timeout-minutes`,
+  SHA-pinned `uses:`).
 - More template surface to test: the toggle is exercised on its own and combined
   with `include_web` (for the hadolint conditional), per the CLAUDE.md convention.
 

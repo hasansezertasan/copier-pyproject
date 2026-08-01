@@ -25,6 +25,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      security-events: write  # upload the MegaLinter SARIF to code scanning
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
@@ -39,6 +40,16 @@ jobs:
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
           VALIDATE_ALL_CODEBASE: {% raw %}${{ github.event_name != 'pull_request' }}{% endraw %}
+      - name: Upload SARIF to the code-scanning dashboard
+        # Ingests MegaLinter's SARIF into the Security tab (code scanning) so
+        # findings get stateful, incremental triage -- mirroring zizmor.yml.
+        # Best-effort: code scanning is free on public repos and needs GitHub
+        # Advanced Security on private ones, so this never fails the job.
+        if: {% raw %}${{ always() }}{% endraw %}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38  # v4
+        with:
+          sarif_file: megalinter-reports
       - name: Upload MegaLinter reports
         if: {% raw %}${{ always() }}{% endraw %}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
