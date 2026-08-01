@@ -129,6 +129,21 @@ via branch protection — an explicit opt-in, not the default.
   best-effort (`continue-on-error: true`, `if: always()`), mirroring `zizmor.yml`:
   code scanning is free on public repos and needs GitHub Advanced Security on
   private ones, so it never fails the job when unavailable.
+  - `sarif_file` **must** point at the single aggregate
+    `megalinter-reports/megalinter-report.sarif`, **not** the
+    `megalinter-reports` directory. Pointing at the directory also pulls in the
+    per-linter `sarif/*.sarif` files, and GitHub code scanning (since
+    [2025-07-21](https://github.blog/changelog/2025-07-21-code-scanning-will-stop-combining-multiple-sarif-runs-uploaded-in-the-same-sarif-file/))
+    rejects a file whose runs share the same tool **and** category — the
+    duplicate Hadolint run would be rejected. The aggregate's per-linter runs
+    each carry a distinct tool name, so they upload cleanly.
+  - **Caveat:** `continue-on-error: true` means a broken upload (as the
+    directory form was) fails **silently** — the job stays green and nothing
+    reaches the Security tab. This path is therefore verified against a live
+    **public** repo (a real `upload-sarif` ingest, confirmed via the
+    `code-scanning/analyses` API), not just by rendering, since neither CI nor a
+    local render exercises the upload. Re-verify the same way after any change to
+    the SARIF step or a `megalinter`/`codeql-action` major bump.
 - The generated `mega-linter.yml` stays zizmor/ghalint-green like every workflow
   (`permissions: {}` top-level, per-job least privilege — `contents: read` +
   `security-events: write` — `persist-credentials: false`, `timeout-minutes`,
