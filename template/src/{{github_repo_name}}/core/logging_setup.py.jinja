@@ -14,6 +14,12 @@ from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.config import settings
 from {{github_repo_name}}.core.dirs import LOG_FILE_PATH, ROOT_FOLDER_PATH
 
+# `logger` is the module's public API — imported by the optional component
+# entrypoints (cli/gui/tui/web/mcp/worker). Declaring it here marks it exported
+# so static analysis (e.g. CodeQL's unused-global-variable query) does not flag
+# the module-level singleton as unused when a given component set omits it.
+__all__ = ["logger", "setup_logger"]
+
 
 def _resolve_level(name: str) -> int:
     """Translate a level name (e.g. ``"DEBUG"``) to its numeric value.
