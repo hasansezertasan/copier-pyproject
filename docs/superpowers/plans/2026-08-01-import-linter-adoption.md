@@ -261,12 +261,14 @@ In `CLAUDE.md`, immediately after the paragraph ending "…there is no Pants or 
 
 ```markdown
 **import-linter** enforces the generated package's architecture: one always-on
-`layers` contract (in `[tool.importlinter]`) keeps the optional components
-(`cli`/`web`/`gui`/`tui`/`mcp`/`worker`) mutually independent and layered above
-`core` above `utils`. The top-layer module list is Jinja-conditional on the
-enabled components (omitted when none are enabled, leaving a `core > utils`
-contract). Delivered via the `style` group + a `lint-imports` command in the tox
-`style` env — **not** prek, because it needs the installed package and a
+`layers` contract (in `[tool.importlinter]`) keeps the component group
+(`web`/`gui`/`tui`/`mcp`/`worker`) mutually independent, with `cli` as an
+orchestrator layer above them (its `web`/`gui`/`tui` subcommands lazy-import those
+components to launch them), all layered above `core` above `utils`. The component
+layers are Jinja-conditional on the enabled toggles (omitted when none are
+enabled, leaving a `core > utils` contract), so no `ignore_imports` is needed.
+Delivered via the `style` group + a `lint-imports` command in the tox `style`
+env — **not** prek, because it needs the installed package and a
 whole-import-graph build. See
 [ADR-013](../docs/adr/013-import-linter-for-architecture-contracts.md).
 ```
