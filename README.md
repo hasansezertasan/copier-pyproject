@@ -93,7 +93,12 @@ Enable PyPI once per project for `.github/workflows/release.yml`:
 ### Coverage reporting setup
 
 CI uploads coverage to Codecov after the test suite runs, integrated in
-`.github/workflows/ci.yml`:
+`.github/workflows/ci.yml`. **On a public repository this needs no setup** — the
+codecov-action uploads tokenless, so owner pushes and fork PRs both report
+coverage out of the box.
+
+A `CODECOV_TOKEN` is only required for a **private** repository (or to avoid
+tokenless rate-limits):
 
 1. Open [Codecov](https://app.codecov.io/) and add your repository.
 2. Copy the repository upload token from its Codecov settings.
@@ -101,10 +106,9 @@ CI uploads coverage to Codecov after the test suite runs, integrated in
    `CODECOV_TOKEN` (Settings → Secrets and variables → Actions, or
    `gh secret set CODECOV_TOKEN`).
 
-The upload is opt-in and best-effort: with the secret unset, CI records a
-notice and skips the upload rather than failing the run, so coverage reporting
-stays off until you configure it. The generated `CONTRIBUTING.md` documents the
-same setup for contributors to your project.
+The upload is best-effort either way: on a private repo with no token, CI records
+a notice and skips the upload rather than failing the run. The generated
+`CONTRIBUTING.md` documents the same setup for contributors to your project.
 
 ### Documentation site and dependency updates
 
