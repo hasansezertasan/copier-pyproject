@@ -52,7 +52,12 @@ jobs:
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38  # v4
         with:
-          sarif_file: megalinter-reports
+          # The single aggregated report, NOT the megalinter-reports directory:
+          # pointing at the directory also picks up the per-linter sarif/*.sarif
+          # files, and code scanning rejects duplicate same-tool/same-category
+          # runs (github.blog 2025-07-21). Each linter's run in the aggregate has
+          # a distinct tool name, so they upload cleanly.
+          sarif_file: megalinter-reports/megalinter-report.sarif
       - name: Upload MegaLinter reports
         if: {% raw %}${{ always() }}{% endraw %}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
