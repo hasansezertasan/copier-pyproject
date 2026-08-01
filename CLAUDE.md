@@ -183,9 +183,11 @@ Optional components (all boolean):
   cover — `BASH_SHELLCHECK`, `DOCKERFILE_HADOLINT` (jinja-gated on `include_web`,
   the only config with a Dockerfile), `JSON_JSONLINT` (scoped to skip the
   JSONC-with-comments `devcontainer.json`/`.vscode/*.json`), and
-  `COPYPASTE_JSCPD` — never actionlint/yamllint/markdownlint/editorconfig (prek),
-  never cspell (typos is the single spell-checker), never Python (tox), never the
-  repository security linters (`check-security.yml` + CodeQL/Scorecard). It runs
+  `COPYPASTE_JSCPD`, and `SPELL_CSPELL` **scoped to `.md`** (a deeper,
+  dictionary-driven prose complement to prek's fast whole-tree `typos` — the one
+  deliberate overlap, not a replacement) — never
+  actionlint/yamllint/markdownlint/editorconfig (prek), never Python (tox), never
+  the repository security linters (`check-security.yml` + CodeQL/Scorecard). It runs
   on the smaller **`cupcake` flavor** image, which cuts the dominant image-pull
   cost that made it slow (the effective per-run lever). It runs on every push/PR
   to the default branch — **no paths filter**, because `COPYPASTE_JSCPD` scans

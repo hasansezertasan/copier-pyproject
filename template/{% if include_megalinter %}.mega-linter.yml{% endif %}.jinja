@@ -11,12 +11,14 @@ REPORT_OUTPUT_FOLDER: megalinter-reports
 FILTER_REGEX_EXCLUDE: (^|/)CHANGELOG\.md$
 # MegaLinter is an OPTIONAL extra quality layer (include_megalinter). tox/prek are
 # the canonical, blocking style runners, so this config uses no auto-fixes and
-# enables ONLY linters prek/tox do not already cover -- it never duplicates them:
+# mostly enables linters prek/tox do not already cover, never duplicating them:
 #   * actionlint / yamllint / markdownlint / editorconfig-checker -> prek
-#   * cspell -> NOT enabled; typos (prek) is the single spell-checker
 #   * Python (ruff + type-checkers + vulture) -> tox `style`
 #   * secrets / vuln / SAST -> check-security.yml (gitleaks, pip-audit, trivy),
 #     plus CodeQL and Scorecard
+# The one deliberate overlap is SPELL_CSPELL, scoped to prose (.md): a deeper,
+# dictionary-driven spell-check that complements prek's fast `typos` gate (it does
+# not replace it), with findings surfaced in the Security tab.
 # See ADR-013.
 APPLY_FIXES: none
 # Report-only: never fail the job on findings. This layer is non-blocking at the
@@ -45,6 +47,9 @@ ENABLE_LINTERS:
   - JSON_JSONLINT
   # Copy-paste / clone detection -- a capability neither prek nor tox provides.
   - COPYPASTE_JSCPD
+  # Dictionary-driven prose spell-check, scoped to .md below -- a deeper
+  # complement to prek's fast `typos` (not a replacement). Keeps .cspell.yml.
+  - SPELL_CSPELL
 EXCLUDED_DIRECTORIES:
   - .git
   - .mypy_cache
@@ -61,3 +66,8 @@ BASH_SHELLCHECK_CONFIG_FILE: .github/linters/.shellcheckrc
 # devcontainer.json and .vscode/*.json are JSON-with-comments (JSONC) by
 # convention; the strict jsonlint parser rejects comments, so skip them.
 JSON_JSONLINT_FILTER_REGEX_EXCLUDE: (^|/)\.vscode/|(^|/)devcontainer\.json$
+# cspell is scoped to prose (.md) so it complements -- rather than blanket-
+# duplicates -- prek's `typos`, which already covers the whole tree.
+SPELL_CSPELL_CONFIG_FILE: .github/linters/.cspell.yml
+SPELL_CSPELL_FILE_EXTENSIONS:
+  - .md

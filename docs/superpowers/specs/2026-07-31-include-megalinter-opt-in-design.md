@@ -18,6 +18,10 @@
 >    which do not stop a MegaLinter non-zero exit from posting a red check. The
 >    config now sets `DISABLE_ERRORS: true`, so findings are report-only
 >    (delivered via the SARIF → Security-tab upload), never failing the job.
+> 3. **cspell reinstated, scoped.** The body drops `SPELL_CSPELL` in favor of
+>    `typos` alone. It is now re-enabled but **scoped to `.md`**, as a deeper
+>    dictionary-driven prose complement to prek's fast whole-tree `typos` (not a
+>    replacement); `.cspell.yml` is kept, gated behind the toggle.
 
 ## Problem
 

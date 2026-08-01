@@ -53,12 +53,17 @@ generated project's file types against what prek/tox already lint:
 | `DOCKERFILE_HADOLINT` | the generated Dockerfile — **jinja-gated on `include_web`**, the only config that renders one |
 | `JSON_JSONLINT` | the JSON/JSONC config files (otherwise only indent-checked) — scoped to skip the JSONC-with-comments `devcontainer.json`/`.vscode/*.json` |
 | `COPYPASTE_JSCPD` | copy-paste / clone detection — a capability neither prek nor tox provides |
+| `SPELL_CSPELL` | deeper, dictionary-driven prose spell-check — **scoped to `.md`** (`SPELL_CSPELL_FILE_EXTENSIONS`) so it complements prek's fast `typos` rather than blanket-duplicating it; keeps `.cspell.yml` (gated with the toggle) |
+
+`SPELL_CSPELL` is the one deliberate overlap: `typos` (prek) stays the fast,
+whole-tree gate, while cspell adds a config-driven dictionary pass over prose and
+surfaces findings in the Security tab. It does **not** replace `typos`. (An
+earlier revision of this ADR dropped cspell entirely; it was reinstated, scoped,
+during review.)
 
 Deliberately **not** enabled, to avoid duplication:
 
 - **prek** already runs actionlint, yamllint, markdownlint, editorconfig-checker.
-- **typos** (prek) is the single spell-checker; `SPELL_CSPELL` is dropped (no
-  two-dictionary drift).
 - **tox `style`** covers Python (ruff + five type-checkers + vulture).
 - **`check-security.yml`** + CodeQL + Scorecard cover secrets/vuln/SAST, so the
   MegaLinter repository security linters are omitted.
@@ -107,9 +112,10 @@ via branch protection — an explicit opt-in, not the default.
   Both become `.jinja`, so GitHub Actions `${{ … }}` expressions are wrapped in
   `{% raw %}` blocks and the `DOCKERFILE_HADOLINT` entry is jinja-gated on
   `include_web`.
-- The MegaLinter-only `.shellcheckrc` is gated:
-  `template/.github/linters/{% if include_megalinter %}.shellcheckrc{% endif %}`.
-  The MegaLinter-only `.cspell.yml.jinja` is **removed** (cspell dropped).
+- The MegaLinter-only configs are gated with the toggle:
+  `template/.github/linters/{% if include_megalinter %}.shellcheckrc{% endif %}`
+  and `template/.github/linters/{% if include_megalinter %}.cspell.yml{% endif %}.jinja`
+  (the latter reads `github_user`/`github_repo_name`, hence `.jinja`).
   The prek-shared configs stay always-on: `.github/linters/.markdownlint.yml`
   (extended by `markdownlint-cli2.yaml`), `.github/actionlint.yaml`,
   `.github/yamllint.yaml`.
