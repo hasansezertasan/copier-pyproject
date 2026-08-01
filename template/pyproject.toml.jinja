@@ -455,9 +455,9 @@ layers = [
   "{{github_repo_name}}.utils",
 ]
 {%- if include_cli and include_web %}
-# The `example web` CLI subcommand intentionally launches the web server via a
-# lazy, function-local import (not a module-level dependency) — an allowed,
-# narrowly-scoped exception to the sibling-independence rule above.
+# The `{{github_repo_name}} web` CLI subcommand intentionally launches the web
+# server via a lazy, function-local import (not a module-level dependency) — an
+# allowed, narrowly-scoped exception to the sibling-independence rule above.
 ignore_imports = [
   "{{github_repo_name}}.cli.app -> {{github_repo_name}}.web.app",
 ]
