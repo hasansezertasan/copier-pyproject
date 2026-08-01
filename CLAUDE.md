@@ -47,7 +47,7 @@ uv sync
 # Run tests across all Python versions
 uv run --locked tox run
 
-# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, sphinx-lint)
+# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, sphinx-lint)
 uv run --locked tox run -e style
 
 # Run specific Python version tests
@@ -207,6 +207,18 @@ removed — it is now always rendered and validated via
 (`mise.toml` + devcontainer feature) for tool version management and task
 running. Pants and Trunk were removed entirely — the tox `style` env is the sole
 lint/build orchestrator (see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
+
+**import-linter** enforces the generated package's architecture: one always-on
+`layers` contract (in `[tool.importlinter]`) keeps the component group
+(`web`/`gui`/`tui`/`mcp`/`worker`) mutually independent, with `cli` as an
+orchestrator layer above them (its `web`/`gui`/`tui` subcommands lazy-import those
+components to launch them), all layered above `core` above `utils`. The component
+layers are Jinja-conditional on the enabled toggles (omitted when none are
+enabled, leaving a `core > utils` contract), so no `ignore_imports` is needed.
+Delivered via the `style` group + a `lint-imports` command in the tox `style`
+env — **not** prek, because it needs the installed package and a
+whole-import-graph build. See
+[ADR-013](../docs/adr/013-import-linter-for-architecture-contracts.md).
 
 Also always included (no toggle): a `SUPPORT.md` community-health file (points to
 docs/issues/discussions and cross-references `SECURITY.md`/`CONTRIBUTING.md`), a
