@@ -120,7 +120,7 @@ include_megalinter:
   type: bool
   default: false
   help: >-
-    Add MegaLinter as an optional extra CI quality layer? It runs only linters that prek/tox do not already cover (shellcheck, hadolint, jsonlint, jscpd clone-detection) and uploads SARIF findings to the Security tab. Off by default so the fast, self-contained default is preserved (tox/prek remain the canonical runners).
+    Add MegaLinter as an optional extra CI quality layer? It runs only linters that prek/tox do not already cover (shellcheck, hadolint, jsonlint, jscpd clone-detection, and a .md-scoped cspell prose pass) and uploads SARIF findings to the Security tab. Off by default so the fast, self-contained default is preserved (tox/prek remain the canonical runners).
 include_postgres:
   type: bool
   default: false

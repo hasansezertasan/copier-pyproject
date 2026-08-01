@@ -40,6 +40,9 @@ jobs:
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
           VALIDATE_ALL_CODEBASE: {% raw %}${{ github.event_name != 'pull_request' }}{% endraw %}
+          # Use the repo's actual default branch as the diff base (correct for
+          # both main- and master-default repos); overrides .mega-linter.yml.
+          DEFAULT_BRANCH: {% raw %}${{ github.event.repository.default_branch }}{% endraw %}
       - name: Upload SARIF to the code-scanning dashboard
         # Ingests MegaLinter's SARIF into the Security tab (code scanning) so
         # findings get stateful, incremental triage -- mirroring zizmor.yml.

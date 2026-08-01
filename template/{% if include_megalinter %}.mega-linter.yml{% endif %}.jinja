@@ -1,6 +1,8 @@
 ---
 PARALLEL: true
-DEFAULT_BRANCH: main
+# DEFAULT_BRANCH is set from the repo's real default branch in the workflow env
+# (mega-linter.yml) so main- and master-default repos both get the right diff
+# base; MegaLinter env vars override this config file.
 SHOW_ELAPSED_TIME: true
 CLEAR_REPORT_FOLDER: true
 OUTPUT_DETAIL: detailed
