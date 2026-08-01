@@ -174,6 +174,7 @@ style = [
   "actionlint-py==1.7.12.24",
   "basedpyright==1.39.8",
   "editorconfig-checker==3.6.1",
+  "import-linter==2.13",
   "mypy==2.1.0",
   "pyrefly==1.1.1",
   "ruff==0.15.19",
@@ -427,6 +428,42 @@ paths = ["src", "tests"]
 strict-imports = false
 
 
+[tool.importlinter]
+root_package = "{{github_repo_name}}"
+
+
+[[tool.importlinter.contracts]]
+name = "Layered architecture with independent components"
+type = "layers"
+# Modules joined by ` | ` on one line are independent SIBLINGS: they may not
+# import each other, only lower layers. Lower layers may never import a higher
+# layer. The optional components are therefore mutually independent and all sit
+# above `core`, which sits above the leaf `utils`. `__metadata__` is left outside
+# the contract as an unconstrained foundation.
+layers = [
+{%- set il_components = [] -%}
+{%- if include_cli %}{% set _ = il_components.append(github_repo_name ~ ".cli") %}{% endif -%}
+{%- if include_web %}{% set _ = il_components.append(github_repo_name ~ ".web") %}{% endif -%}
+{%- if include_gui %}{% set _ = il_components.append(github_repo_name ~ ".gui") %}{% endif -%}
+{%- if include_tui %}{% set _ = il_components.append(github_repo_name ~ ".tui") %}{% endif -%}
+{%- if include_mcp %}{% set _ = il_components.append(github_repo_name ~ ".mcp") %}{% endif -%}
+{%- if include_worker %}{% set _ = il_components.append(github_repo_name ~ ".worker") %}{% endif -%}
+{%- if il_components %}
+  "{{ il_components | join(' | ') }}",
+{%- endif %}
+  "{{github_repo_name}}.core",
+  "{{github_repo_name}}.utils",
+]
+{%- if include_cli and include_web %}
+# The `example web` CLI subcommand intentionally launches the web server via a
+# lazy, function-local import (not a module-level dependency) — an allowed,
+# narrowly-scoped exception to the sibling-independence rule above.
+ignore_imports = [
+  "{{github_repo_name}}.cli.app -> {{github_repo_name}}.web.app",
+]
+{%- endif %}
+
+
 [tool.ruff]
 fix = true
 output-format = "full"
@@ -671,6 +708,9 @@ commands = [
     "-m",
     "slotscheck",
     "src",
+  ],
+  [
+    "lint-imports",
   ],
   [
     "taplo",
