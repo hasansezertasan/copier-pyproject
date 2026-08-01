@@ -42,18 +42,28 @@ type = "layers"
 # other (independence), and may only import lower layers. Lower layers may never
 # import a higher layer. `__metadata__` is intentionally outside the contract.
 layers = [
-    "{{github_repo_name}}.cli | {{github_repo_name}}.web | ...enabled components...",
+    "{{github_repo_name}}.cli",                            # orchestrator, only if include_cli
+    "{{github_repo_name}}.web | ...other enabled components...",
     "{{github_repo_name}}.core",
     "{{github_repo_name}}.utils",
 ]
 ```
 
-- **Independence** — pipe-separated component siblings cannot import each other.
-- **Layers** — components may import `core`/`utils`; `core`/`utils` can never import a
-  component; `utils` sits **below** `core`. This matches current reality (`core` does not
-  import `utils`; `utils` imports nothing internal) and keeps `utils` a dependency-free
-  leaf. `__metadata__` (imported by `core`) is left outside the contract as an
-  unconstrained foundation.
+> **Revised during implementation:** `cli` is on its own higher layer, not a
+> sibling. The CLI's `web`/`gui`/`tui` subcommands lazy-import those components to
+> launch them (`cli/app.py` → `web.app`, `gui.app`, `tui.app`), so `cli` is a
+> legitimate orchestrator above the independent component group. This models
+> reality and needs **no `ignore_imports`** for any toggle combination; the only
+> guarantee given up is forbidding `cli -> mcp`/`cli -> worker` (harmless — `cli`
+> is the top-level entry point). `mcp`/`worker` stay in the sibling group.
+
+- **Independence** — pipe-separated component siblings (`web`/`gui`/`tui`/`mcp`/`worker`)
+  cannot import each other.
+- **Layers** — `cli` (orchestrator) may import any component; components may import
+  `core`/`utils`; `core`/`utils` can never import a component; `utils` sits **below**
+  `core`. This matches current reality (`core` does not import `utils`; `utils` imports
+  nothing internal) and keeps `utils` a dependency-free leaf. `__metadata__` (imported by
+  `core`) is left outside the contract as an unconstrained foundation.
 
 ### Why one contract, not literal `independence` + `layers` contracts
 

@@ -48,14 +48,18 @@ root_package = "{{github_repo_name}}"
 [[tool.importlinter.contracts]]
 name = "Layered architecture with independent components"
 type = "layers"
-# Modules joined by ` | ` on one line are independent SIBLINGS: they may not
-# import each other, only lower layers. Lower layers may never import a higher
-# layer. The optional components are therefore mutually independent and all sit
-# above `core`, which sits above the leaf `utils`. `__metadata__` is left outside
-# the contract as an unconstrained foundation.
+# Layers are listed high -> low: a layer may import lower layers but never a
+# higher one. Modules joined by ` | ` on one line are independent SIBLINGS that
+# may not import each other. `cli` is the orchestrator layer — its subcommands
+# launch the other components (web/gui/tui) via lazy imports — so it sits ABOVE
+# the independent component group, which sits above `core`, which sits above the
+# leaf `utils`. `__metadata__` is left outside the contract as an unconstrained
+# foundation.
 layers = [
+{%- if include_cli %}
+  "{{github_repo_name}}.cli",
+{%- endif %}
 {%- set il_components = [] -%}
-{%- if include_cli %}{% set _ = il_components.append(github_repo_name ~ ".cli") %}{% endif -%}
 {%- if include_web %}{% set _ = il_components.append(github_repo_name ~ ".web") %}{% endif -%}
 {%- if include_gui %}{% set _ = il_components.append(github_repo_name ~ ".gui") %}{% endif -%}
 {%- if include_tui %}{% set _ = il_components.append(github_repo_name ~ ".tui") %}{% endif -%}
@@ -69,7 +73,16 @@ layers = [
 ]
 ```
 
-Note: `{% set _ = list.append(...) %}` is the standard Jinja2 side-effect append idiom; Copier's Jinja supports it.
+Rationale for `cli` on its own higher layer (not a sibling): the CLI's
+`web`/`gui`/`tui` subcommands legitimately lazy-import those components to launch
+them (`cli/app.py` imports `web.app`, `gui.app`, `tui.app`). Modelling `cli` as
+an orchestrator layer above the independent component group captures this
+truthfully and needs **no `ignore_imports`** for any toggle combination. The only
+guarantee given up is forbidding `cli -> mcp`/`cli -> worker` (harmless — `cli`
+is the top-level entry point). `mcp`/`worker` remain in the independent sibling
+group. Notes: `{% set _ = list.append(...) %}` is the standard Jinja2
+side-effect append idiom (Copier's Jinja supports it); `cli` is intentionally
+NOT added to `il_components` since it is its own layer.
 
 - [ ] **Step 3: Add `lint-imports` to the tox `style` env**
 
@@ -172,11 +185,14 @@ Accepted (2026-08).
 The generated package is `core/` + `utils/` (foundational) plus a set of
 optional, toggleable components (`cli`, `web`, `gui`, `tui`, `mcp`, `worker`).
 Each component is gated on an `include_*` toggle and is meant to be independent:
-a project may render `web` without `cli`, so a `web -> cli` import is a latent
-bug — an import of a sibling that may not even be installed. None of the existing
-tools (the five type checkers, ruff, vulture, slotscheck, …) enforce *which
-module may import which*. `core` currently does not import `utils`, and `utils`
-imports nothing internal, so `utils` is a true leaf.
+a project may render `web` without `gui`, so a `web -> gui` import is a latent
+bug — an import of a sibling that may not even be installed. The one intentional
+exception is `cli`: its `web`/`gui`/`tui` subcommands lazy-import those components
+to launch them, so `cli` is an *orchestrator* that legitimately sits above the
+other components. None of the existing tools (the five type checkers, ruff,
+vulture, slotscheck, …) enforce *which module may import which*. `core` currently
+does not import `utils`, and `utils` imports nothing internal, so `utils` is a
+true leaf.
 
 ## Decision
 
@@ -185,14 +201,19 @@ an always-on style tool — no `copier.yml` toggle, like ruff/mypy.
 
 ### 1. One `layers` contract expresses both guarantees
 
-A single `type = "layers"` contract lists the enabled components as pipe-separated
-siblings in the top layer (mutually independent, may only import downward), above
-`core`, above `utils`. import-linter's sibling semantics give the *independence*
-guarantee and the layer ordering gives the *layering* guarantee, so two separate
-`independence` + `layers` contracts would be redundant. It also degrades
-gracefully: with 0–1 components a dedicated `independence` contract is degenerate,
-whereas this becomes a valid `core > utils` 2-layer contract. `__metadata__` is
-left outside the contract as an unconstrained foundation.
+A single `type = "layers"` contract stacks, high→low: `cli` (orchestrator layer,
+present only when `include_cli`), the enabled non-`cli` components as
+pipe-separated independent siblings (`web | gui | tui | mcp | worker`), then
+`core`, then `utils`. import-linter's sibling semantics give the *independence*
+guarantee (siblings may not import each other), the layer ordering gives the
+*layering* guarantee (lower layers never import upward), and putting `cli` on its
+own higher layer captures its legitimate orchestration imports without any
+`ignore_imports`. Two separate `independence` + `layers` contracts would be
+redundant. It also degrades gracefully: with 0–1 components a dedicated
+`independence` contract is degenerate, whereas this becomes a valid `core > utils`
+contract. `__metadata__` is left outside the contract as an unconstrained
+foundation. The only guarantee deliberately not enforced is `cli -> mcp`/`cli ->
+worker` (harmless — `cli` is the top-level entry point).
 
 ### 2. `utils` below `core`
 
