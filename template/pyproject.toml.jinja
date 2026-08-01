@@ -435,14 +435,18 @@ root_package = "{{github_repo_name}}"
 [[tool.importlinter.contracts]]
 name = "Layered architecture with independent components"
 type = "layers"
-# Modules joined by ` | ` on one line are independent SIBLINGS: they may not
-# import each other, only lower layers. Lower layers may never import a higher
-# layer. The optional components are therefore mutually independent and all sit
-# above `core`, which sits above the leaf `utils`. `__metadata__` is left outside
-# the contract as an unconstrained foundation.
+# Layers are listed high -> low: a layer may import lower layers but never a
+# higher one. Modules joined by ` | ` on one line are independent SIBLINGS that
+# may not import each other. `cli` is the orchestrator layer — its subcommands
+# launch the other components (web/gui/tui) via lazy imports — so it sits ABOVE
+# the independent component group, which sits above `core`, which sits above the
+# leaf `utils`. `__metadata__` is left outside the contract as an unconstrained
+# foundation.
 layers = [
+{%- if include_cli %}
+  "{{github_repo_name}}.cli",
+{%- endif %}
 {%- set il_components = [] -%}
-{%- if include_cli %}{% set _ = il_components.append(github_repo_name ~ ".cli") %}{% endif -%}
 {%- if include_web %}{% set _ = il_components.append(github_repo_name ~ ".web") %}{% endif -%}
 {%- if include_gui %}{% set _ = il_components.append(github_repo_name ~ ".gui") %}{% endif -%}
 {%- if include_tui %}{% set _ = il_components.append(github_repo_name ~ ".tui") %}{% endif -%}
@@ -454,14 +458,6 @@ layers = [
   "{{github_repo_name}}.core",
   "{{github_repo_name}}.utils",
 ]
-{%- if include_cli and include_web %}
-# The `{{github_repo_name}} web` CLI subcommand intentionally launches the web
-# server via a lazy, function-local import (not a module-level dependency) — an
-# allowed, narrowly-scoped exception to the sibling-independence rule above.
-ignore_imports = [
-  "{{github_repo_name}}.cli.app -> {{github_repo_name}}.web.app",
-]
-{%- endif %}
 
 
 [tool.ruff]
