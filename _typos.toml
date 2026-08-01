@@ -10,3 +10,9 @@
 [default.extend-identifiers]
 CPY = "CPY"
 datas = "datas"
+
+# `alls-green` is the `re-actors/alls-green` GitHub Action (used as the CI
+# aggregation gate); typos splits it on the hyphen and misreads the `alls`
+# word as `all`/`falls`. Allowlist the word so the hook does not rewrite it.
+[default.extend-words]
+alls = "alls"
