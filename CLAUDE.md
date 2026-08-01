@@ -172,6 +172,41 @@ Optional components (all boolean):
   needs the *Allow Actions to create PRs* setting release-please already requires.
   See
   [ADR-009](../docs/adr/009-optional-external-quality-community-integrations.md).
+- `include_megalinter` - MegaLinter as an opt-in extra CI quality layer
+  (`mega-linter.yml` + `.mega-linter.yml`), `default: false`.
+
+  Unlike the ADR-009 trio, MegaLinter is a self-contained Docker action needing
+  **no** external account — but it was previously shipped **always-on and
+  undocumented**, which both violated the fast/self-contained default and
+  duplicated prek. Now gated, and when enabled it is a **lean complement**: its
+  `ENABLE_LINTERS` is trimmed to only the linters prek/tox do **not** already
+  cover — `BASH_SHELLCHECK`, `DOCKERFILE_HADOLINT` (jinja-gated on `include_web`,
+  the only config with a Dockerfile), `JSON_JSONLINT` (scoped to skip the
+  JSONC-with-comments `devcontainer.json`/`.vscode/*.json`), and
+  `COPYPASTE_JSCPD`, and `SPELL_CSPELL` **scoped to `.md`** (a deeper,
+  dictionary-driven prose complement to prek's fast whole-tree `typos` — the one
+  deliberate overlap, not a replacement) — never
+  actionlint/yamllint/markdownlint/editorconfig (prek), never Python (tox), never
+  the repository security linters (`check-security.yml` + CodeQL/Scorecard). It runs
+  on the smaller **`cupcake` flavor** image, which cuts the dominant image-pull
+  cost that made it slow (the effective per-run lever). It runs on every push/PR
+  to the default branch — **no paths filter**, because `COPYPASTE_JSCPD` scans
+  source so a filter would fire on nearly every PR anyway; an always-run is
+  simpler and more predictable. Non-blocking on three levels: `DISABLE_ERRORS:
+  true` (reports findings but exits `0`, so a lint nit never posts a red check —
+  not just the `check`-gate exclusion and `GITHUB_STATUS_REPORTER: false`). A
+  project that wants it to gate can require its code-scanning results via branch
+  protection. The job **does** carry
+  `security-events: write` and pushes MegaLinter's SARIF
+  (`SARIF_REPORTER: true`) to the code-scanning dashboard via
+  `github/codeql-action/upload-sarif` — a real Security-tab upload (not just the
+  `upload-artifact` archive), best-effort (`continue-on-error`, `if: always()`)
+  and mirroring `zizmor.yml`'s free-on-public / GHAS-on-private posture. The
+  MegaLinter-only
+  `.shellcheckrc` is gated with the toggle; the prek-shared configs
+  (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
+  always-on. See
+  [ADR-013](../docs/adr/013-megalinter-opt-in-lean-complement.md).
 
 Framework/broker choices (when parent option is enabled):
 
@@ -218,7 +253,7 @@ enabled, leaving a `core > utils` contract), so no `ignore_imports` is needed.
 Delivered via the `style` group + a `lint-imports` command in the tox `style`
 env — **not** prek, because it needs the installed package and a
 whole-import-graph build. See
-[ADR-013](../docs/adr/013-import-linter-for-architecture-contracts.md).
+[ADR-014](../docs/adr/014-import-linter-for-architecture-contracts.md).
 
 Also always included (no toggle): a `SUPPORT.md` community-health file (points to
 docs/issues/discussions and cross-references `SECURITY.md`/`CONTRIBUTING.md`), a

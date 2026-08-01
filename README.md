@@ -6,7 +6,7 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 
 - uv-first workflow with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions from Git tags.
 - Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
-- QA stack: pytest with coverage/xdist/reruns (and `.github/codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter (architecture contracts), taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and MegaLinter as an additional CI quality layer for repository/config/documentation checks.
+- QA stack: pytest with coverage/xdist/reruns (and `.github/codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter (architecture contracts), taplo, validate-pyproject, typos, actionlint, and editorconfig-checker. MegaLinter is available as an optional (`include_megalinter`) extra CI layer that adds gap checks (shellcheck, hadolint, jsonlint, jscpd clone-detection, plus a `.md`-scoped cspell prose pass) not already covered by prek/tox.
 - Docs and site: Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme, autodoc API reference, and a GitHub Pages deploy workflow.
 - Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, linked-issue enforcement, PR task-list completion check, issue/PR templates, `SECURITY.md` policy, `SUPPORT.md`, `CODEOWNERS`, dependency management (Renovate), always-on Commitizen and git hooks (run via prek), always-on `CITATION.cff` with a validation workflow, devcontainer, VS Code launch config, gitignore, `.gitattributes`, FUNDING, and LICENSE.
 - Supply-chain security: CodeQL analysis, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks PRs introducing high-severity vulnerabilities, active scanning (gitleaks, pip-audit, and Trivy for web images), and static GitHub Actions analysis (zizmor + ghalint) enforcing least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, and full-length action SHA pins — a blocking prek/CI gate plus a zizmor Security-tab dashboard (ghalint is delivered via mise since it ships no PyPI/pre-commit distribution).
@@ -37,6 +37,7 @@ Copier will prompt for:
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
 - `include_pydantic_settings` (use pydantic-settings for configuration)
+- `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
 - `redis_backend` (redis/valkey - when `include_redis` is enabled)
