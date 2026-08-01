@@ -18,7 +18,7 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 Copier will prompt for:
 
 - `github_user`
-- `github_repo_name` (lowercase letters/digits/dashes, starts with a letter)
+- `github_repo_name` (valid Python package name: lowercase letters/digits/underscores, starts with a letter — used verbatim as the import package name, so no dashes)
 - `author_full_name`
 - `author_email`
 - `short_description`
