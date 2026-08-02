@@ -39,8 +39,8 @@ produce semver git tags (`v0.1.0`, …). New files at the **repo root** (distinc
 from the `template/`-shipped release-please that versions generated projects):
 
 - `.github/release-please-config.json` — `release-type: "simple"` (the repo has
-  no source version file to bump; `simple` maintains the manifest + `CHANGELOG.md`
-  + tag only), `bump-minor-pre-major: true`, `include-v-in-tag: true`,
+  no source version file to bump; `simple` maintains only the manifest,
+  `CHANGELOG.md`, and tag), `bump-minor-pre-major: true`, `include-v-in-tag: true`,
   `draft: false` (no release artifacts to attach, unlike a package release).
 - `.github/release-please-manifest.json` — seeded `{ ".": "0.0.0" }`, mirroring
   the generated-project convention. The **first** release PR therefore lands as
@@ -91,16 +91,28 @@ best-effort — the same posture as `gitignore-drift.yml` and the
 `check-security.yml` cron: automation delivers the **signal + the draft**, never
 the judgment.
 
-**Token caveat (why the signal is the *diff*, not a red check, by default).** A
-PR opened with the workflow's default `GITHUB_TOKEN` does **not** trigger the
-project's own `push`/`pull_request` checks — GitHub suppresses events caused by
-that token to prevent workflow-recursion loops. So out of the box the "human
-needed here" signal is the **visible conflict markers in the draft's diff**, not
-a red CI check. Projects that want the update PR to run checks like any other set
-a `COPIER_UPDATE_TOKEN` secret (a PAT or GitHub App token), which the workflow
-prefers over `GITHUB_TOKEN`. Keeping the fallback preserves the zero-external-setup
-default; the secret is a pure opt-in, mirroring how release-please's own docs
-treat cross-workflow triggering.
+**Token caveat (the default `GITHUB_TOKEN` has two limits).** The workflow falls
+back to the built-in `GITHUB_TOKEN`, but that token:
+
+1. **cannot push changes to `.github/workflows/*`** — a hard GitHub security rule
+   (the token lacks the `workflow` scope, and it is not grantable via
+   `permissions:`). Because template updates frequently touch workflow files, an
+   update that does so **fails to open the PR at all** on the default token; and
+2. **does not trigger the project's own `push`/`pull_request` checks** on the PR
+   it opens — GitHub suppresses token-created events to prevent recursion loops —
+   so a bad 3-way merge surfaces only as **visible conflict markers in the draft's
+   diff**, not a red CI check.
+
+Both limits are lifted by setting a `COPIER_UPDATE_TOKEN` (a classic PAT with
+`repo` + `workflow` scope, or a fine-grained PAT / GitHub App token with
+contents + pull-requests + **workflows** write), which the workflow prefers over
+`GITHUB_TOKEN` (`${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}`).
+Keeping the fallback preserves the zero-external-setup default (updates that do
+not touch workflows still work with no secret); the token is a documented opt-in
+(generated `CONTRIBUTING.md`, "Template updates"), mirroring how release-please's
+own docs treat cross-workflow triggering. Because the token limitation means many
+updates need the secret to open a PR, the `CONTRIBUTING` entry states this plainly
+rather than presenting the secret as purely cosmetic.
 
 **No unattended template-code execution (`--skip-tasks`).** The draft-PR review
 gate protects against malicious *file content* a compromised template might

@@ -367,9 +367,38 @@ config is inert until the app is installed: install it once from
 [github.com/apps/renovate](https://github.com/apps/renovate) and grant it access
 to this repository. Renovate then opens an onboarding PR; merge it to start
 receiving update PRs.
+
+**9. Template updates (`COPIER_UPDATE_TOKEN`, optional).** The weekly
+`copier-update.yml` workflow runs `copier update` and opens a `chore/copier-update`
+PR when the upstream Copier template (recorded as `_src_path` in
+`.copier-answers.yml`) cuts a new release. It works out of the box with the
+built-in `GITHUB_TOKEN`,
+with **two** limitations that both stem from GitHub's security model for that
+token — and both are lifted by setting a `COPIER_UPDATE_TOKEN`:
+
+- The default token **cannot push changes to `.github/workflows/*`**, so an
+  update that touches a workflow file fails to open the PR. Template updates
+  frequently touch workflows, so in practice this token is needed for the
+  workflow to be useful.
+- A PR opened with the default token **does not trigger this repo's own checks**,
+  so a bad 3-way merge shows only as visible conflict markers in the diff rather
+  than a red check.
+
+Provide a token with **contents**, **pull requests**, and **workflows** write
+access — a classic PAT with `repo` + `workflow` scope, or a fine-grained PAT /
+GitHub App token — and set it once:
+
+```sh
+gh secret set COPIER_UPDATE_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+The workflow prefers it over `GITHUB_TOKEN`
+(`{% raw %}${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}{% endraw %}`).
+Best-effort either way: the update PR is opened as a **draft** for human
+reconciliation, and the workflow is non-blocking (not in the `check` gate).
 {%- if include_web %}
 
-**9. Docker Hub publishing (optional).** The release workflow always publishes
+**10. Docker Hub publishing (optional).** The release workflow always publishes
 the Docker image to GHCR (`ghcr.io/{{github_user}}/{{github_repo_name}}`) using
 the built-in `GITHUB_TOKEN` — no setup needed. To _additionally_ publish to
 Docker Hub, create an [access token](https://app.docker.com/settings/personal-access-tokens)

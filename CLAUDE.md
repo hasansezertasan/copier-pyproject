@@ -673,14 +673,19 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    (see the template-self-versioning note below). The PR is opened as a GitHub
    **draft** (`draft: true`), not merge-ready: a 3-way merge can leave conflict
    markers/`.rej` files needing human reconciliation (the `adopt-copier-pyproject`
-   workflow). Because a PR opened with the default `GITHUB_TOKEN` does **not**
-   trigger the project's own checks (GitHub's loop-prevention), the signal is the
-   visible conflict markers in the diff; a project sets an optional
-   `COPIER_UPDATE_TOKEN` (PAT/App token, preferred over `GITHUB_TOKEN` via
-   `${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}`) to make the update
-   PR run checks. It also carries a `concurrency` group so the manual and cron
-   triggers can't race on the `chore/copier-update` branch. Non-blocking, not in
-   the `check` gate. See
+   workflow). The default `GITHUB_TOKEN` has two limits (both lifted by an
+   optional `COPIER_UPDATE_TOKEN`, preferred via
+   `${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}`): it **cannot push
+   changes to `.github/workflows/*`** (a hard GitHub rule — the token lacks the
+   `workflow` scope and it is not grantable via `permissions:`), so an update
+   touching a workflow file fails to open the PR at all; and a PR it opens does
+   **not** trigger the project's checks (loop-prevention), so the signal is the
+   visible conflict markers in the diff. `COPIER_UPDATE_TOKEN` must carry
+   contents + pull-requests + **workflows** write (PAT `repo`+`workflow` scope, or
+   an App token); it is documented in the generated `CONTRIBUTING.md` ("Template
+   updates"). The workflow also carries a `concurrency` group so the manual and
+   cron triggers can't race on the `chore/copier-update` branch. Non-blocking, not
+   in the `check` gate. See
    [ADR-014](../docs/adr/014-template-self-versioning-and-copier-update-automation.md).
 
 ### Template self-versioning (this repo, ADR-014)

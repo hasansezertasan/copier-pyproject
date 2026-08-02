@@ -57,11 +57,16 @@ jobs:
       - name: Open a PR with any changes
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:
-          # A PR opened with the default GITHUB_TOKEN does NOT trigger this repo's
-          # CI/prek checks (GitHub suppresses token-created events to avoid loops),
-          # so with the fallback the conflict-marker signal is only the *visible*
-          # diff, not a red check. Set a COPIER_UPDATE_TOKEN secret (a PAT or GitHub
-          # App token) to make the update PR run checks like any other.
+          # The default GITHUB_TOKEN has two limits here, both lifted by
+          # COPIER_UPDATE_TOKEN (see CONTRIBUTING "Template updates"):
+          #  1. It CANNOT push changes to .github/workflows/* (GitHub security
+          #     rule), so an update touching a workflow file fails to open the PR —
+          #     and template updates frequently touch workflows.
+          #  2. A PR it opens does not trigger this repo's checks (loop-prevention),
+          #     so a bad merge shows only as visible conflict markers, not a red
+          #     check.
+          # Set COPIER_UPDATE_TOKEN to a PAT (repo + workflow scope) or a GitHub App
+          # token with contents/pull-requests/workflows write to lift both.
           token: ${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
           # Target the repo's real default branch explicitly: create-pull-request
           # otherwise bases the PR on the checked-out ref.
