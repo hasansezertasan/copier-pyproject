@@ -40,7 +40,7 @@ rev = "v1.7.12"
 hooks = [{ id = "actionlint", name = "Actionlint Linter" }]
 [[repos]]
 repo = "https://github.com/zizmorcore/zizmor-pre-commit"
-rev = "v1.28.0"
+rev = "v1.29.0"
 # Scoped to real workflow YAML (this repo's own CI plus the template's static
 # .yml workflows). The `.ya?ml$` anchor deliberately excludes template/*.jinja
 # files, which are Jinja templates that zizmor cannot parse — the rendered
