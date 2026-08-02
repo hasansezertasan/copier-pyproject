@@ -81,15 +81,26 @@ workflow (`codeql.yml`, `zizmor.yml`, …).
 
 ### The bot drafts; the human reconciles
 
-The auto-PR is a **starting point, not a merge-ready change**. A 3-way merge can
-leave conflict markers or `.rej` files where a project's local edits diverge from
-the template (README identity, `.cspell.yml` word lists — precisely hwid#113's
-"Reconciliation" section). The PR body says so and points at the
-`adopt-copier-pyproject` workflow. When conflicts exist the PR's own CI goes red,
-and *that red check is the "human needed here" signal*. This is deliberately
-non-blocking and best-effort — the same posture as `gitignore-drift.yml` and the
+The auto-PR is a **starting point, not a merge-ready change**. It is opened as a
+**GitHub draft** (`draft: true`) so it cannot be merged before review. A 3-way
+merge can leave conflict markers or `.rej` files where a project's local edits
+diverge from the template (README identity, `.cspell.yml` word lists — precisely
+hwid#113's "Reconciliation" section). The PR body says so and points at the
+`adopt-copier-pyproject` workflow. This is deliberately non-blocking and
+best-effort — the same posture as `gitignore-drift.yml` and the
 `check-security.yml` cron: automation delivers the **signal + the draft**, never
 the judgment.
+
+**Token caveat (why the signal is the *diff*, not a red check, by default).** A
+PR opened with the workflow's default `GITHUB_TOKEN` does **not** trigger the
+project's own `push`/`pull_request` checks — GitHub suppresses events caused by
+that token to prevent workflow-recursion loops. So out of the box the "human
+needed here" signal is the **visible conflict markers in the draft's diff**, not
+a red CI check. Projects that want the update PR to run checks like any other set
+a `COPIER_UPDATE_TOKEN` secret (a PAT or GitHub App token), which the workflow
+prefers over `GITHUB_TOKEN`. Keeping the fallback preserves the zero-external-setup
+default; the secret is a pure opt-in, mirroring how release-please's own docs
+treat cross-workflow triggering.
 
 ## Consequences
 
