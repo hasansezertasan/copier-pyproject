@@ -44,11 +44,16 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
       - name: Run copier update
-        # --trust: the template's post-copy _tasks (git init) must be allowed to run.
+        # --skip-tasks: do NOT execute any template task code in this write-capable
+        #   job. Copier still requires --trust to proceed when the template *defines*
+        #   tasks (even skipped ones), but --skip-tasks means none of them run
+        #   unattended here — closing the one code-execution path the draft-PR review
+        #   gate can't cover. The template's only task (git init) is gated to the
+        #   copy operation anyway, so skipping it on update is also a no-op (ADR-014).
         # --defaults: answer any newly added questions with their defaults.
         # --skip-answered: never re-prompt for questions already recorded in
         #   .copier-answers.yml, keeping this run fully non-interactive.
-        run: uvx copier update --trust --defaults --skip-answered
+        run: uvx copier update --trust --skip-tasks --defaults --skip-answered
       - name: Open a PR with any changes
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:

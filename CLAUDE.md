@@ -660,8 +660,12 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    [ADR-011](../docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
 11. **Copier update** (`copier-update.yml`, always included, static workflow).
    The downstream half of the template-propagation loop (ADR-014). On a **weekly
-   cron** + `workflow_dispatch` it runs `uvx copier update --trust --defaults
-   --skip-answered` and opens a `chore/copier-update` PR (labelled `no-issue`) via
+   cron** + `workflow_dispatch` it runs `uvx copier update --trust --skip-tasks
+   --defaults --skip-answered` (`--skip-tasks` so no template task code executes
+   unattended in this write-token-holding job — `--trust` is still required
+   because the template *defines* a task, but none run; the `git init` task is
+   also gated `when: copy` in `copier.yml`, a no-op on update) and opens a
+   `chore/copier-update` PR (labelled `no-issue`) via
    `peter-evans/create-pull-request` — never pushes to the default branch, same
    always-on bot-PR posture as `gitignore-drift.yml`/`all-contributors.yml`. It
    only produces a PR when the **template repo has cut a newer tag** than

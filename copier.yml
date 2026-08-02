@@ -1,7 +1,13 @@
 ---
 _subdirectory: template
 _tasks:
-  - "git init"
+  # git init is only meaningful on the initial copy — an existing project is
+  # already a git repo. Gating it to the copy operation keeps `copier update`
+  # from re-running it, and lets the scheduled copier-update workflow pass
+  # `--skip-tasks` so no template task code executes unattended in a job that
+  # holds a write token (see template/.github/workflows/copier-update.yml, ADR-014).
+  - command: "git init"
+    when: "{{ _copier_operation == 'copy' }}"
 github_user:
   type: str
   help: The GitHub username

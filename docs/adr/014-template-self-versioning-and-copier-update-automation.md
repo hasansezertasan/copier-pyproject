@@ -63,9 +63,9 @@ Ship a new **always-on** static workflow
 (no toggle — same posture as `gitignore-drift.yml`). It:
 
 - runs on a **weekly `schedule`** + `workflow_dispatch`;
-- runs `uvx copier update --trust --defaults --skip-answered` (`--trust` because
-  the template's post-copy `_tasks: git init` must run; `--defaults`/
-  `--skip-answered` keep it non-interactive and preserve recorded answers);
+- runs `uvx copier update --trust --skip-tasks --defaults --skip-answered`
+  (`--defaults`/`--skip-answered` keep it non-interactive and preserve recorded
+  answers; the token/task rationale is below);
 - opens a PR via `peter-evans/create-pull-request` onto a `chore/copier-update`
   branch labelled `no-issue` — **never pushes to the default branch**, so it
   respects the squash-merge policy and needs no persisted git credentials,
@@ -101,6 +101,23 @@ a `COPIER_UPDATE_TOKEN` secret (a PAT or GitHub App token), which the workflow
 prefers over `GITHUB_TOKEN`. Keeping the fallback preserves the zero-external-setup
 default; the secret is a pure opt-in, mirroring how release-please's own docs
 treat cross-workflow triggering.
+
+**No unattended template-code execution (`--skip-tasks`).** The draft-PR review
+gate protects against malicious *file content* a compromised template might
+render — a human sees it before merge. It does **not** protect against `_tasks`
+*execution*: `--trust` would run template task code during the workflow,
+unattended, in a job holding `contents: write`/`pull-requests: write` and the
+token, before any PR exists. So the update command passes **`--skip-tasks`**:
+Copier still requires `--trust` to proceed when the template *defines* tasks
+(the flag does not imply trust), but no task code runs. The template's only task
+(`git init`) is additionally gated `when: "{{ _copier_operation == 'copy' }}"`,
+so it is a no-op on update regardless. Since this template defines no
+`_migrations` or `_jinja_extensions`, `--skip-tasks` neutralizes *all* template
+code execution on the scheduled path — keeping the workflow single-job (no
+read-only/write-only split) while removing the one execution vector the review
+gate can't cover. If the template ever grows a migration (which `--skip-tasks`
+does not cover), isolating the write token into a separate PR-creation job would
+be the next step.
 
 ## Consequences
 
