@@ -658,6 +658,46 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    `style` command, linting the `.rst` sources) and the `check-case-conflict`
    prek builtin (cross-platform filename-collision guard). See
    [ADR-011](../docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
+11. **Copier update** (`copier-update.yml`, always included, static workflow).
+   The downstream half of the template-propagation loop (ADR-014). On a **weekly
+   cron** + `workflow_dispatch` it runs `uvx copier update --trust --defaults
+   --skip-answered` and opens a `chore/copier-update` PR (labelled `no-issue`) via
+   `peter-evans/create-pull-request` — never pushes to the default branch, same
+   always-on bot-PR posture as `gitignore-drift.yml`/`all-contributors.yml`. It
+   only produces a PR when the **template repo has cut a newer tag** than
+   `.copier-answers.yml._commit`, so it depends on the template versioning itself
+   (see the template-self-versioning note below). The PR is a **draft, not
+   merge-ready**: a 3-way merge can leave conflict markers/`.rej` files needing
+   human reconciliation (the `adopt-copier-pyproject` workflow), and a red PR
+   check is the "human needed" signal. Non-blocking, not in the `check` gate. See
+   [ADR-014](../docs/adr/014-template-self-versioning-and-copier-update-automation.md).
+
+### Template self-versioning (this repo, ADR-014)
+
+The template repository **versions itself** with release-please so its changes
+produce semver git tags (`v0.1.0`, …) — the tags a generated project's
+`copier-update.yml` walks to. This is distinct from the `template/`-shipped
+release-please that versions *generated* projects. Root-level files:
+`.github/release-please-config.json` (`release-type: "simple"` — the repo has no
+source version file, so it maintains only the manifest + `CHANGELOG.md` + tag;
+`draft: false`, no release artifacts to attach), `.github/release-please-manifest.json`
+(seeded `{ ".": "0.0.0" }`, so the first release PR lands as **v0.1.0**), and
+`.github/workflows/release.yml` (a single `release-please` job on push to `main`,
+no build/publish jobs). Do **not** add a build/publish step — the template is not
+a distributable package. The first release PR aggregates the full accumulated
+commit history into the v0.1.0 changelog (a one-time cosmetic artifact).
+
+**One-time repo setup** (same contract release-please needs everywhere): this
+repo must **squash-merge with the commit message set to the PR title** (already
+its practice — see the `feat: … (#NNN)` history) so the `check-pr-title`-validated
+title is what release-please parses on `main`, and **Settings → Actions → General
+→ Workflow permissions → Allow GitHub Actions to create and approve pull
+requests** must be enabled so `release.yml` can open its release PR (already
+required by the existing PR-opening automation such as `gitignore-drift.yml`).
+Enable via `gh repo edit hasansezertasan/copier-pyproject --enable-squash-merge
+--enable-merge-commit=false --enable-rebase-merge=false` and
+`gh api -X PUT repos/hasansezertasan/copier-pyproject/actions/permissions/workflow
+-f default_workflow_permissions=write -F can_approve_pull_request_reviews=true`.
 
 ### Required Merge Strategy (release-please depends on it)
 
