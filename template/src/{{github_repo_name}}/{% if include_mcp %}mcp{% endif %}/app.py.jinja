@@ -12,7 +12,11 @@ from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.core.logging_setup import logger
+from {{github_repo_name}}.core.logging_setup import get_logger
+
+__all__ = ["call_tool", "list_tools", "main", "run_server", "server"]
+
+logger = get_logger()
 
 server = Server(name="{{github_repo_name}}")
 

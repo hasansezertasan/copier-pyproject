@@ -9,7 +9,16 @@ from importlib.metadata import Distribution, PackageNotFoundError
 import typer
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.core.logging_setup import logger
+from {{github_repo_name}}.core.logging_setup import get_logger
+
+{% set cli_all = ["show_version", "info", "app"] -%}
+{%- if include_tui %}{% set _ = cli_all.append("interactive") %}{% endif -%}
+{%- if include_gui %}{% set _ = cli_all.append("gui") %}{% endif -%}
+{%- if include_web %}{% set _ = cli_all.append("web") %}{% endif -%}
+{%- set _ = cli_all.sort() -%}
+__all__ = [{% for n in cli_all %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+
+logger = get_logger()
 
 app = typer.Typer(name="{{github_repo_name}}", no_args_is_help=True)
 

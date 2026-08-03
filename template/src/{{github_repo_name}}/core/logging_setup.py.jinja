@@ -8,11 +8,14 @@ module is imported multiple times.
 
 import logging
 import sys
+from functools import cache
 from logging.handlers import RotatingFileHandler
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.core.config import settings
+from {{github_repo_name}}.core.config import get_settings
 from {{github_repo_name}}.core.dirs import LOG_FILE_PATH, ROOT_FOLDER_PATH
+
+__all__ = ["get_logger", "setup_logger"]
 
 
 def _resolve_level(name: str) -> int:
@@ -47,7 +50,7 @@ def setup_logger() -> logging.Logger:
     Returns:
         logging.Logger: Configured logger for the project.
     """
-    level = _resolve_level(settings.log_level)
+    level = _resolve_level(get_settings().log_level)
     logger_ = logging.getLogger(PROJECT_NAME)
     logger_.setLevel(level)
 
@@ -80,5 +83,11 @@ def setup_logger() -> logging.Logger:
     return logger_
 
 
-logger: logging.Logger = setup_logger()
-"""The main logger for the project."""
+@cache
+def get_logger() -> logging.Logger:
+    """Return the cached project logger.
+
+    Returns:
+        logging.Logger: The cached project logger.
+    """
+    return setup_logger()
