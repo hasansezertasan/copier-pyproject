@@ -30,7 +30,7 @@ GitHub's tarball/archive generation honors `.gitattributes export-subst`, so the
 placeholders below are expanded to the real commit hash, date, and
 `git describe` output at archive-creation time.
 
-### 1. New file `template/.git_archival.txt.jinja`
+### 1. New file `template/.git_archival.txt`
 
 Stable content (the setuptools-scm-recommended form for releases):
 
@@ -44,9 +44,10 @@ describe-name: $Format:%(describe:tags=true,match=*[0-9]*)$
 - In a normal git checkout the literal `$Format:...$` strings remain unexpanded;
   setuptools-scm detects this and ignores the file, falling back to live git
   metadata. So the file is safe to commit and ship.
-- No Jinja variables are needed inside the file, but it carries the `.jinja`
-  extension for consistency with the template's rendering pipeline (Copier renders
-  it verbatim).
+- The file has no Jinja variables, so it deliberately does **not** carry the
+  `.jinja` suffix: Copier copies it verbatim, avoiding any risk of the Jinja
+  engine touching the `$Format:...$`/`%` placeholders. `.gitattributes`'
+  `* text=auto eol=lf` still normalizes line endings on checkout.
 
 ### 2. `template/.gitattributes.jinja`
 
