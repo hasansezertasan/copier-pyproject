@@ -1,12 +1,33 @@
 """Directory configurations for the project."""
 
+import tempfile
 from pathlib import Path
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 
+
+def _home_directory() -> Path:
+    """Return the user's home directory, falling back to the temp directory.
+
+    ``Path.home()`` raises ``RuntimeError`` when the home directory cannot be
+    determined (``HOME`` unset and no passwd entry -- some containers, service
+    accounts, sandboxes). This module is imported at startup, so letting that
+    propagate would crash even read-only commands like ``--help`` or
+    ``version``. Fall back to the OS temp directory instead; a location that is
+    still unwritable degrades gracefully in ``core/logging_setup.py``.
+
+    Returns:
+        Path: The user's home directory, or the temp directory as a fallback.
+    """
+    try:
+        return Path.home()
+    except RuntimeError:
+        return Path(tempfile.gettempdir())
+
+
 ROOT_FOLDER_NAME: str = f".{PROJECT_NAME}"
 """Name of the root folder."""
-ROOT_FOLDER_PATH: Path = Path.home() / ROOT_FOLDER_NAME
+ROOT_FOLDER_PATH: Path = _home_directory() / ROOT_FOLDER_NAME
 """Path to the root folder."""
 LOG_FILE_PATH: Path = ROOT_FOLDER_PATH / "main.log"
 """Path to the log file."""

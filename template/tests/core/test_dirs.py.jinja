@@ -1,0 +1,29 @@
+"""Tests for the directory configuration module."""
+
+from __future__ import annotations
+
+import tempfile
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from {{github_repo_name}}.core.dirs import _home_directory
+
+if TYPE_CHECKING:
+    import pytest
+
+
+def test_home_directory_returns_real_home() -> None:
+    """When the home directory is resolvable, it is returned as-is."""
+    assert _home_directory() == Path.home()
+
+
+def test_home_directory_falls_back_to_temp_dir(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An unresolvable home directory falls back to the OS temp directory."""
+
+    def _raise() -> Path:
+        msg = "Could not determine home directory."
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr(Path, "home", staticmethod(_raise))
+
+    assert _home_directory() == Path(tempfile.gettempdir())

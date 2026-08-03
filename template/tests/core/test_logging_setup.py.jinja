@@ -72,19 +72,29 @@ def test_setup_logger_degrades_when_log_dir_unavailable(
     blocker.write_text("not a directory")
     monkeypatch.setattr(logging_setup, "ROOT_FOLDER_PATH", blocker / "logs")
 
-    # Start from a clean logger so ``setup_logger`` actually re-adds handlers,
-    # closing any existing file handler to avoid leaking an open descriptor.
+    # Detach (without closing) the shared project logger's handlers so
+    # ``setup_logger`` re-adds them here, then restore them afterwards: the
+    # handlers this test creates are bound to ``capsys``'s transient ``stderr``,
+    # which pytest closes at teardown, so leaving them attached would break
+    # error logging in later tests.
     logger_ = logging.getLogger(PROJECT_NAME)
-    for handler in list(logger_.handlers):
+    original_handlers = logger_.handlers[:]
+    for handler in original_handlers:
         logger_.removeHandler(handler)
-        handler.close()
 
-    configured = setup_logger()
+    try:
+        configured = setup_logger()
 
-    # Console logging survives; no file handler is attached.
-    assert configured.handlers
-    assert not any(
-        isinstance(handler, RotatingFileHandler) for handler in configured.handlers
-    )
-    # The degradation is reported to stderr so it stays discoverable.
-    assert "console-only" in capsys.readouterr().err
+        # Console logging survives; no file handler is attached.
+        assert configured.handlers
+        assert not any(
+            isinstance(handler, RotatingFileHandler) for handler in configured.handlers
+        )
+        # The degradation is reported to stderr so it stays discoverable.
+        assert "console-only" in capsys.readouterr().err
+    finally:
+        for handler in logger_.handlers[:]:
+            logger_.removeHandler(handler)
+            handler.close()
+        for handler in original_handlers:
+            logger_.addHandler(handler)
