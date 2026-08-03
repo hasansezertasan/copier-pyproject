@@ -260,10 +260,20 @@ docs/issues/discussions and cross-references `SECURITY.md`/`CONTRIBUTING.md`), a
 `.gitattributes` (LF normalization matching the ruff/EditorConfig policy, Linguist
 overrides marking `_version.py`/`CHANGELOG.md`/`uv.lock`/`cobo.lock` as generated
 and `docs/`
-as documentation, and `export-ignore` archive hygiene), and AI-agent onboarding
+as documentation, `export-ignore` archive hygiene, and an `export-subst` entry
+for `.git_archival.txt`), and AI-agent onboarding
 files — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that
 `@AGENTS.md`-imports it so there is a single source of truth (no divergent copies).
 `AGENTS.md` intentionally carries **no** commit-attribution/`Co-Authored-By` block.
+
+Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
+`node`/`node-date`/`describe-name` `$Format:...$` template). Paired with the
+`.gitattributes` `export-subst` entry, `git archive`/GitHub source tarballs (the
+install flow documented in `docs/installation.rst`) expand it to the real
+tag-derived version, so hatch-vcs recovers the correct version without a `.git`
+directory instead of stamping the `[tool.hatch.version] fallback-version` literal.
+That fallback is kept at the obvious sentinel `0.0.0` (used only when an archive
+has no reachable tag), not a plausible-looking `0.1.0`.
 
 Commitizen (Conventional Commit authoring/linting) is **always included** — it
 is no longer gated behind an `include_commitizen` option. release-please still
