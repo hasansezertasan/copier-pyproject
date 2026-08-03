@@ -1,6 +1,6 @@
 ---
 name: Copier Update
-# Weekly check for new copier-pyproject template releases (ADR-014). When the
+# Weekly check for new copier-pyproject template releases (ADR-015). When the
 # upstream template has cut a tag newer than the one recorded in
 # .copier-answers.yml, runs `copier update` and opens a PR with the re-rendered
 # changes.
@@ -49,7 +49,7 @@ jobs:
         #   tasks (even skipped ones), but --skip-tasks means none of them run
         #   unattended here — closing the one code-execution path the draft-PR review
         #   gate can't cover. The template's only task (git init) is gated to the
-        #   copy operation anyway, so skipping it on update is also a no-op (ADR-014).
+        #   copy operation anyway, so skipping it on update is also a no-op (ADR-015).
         # --defaults: answer any newly added questions with their defaults.
         # --skip-answered: never re-prompt for questions already recorded in
         #   .copier-answers.yml, keeping this run fully non-interactive.

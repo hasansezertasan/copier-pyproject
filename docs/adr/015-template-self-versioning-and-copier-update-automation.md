@@ -1,4 +1,4 @@
-# ADR-014: Template self-versioning + downstream `copier update` automation
+# ADR-015: Template self-versioning + downstream `copier update` automation
 
 ## Status
 

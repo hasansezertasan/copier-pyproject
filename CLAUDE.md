@@ -659,7 +659,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    prek builtin (cross-platform filename-collision guard). See
    [ADR-011](../docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
 11. **Copier update** (`copier-update.yml`, always included, static workflow).
-   The downstream half of the template-propagation loop (ADR-014). On a **weekly
+   The downstream half of the template-propagation loop (ADR-015). On a **weekly
    cron** + `workflow_dispatch` it runs `uvx copier update --trust --skip-tasks
    --defaults --skip-answered` (`--skip-tasks` so no template task code executes
    unattended in this write-token-holding job — `--trust` is still required
@@ -691,9 +691,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    job. The workflow also carries a `concurrency` group so the manual and
    cron triggers can't race on the `chore/copier-update` branch. Non-blocking, not
    in the `check` gate. See
-   [ADR-014](../docs/adr/014-template-self-versioning-and-copier-update-automation.md).
+   [ADR-015](../docs/adr/015-template-self-versioning-and-copier-update-automation.md).
 
-### Template self-versioning (this repo, ADR-014)
+### Template self-versioning (this repo, ADR-015)
 
 The template repository **versions itself** with release-please so its changes
 produce semver git tags (`v0.1.0`, …) — the tags a generated project's
