@@ -279,7 +279,12 @@ trusted-publishing = "always"
 
 [tool.hatch.version]
 source = "vcs"
-fallback-version = "0.1.0"
+# Last-resort sentinel: only used when a build sees neither a .git directory nor
+# an expanded .git_archival.txt (e.g. an archive of a commit with no reachable
+# tag). "0.0.0" reads clearly as "version could not be determined" rather than
+# masquerading as a real early release. See .git_archival.txt + .gitattributes
+# `export-subst` for the archive path that recovers the real tag-derived version.
+fallback-version = "0.0.0"
 
 
 [tool.hatch.build]
