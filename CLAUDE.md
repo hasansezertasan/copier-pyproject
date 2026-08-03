@@ -658,55 +658,44 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    `style` command, linting the `.rst` sources) and the `check-case-conflict`
    prek builtin (cross-platform filename-collision guard). See
    [ADR-011](../docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
-11. **Copier update** (`copier-update.yml`, always included, static workflow).
-   The downstream half of the template-propagation loop (ADR-015). On a **weekly
-   cron** + `workflow_dispatch` it runs `uvx copier update --trust --skip-tasks
-   --defaults --skip-answered` (`--skip-tasks` so no template task code executes
-   unattended in this write-token-holding job — `--trust` is still required
-   because the template *defines* a task, but none run; the `git init` task is
-   also gated `when: copy` in `copier.yml`, a no-op on update) and opens a
-   `chore/copier-update` PR (labelled `no-issue`) via
-   `peter-evans/create-pull-request` — never pushes to the default branch, same
-   always-on bot-PR posture as `gitignore-drift.yml`/`all-contributors.yml`. It
-   only produces a PR when the **template repo has cut a newer tag** than
-   `.copier-answers.yml._commit`, so it depends on the template versioning itself
-   (see the template-self-versioning note below). The PR is opened as a GitHub
-   **draft** (`draft: true`), not merge-ready: a 3-way merge can leave conflict
-   markers/`.rej` files needing human reconciliation (the `adopt-copier-pyproject`
-   workflow). The default `GITHUB_TOKEN` has two limits (both lifted by an
-   optional `COPIER_UPDATE_TOKEN`, preferred via
-   `${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}`): it **cannot push
-   changes to `.github/workflows/*`** (a hard GitHub rule — the token lacks the
-   `workflow` scope and it is not grantable via `permissions:`), so an update
-   touching a workflow file fails to open the PR at all; and a PR it opens does
-   **not** trigger the project's checks (loop-prevention), so the signal is the
-   visible conflict markers in the diff. `COPIER_UPDATE_TOKEN` must be a
-   **persistent** credential carrying contents + pull-requests + **workflows**
-   write (a fine-grained PAT, or a classic PAT with `repo`+`workflow` scope) —
-   **not** a GitHub App installation token (hourly expiry); it is read only in the
-   scheduled/dispatch run (never a `pull_request` job) and documented in the
-   generated `CONTRIBUTING.md` ("Template updates"). `draft: true` is a
-   merge-convenience, not a security boundary — the real boundaries are
-   `--skip-tasks` (no template code runs) and confining the token to the scheduled
-   job. The workflow also carries a `concurrency` group so the manual and
-   cron triggers can't race on the `chore/copier-update` branch. Non-blocking, not
-   in the `check` gate. See
-   [ADR-015](../docs/adr/015-template-self-versioning-and-copier-update-automation.md).
+Downstream template updates are **not** a shipped workflow — they are handled by
+**Renovate's [`copier` manager](https://docs.renovatebot.com/modules/manager/copier/)**
+(ADR-015). Renovate (already the canonical updater, and a documented one-time
+setup) detects the generated project's `.copier-answers.yml`, watches the template
+repo (`_src_path`) via the **`git-tags`** datasource, and when a newer tag exists
+runs the real `copier update` and opens a PR with the re-rendered diff. It is on
+by default (the shared preset sets no `enabledManagers`), so generated projects
+get it via the `.copier-answers.yml` they already ship — nothing added to the
+template's `renovate.json`. Renovate's **App token can push `.github/workflows/*`**
+(the repo `GITHUB_TOKEN` cannot), so no per-repo update PAT is needed. Two things
+make this work and are load-bearing — do not undo them without re-reading ADR-015:
+(1) the template's own release-please (below) must keep cutting **tags**, because
+the copier manager is tag-based, not HEAD-based; (2) `copier.yml` must define **no
+`_tasks`** — any task forces `copier ... --trust`, which the **hosted Mend Renovate
+App disables** (`allowScripts` is self-hosted-only), so a task-bearing template
+breaks the manager. The former `_tasks: git init` was removed for this reason (the
+scaffold instructions now tell the user to `git init`). Caveat: Renovate does not
+fail its artifacts check on `copier update` merge conflicts
+([renovate#31600](https://github.com/renovatebot/renovate/issues/31600)), so a
+copier PR can look mergeable while carrying `<<<<<<<` markers — the generated
+`CONTRIBUTING.md` "Template updates" note says to review for them.
 
 ### Template self-versioning (this repo, ADR-015)
 
 The template repository **versions itself** with release-please so its changes
-produce semver git tags (`v0.1.0`, …) — the tags a generated project's
-`copier-update.yml` walks to. This is distinct from the `template/`-shipped
-release-please that versions *generated* projects. Root-level files:
-`.github/release-please-config.json` (`release-type: "simple"` — the repo has no
-source version file, so it maintains only the manifest + `CHANGELOG.md` + tag;
-`draft: false`, no release artifacts to attach), `.github/release-please-manifest.json`
-(seeded `{ ".": "0.0.0" }`, so the first release PR lands as **v0.1.0**), and
-`.github/workflows/release.yml` (a single `release-please` job on push to `main`,
-no build/publish jobs). Do **not** add a build/publish step — the template is not
-a distributable package. The first release PR aggregates the full accumulated
-commit history into the v0.1.0 changelog (a one-time cosmetic artifact).
+produce semver git tags (`v1.0.0`, …). These tags are the **datasource Renovate's
+copier manager consumes** in generated projects (see the ADR-015 note above) — so
+tagging is load-bearing, not cosmetic. This is distinct from the
+`template/`-shipped release-please that versions *generated* projects. Root-level
+files: `.github/release-please-config.json` (`release-type: "simple"` — the repo
+has no source version file, so it maintains only the manifest + `CHANGELOG.md` +
+tag; `draft: false`, no release artifacts to attach),
+`.github/release-please-manifest.json` (seeded `{ ".": "0.0.0" }`; release-please
+defaults the *first* release to **v1.0.0** regardless of `bump-minor-pre-major` —
+add a `Release-As`/`release-as` override for the first PR if a `0.x` start is
+wanted), and `.github/workflows/release.yml` (a single `release-please` job on
+push to `main`, no build/publish jobs). Do **not** add a build/publish step — the
+template is not a distributable package.
 
 **One-time repo setup** (same contract release-please needs everywhere): this
 repo must **squash-merge with the commit message set to the PR title** (already

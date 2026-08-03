@@ -74,7 +74,7 @@ jobs:
         # uvx provides copier without mise; the later `uv run` steps execute in
         # ../rendered, where a mise shim would not resolve the repo's tools.
         run: >
-          uvx copier copy --data-file .example-input.yml ${{ matrix.scenario.data }} --defaults --trust --vcs-ref=HEAD . ../rendered
+          uvx copier copy --data-file .example-input.yml ${{ matrix.scenario.data }} --defaults --vcs-ref=HEAD . ../rendered
 
       - name: Audit rendered workflows with zizmor
         # The template's workflows are *.jinja and cannot be scanned directly, so
@@ -83,10 +83,11 @@ jobs:
         # zizmor version, not a bare `uvx zizmor` that may pin a different one).
         # Across the matrix this exercises every conditional workflow branch
         # (web/worker/executables/...). prek operates on git-tracked files, and
-        # copier's post-copy `git init` leaves the rendered tree untracked, so
-        # stage it first.
+        # the template defines no copier tasks (ADR-015) so the rendered tree is
+        # not a git repo — init it, then stage it first.
         working-directory: ../rendered
         run: |
+          git init -q
           git add -A
           # Fail loudly if the render produced no workflows: prek runs a hook only
           # against matching tracked files and, on zero matches, prints
