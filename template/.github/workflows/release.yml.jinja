@@ -397,10 +397,9 @@ jobs:
             pyproject.toml
             uv.lock
       - name: Export locked runtime dependencies
-        # SBOM describes what ships: resolved deps for every optional extra
-        # (--all-extras; this project keeps its dependencies under extras, so
-        # without it the SBOM is empty), excluding dev tooling and the project.
-        run: uv export --frozen --all-extras --no-dev --no-emit-project --format requirements.txt --output-file requirements-sbom.txt
+        # SBOM describes what ships: the project's runtime dependencies (now
+        # required, not optional extras), excluding dev tooling and the project.
+        run: uv export --frozen --no-dev --no-emit-project --format requirements.txt --output-file requirements-sbom.txt
       - name: Generate CycloneDX SBOM
         run: uvx --from cyclonedx-bom cyclonedx-py requirements requirements-sbom.txt --output-format JSON --output-file {{github_repo_name}}-sbom.cdx.json
       - name: Upload SBOM

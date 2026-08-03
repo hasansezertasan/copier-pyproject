@@ -100,43 +100,22 @@ classifiers = [
 {% endif %}
 ]
 requires-python = ">=3.10"
-dependencies = []
-
-[project.optional-dependencies]
-{% if include_cli %}cli = ["typer>=0.20.0"]{% endif %}
-{% if include_web %}
-{% if web_framework == "fastapi" %}web = ["fastapi[all]>=0.123.5"]{% endif %}
-{% if web_framework == "litestar" %}web = ["litestar[standard]>=2.0.0"]{% endif %}
-{% endif %}
-{% if include_tui %}tui = ["textual>=0.50.0", "typing-extensions>=4.4.0"]{% endif %}
-{% if include_mcp %}mcp = ["mcp>=1.0.0,<2"]  # TODO @{{github_user}}: mcp 2.0.0 is a breaking API rewrite (input_schema, new Server API); migrate mcp/app.py before relaxing this cap{% endif %}
-{% if include_worker %}worker = ["faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
-{% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
-all = [
-{%- if include_cli %}
-    "typer>=0.20.0",
-{%- endif %}
-{%- if include_web %}
-{%- if web_framework == "fastapi" %}
-    "fastapi[all]>=0.123.5",
-{%- endif %}
-{%- if web_framework == "litestar" %}
-    "litestar[standard]>=2.0.0",
-{%- endif %}
-{%- endif %}
-{%- if include_tui %}
-    "textual>=0.50.0",
-{%- endif %}
-{%- if include_mcp %}
-    "mcp>=1.0.0,<2",
-{%- endif %}
-{%- if include_worker %}
-    "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",
-{%- endif %}
-{%- if include_pydantic_settings %}
-    "pydantic-settings>=2.0.0",
-{%- endif %}
-]
+# Runtime dependencies. Each enabled component registers an unconditional
+# console/GUI entry point that imports its framework, so those frameworks are
+# required (not optional extras) — otherwise a plain `pip install {{github_repo_name}}` yields
+# entry points that crash with ModuleNotFoundError.
+{% set _deps = [] -%}
+{%- if include_cli %}{% set _ = _deps.append("typer>=0.20.0") %}{% endif -%}
+{%- if include_web and web_framework == "fastapi" %}{% set _ = _deps.append("fastapi[all]>=0.123.5") %}{% elif include_web %}{% set _ = _deps.append("litestar[standard]>=2.0.0") %}{% endif -%}
+{%- if include_tui %}{% set _ = _deps.append("textual>=0.50.0") %}{% set _ = _deps.append("typing-extensions>=4.4.0") %}{% endif -%}
+{%- if include_mcp %}{% set _ = _deps.append("mcp>=1.0.0,<2") %}{% endif -%}
+{%- if include_worker %}{% set _ = _deps.append("faststream[" ~ ("rabbit" if worker_broker == "rabbitmq" else worker_broker) ~ "]>=0.5.0") %}{% set _ = _deps.append("pydantic>=2.0.0") %}{% set _ = _deps.append("uvloop>=0.19.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation == 'CPython'") %}{% endif -%}
+{%- if include_pydantic_settings %}{% set _ = _deps.append("pydantic-settings>=2.0.0") %}{% endif -%}
+{% if _deps %}dependencies = [
+{%- for d in _deps %}
+    "{{ d }}",
+{%- endfor %}
+]{% else %}dependencies = []{% endif %}
 
 
 [project.urls]
@@ -163,7 +142,7 @@ source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
 
 [dependency-groups]
 dev = [
-  "{{github_repo_name}}[all]",
+  "{{github_repo_name}}",
   "tox==4.31.0",
   "tox-uv==1.29.0",
   "debugpy==1.8.0",
@@ -641,7 +620,6 @@ env_tmp_dir = "{toxworkdir}/tmp/{envname}"
 # `coverage run` plus `parallel = true` writes per-env data files that the CI
 # `coverage combine` step merges.
 set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
-extras = ["all"]
 {% if include_c_extensions %}
 # The compiled extension makes each wheel ABI-specific. Distributing as an sdist
 # lets every environment compile it against its own interpreter, producing a
@@ -761,7 +739,6 @@ runner = "uv-venv-runner"
 
 [tool.tox.env.docs-build]
 commands = [["sphinx-build", "-b", "html", "docs", "docs/_build/html"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Build Docs"
 runner = "uv-venv-runner"
@@ -769,7 +746,6 @@ runner = "uv-venv-runner"
 
 [tool.tox.env.docs-server]
 commands = [["sphinx-autobuild", "docs", "docs/_build/html"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
 runner = "uv-venv-runner"
@@ -779,7 +755,6 @@ runner = "uv-venv-runner"
 # On-demand link checker. Also run weekly (non-blocking) by docs-linkcheck.yml.
 # Hits the network, so it is deliberately not part of the `style` env or PR CI.
 commands = [["sphinx-build", "-b", "linkcheck", "docs", "docs/_build/linkcheck"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Check documentation for broken links"
 runner = "uv-venv-runner"
@@ -845,7 +820,6 @@ commands = [
   ],
 ]
 description = "Run worker broker integration tests against a real broker."
-extras = ["all"]
 dependency_groups = ["test"]
 runner = "uv-venv-runner"
 {%- endif %}

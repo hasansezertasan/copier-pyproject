@@ -61,12 +61,11 @@ jobs:
             pyproject.toml
             uv.lock
       - name: Export locked runtime dependencies
-        # Audit what ships: resolved deps for every optional extra (--all-extras;
-        # this project keeps its dependencies under extras, so without it the
-        # export is empty), excluding dev tooling and the project itself.
+        # Audit what ships: the project's runtime dependencies (now required, not
+        # optional extras), excluding dev tooling and the project itself.
         # --no-hashes keeps pip-audit's resolver from demanding a hash for every
         # transitive pin.
-        run: uv export --frozen --all-extras --no-dev --no-emit-project --no-hashes --format requirements.txt --output-file requirements-audit.txt
+        run: uv export --frozen --no-dev --no-emit-project --no-hashes --format requirements.txt --output-file requirements-audit.txt
       - name: Audit dependencies for known vulnerabilities
         # Queries the PyPI Advisory DB for the full resolved tree; exits non-zero
         # on any finding. Runs in an ephemeral uvx env so pip-audit itself is not

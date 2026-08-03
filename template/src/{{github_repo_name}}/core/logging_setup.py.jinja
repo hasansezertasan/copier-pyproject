@@ -56,29 +56,37 @@ def setup_logger() -> logging.Logger:
 
     # Only add handlers if they haven't been added yet
     if not logger_.handlers:
-        # Ensure the log file exists
-        ROOT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
-
-        # Create a file handler that logs all messages
-        file_handler = RotatingFileHandler(
-            LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
-        )
-        file_handler.setLevel(level)
-
-        # Create a console handler for errors only
-        console_handler = logging.StreamHandler(sys.stderr)
-        console_handler.setLevel(logging.ERROR)
-
-        # Create a formatter and set it for both handlers
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
 
-        # Add the handlers to the logger_
-        logger_.addHandler(file_handler)
+        # Console handler (errors only). Added first and unconditionally so the
+        # application stays usable even when no log file can be created.
+        console_handler = logging.StreamHandler(sys.stderr)
+        console_handler.setLevel(logging.ERROR)
+        console_handler.setFormatter(formatter)
         logger_.addHandler(console_handler)
+
+        # File handler is best-effort: a read-only or otherwise unwritable home
+        # directory (containers, restricted service accounts) must not break the
+        # CLI at import time, so fall back to console-only logging on failure.
+        try:
+            ROOT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+            file_handler = RotatingFileHandler(
+                LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
+            )
+            file_handler.setLevel(level)
+            file_handler.setFormatter(formatter)
+            logger_.addHandler(file_handler)
+        except OSError:
+            # Emit at ERROR so the console handler (errors-only) actually shows it
+            # — operators must know file logging is off. `exception` also records
+            # the OSError cause. This runs inside the ``except`` block, so it is
+            # the correct logging idiom (and TRY400-clean).
+            logger_.exception(
+                "Could not initialise file logging at %s; using console only.",
+                LOG_FILE_PATH,
+            )
 
     return logger_
 
