@@ -297,7 +297,7 @@ own `.gitignore`, which is cobo-managed too as dogfooding) and
 `template/cobo.lock` (`path = .gitignore`, shipped to generated projects). cobo
 is delivered to generated projects as a mise tool (`pipx:cobo`, Renovate-tracked)
 with a `mise run gitignore-check` task and a weekly, non-blocking
-`gitignore-drift.yml` workflow (`cobo update && cobo check` on `schedule` +
+`gitignore-drift.yml` workflow (`cobo update && cobo check --strict` on `schedule` +
 `workflow_dispatch` only — not in the `check` gate; network-flaky, same posture
 as `docs-linkcheck`). **Regenerate** from the repo root with `cobo update && cobo
 sync` (re-renders the fenced region in place, preserving the author section and

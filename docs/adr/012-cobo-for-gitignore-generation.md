@@ -68,7 +68,7 @@ wins.
 
 ### 4. Drift check = weekly non-blocking cron
 
-`gitignore-drift.yml` runs `cobo update && cobo check` on a weekly `schedule` +
+`gitignore-drift.yml` runs `cobo update && cobo check --strict` on a weekly `schedule` +
 `workflow_dispatch` only — **not** on `pull_request` and **not** in the `check`
 aggregation gate. `cobo update` hits the network, and this template keeps
 network-flaky checks out of the blocking gate (same posture as `docs-linkcheck`,
