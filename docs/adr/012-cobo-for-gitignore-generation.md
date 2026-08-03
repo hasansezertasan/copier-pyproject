@@ -64,17 +64,25 @@ named `]`. Same for the HFS entry. This is accepted as a deliberate tradeoff,
 not "harmless": these are legacy HFS resource-fork artifacts modern macOS rarely
 creates and almost never commits, and there is **no LF-only pattern** that
 matches `Icon␍` precisely (`Icon?` over-matches `Icons`/`Icon1`/…), so fidelity
-genuinely requires the CR. Keeping the CR is worse — it fights this template's
-LF-everywhere invariant on three axes (EditorConfig `end_of_line = lf`,
-`.gitattributes eol=lf`, Copier's Jinja render), and a downstream repo with
-`* text=auto eol=lf` strips the CR on commit regardless, so `eol=preserve` +
-carve-outs would not even hold downstream.
+genuinely requires the CR. Keeping the CR is still the wrong call — it fights
+this template's LF-everywhere invariant: EditorConfig `end_of_line = lf` makes
+the `style` env's `editorconfig-checker` fail on the embedded CR, and — the
+decisive blocker — Copier renders `.gitignore.jinja` through Jinja, whose lexer
+normalizes a lone `\r` to `\n` on scaffold (`Icon[\r]` → `Icon[\n]`), so an
+`eol=preserve` seal would be re-corrupted in **every** generated project anyway.
+(Git itself does **not** strip the CR: `* text=auto eol=lf` only rewrites CRLF
+*terminators*, leaving a lone mid-line CR intact in the index — but the Jinja
+render happens at scaffold time, before anything is committed, so that does not
+rescue the pattern.)
 
-The durable fix is at the cobo level — `eol=lf` should normalize line
-*terminators* only, not a CR embedded mid-line inside a char-class — tracked in
-[cobo#124](https://github.com/hasansezertasan/cobo/issues/124). When that lands,
-re-seal with `cobo update && cobo sync` and the patterns restore themselves with
-no template change here. See also
+The root cobo-level fix — `eol=lf` should normalize line *terminators* only,
+not a CR embedded mid-line inside a char-class — is tracked in
+[cobo#124](https://github.com/hasansezertasan/cobo/issues/124). It is
+**necessary but not sufficient**: because Copier's Jinja render also strips the
+lone CR (above), fully restoring the patterns in generated projects would
+*additionally* require the render to preserve it (a `{% raw %}` wrap or a Copier
+newline/`_envops` carve-out scoped to this file). Until both are in place the
+split patterns stand as documented. See also
 [#111](https://github.com/hasansezertasan/copier-pyproject/issues/111).
 
 ### 2. Project overrides move below the fence
