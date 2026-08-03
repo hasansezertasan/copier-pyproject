@@ -33,7 +33,7 @@ def get_version() -> str:
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
     except PackageNotFoundError:
-        logger.error("Package metadata not found for %s", PROJECT_NAME)
+        logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise HTTPException(
             status_code=503,
             detail=f"Package metadata for '{PROJECT_NAME}' is unavailable",
@@ -56,7 +56,7 @@ def get_info() -> JSONResponse:
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
     except PackageNotFoundError:
-        logger.error("Package metadata not found for %s", PROJECT_NAME)
+        logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise HTTPException(
             status_code=503,
             detail=f"Package metadata for '{PROJECT_NAME}' is unavailable",
@@ -87,7 +87,7 @@ def get_version() -> str:
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
     except PackageNotFoundError:
-        logger.error("Package metadata not found for %s", PROJECT_NAME)
+        logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise LitestarHTTPException(
             status_code=503,
             detail=f"Package metadata for '{PROJECT_NAME}' is unavailable",
@@ -110,7 +110,7 @@ def get_info() -> dict[str, str]:
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
     except PackageNotFoundError:
-        logger.error("Package metadata not found for %s", PROJECT_NAME)
+        logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise LitestarHTTPException(
             status_code=503,
             detail=f"Package metadata for '{PROJECT_NAME}' is unavailable",
@@ -154,7 +154,7 @@ def resolve_bind() -> tuple[str, int]:
         msg = f"Invalid {prefix}_PORT={raw_port!r}; expected an integer."
         # Log before exiting so the cause reaches structured log sinks, not just
         # the SystemExit message printed to stderr by the interpreter.
-        logger.error(msg)
+        logger.exception(msg)
         raise SystemExit(msg) from exc
     return host, port
 

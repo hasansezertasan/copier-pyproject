@@ -55,7 +55,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]: 
     try:
         distribution = Distribution.from_name(PROJECT_NAME)
     except PackageNotFoundError:
-        logger.error(
+        logger.exception(
             "Failed to retrieve package metadata for '%s'. Ensure the package is installed correctly.",  # noqa: E501
             PROJECT_NAME,
         )
