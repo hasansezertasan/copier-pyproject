@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import logging
+from logging.handlers import RotatingFileHandler
+from typing import TYPE_CHECKING
 
 import pytest
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core import logging_setup
 from {{github_repo_name}}.core.logging_setup import _resolve_level, setup_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.parametrize(
@@ -53,3 +59,32 @@ def test_setup_logger_is_idempotent() -> None:
 
     assert second is first
     assert len(second.handlers) == handler_count
+
+
+def test_setup_logger_degrades_when_log_dir_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A read-only ``$HOME`` degrades to console-only logging without raising."""
+    # Point the log directory below a regular file so ``mkdir`` raises a real
+    # ``NotADirectoryError`` (an ``OSError``), standing in for a read-only or
+    # unavailable ``$HOME`` cross-platform.
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory")
+    monkeypatch.setattr(logging_setup, "ROOT_FOLDER_PATH", blocker / "logs")
+
+    # Start from a clean logger so ``setup_logger`` actually re-adds handlers,
+    # closing any existing file handler to avoid leaking an open descriptor.
+    logger_ = logging.getLogger(PROJECT_NAME)
+    for handler in list(logger_.handlers):
+        logger_.removeHandler(handler)
+        handler.close()
+
+    configured = setup_logger()
+
+    # Console logging survives; no file handler is attached.
+    assert configured.handlers
+    assert not any(
+        isinstance(handler, RotatingFileHandler) for handler in configured.handlers
+    )
+    # The degradation is reported to stderr so it stays discoverable.
+    assert "console-only" in capsys.readouterr().err

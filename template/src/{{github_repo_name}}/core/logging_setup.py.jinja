@@ -4,6 +4,10 @@ This module configures logging for the project, ensuring that
 log handlers are only added once to prevent duplicate log entries if the
 module is imported multiple times.
 
+Setup is resilient to a read-only or unavailable ``$HOME``: if the log
+directory cannot be created it degrades to console-only logging instead of
+raising, so read-only commands (``--help``, ``version``) stay usable.
+
 """
 
 import logging
@@ -56,29 +60,37 @@ def setup_logger() -> logging.Logger:
 
     # Only add handlers if they haven't been added yet
     if not logger_.handlers:
-        # Ensure the log file exists
-        ROOT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
-
-        # Create a file handler that logs all messages
-        file_handler = RotatingFileHandler(
-            LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
-        )
-        file_handler.setLevel(level)
-
-        # Create a console handler for errors only
-        console_handler = logging.StreamHandler(sys.stderr)
-        console_handler.setLevel(logging.ERROR)
-
-        # Create a formatter and set it for both handlers
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
 
-        # Add the handlers to the logger_
-        logger_.addHandler(file_handler)
+        # Create a console handler for errors only. This is always available and
+        # never depends on a writable filesystem.
+        console_handler = logging.StreamHandler(sys.stderr)
+        console_handler.setLevel(logging.ERROR)
+        console_handler.setFormatter(formatter)
         logger_.addHandler(console_handler)
+
+        # Add a rotating file handler when the log directory is writable. This
+        # runs at import time (loggers are created at module load), so a
+        # read-only or unavailable ``$HOME`` -- locked-down containers, service
+        # accounts, sandboxes -- must not crash read-only commands like
+        # ``--help`` or ``version``. Degrade to console-only logging instead,
+        # reporting the degradation to ``stderr`` so it stays discoverable.
+        try:
+            ROOT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+            file_handler = RotatingFileHandler(
+                LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
+            )
+        except OSError as error:
+            print(  # noqa: T201 - logging is only partially configured here
+                f"File logging unavailable ({error}); using console-only logging.",
+                file=sys.stderr,
+            )
+        else:
+            file_handler.setLevel(level)
+            file_handler.setFormatter(formatter)
+            logger_.addHandler(file_handler)
 
     return logger_
 
