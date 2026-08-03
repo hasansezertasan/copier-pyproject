@@ -15,7 +15,9 @@ from litestar.exceptions import HTTPException as LitestarHTTPException
 {%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.core.logging_setup import logger
+from {{github_repo_name}}.core.logging_setup import get_logger
+
+logger = get_logger()
 {% if web_framework == "fastapi" %}
 app = FastAPI(title="{{github_repo_name}}")
 
@@ -169,3 +171,6 @@ def main() -> None:  # pragma: no cover
 
     host, port = resolve_bind()
     uvicorn.run(app, host=host, port=port)
+
+
+__all__ = ["app", "get_info", "get_version", "main", "resolve_bind"]

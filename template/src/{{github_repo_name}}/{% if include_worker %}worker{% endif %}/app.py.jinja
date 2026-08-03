@@ -22,7 +22,20 @@ from faststream.redis import RedisBroker
 from pydantic import BaseModel, Field
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.core.logging_setup import logger as app_logger
+from {{github_repo_name}}.core.logging_setup import get_logger
+
+__all__ = [
+    "VersionRequest",
+    "VersionResponse",
+    "app",
+    "broker",
+    "build_broker",
+    "main",
+    "on_shutdown",
+    "on_startup",
+]
+
+app_logger = get_logger()
 
 # Get version from package metadata. The fallback runs only when the package
 # itself is not installed (broken install); it cannot be exercised where tests

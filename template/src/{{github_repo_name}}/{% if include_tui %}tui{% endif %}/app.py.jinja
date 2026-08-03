@@ -10,10 +10,14 @@ from typing import TYPE_CHECKING, ClassVar, final
 from typing_extensions import override
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.core.logging_setup import logger
+from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
     from textual.binding import BindingType
+
+__all__ = ["TuiDisplayError", "build_info_message", "main"]
+
+logger = get_logger()
 
 
 class TuiDisplayError(RuntimeError):
