@@ -42,9 +42,40 @@ cobo#120/#121) that LF-normalizes the block **before** sealing, so the seal and
 the on-disk (LF) bytes agree. `.gitignore` is sealed with `--eol lf`; the policy
 is persisted on the lock fragment (`eol = "lf"`) and `sync` re-applies it. A
 consumer that only runs `cobo check` needs no configuration — the LF seal is
-self-describing. (The `Icon[\r]` character-class pattern becomes `Icon[`/`]`
-under LF, an unavoidable and harmless artifact of any LF-normalized macOS
-boilerplate, not specific to cobo.)
+self-describing.
+
+#### Known tradeoff: LF-corrupted macOS char-class patterns
+
+The macOS boilerplate encodes two filenames whose real name ends in a
+carriage return — the legacy custom-folder icon `Icon␍` and `.HFS+ Private
+Directory Data␍` — as single-line character classes (`Icon[<CR>]`,
+`.HFS+ Private Directory Data[<CR>]`). The `<CR>` there is a **semantic** byte
+matched literally, not a line terminator. LF normalization rewrites it to a
+newline, splitting each pattern in two:
+
+```
+Icon[
+]
+```
+
+`Icon[` is now an unterminated char-class (matches a literal `Icon[`), the
+`Icon␍` file is no longer ignored, and the orphaned `]` matches a file literally
+named `]`. Same for the HFS entry. This is accepted as a deliberate tradeoff,
+not "harmless": these are legacy HFS resource-fork artifacts modern macOS rarely
+creates and almost never commits, and there is **no LF-only pattern** that
+matches `Icon␍` precisely (`Icon?` over-matches `Icons`/`Icon1`/…), so fidelity
+genuinely requires the CR. Keeping the CR is worse — it fights this template's
+LF-everywhere invariant on three axes (EditorConfig `end_of_line = lf`,
+`.gitattributes eol=lf`, Copier's Jinja render), and a downstream repo with
+`* text=auto eol=lf` strips the CR on commit regardless, so `eol=preserve` +
+carve-outs would not even hold downstream.
+
+The durable fix is at the cobo level — `eol=lf` should normalize line
+*terminators* only, not a CR embedded mid-line inside a char-class — tracked in
+[cobo#124](https://github.com/hasansezertasan/cobo/issues/124). When that lands,
+re-seal with `cobo update && cobo sync` and the patterns restore themselves with
+no template change here. See also
+[#111](https://github.com/hasansezertasan/copier-pyproject/issues/111).
 
 ### 2. Project overrides move below the fence
 
