@@ -99,9 +99,12 @@ back to the built-in `GITHUB_TOKEN`, but that token:
    `permissions:`). Because template updates frequently touch workflow files, an
    update that does so **fails to open the PR at all** on the default token; and
 2. **does not trigger the project's own `push`/`pull_request` checks** on the PR
-   it opens — GitHub suppresses token-created events to prevent recursion loops —
-   so a bad 3-way merge surfaces only as **visible conflict markers in the draft's
-   diff**, not a red CI check.
+   it opens — GitHub suppresses token-created events to prevent recursion loops,
+   so the runs are **absent entirely, not queued in a pending-approval state**
+   (that approval gate is a separate mechanism, for fork PRs from first-time
+   contributors, and does not apply to this same-repo token-created PR). A bad
+   3-way merge therefore surfaces only as **visible conflict markers in the
+   draft's diff**, not a red CI check.
 
 Both limits are lifted by setting a `COPIER_UPDATE_TOKEN` — a **persistent**
 credential (a fine-grained PAT, or a classic PAT with `repo` + `workflow` scope)

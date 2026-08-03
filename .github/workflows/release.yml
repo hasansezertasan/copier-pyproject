@@ -1,6 +1,6 @@
 ---
 name: Release
-# Versions the copier-pyproject template itself (ADR-014). release-please opens
+# Versions the copier-pyproject template itself (ADR-015). release-please opens
 # and maintains a release PR from the Conventional Commits that land on `main`;
 # on merge it tags the commit (v0.1.0, …) and cuts a GitHub Release. Those tags
 # are what generated projects' `copier update` walks to — no build/publish jobs
