@@ -680,10 +680,15 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    `workflow` scope and it is not grantable via `permissions:`), so an update
    touching a workflow file fails to open the PR at all; and a PR it opens does
    **not** trigger the project's checks (loop-prevention), so the signal is the
-   visible conflict markers in the diff. `COPIER_UPDATE_TOKEN` must carry
-   contents + pull-requests + **workflows** write (PAT `repo`+`workflow` scope, or
-   an App token); it is documented in the generated `CONTRIBUTING.md` ("Template
-   updates"). The workflow also carries a `concurrency` group so the manual and
+   visible conflict markers in the diff. `COPIER_UPDATE_TOKEN` must be a
+   **persistent** credential carrying contents + pull-requests + **workflows**
+   write (a fine-grained PAT, or a classic PAT with `repo`+`workflow` scope) —
+   **not** a GitHub App installation token (hourly expiry); it is read only in the
+   scheduled/dispatch run (never a `pull_request` job) and documented in the
+   generated `CONTRIBUTING.md` ("Template updates"). `draft: true` is a
+   merge-convenience, not a security boundary — the real boundaries are
+   `--skip-tasks` (no template code runs) and confining the token to the scheduled
+   job. The workflow also carries a `concurrency` group so the manual and
    cron triggers can't race on the `chore/copier-update` branch. Non-blocking, not
    in the `check` gate. See
    [ADR-014](../docs/adr/014-template-self-versioning-and-copier-update-automation.md).

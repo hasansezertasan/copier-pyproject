@@ -65,8 +65,11 @@ jobs:
           #  2. A PR it opens does not trigger this repo's checks (loop-prevention),
           #     so a bad merge shows only as visible conflict markers, not a red
           #     check.
-          # Set COPIER_UPDATE_TOKEN to a PAT (repo + workflow scope) or a GitHub App
-          # token with contents/pull-requests/workflows write to lift both.
+          # Set COPIER_UPDATE_TOKEN to a persistent fine-grained PAT (or classic
+          # PAT with repo + workflow scope) carrying contents/pull-requests/
+          # workflows write. Not a GitHub App *installation* token — those expire
+          # hourly; an App setup must mint one at runtime instead. Read only in
+          # this scheduled/dispatch run, never a pull_request job.
           token: ${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
           # Target the repo's real default branch explicitly: create-pull-request
           # otherwise bases the PR on the checked-out ref.

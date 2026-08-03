@@ -103,16 +103,29 @@ back to the built-in `GITHUB_TOKEN`, but that token:
    so a bad 3-way merge surfaces only as **visible conflict markers in the draft's
    diff**, not a red CI check.
 
-Both limits are lifted by setting a `COPIER_UPDATE_TOKEN` (a classic PAT with
-`repo` + `workflow` scope, or a fine-grained PAT / GitHub App token with
-contents + pull-requests + **workflows** write), which the workflow prefers over
-`GITHUB_TOKEN` (`${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}`).
-Keeping the fallback preserves the zero-external-setup default (updates that do
-not touch workflows still work with no secret); the token is a documented opt-in
-(generated `CONTRIBUTING.md`, "Template updates"), mirroring how release-please's
-own docs treat cross-workflow triggering. Because the token limitation means many
-updates need the secret to open a PR, the `CONTRIBUTING` entry states this plainly
-rather than presenting the secret as purely cosmetic.
+Both limits are lifted by setting a `COPIER_UPDATE_TOKEN` — a **persistent**
+credential (a fine-grained PAT, or a classic PAT with `repo` + `workflow` scope)
+carrying contents + pull-requests + **workflows** write. A GitHub App
+*installation* token is deliberately not recommended as the stored secret because
+it expires hourly; an App-based setup must mint one at runtime instead. The
+workflow prefers it over `GITHUB_TOKEN`
+(`${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}`) and reads it
+**only** in the scheduled/dispatch run — never a `pull_request` job — so the
+write credential is never exposed to code from the update PR. Keeping the
+fallback preserves the zero-external-setup default (updates that do not touch
+workflows still work with no secret); the token is a documented opt-in (generated
+`CONTRIBUTING.md`, "Template updates"), mirroring how release-please's own docs
+treat cross-workflow triggering. Because the token limitation means many updates
+need the secret to open a PR, the `CONTRIBUTING` entry states this plainly rather
+than presenting the secret as purely cosmetic.
+
+`draft: true` is a **merge-convenience** (it blocks accidental merge before
+reconciliation), **not** a security boundary: it forces no approval, and the
+generated branch protection does not require PR reviews by default. The actual
+safety boundaries are the two above — no template code executes during the update
+(`--skip-tasks`), and the write credential is confined to the scheduled job
+(never a PR-triggered one). A project that wants a human to approve every template
+update should additionally require pull-request reviews in branch protection.
 
 **No unattended template-code execution (`--skip-tasks`).** The draft-PR review
 gate protects against malicious *file content* a compromised template might
