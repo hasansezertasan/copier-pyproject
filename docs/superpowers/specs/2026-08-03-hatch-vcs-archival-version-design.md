@@ -34,7 +34,7 @@ placeholders below are expanded to the real commit hash, date, and
 
 Stable content (the setuptools-scm-recommended form for releases):
 
-```
+```text
 node: $Format:%H$
 node-date: $Format:%cI$
 describe-name: $Format:%(describe:tags=true,match=*[0-9]*)$
@@ -53,7 +53,7 @@ describe-name: $Format:%(describe:tags=true,match=*[0-9]*)$
 
 Add, in the language/normalization region (**above** the `export-ignore` block):
 
-```
+```text
 .git_archival.txt export-subst
 ```
 
@@ -88,6 +88,20 @@ archive is taken from a commit with no reachable tag. `0.0.0` reads clearly as
    `copier copy --data-file .example-input.yml --defaults . example/ --force`
 2. `cd example && uv run --locked tox run -e style`
    (validate-pyproject, taplo, editorconfig-checker must pass).
-3. Confirm placeholder expansion against a real archive:
-   `git -C example archive HEAD | tar -xO .git_archival.txt` shows expanded
-   `node:`/`describe-name:` values (not literal `$Format:...$`).
+3. Confirm end-to-end version recovery. `example/` must be its own initialized
+   repo with a tag (otherwise `git -C example archive HEAD` resolves to the parent
+   repository and archives its `HEAD` under the `example/` path prefix, inspecting
+   the wrong tree):
+
+   ```sh
+   cd example
+   git init -q && git add -A && git commit -qm init && git tag v2.3.4
+   # a) placeholder expansion in the archived file:
+   git archive HEAD | tar -xO .git_archival.txt   # -> describe-name: v2.3.4
+   # b) hatch-vcs actually recovers it from a .git-less tree:
+   git archive HEAD | tar -x -C /tmp/arch-test     # no .git in the extract
+   (cd /tmp/arch-test && uv build --sdist)         # -> example-2.3.4.tar.gz
+   ```
+
+   Both the expanded `describe-name` and the built artifact must report `2.3.4`
+   (pre-fix this build produced `example-0.1.0.tar.gz`).

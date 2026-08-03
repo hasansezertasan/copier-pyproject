@@ -448,7 +448,10 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ### Build System
 
 - **Builder**: `hatchling` with `hatch-vcs` plugin
-- **Versioning**: Git tags via hatch-vcs, fallback to 0.1.0
+- **Versioning**: Git tags via hatch-vcs; archive/tarball installs recover the
+  tag via `.git_archival.txt` (`export-subst`), and the `fallback-version = "0.0.0"`
+  sentinel is used only when neither live git metadata nor an expanded
+  `.git_archival.txt` is available
 - **Build Command**: `uv build`
 
 ### CI/CD Workflows
