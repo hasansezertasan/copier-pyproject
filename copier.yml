@@ -1,13 +1,12 @@
 ---
 _subdirectory: template
-_tasks:
-  # git init is only meaningful on the initial copy — an existing project is
-  # already a git repo. Gating it to the copy operation keeps `copier update`
-  # from re-running it, and lets the scheduled copier-update workflow pass
-  # `--skip-tasks` so no template task code executes unattended in a job that
-  # holds a write token (see template/.github/workflows/copier-update.yml, ADR-015).
-  - command: "git init"
-    when: "{{ _copier_operation == 'copy' }}"
+# No `_tasks`: defining any task marks the template "unsafe", which forces
+# `copier ... --trust`. The hosted Mend Renovate App runs `copier update` with
+# scripts disabled (no `--trust`), so a task-bearing template would break
+# Renovate's copier manager — the mechanism that opens template-update PRs in
+# generated projects (ADR-015). Keeping `_tasks` empty lets Renovate update
+# untrusted, at the cost of not auto-`git init`-ing on the initial copy (the
+# scaffold instructions tell the user to run `git init`).
 github_user:
   type: str
   help: The GitHub username
