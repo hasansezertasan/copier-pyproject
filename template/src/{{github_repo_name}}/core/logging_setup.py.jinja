@@ -17,7 +17,7 @@ from logging.handlers import RotatingFileHandler
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.config import get_settings
-from {{github_repo_name}}.core.dirs import LOG_FILE_PATH, ROOT_FOLDER_PATH
+from {{github_repo_name}}.core.dirs import HOME_IS_RESOLVABLE, LOG_FILE_PATH, ROOT_FOLDER_PATH
 
 __all__ = ["get_logger", "setup_logger"]
 
@@ -71,26 +71,35 @@ def setup_logger() -> logging.Logger:
         console_handler.setFormatter(formatter)
         logger_.addHandler(console_handler)
 
-        # Add a rotating file handler when the log directory is writable. This
-        # runs at import time (loggers are created at module load), so a
-        # read-only or unavailable ``$HOME`` -- locked-down containers, service
-        # accounts, sandboxes -- must not crash read-only commands like
-        # ``--help`` or ``version``. Degrade to console-only logging instead,
-        # reporting the degradation to ``stderr`` so it stays discoverable.
-        try:
-            ROOT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
-            file_handler = RotatingFileHandler(
-                LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
-            )
-        except OSError as error:
+        # Add a rotating file handler when there is a user-owned directory to
+        # write to. This runs at import time (loggers are created at module
+        # load), so a read-only or unavailable ``$HOME`` -- locked-down
+        # containers, service accounts, sandboxes -- must not crash read-only
+        # commands like ``--help`` or ``version``. Degrade to console-only
+        # logging instead, reporting it to ``stderr`` so it stays discoverable.
+        if not HOME_IS_RESOLVABLE:
+            # No home directory means no safe, user-private place for the log
+            # file; falling back to a shared temp path would let another local
+            # user hijack it, so skip file logging entirely.
             print(  # noqa: T201 - logging is only partially configured here
-                f"File logging unavailable ({error}); using console-only logging.",
+                "Home directory unavailable; using console-only logging.",
                 file=sys.stderr,
             )
         else:
-            file_handler.setLevel(level)
-            file_handler.setFormatter(formatter)
-            logger_.addHandler(file_handler)
+            try:
+                ROOT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+                file_handler = RotatingFileHandler(
+                    LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
+                )
+            except OSError as error:
+                print(  # noqa: T201 - logging is only partially configured here
+                    f"File logging unavailable ({error}); using console-only logging.",
+                    file=sys.stderr,
+                )
+            else:
+                file_handler.setLevel(level)
+                file_handler.setFormatter(formatter)
+                logger_.addHandler(file_handler)
 
     return logger_
 
