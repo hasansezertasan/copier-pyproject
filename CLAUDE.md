@@ -658,6 +658,67 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    `style` command, linting the `.rst` sources) and the `check-case-conflict`
    prek builtin (cross-platform filename-collision guard). See
    [ADR-011](../docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
+11. **Copier update** (`copier-update.yml`, always included, static workflow).
+   The downstream half of the template-propagation loop (ADR-015). On a **weekly
+   cron** + `workflow_dispatch` it runs `uvx copier update --trust --skip-tasks
+   --defaults --skip-answered` (`--skip-tasks` so no template task code executes
+   unattended in this write-token-holding job — `--trust` is still required
+   because the template *defines* a task, but none run; the `git init` task is
+   also gated `when: copy` in `copier.yml`, a no-op on update) and opens a
+   `chore/copier-update` PR (labelled `no-issue`) via
+   `peter-evans/create-pull-request` — never pushes to the default branch, same
+   always-on bot-PR posture as `gitignore-drift.yml`/`all-contributors.yml`. It
+   only produces a PR when the **template repo has cut a newer tag** than
+   `.copier-answers.yml._commit`, so it depends on the template versioning itself
+   (see the template-self-versioning note below). The PR is opened as a GitHub
+   **draft** (`draft: true`), not merge-ready: a 3-way merge can leave conflict
+   markers/`.rej` files needing human reconciliation (the `adopt-copier-pyproject`
+   workflow). The default `GITHUB_TOKEN` has two limits (both lifted by an
+   optional `COPIER_UPDATE_TOKEN`, preferred via
+   `${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}`): it **cannot push
+   changes to `.github/workflows/*`** (a hard GitHub rule — the token lacks the
+   `workflow` scope and it is not grantable via `permissions:`), so an update
+   touching a workflow file fails to open the PR at all; and a PR it opens does
+   **not** trigger the project's checks (loop-prevention), so the signal is the
+   visible conflict markers in the diff. `COPIER_UPDATE_TOKEN` must be a
+   **persistent** credential carrying contents + pull-requests + **workflows**
+   write (a fine-grained PAT, or a classic PAT with `repo`+`workflow` scope) —
+   **not** a GitHub App installation token (hourly expiry); it is read only in the
+   scheduled/dispatch run (never a `pull_request` job) and documented in the
+   generated `CONTRIBUTING.md` ("Template updates"). `draft: true` is a
+   merge-convenience, not a security boundary — the real boundaries are
+   `--skip-tasks` (no template code runs) and confining the token to the scheduled
+   job. The workflow also carries a `concurrency` group so the manual and
+   cron triggers can't race on the `chore/copier-update` branch. Non-blocking, not
+   in the `check` gate. See
+   [ADR-015](../docs/adr/015-template-self-versioning-and-copier-update-automation.md).
+
+### Template self-versioning (this repo, ADR-015)
+
+The template repository **versions itself** with release-please so its changes
+produce semver git tags (`v0.1.0`, …) — the tags a generated project's
+`copier-update.yml` walks to. This is distinct from the `template/`-shipped
+release-please that versions *generated* projects. Root-level files:
+`.github/release-please-config.json` (`release-type: "simple"` — the repo has no
+source version file, so it maintains only the manifest + `CHANGELOG.md` + tag;
+`draft: false`, no release artifacts to attach), `.github/release-please-manifest.json`
+(seeded `{ ".": "0.0.0" }`, so the first release PR lands as **v0.1.0**), and
+`.github/workflows/release.yml` (a single `release-please` job on push to `main`,
+no build/publish jobs). Do **not** add a build/publish step — the template is not
+a distributable package. The first release PR aggregates the full accumulated
+commit history into the v0.1.0 changelog (a one-time cosmetic artifact).
+
+**One-time repo setup** (same contract release-please needs everywhere): this
+repo must **squash-merge with the commit message set to the PR title** (already
+its practice — see the `feat: … (#NNN)` history) so the `check-pr-title`-validated
+title is what release-please parses on `main`, and **Settings → Actions → General
+→ Workflow permissions → Allow GitHub Actions to create and approve pull
+requests** must be enabled so `release.yml` can open its release PR (already
+required by the existing PR-opening automation such as `gitignore-drift.yml`).
+Enable via `gh repo edit hasansezertasan/copier-pyproject --enable-squash-merge
+--enable-merge-commit=false --enable-rebase-merge=false` and
+`gh api -X PUT repos/hasansezertasan/copier-pyproject/actions/permissions/workflow
+-f default_workflow_permissions=write -F can_approve_pull_request_reviews=true`.
 
 ### Required Merge Strategy (release-please depends on it)
 

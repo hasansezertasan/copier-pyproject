@@ -367,9 +367,48 @@ config is inert until the app is installed: install it once from
 [github.com/apps/renovate](https://github.com/apps/renovate) and grant it access
 to this repository. Renovate then opens an onboarding PR; merge it to start
 receiving update PRs.
+
+**9. Template updates (`COPIER_UPDATE_TOKEN`, optional).** The weekly
+`copier-update.yml` workflow runs `copier update` and opens a `chore/copier-update`
+PR when the upstream Copier template cuts a release newer than the revision
+recorded in `.copier-answers.yml` (the pinned template commit is `_commit`; the
+template's source location is `_src_path`). It works out of the box with the
+built-in `GITHUB_TOKEN`,
+with **two** limitations that both stem from GitHub's security model for that
+token — and both are lifted by setting a `COPIER_UPDATE_TOKEN`:
+
+- The default token **cannot push changes to `.github/workflows/*`**, so an
+  update that touches a workflow file fails to open the PR. Template updates
+  frequently touch workflows, so in practice this token is needed for the
+  workflow to be useful.
+- A PR opened with the default token **does not trigger this repo's own checks**,
+  so a bad 3-way merge shows only as visible conflict markers in the diff rather
+  than a red check.
+
+Provide a token with **contents**, **pull requests**, and **workflows** write
+access. Use a **fine-grained PAT** (or a classic PAT with `repo` + `workflow`
+scope) — a persistent credential you can store as a secret. Do **not** store a
+GitHub App *installation* token: those expire after one hour, so an App-based
+setup must store the App's credentials and mint a fresh token at runtime (e.g.
+`actions/create-github-app-token`) rather than saving the token here. Set it once:
+
+```sh
+gh secret set COPIER_UPDATE_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+The workflow prefers it over `GITHUB_TOKEN`
+(`{% raw %}${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}{% endraw %}`),
+and reads it **only** in the scheduled/dispatch run — never in a `pull_request`
+job — so it is never exposed to code from the update PR. The PR is opened as a
+**draft**, which is a merge-convenience for human reconciliation, **not** a
+security control: the safety boundary is that no template code runs during the
+update (`--skip-tasks`) and the credential is confined to the scheduled job. If
+you want to guarantee a human approves every template update, additionally
+require pull-request reviews in branch protection (step 2). The workflow is
+non-blocking (not in the `check` gate).
 {%- if include_web %}
 
-**9. Docker Hub publishing (optional).** The release workflow always publishes
+**10. Docker Hub publishing (optional).** The release workflow always publishes
 the Docker image to GHCR (`ghcr.io/{{github_user}}/{{github_repo_name}}`) using
 the built-in `GITHUB_TOKEN` — no setup needed. To _additionally_ publish to
 Docker Hub, create an [access token](https://app.docker.com/settings/personal-access-tokens)

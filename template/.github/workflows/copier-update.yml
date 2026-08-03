@@ -1,0 +1,96 @@
+---
+name: Copier Update
+# Weekly check for new copier-pyproject template releases (ADR-015). When the
+# upstream template has cut a tag newer than the one recorded in
+# .copier-answers.yml, runs `copier update` and opens a PR with the re-rendered
+# changes.
+#
+# The PR is a STARTING POINT, not a merge-ready change: copier does a git 3-way
+# merge, so the diff may contain conflict markers (`<<<<<<<`) or `.rej` files
+# where local edits and the template diverged — reconcile them before merging
+# (keep project identity, adopt the template's tooling/config). When conflicts
+# exist the PR's own CI goes red, which is the "human needed here" signal.
+#
+# Mirrors the always-on bot-PR posture of gitignore-drift.yml / all-contributors.yml:
+# opens a PR (never pushes to the default branch), so it respects the squash-merge
+# policy and needs no persisted git credentials. Non-blocking, best-effort.
+# Requires the repo's "Allow GitHub Actions to create and approve pull requests"
+# setting (already required + documented for release-please).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"  # Mondays 06:00 UTC
+# A manual dispatch and the weekly cron both push the fixed chore/copier-update
+# branch; serialize them so overlapping runs can't race on it.
+concurrency:
+  group: copier-update
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  copier-update:
+    name: Update from the template
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write  # IMPORTANT: create-pull-request commits to a new branch
+      pull-requests: write  # IMPORTANT: create-pull-request opens the PR
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          # copier update performs a git 3-way merge against history, so fetch it all.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+      - name: Run copier update
+        # --skip-tasks: do NOT execute any template task code in this write-capable
+        #   job. Copier still requires --trust to proceed when the template *defines*
+        #   tasks (even skipped ones), but --skip-tasks means none of them run
+        #   unattended here — closing the one code-execution path the draft-PR review
+        #   gate can't cover. The template's only task (git init) is gated to the
+        #   copy operation anyway, so skipping it on update is also a no-op (ADR-015).
+        # --defaults: answer any newly added questions with their defaults.
+        # --skip-answered: never re-prompt for questions already recorded in
+        #   .copier-answers.yml, keeping this run fully non-interactive.
+        run: uvx copier update --trust --skip-tasks --defaults --skip-answered
+      - name: Open a PR with any changes
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        with:
+          # The default GITHUB_TOKEN has two limits here, both lifted by
+          # COPIER_UPDATE_TOKEN (see CONTRIBUTING "Template updates"):
+          #  1. It CANNOT push changes to .github/workflows/* (GitHub security
+          #     rule), so an update touching a workflow file fails to open the PR —
+          #     and template updates frequently touch workflows.
+          #  2. A PR it opens does not trigger this repo's checks (loop-prevention),
+          #     so a bad merge shows only as visible conflict markers, not a red
+          #     check.
+          # Set COPIER_UPDATE_TOKEN to a persistent fine-grained PAT (or classic
+          # PAT with repo + workflow scope) carrying contents/pull-requests/
+          # workflows write. Not a GitHub App *installation* token — those expire
+          # hourly; an App setup must mint one at runtime instead. Read only in
+          # this scheduled/dispatch run, never a pull_request job.
+          token: ${{ secrets.COPIER_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          # Target the repo's real default branch explicitly: create-pull-request
+          # otherwise bases the PR on the checked-out ref.
+          base: ${{ github.event.repository.default_branch }}
+          branch: chore/copier-update
+          delete-branch: true
+          # Open as a draft: the diff needs human reconciliation before it can merge.
+          draft: true
+          labels: no-issue
+          commit-message: "chore: update from the copier-pyproject template"
+          title: "chore: update from the copier-pyproject template"
+          body: |
+            Ran `copier update` to pull the latest
+            [copier-pyproject](https://github.com/hasansezertasan/copier-pyproject)
+            template release into this project.
+
+            **Review carefully — this is a draft, not a merge-ready change.** Copier
+            performs a git 3-way merge, so this PR may contain conflict markers
+            (`<<<<<<<`) or `.rej` files where your local edits and the template
+            diverged. Reconcile them before merging: keep your project identity,
+            adopt the template's tooling/config changes.
+
+            The `no-issue` label is applied because this is a template-sync chore
+            with no linked issue.
