@@ -53,14 +53,16 @@ Directory Data␍` — as single-line character classes (`Icon[<CR>]`,
 matched literally, not a line terminator. LF normalization rewrites it to a
 newline, splitting each pattern in two:
 
-```
+```text
 Icon[
 ]
 ```
 
-`Icon[` is now an unterminated char-class (matches a literal `Icon[`), the
-`Icon␍` file is no longer ignored, and the orphaned `]` matches a file literally
-named `]`. Same for the HFS entry. This is accepted as a deliberate tradeoff,
+`Icon[` is now an unterminated char-class, which git's wildmatch treats as a
+non-matching pattern — it matches **nothing** (not even a literal `Icon[`), so
+it is inert, and the `Icon␍` file is no longer ignored. The orphaned `]` is a
+separate pattern that *is* effective: it ignores a file literally named `]`.
+Same for the HFS entry. This is accepted as a deliberate tradeoff,
 not "harmless": these are legacy HFS resource-fork artifacts modern macOS rarely
 creates and almost never commits, and there is **no LF-only pattern** that
 matches `Icon␍` precisely (`Icon?` over-matches `Icons`/`Icon1`/…), so fidelity
