@@ -63,18 +63,18 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/uv-pre-commit"
-rev = "0.9.15"
+rev = "0.12.1"
 hooks = [{ id = "uv-lock", name = "Update the uv lockfile" }]
 
 # Runs before ruff so any `__all__` it inserts is sorted/formatted in the same pass.
 [[repos]]
 repo = "https://github.com/python-formate/flake8-dunder-all"
-rev = "v0.4.1"
+rev = "v0.5.0"
 hooks = [{ id = "ensure-dunder-all", name = "Ensure __all__", files = "^src/" }]
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.15.19"
+rev = "v0.16.1"
 hooks = [
   { id = "ruff", name = "Ruff Linter" },
   { id = "ruff-format", name = "Ruff Formatter" },
@@ -99,7 +99,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/pre-commit/mirrors-mypy"
-rev = "v2.1.0"
+rev = "v2.3.0"
 hooks = [
   # Scope the hook to src/ to match tox's canonical mypy (which type-checks only
   # src/). Without this, the hook passes every changed .py file, which (a) trips
@@ -116,12 +116,12 @@ hooks = [{ id = "vulture", name = "Vulture Linter" }]
 
 [[repos]]
 repo = "https://github.com/crate-ci/typos"
-rev = "v1.47.2"
+rev = "v1.49.0"
 hooks = [{ id = "typos", name = "Typos Linter" }]
 
 [[repos]]
 repo = "https://github.com/python-jsonschema/check-jsonschema"
-rev = "0.35.0"
+rev = "0.37.4"
 hooks = [
   { id = "check-github-actions", name = "Validate GitHub Actions", args = ["--verbose"] },
 ]
@@ -138,27 +138,27 @@ hooks = [{ id = "actionlint", name = "Actionlint Linter" }]
 # Security tab as a non-blocking dashboard. Default (regular) persona.
 [[repos]]
 repo = "https://github.com/zizmorcore/zizmor-pre-commit"
-rev = "v1.9.0"
+rev = "v1.29.0"
 hooks = [{ id = "zizmor", name = "Zizmor GitHub Actions Auditor" }]
 
 [[repos]]
 repo = "https://github.com/adrienverge/yamllint.git"
-rev = "v1.37.1"
+rev = "v1.38.0"
 hooks = [{ id = "yamllint", name = "YAML Linter", args = ["-c", ".github/yamllint.yaml"] }]
 
 [[repos]]
 repo = "https://github.com/DavidAnson/markdownlint-cli2"
-rev = "v0.18.1"
+rev = "v0.23.2"
 hooks = [{ id = "markdownlint-cli2", name = "Markdown Linter" }]
 
 [[repos]]
 repo = "https://github.com/google/yamlfmt"
-rev = "v0.17.2"
+rev = "v0.21.0"
 hooks = [{ id = "yamlfmt", name = "YAML Formatter", exclude = "^\\.copier-answers\\.yml$", args = ["-conf", ".github/yamlfmt.yml"] }]
 
 [[repos]]
 repo = "https://github.com/commitizen-tools/commitizen"
-rev = "v4.10.0"
+rev = "v4.17.0"
 hooks = [
   { id = "commitizen", name = "Commitizen" },
   { id = "commitizen-branch", name = "Commitizen Branch", stages = ["pre-push"] },
