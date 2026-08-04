@@ -55,12 +55,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version-file: .python-version
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
           enable-cache: true
           cache-dependency-glob: |
@@ -76,7 +76,7 @@ jobs:
         if: {% raw %}${{ matrix.os == 'ubuntu-latest' }}{% endraw %}
         run: uv build --sdist --no-sources --quiet
       - name: Upload package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: package-distributions-{% raw %}${{ matrix.os }}{% endraw %}
           path: dist/
@@ -84,7 +84,7 @@ jobs:
       - name: Build the Package
         run: uv build --no-sources --quiet
       - name: Upload package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: package-distributions
           path: dist/
@@ -107,7 +107,7 @@ jobs:
       url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
     steps:
       - name: Download package
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
         with:
 {%- if include_c_extensions %}
           pattern: package-distributions-*
@@ -151,12 +151,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Build with PyCrucible
-        uses: razorblade23/pycrucible-action@4a9aeaf7ed124775839031963dcd5295e67ac5f6  # v1.0.5
+        uses: razorblade23/pycrucible-action@fcd0e906edafca9e4838f311eab47e03ef38115a  # v4
         with:
           source: '.'
           output: './dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}'
       - name: Upload executable
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: {{github_repo_name}}-executable-launcher-{% raw %}${{ matrix.os }}{% endraw %}
           # Glob so the upload succeeds whether or not the tool added an extension.
@@ -194,11 +194,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version-file: .python-version
       - name: Setup uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
           enable-cache: true
           cache-dependency-glob: |
@@ -213,7 +213,7 @@ jobs:
           uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clean --noconfirm
           mv "dist/{{github_repo_name}}{% raw %}${{ matrix.ext }}{% endraw %}" "dist/{{github_repo_name}}-freezer-{% raw %}${{ matrix.label }}${{ matrix.ext }}{% endraw %}"
       - name: Upload executable
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: {{github_repo_name}}-executable-freezer-{% raw %}${{ matrix.os }}{% endraw %}
           path: './dist/{{github_repo_name}}-freezer-{% raw %}${{ matrix.label }}${{ matrix.ext }}{% endraw %}'
@@ -250,11 +250,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version-file: .python-version
       - name: Setup uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
           enable-cache: true
           cache-dependency-glob: |
@@ -272,7 +272,7 @@ jobs:
         # verify/upload steps (and the merge-multiple release attach). See ADR-007.
         run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --warn-implicit-exceptions --warn-unusual-code {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || '' }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
       - name: Upload executable
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: {{github_repo_name}}-executable-compiler-{% raw %}${{ matrix.os }}{% endraw %}
           # Glob so the upload succeeds whether or not the tool added an extension.
@@ -327,24 +327,24 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8  # v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c  # v4
       - name: Log in to Docker Hub
         if: {% raw %}${{ env.DOCKERHUB_USERNAME != '' }}{% endraw %}
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4
         with:
           username: {% raw %}${{ secrets.DOCKERHUB_USERNAME }}{% endraw %}
           password: {% raw %}${{ secrets.DOCKERHUB_TOKEN }}{% endraw %}
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4
         with:
           registry: ghcr.io
           username: {% raw %}${{ github.actor }}{% endraw %}
           password: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
       - name: Extract metadata (tags, labels)
         id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051  # v5
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6
         with:
           # The Docker Hub namespace is the Docker Hub username, which need not
           # match the GitHub owner — so build the image name from the secret,
@@ -362,7 +362,7 @@ jobs:
             type=raw,value=latest,enable={{"{{"}}is_default_branch{{"}}"}}
             type=sha,prefix=
       - name: Build and push Docker image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8  # v6
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -386,11 +386,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version-file: .python-version
       - name: Setup uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
           enable-cache: true
           cache-dependency-glob: |
@@ -404,7 +404,7 @@ jobs:
       - name: Generate CycloneDX SBOM
         run: uvx --from cyclonedx-bom cyclonedx-py requirements requirements-sbom.txt --output-format JSON --output-file {{github_repo_name}}-sbom.cdx.json
       - name: Upload SBOM
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: {{github_repo_name}}-sbom
           path: {{github_repo_name}}-sbom.cdx.json
@@ -418,7 +418,7 @@ jobs:
       contents: write  # IMPORTANT: Mandatory for GitHub Release
     steps:
       - name: Download package
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
         with:
 {%- if include_c_extensions %}
           pattern: package-distributions-*
@@ -430,7 +430,7 @@ jobs:
 {%- endif %}
 {%- if include_launcher or include_freezer or include_compiler %}
       - name: Download executables
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
         with:
           pattern: {{github_repo_name}}-executable-*
           path: dist/executables/
@@ -439,7 +439,7 @@ jobs:
       - name: Download SBOM
         # Lands in dist/ so the CycloneDX SBOM is attached to the release
         # alongside the distributions by the upload step below.
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
         with:
           name: {{github_repo_name}}-sbom
           path: dist/
@@ -528,12 +528,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version-file: .python-version
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
           enable-cache: true
           cache-dependency-glob: |
