@@ -2,16 +2,24 @@
 
 Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`, and GitHub automation baked in.
 
-## What this template includes
+## Features
 
-- uv-first workflow with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions from Git tags.
-- Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
-- QA stack: pytest with coverage/xdist/reruns (and `.github/codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter (architecture contracts), taplo, validate-pyproject, typos, actionlint, and editorconfig-checker. MegaLinter is available as an optional (`include_megalinter`) extra CI layer that adds gap checks (shellcheck, hadolint, jsonlint, jscpd clone-detection, plus a `.md`-scoped cspell prose pass) not already covered by prek/tox.
-- Docs and site: Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme, autodoc API reference, and a GitHub Pages deploy workflow.
-- Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, linked-issue enforcement, PR task-list completion check, issue/PR templates, `SECURITY.md` policy, `SUPPORT.md`, `CODEOWNERS`, dependency management (Renovate), always-on Commitizen and git hooks (run via prek), always-on `CITATION.cff` with a validation workflow, automated template updates via Renovate's copier manager — it opens a `copier update` PR when the template publishes a new tag (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)), devcontainer, VS Code launch config, gitignore, `.gitattributes`, FUNDING, and LICENSE.
-- Supply-chain security: CodeQL analysis, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks PRs introducing high-severity vulnerabilities, active scanning (gitleaks, pip-audit, and Trivy for web images), and static GitHub Actions analysis (zizmor + ghalint) enforcing least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, and full-length action SHA pins — a blocking prek/CI gate plus a zizmor Security-tab dashboard (ghalint is delivered via mise since it ships no PyPI/pre-commit distribution).
-- AI-agent onboarding: a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
-- Extra tooling: `.dockerignore`, badge-rich README template, and enhanced VS Code launch.json for debugging (current file, tests, attach, entry points).
+Always included in every generated project:
+
+- **Packaging & workflow** — uv-first with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions derived from Git tags.
+- **Type safety** — full type hints and a `py.typed` marker, checked by mypy, basedpyright, ty, pyrefly, and zuban.
+- **Code quality** — ruff linting/formatting plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement.
+- **Testing** — pytest with coverage/xdist/reruns (and `.github/codecov.yml`) and parallel execution.
+- **Documentation** — a Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme and autodoc API reference, GitHub Pages deployment, and live per-PR previews.
+- **CI/CD & release** — matrix tests on macOS/Linux/Windows, trusted-publishing to PyPI, and release automation via release-please, with PR title linting, linked-issue enforcement, and a PR task-list completion check.
+- **Security** — CodeQL, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks high-severity vulnerabilities, active scanning (gitleaks, pip-audit, and Trivy for web images), GitHub Actions static analysis (zizmor + ghalint) enforcing least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, and full-length action SHA pins — a blocking prek/CI gate plus a zizmor Security-tab dashboard — and a CycloneDX SBOM attached to every release.
+- **Repo hygiene** — issue/PR templates, `SECURITY.md`, `SUPPORT.md`, `CODEOWNERS`, `FUNDING`, `LICENSE`, `.gitattributes`, `.dockerignore`, a badge-rich README, and VS Code launch configs (current file, tests, attach, entry points); always-on Commitizen and git hooks (run via prek) and an always-on `CITATION.cff` with a validation workflow.
+- **Managed `.gitignore`** — kept in sync with the upstream [github/gitignore](https://github.com/github/gitignore) templates by [cobo](https://github.com/hasansezertasan/cobo), with a weekly drift check.
+- **Dependency & template updates** — Renovate manages dependencies and, via its copier manager, opens a `copier update` PR whenever this template publishes a new tag (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
+- **AI-agent onboarding** — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
+- **Modern Python** — uv for dependency management, hatch for building, and a devcontainer for reproducible environments.
+
+Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, and MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox).
 
 ## Inputs
 
