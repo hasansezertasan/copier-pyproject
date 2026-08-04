@@ -621,8 +621,8 @@ disable = [
                                  # deliberately lazy-imported so import-linter's
                                  # layering contract holds and optional extras
                                  # aren't required at import time.
-  "try-except-raise",           # W0706 — the generated CLI/TUI/GUI entry points
-                                 # explicitly re-raise KeyboardInterrupt/SystemExit
+  "try-except-raise",           # W0706 — the generated TUI entry point
+                                 # explicitly re-raises KeyboardInterrupt/SystemExit
                                  # ahead of a broad `except Exception` to make the
                                  # "let these propagate" intent obvious to readers,
                                  # even though BaseException subclasses wouldn't be
