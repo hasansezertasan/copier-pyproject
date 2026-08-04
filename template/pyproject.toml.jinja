@@ -616,6 +616,17 @@ disable = [
   "missing-class-docstring",    # C0115
   "missing-function-docstring", # C0116
   "too-few-public-methods",     # R0903 — trips dataclasses / config / Protocol classes
+  "import-outside-toplevel",    # C0415 — components (cli->tui/gui/web, and each
+                                 # component's own optional-dependency probe) are
+                                 # deliberately lazy-imported so import-linter's
+                                 # layering contract holds and optional extras
+                                 # aren't required at import time.
+  "try-except-raise",           # W0706 — the generated CLI/TUI/GUI entry points
+                                 # explicitly re-raise KeyboardInterrupt/SystemExit
+                                 # ahead of a broad `except Exception` to make the
+                                 # "let these propagate" intent obvious to readers,
+                                 # even though BaseException subclasses wouldn't be
+                                 # caught by the Exception clause anyway.
 ]
 
 [tool.pylint.design]
@@ -782,6 +793,10 @@ commands = [
 # resolve pytest and other test-only imports.
 dependency_groups = ["style", "test"]
 description = "Run Checkers, Linters and Formatters"
+# Optional components (web/gui/tui/mcp/worker) are only importable when their
+# extra is installed; without this, pylint/mypy/etc. see import-error for any
+# optional component present in this render.
+extras = ["all"]
 runner = "uv-venv-runner"
 
 
