@@ -165,7 +165,26 @@ hook gate is `uv run --locked tox run -e prek`.
 
 <!-- TODO @{{github_user}}: add any project-specific setup (IDE, services, env vars) -->
 
+### Debugging
+
+Debug in VS Code using the launch configurations shipped in `.vscode/launch.json`:
+
+- **Current File**: Debug the currently open Python file.
+- **Tests**: Debug pytest runs.
+- **Attach**: Attach to a running process (e.g., web app with debugpy).
+- **Web App/CLI/TUI/GUI**: Debug specific entry points (if enabled).
+- **With Profiling**: Debug while profiling with scalene (if profiling enabled).
+
+Select a configuration from the Run and Debug panel in VS Code.
+
 ### Improving The Documentation
+
+The documentation is built with [Sphinx](https://www.sphinx-doc.org/). Common
+documentation tasks:
+
+- `mise run docs-build` (or `uv run --locked tox run -e docs-build`) — build the HTML docs.
+- `mise run docs-serve` (or `uv run --locked tox run -e docs-server`) — serve them locally with live reload.
+- `uv run --locked tox run -e docs-linkcheck` — check for broken links (also runs weekly in CI).
 
 <!-- TODO @{{github_user}}: Updating, improving and correcting the documentation -->
 
