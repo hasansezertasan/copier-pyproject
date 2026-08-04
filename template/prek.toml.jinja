@@ -84,6 +84,7 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "basedpyright", name = "basedpyright Type Checker", entry = "uv run --locked --group style basedpyright", language = "system", types = ["python"], pass_filenames = false },
+  { id = "pylint", name = "Pylint", entry = "uv run --locked --group style pylint src", language = "system", pass_filenames = false, always_run = true },
   # editorconfig-checker is run via the uv `style` group (not an upstream prek
   # repo) so its version has a single source of truth: its PyPI wrapper lags the
   # Go release tags, so a separate `rev` pin would drift permanently out of sync
