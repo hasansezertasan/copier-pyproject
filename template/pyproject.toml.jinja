@@ -176,6 +176,7 @@ style = [
   "editorconfig-checker==3.6.1",
   "import-linter==2.13",
   "mypy==2.1.0",
+  "pylint==4.0.6",
   "pyrefly==1.1.1",
   "ruff==0.15.19",
   "slotscheck==0.20.0",
@@ -598,6 +599,29 @@ error-on-warning = true
 [tool.pyrefly]
 python-version = "3.10"
 project-includes = ["src"]
+
+[tool.pylint.main]
+# pylint runs as an always-on gate that deliberately overlaps ruff's PL* rules.
+# Its canonical invocation is `pylint src`, so it never descends into tests; this
+# ignore-paths is a defensive scope guard for broader invocations (`pylint .`,
+# filename-passing hooks). Tests are linted by ruff, not pylint.
+ignore-paths = ["^tests/.*$"]
+
+[tool.pylint."messages control"]
+# Only formatter-owned checks, the docstring family, and too-few-public-methods
+# are disabled so pylint is usable out of the box; everything else stays on.
+disable = [
+  "line-too-long",              # C0301 — ruff-format owns line length
+  "missing-module-docstring",   # C0114
+  "missing-class-docstring",    # C0115
+  "missing-function-docstring", # C0116
+  "too-few-public-methods",     # R0903 — trips dataclasses / config / Protocol classes
+]
+
+[tool.pylint.design]
+max-args = 10
+max-positional-arguments = 10
+max-branches = 20
 {% if include_freezer %}
 [tool.typos.default.extend-identifiers]
 # `datas` is the PyInstaller `Analysis(datas=...)` / `a.datas` field in
@@ -699,6 +723,10 @@ commands = [
   [
     "zuban",
     "check",
+    "src",
+  ],
+  [
+    "pylint",
     "src",
   ],
   [
