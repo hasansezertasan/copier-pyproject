@@ -6,6 +6,13 @@
     "default": true,
     "MD013": false,
   },
-  "globs": ["**/*.md", "**/*.markdown"],
+  // `!CHANGELOG.md` mirrors template/.markdownlint-cli2.jsonc (PR #90): the
+  // changelog is release-please-generated (linguist-generated) and its blank-line
+  // layout is regenerated every release, so hand-linting it is futile churn.
+  "globs": ["**/*.md", "**/*.markdown", "!CHANGELOG.md"],
+  // `skills/` holds vendored Claude Code plugin skill docs (SKILL.md) that
+  // mirror an externally-maintained skill; the repo does not restyle them
+  // (same rationale as the `skills/` exclusion in _typos.toml).
+  "ignores": ["skills/**"],
   "gitignore": true,
 }
