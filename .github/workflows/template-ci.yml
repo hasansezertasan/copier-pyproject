@@ -19,9 +19,11 @@ jobs:
       fail-fast: false
       matrix:
         scenario:
-          # Bare template — only the always-on core/utils modules.
+          # Bare template — only the always-on core/utils modules. The base
+          # data-file uses the `library` preset (which seeds examples/), so this
+          # scenario turns examples back off to keep a true core-only render.
           - name: minimal
-            data: ""
+            data: --data include_examples=false
           # Kitchen sink with FastAPI + Redis worker + pydantic settings.
           - name: full-fastapi-redis
             data: >-
