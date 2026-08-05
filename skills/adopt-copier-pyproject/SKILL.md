@@ -25,12 +25,15 @@ entire job.** Run copier, let it overwrite everything, then restore your side fr
 
 2. **Run copier, overwrite everything:**
    ```bash
-   copier copy --trust --overwrite --defaults --data <k=v>... gh:hasansezertasan/copier-pyproject .
+   copier copy --overwrite --defaults --data <k=v>... gh:hasansezertasan/copier-pyproject .
    ```
-   `--trust` is **mandatory** — the template's `_tasks` runs `git init`; without it,
-   tasks are silently skipped and post-gen state is wrong. Pass every answer via
-   `--data` (reproducible). Defend the two **zero-dependency guarantees**:
-   `include_cli=false` and `include_pydantic_settings=false`.
+   **No `--trust` is needed** — the template deliberately defines **no `_tasks`** (or
+   other unsafe features) so Renovate's copier manager can run it (ADR-015), and it
+   does **not** auto-`git init`; run `git init` yourself afterward. (Only add
+   `--trust` if you target an older template version that still defined
+   `_tasks`/migrations.) Pass every answer via `--data` (reproducible). Defend the two
+   **zero-dependency guarantees**: `include_cli=false` and
+   `include_pydantic_settings=false`.
 
 3. **Reconcile from git (the real work), area by area:**
    - **Restore your real source + identity**, then delete the template's app skeleton:
@@ -88,11 +91,11 @@ again.
 1. **Invoke** (the `mise` shim is often unresolvable — `No version is set for shim:
    copier`; `uvx` is reliable):
    ```bash
-   uvx copier@latest update --trust --defaults
+   uvx copier@latest update --defaults
    ```
-   `--trust` still mandatory. `--defaults` accepts stored answers; a genuinely new
-   template question takes its default — check the answers diff so a new answer does
-   not silently enable a dependency.
+   No `--trust` needed (the template defines no `_tasks`/migrations). `--defaults`
+   accepts stored answers; a genuinely new template question takes its default —
+   check the answers diff so a new answer does not silently enable a dependency.
 
 2. **Resolve conflicts, not a full restore.** Conflicts surface as `UU` files with
    `<<<<<<< before updating` / `=======` / `>>>>>>> after updating` markers (`before`
@@ -119,7 +122,7 @@ again.
    the *newer* commit, which is **not** reconciliation divergence. Test convergence
    against the commit you actually reconciled to:
    ```bash
-   uvx copier@latest update --vcs-ref=<your _commit> --pretend --trust --defaults
+   uvx copier@latest update --vcs-ref=<your _commit> --pretend --defaults
    ```
    Must print **`Keeping template version …<your _commit>`** (nothing to re-apply) — the
    real proof your reconciliation converged. If a newer commit exists and you want it,
