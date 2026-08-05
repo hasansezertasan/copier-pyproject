@@ -12,7 +12,11 @@
 
 - Copier 9.11.3 is the floor (`type: yaml` computed vars, dict `choices` all required).
 - **Byte-identical `--defaults` output:** rendering `.example-input.yml --defaults` must produce output identical to the pre-change template. This is the backward-compat gate for every downstream project.
-- **No `template/` file may change.** Only `copier.yml`, `.example-input.yml`, `README.md`, `CLAUDE.md`.
+- **`template/` files stay unchanged, with ONE approved exception:** the
+  `redis_backend` fix also requires `template/.devcontainer/docker-compose.yml.jinja:3-4`
+  to gate `redis_image`/`redis_cli` on `redis_enabled` instead of `include_redis`
+  (surfaced by Task 3's acceptance test; user-adjudicated during execution).
+  Otherwise only `copier.yml`, `.example-input.yml`, `README.md`, `CLAUDE.md`.
 - **Do not add `_tasks`** (ADR-015) — the after-copy message is text only, not a task.
 - Stored answer *names* must not change (`include_*` bools stay). `preset` is added; `preset_map` is `when: false` and must NOT be stored.
 - `custom` preset's enabled set must equal today's defaults exactly: `include_cli`, `include_web`, `include_gui`, `include_tui`, `include_pydantic_settings` on; everything else off.

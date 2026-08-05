@@ -161,6 +161,13 @@ this reorder is backward-compatible.
   when: "{{ include_redis or (include_worker and worker_broker == 'redis') }}"
   ```
 
+  Widening the question alone is not sufficient: `template/.devcontainer/docker-compose.yml.jinja`
+  computes `redis_image`/`redis_cli` (lines 3-4) gated on `include_redis`, so a
+  redis-broker worker with `include_redis == false` silently gets `redis:7` even
+  when `redis_backend == 'valkey'`. Those two lines must gate on the existing
+  `redis_enabled` flag (line 2) instead. This is the one `template/` file the
+  change touches.
+
 - **No new hard-blocking validators (deliberate).** Copier's `when:`-gating
   already prevents the only genuine dependency violations (`pgadmin`/`adminer`
   cannot be selected without `postgres`). The remaining "unusual" combos are all
