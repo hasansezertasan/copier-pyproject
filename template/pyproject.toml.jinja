@@ -606,6 +606,11 @@ project-includes = ["src"]
 # ignore-paths is a defensive scope guard for broader invocations (`pylint .`,
 # filename-passing hooks). Tests are linted by ruff, not pylint.
 ignore-paths = ["^tests/.*$"]
+# `.pyi` stubs (the c-extension type stub) are signature-only: their bodies are
+# `...` and every parameter is unused by construction, so pylint's unused-argument
+# check is a guaranteed false positive there. Stubs are type-checked by the
+# type-checker gate, not pylint.
+ignore-patterns = ['.*\.pyi$']
 
 [tool.pylint."messages control"]
 # Only formatter-owned checks, the docstring family, and too-few-public-methods
@@ -627,6 +632,12 @@ disable = [
                                  # "let these propagate" intent obvious to readers,
                                  # even though BaseException subclasses wouldn't be
                                  # caught by the Exception clause anyway.
+  "duplicate-code",             # R0801 — the component skeletons (gui/tui/mcp/
+                                 # worker) are deliberately parallel: each fetches
+                                 # package metadata and formats the same info block
+                                 # the same way. That structural symmetry is a
+                                 # feature of the scaffold, not copy-paste debt, and
+                                 # R0801 cannot be suppressed inline at the call site.
 ]
 
 [tool.pylint.design]
