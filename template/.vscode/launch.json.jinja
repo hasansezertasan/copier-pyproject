@@ -63,7 +63,7 @@
       "request": "launch",
       "justMyCode": true,
       "module": "uv",
-      "args": ["run", "{{github_repo_name}}-tui"]
+      "args": ["run", "{{github_repo_name}}{% if include_cli or include_gui %}-tui{% endif %}"]
     },
     {% endif %}
     {% if include_gui %}
@@ -73,7 +73,7 @@
       "request": "launch",
       "justMyCode": true,
       "module": "uv",
-      "args": ["run", "{{github_repo_name}}-gui"]
+      "args": ["run", "{{github_repo_name}}{% if include_cli %}-gui{% endif %}"]
     },
     {% endif %}
     {% if include_profiling %}

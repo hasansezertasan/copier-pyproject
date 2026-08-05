@@ -63,10 +63,19 @@
 <!-- TODO @{{github_user}}: Add screenshots or a demo GIF, or remove this section. -->
 
 ## Installation
+{% if include_cli or include_gui or include_tui or include_web or include_mcp or include_worker %}
+`{{github_repo_name}}` is a standalone end-user tool. Install it into an isolated environment:
 
+```console
+uv tool install {{github_repo_name}}
+```
+
+Or run it without installing with `uvx {{github_repo_name}}`. See the [installation docs](https://{{github_user}}.github.io/{{github_repo_name}}/installation.html) for pipx and from-source options.
+{% else %}
 ```console
 pip install {{github_repo_name}}
 ```
+{% endif %}
 {% if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_profiling or include_c_extensions %}
 ## Usage
 {%- if include_cli %}
@@ -83,7 +92,7 @@ pip install {{github_repo_name}}
 ### GUI
 
 ```bash
-{{github_repo_name}}-gui
+{{github_repo_name}}{% if include_cli %}-gui{% endif %}
 ```
 {%- endif %}
 {%- if include_tui %}
@@ -91,7 +100,7 @@ pip install {{github_repo_name}}
 ### TUI
 
 ```bash
-{{github_repo_name}}-tui
+{{github_repo_name}}{% if include_cli or include_gui %}-tui{% endif %}
 ```
 
 An interactive terminal user interface displays project information. Press 'q' to exit.
@@ -101,7 +110,7 @@ An interactive terminal user interface displays project information. Press 'q' t
 ### Web
 
 ```bash
-{{github_repo_name}}-web
+{{github_repo_name}}{% if include_cli or include_gui or include_tui %}-web{% endif %}
 ```
 
 {% if web_framework == "fastapi" %}Open <http://127.0.0.1:8000/docs> for the interactive API documentation.{% else %}Open <http://127.0.0.1:8000/schema> for the interactive API documentation.{% endif %}
@@ -113,7 +122,7 @@ An interactive terminal user interface displays project information. Press 'q' t
 Run the Model Context Protocol server:
 
 ```bash
-{{github_repo_name}}-mcp
+{{github_repo_name}}{% if include_cli or include_gui or include_tui or include_web %}-mcp{% endif %}
 ```
 {%- endif %}
 {%- if include_worker %}
@@ -123,7 +132,7 @@ Run the Model Context Protocol server:
 Run the message queue worker:
 
 ```bash
-{{github_repo_name}}-worker
+{{github_repo_name}}{% if include_cli or include_gui or include_tui or include_web or include_mcp %}-worker{% endif %}
 ```
 
 The worker connects to {{worker_broker}} and processes messages from the configured queues.

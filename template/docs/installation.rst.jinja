@@ -1,20 +1,38 @@
 Installation
 ============
-
-Possible extras:
-
-{% if include_cli %}- ``cli``: Installs typer and adds ``{{github_repo_name}}`` as a command.
-{% endif %}{% if include_tui %}- ``tui``: Installs textual and adds ``{{github_repo_name}}-tui`` as a command.
-{% endif %}{% if include_web %}- ``web``: Installs {% if web_framework == "litestar" %}Litestar{% else %}FastAPI{% endif %} and adds ``{{github_repo_name}}-web`` as a command.
-{% endif %}{% if include_mcp %}- ``mcp``: Installs the MCP SDK and adds ``{{github_repo_name}}-mcp`` as a command.
-{% endif %}{% if include_worker %}- ``worker``: Installs FastStream and adds ``{{github_repo_name}}-worker`` as a command.
-{% endif %}{% if include_pydantic_settings %}- ``config``: Installs pydantic-settings.
-{% endif %}- ``all``: Installs all extras if available.
+{%- set _is_app = include_cli or include_gui or include_tui or include_web or include_mcp or include_worker %}
+{% if _is_app %}
+``{{github_repo_name}}`` is an end-user application, not a library, so install
+it as a standalone tool rather than as a project dependency. It ships a single
+``{{github_repo_name}}`` command.
 
 Stable release
 --------------
 
-To install ``{{github_repo_name}}``, run this command in your terminal:
+Install ``{{github_repo_name}}`` into an isolated environment with your
+preferred tool installer:
+
+.. code-block:: sh
+
+   uv tool install {{github_repo_name}}
+
+.. code-block:: sh
+
+   pipx install {{github_repo_name}}
+
+Or run it without installing:
+
+.. code-block:: sh
+
+   uvx {{github_repo_name}}
+{% else %}
+``{{github_repo_name}}`` is a library. Add it to your project as a dependency.
+
+Stable release
+--------------
+
+To add ``{{github_repo_name}}`` to your project, run this command in your
+terminal:
 
 .. code-block:: sh
 
@@ -25,7 +43,7 @@ Or if you prefer to use ``pip``:
 .. code-block:: sh
 
    pip install {{github_repo_name}}
-
+{% endif %}
 From source
 -----------
 
@@ -51,4 +69,4 @@ Once you have a copy of the source, you can install it with:
 .. code-block:: sh
 
    cd {{github_repo_name}}
-   uv pip install .
+   uv sync

@@ -100,21 +100,19 @@ classifiers = [
 {% endif %}
 ]
 requires-python = ">=3.10"
-dependencies = []
-
-[project.optional-dependencies]
-{% if include_cli %}cli = ["typer>=0.20.0"]{% endif %}
-{% if include_web %}
-{% if web_framework == "fastapi" %}web = ["fastapi[all]>=0.123.5"]{% endif %}
-{% if web_framework == "litestar" %}web = ["litestar[standard]>=2.0.0"]{% endif %}
-{% endif %}
-{% if include_tui %}tui = ["textual>=0.50.0", "typing-extensions>=4.4.0"]{% endif %}
-{% if include_mcp %}mcp = ["mcp>=1.0.0,<2"]  # TODO @{{github_user}}: mcp 2.0.0 is a breaking API rewrite (input_schema, new Server API); migrate mcp/app.py before relaxing this cap{% endif %}
-{% if include_worker %}worker = ["faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'"]{% endif %}
-{% if include_pydantic_settings %}config = ["pydantic-settings>=2.0.0"]{% endif %}
-all = [
+# The enabled component's runtime deps live here, not in an optional extra: a
+# selected component is chosen at generation time and ``__main__`` imports it
+# unconditionally (see the CLI > GUI > TUI > web > MCP > worker precedence
+# there), so ``pip install {{github_repo_name}}`` must pull them or the binary
+# fails at launch. Same for pydantic-settings, which ``core.config`` imports
+# unconditionally when enabled.
+dependencies = [
 {%- if include_cli %}
     "typer>=0.20.0",
+{%- endif %}
+{%- if include_tui %}
+    "textual>=0.50.0",
+    "typing-extensions>=4.4.0",
 {%- endif %}
 {%- if include_web %}
 {%- if web_framework == "fastapi" %}
@@ -124,19 +122,24 @@ all = [
     "litestar[standard]>=2.0.0",
 {%- endif %}
 {%- endif %}
-{%- if include_tui %}
-    "textual>=0.50.0",
-{%- endif %}
 {%- if include_mcp %}
-    "mcp>=1.0.0,<2",
+    "mcp>=1.0.0,<2",  # TODO @{{github_user}}: mcp 2.0.0 is a breaking API rewrite (input_schema, new Server API); migrate mcp/app.py before relaxing this cap
 {%- endif %}
 {%- if include_worker %}
-    "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0", "pydantic>=2.0.0", "uvloop>=0.19.0; sys_platform != 'win32'",
+    "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0",
+    "pydantic>=2.0.0",
+    "uvloop>=0.19.0; sys_platform != 'win32'",
 {%- endif %}
 {%- if include_pydantic_settings %}
     "pydantic-settings>=2.0.0",
 {%- endif %}
 ]
+
+[project.optional-dependencies]
+# Runnable-component and settings deps are core (see ``dependencies`` above), so
+# no per-component extras remain. ``all`` is kept (empty) because the ``dev``
+# dependency-group installs ``{{github_repo_name}}[all]``.
+all = []
 
 
 [project.urls]
@@ -147,18 +150,32 @@ issues = "https://github.com/{{github_user}}/{{github_repo_name}}/issues"
 releasenotes = "https://github.com/{{github_user}}/{{github_repo_name}}/releases"
 source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
 
-{% if include_cli or include_tui or include_web or include_mcp or include_worker %}
+{#- Console-script wiring. The highest-precedence enabled component (CLI > GUI >
+    TUI > web > MCP > worker) is the "primary": it owns the bare
+    ``{{github_repo_name}}`` command, wired to ``__main__:main`` (the single
+    entrypoint that standalone builds also target). Every other enabled component
+    keeps a ``{{github_repo_name}}-<name>`` command pointing at its own ``app``
+    entrypoint, so a multi-component project can still launch each one. GUI uses
+    ``[project.gui-scripts]`` so it starts without a console window on Windows;
+    it is only ever the primary when CLI is absent. #}
+{%- set _primary = "cli" if include_cli else "gui" if include_gui else "tui" if include_tui else "web" if include_web else "mcp" if include_mcp else "worker" if include_worker else none %}
+{%- set _console = [] %}
+{%- set _gui = [] %}
+{%- if _primary == "gui" %}{% set _ = _gui.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}
+{%- elif _primary %}{% set _ = _console.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}{% endif %}
+{%- if include_gui and _primary != "gui" %}{% set _ = _gui.append((github_repo_name ~ "-gui", github_repo_name ~ ".gui.app:main")) %}{% endif %}
+{%- if include_tui and _primary != "tui" %}{% set _ = _console.append((github_repo_name ~ "-tui", github_repo_name ~ ".tui.app:main")) %}{% endif %}
+{%- if include_web and _primary != "web" %}{% set _ = _console.append((github_repo_name ~ "-web", github_repo_name ~ ".web.app:main")) %}{% endif %}
+{%- if include_mcp and _primary != "mcp" %}{% set _ = _console.append((github_repo_name ~ "-mcp", github_repo_name ~ ".mcp.app:main")) %}{% endif %}
+{%- if include_worker and _primary != "worker" %}{% set _ = _console.append((github_repo_name ~ "-worker", github_repo_name ~ ".worker.app:main")) %}{% endif %}
+{% if _console %}
 [project.scripts]
-{% if include_cli %}{{github_repo_name}} = "{{github_repo_name}}.cli.app:app"{% endif %}
-{% if include_tui %}{{github_repo_name}}-tui = "{{github_repo_name}}.tui.app:main"{% endif %}
-{% if include_web %}{{github_repo_name}}-web = "{{github_repo_name}}.web.app:main"{% endif %}
-{% if include_mcp %}{{github_repo_name}}-mcp = "{{github_repo_name}}.mcp.app:main"{% endif %}
-{% if include_worker %}{{github_repo_name}}-worker = "{{github_repo_name}}.worker.app:main"{% endif %}
-{% endif %}
-{% if include_gui %}
+{% for name, target in _console %}{{ name }} = "{{ target }}"
+{% endfor %}{% endif %}
+{% if _gui %}
 [project.gui-scripts]
-{{github_repo_name}}-gui = "{{github_repo_name}}.gui.app:main"
-{% endif %}
+{% for name, target in _gui %}{{ name }} = "{{ target }}"
+{% endfor %}{% endif %}
 
 
 [dependency-groups]
@@ -852,7 +869,7 @@ runner = "uv-venv-runner"
 # On-demand only (not in env_list): starts a broker-bound worker, so run it with
 # ``tox -e worker`` when a broker is reachable. CI relies on the pytest suite.
 [tool.tox.env.worker]
-commands = [["{{github_repo_name}}-worker", { replace = "posargs", extend = true }]]
+commands = [["{{github_repo_name}}{% if include_cli or include_gui or include_tui or include_web or include_mcp %}-worker{% endif %}", { replace = "posargs", extend = true }]]
 description = "Run the message queue worker application."
 runner = "uv-venv-runner"
 
