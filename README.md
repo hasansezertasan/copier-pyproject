@@ -23,6 +23,21 @@ Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a Fas
 
 ## Inputs
 
+### Preset
+
+The first component question, `preset`, seeds sensible defaults for everything
+below it:
+
+- `minimal` — core only (a plain library).
+- `standard` — CLI + pydantic-settings (recommended starting point).
+- `full` — every component and integration enabled.
+- `custom` — the historical defaults (CLI, web, GUI, TUI, pydantic-settings);
+  choose each toggle yourself.
+
+Every toggle is still shown and written to `.copier-answers.yml`, so the preset
+only changes the *default* you can accept with Enter — it never hides a question
+and never changes an existing project on `copier update`.
+
 Copier will prompt for:
 
 - `github_user`
