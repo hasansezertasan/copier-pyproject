@@ -83,23 +83,23 @@ def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}Kaf
     """
 {%- if worker_broker == "kafka" %}
     default_url = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    broker = KafkaBroker(url if url is not None else default_url)
+    broker_ = KafkaBroker(url if url is not None else default_url)
 {%- elif worker_broker == "nats" %}
     default_url = os.getenv("NATS_URL", "nats://localhost:4222")
-    broker = NatsBroker(url if url is not None else default_url)
+    broker_ = NatsBroker(url if url is not None else default_url)
 {%- elif worker_broker == "rabbitmq" %}
     default_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-    broker = RabbitBroker(url if url is not None else default_url)
+    broker_ = RabbitBroker(url if url is not None else default_url)
 {%- elif worker_broker == "redis" %}
     default_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-    broker = RedisBroker(url if url is not None else default_url)
+    broker_ = RedisBroker(url if url is not None else default_url)
 {%- endif %}
 
-    publisher = broker.publisher(
+    publisher = broker_.publisher(
         "version-responses", description="Publishes version response messages"
     )
 
-    @broker.subscriber(
+    @broker_.subscriber(
         "version-requests", description="Handles version request messages"
     )
     # The decorator registers the handler as a side effect; basedpyright cannot
@@ -134,7 +134,7 @@ def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}Kaf
 {%- endif %}
         app_logger.info("Sent version response for request: %s", msg.request_id)
 
-    return broker
+    return broker_
 
 
 broker = build_broker()

@@ -8,7 +8,7 @@ Always included in every generated project:
 
 - **Packaging & workflow** — uv-first with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions derived from Git tags.
 - **Type safety** — full type hints and a `py.typed` marker, checked by mypy, basedpyright, ty, pyrefly, and zuban.
-- **Code quality** — ruff linting/formatting plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement.
+- **Code quality** — ruff linting/formatting and an always-on pylint gate, plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement.
 - **Testing** — pytest with coverage/xdist/reruns (and `.github/codecov.yml`) and parallel execution.
 - **Documentation** — a Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme and autodoc API reference, GitHub Pages deployment, and live per-PR previews.
 - **CI/CD & release** — matrix tests on macOS/Linux/Windows, trusted-publishing to PyPI, and release automation via release-please, with PR title linting, linked-issue enforcement, and a PR task-list completion check.

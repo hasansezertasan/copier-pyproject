@@ -84,6 +84,11 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "basedpyright", name = "basedpyright Type Checker", entry = "uv run --locked --group style basedpyright", language = "system", types = ["python"], pass_filenames = false },
+  # pylint runs as a whole-package gate (`pylint src`) that deliberately overlaps
+  # ruff's PL* rules. Like basedpyright it needs the installed package + deps to
+  # resolve imports, so it is a `local` `system` hook via `uv run`, not an upstream
+  # repo hook. Single version source: the `style` group pin.
+  { id = "pylint", name = "Pylint", entry = "uv run --locked --group style pylint src", language = "system", pass_filenames = false, always_run = true },
   # import-linter (lint-imports) enforces the [tool.importlinter] architecture
   # contract. Like basedpyright it is a whole-program analyzer that needs the
   # installed package + its deps to build the import graph (via grimp), so it is a
