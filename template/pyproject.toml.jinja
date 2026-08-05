@@ -458,7 +458,7 @@ fix = true
 output-format = "full"
 preview = true
 show-fixes = true
-src = ["src", "tests", "examples"]
+src = ["src", "tests"{% if include_examples %}, "examples"{% endif %}]
 target-version = "py310"
 unsafe-fixes = true
 
@@ -527,7 +527,9 @@ convention = "pep257"
 # Tests legitimately use asserts/magic values, reach into package internals, and
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
-"examples/*.py" = ["INP001"]
+{%- if include_examples %}
+"examples/**/*.py" = ["INP001"]
+{%- endif %}
 # The Sphinx config is a standalone module, not part of an importable package.
 "docs/conf.py" = ["INP001"]
 {%- if include_c_extensions %}

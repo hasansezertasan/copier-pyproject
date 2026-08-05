@@ -90,6 +90,10 @@ include_profiling:
   type: bool
   default: false
   help: "Include profiling and performance tools (py-spy, scalene, cProfile)?"
+include_examples:
+  type: bool
+  default: false
+  help: "Include an examples/ folder with simple and advanced usage stubs?"
 include_launcher:
   type: bool
   default: false
