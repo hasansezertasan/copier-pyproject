@@ -351,3 +351,5 @@ mise.local.toml
 NOTES.md
 /rudy/
 /example/
+# Agent process docs (design specs, implementation plans) — kept local, not shipped.
+/docs/superpowers/

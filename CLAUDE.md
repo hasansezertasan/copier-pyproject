@@ -134,6 +134,17 @@ Free-form metadata:
   is still auto-generated from enabled components — it carries a `TODO` marker for the
   generated project's author to fill in project-specific classifiers.)
 
+Starting point:
+
+- `preset` - `minimal`/`standard`/`full`/`custom`. Seeds the default of every
+  `include_*` toggle via the hidden `preset_map` computed variable (`when: false`,
+  never stored). `default: custom`, whose set equals the historical defaults, so
+  `--defaults` output is byte-identical to before and existing projects are
+  unaffected on update. Toggles remain asked and stored — the preset only changes
+  defaults; it hides nothing, though dependency-gated sub-questions (the DB UIs,
+  web framework, worker broker, redis backend) still appear only when their
+  parent toggle is enabled, independent of the preset.
+
 Optional components (all boolean):
 
 - `include_cli` - Typer CLI
