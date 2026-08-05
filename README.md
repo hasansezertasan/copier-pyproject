@@ -63,6 +63,30 @@ Copier will prompt for:
 4. Initialize git in the destination: `cd <destination> && git init` (the template intentionally defines no Copier tasks, so it does not auto-init — see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 5. Open the generated README (rendered from `template/README.md.jinja`) and clear the `TODO @...` markers in `README.md`, `pyproject.toml`, docs, and workflows.
 
+## Adopt into an existing project (Claude Code plugin)
+
+The `copier copy` flow above is for **new** projects. Adopting this template into an **existing or already-published** package is a different job: `copier copy` overwrites source, config, docs, and CI, so it must be run as a migrate-and-reconcile rather than a scaffold.
+
+This repository therefore doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) **plugin** that ships an `adopt-copier-pyproject` skill capturing that procedure — the source-skeleton collision, ruff auto-fix source corruption, the release-please/hatch-vcs version clash, the `copier update` 3-way-merge flow, and the placeholder prose the template plants in issue templates and docs. Plugin metadata lives in [`.claude-plugin/`](.claude-plugin) and the skill in [`skills/adopt-copier-pyproject/SKILL.md`](skills/adopt-copier-pyproject/SKILL.md).
+
+### For humans
+
+Install the plugin once from inside Claude Code:
+
+```text
+/plugin marketplace add hasansezertasan/copier-pyproject
+/plugin install copier-pyproject@copier-pyproject
+```
+
+Then, in a Claude Code session opened **inside the package you are adopting the template into**, describe the task (e.g. "adopt copier-pyproject into this project"). Claude follows the skill's procedure and checks in with you at each decision it cannot make alone — the planted `TODO` markers, the issue-template example prose, and the release-please version manifest.
+
+### For agents
+
+Once the plugin is installed the skill is auto-discovered; no explicit invocation is needed. It triggers on its own whenever a task matches its description: adopting `hasansezertasan/copier-pyproject` into an existing package, or reconciling a `copier update` that overwrote source/config. Working directly from a clone (without installing the plugin), an agent can read [`skills/adopt-copier-pyproject/SKILL.md`](skills/adopt-copier-pyproject/SKILL.md) and follow it as a checklist.
+
+> [!NOTE]
+> For a brand-new project, ignore the plugin and use [Scaffold a project](#scaffold-a-project) above — the skill is only for adopting the template into code that already exists.
+
 ## Generated project quickstart
 
 - Install dependencies: `uv sync`
