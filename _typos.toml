@@ -16,3 +16,15 @@ datas = "datas"
 # word as `all`/`falls`. Allowlist the word so the hook does not rewrite it.
 [default.extend-words]
 alls = "alls"
+
+# Excluded paths:
+# - `skills/` holds vendored Claude Code plugin skill documentation (SKILL.md)
+#   that mirrors an externally-maintained skill. It is dense with tool names,
+#   CLI flags, and intentional hyphenated compounds (`mis-computes`, `mis-bumps`)
+#   that typos splits and misreads.
+# - `CHANGELOG.md` is release-please-generated (linguist-generated); it is full
+#   of abbreviated commit SHAs (e.g. `ba23412`) that typos misreads as words.
+# The typos hook auto-writes fixes, so both must be excluded to keep it from
+# rewriting generated/vendored content.
+[files]
+extend-exclude = ["skills/", "CHANGELOG.md"]
