@@ -45,14 +45,34 @@ entry point, so this is harmless.
 Matches current reality (`core` does not import `utils`; `utils` is a
 dependency-free leaf) and encodes the conventional "utils = leaf helpers" model.
 
-### 3. Style env only, not prek
+### 3. Both the tox `style` env and prek (via a `local` `system` hook)
 
 import-linter needs the installed package and a whole-import-graph build (via
 `grimp`). The tox `style` env installs the project, so `lint-imports` resolves
-the package; prek's isolated hook envs do not install it. This preserves the
-existing boundary — prek is the fast local gate, tox `style` is the deep-analysis
-gate (the same reason the five type checkers, vulture, and slotscheck are
-style-env-only). Renovate tracks the pin as an ordinary `style`-group dependency.
+the package. prek can run it too — but **only** as a `local` `language = "system"`
+hook that shells out through `uv run --locked --group style lint-imports`, which
+syncs and resolves the installed package. It is *not* eligible as the upstream
+**repo hook** import-linter ships, because prek (like pre-commit) runs a repo
+hook in its own isolated venv with only the hook's own deps — the project is not
+installed there, so `grimp` cannot build the graph. This is exactly how
+`basedpyright` — the other whole-program analyzer — is already delivered, so
+import-linter follows that precedent: a `style`-group command run from both the
+tox `style` env (the canonical full suite, ADR-003) and a prek `local` hook (the
+fast local + CI `hooks`-job gate, catching contract violations at commit time).
+Renovate tracks the pin as an ordinary `style`-group dependency; the prek hook
+needs no separate `rev`. The earlier revision of this ADR kept it style-env-only
+on the imprecise premise that "prek cannot install the package" — true of the
+isolated **repo-hook** pattern, but not of the `local` `system` hook used here
+(verified end-to-end: an injected upward import fails `prek run import-linter`
+with a non-zero exit).
+
+**slotscheck** is delivered the same way, and for the same reason. It imports
+every module under `src/` to verify `__slots__`, so it also needs the installed
+package and cannot be an isolated repo hook. It checks a property no other tool
+covers (like import-linter's architecture check), so — unlike the redundant type
+checkers `ty`/`pyrefly`/`zuban`, which stay style-env-only to avoid stacking five
+type checkers on the fast gate — it is worth running on the prek gate too, as a
+`local` `system` hook (`uv run --locked --group style python -m slotscheck src`).
 
 ## Consequences
 
