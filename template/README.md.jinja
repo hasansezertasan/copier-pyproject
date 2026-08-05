@@ -64,9 +64,25 @@
 
 ## Installation
 
+{% if include_cli or include_tui or include_gui or include_web or include_mcp or include_worker -%}
+`{{github_repo_name}}` is an end-user application; install it into an isolated environment:
+
+```console
+uv tool install {{github_repo_name}}
+```
+
+Or run it once without installing:
+
+```console
+uvx {{github_repo_name}}
+```
+
+To add it as a dependency of another project instead, use `uv add {{github_repo_name}}` or `pip install {{github_repo_name}}`.
+{% else -%}
 ```console
 pip install {{github_repo_name}}
 ```
+{% endif -%}
 {% if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_profiling or include_c_extensions %}
 ## Usage
 {%- if include_cli %}

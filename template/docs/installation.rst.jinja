@@ -14,6 +14,27 @@ Possible extras:
 Stable release
 --------------
 
+{% if include_cli or include_tui or include_gui or include_web or include_mcp or include_worker -%}
+``{{github_repo_name}}`` is an end-user application, so install it into an
+isolated environment with your preferred tool installer:
+
+.. code-block:: sh
+
+   uv tool install {{github_repo_name}}
+
+.. code-block:: sh
+
+   pipx install {{github_repo_name}}
+
+Or run it once without installing:
+
+.. code-block:: sh
+
+   uvx {{github_repo_name}}
+
+To add ``{{github_repo_name}}`` as a dependency of another project instead, use
+``uv add {{github_repo_name}}`` or ``pip install {{github_repo_name}}``.
+{% else -%}
 To install ``{{github_repo_name}}``, run this command in your terminal:
 
 .. code-block:: sh
@@ -25,7 +46,7 @@ Or if you prefer to use ``pip``:
 .. code-block:: sh
 
    pip install {{github_repo_name}}
-
+{% endif %}
 From source
 -----------
 
