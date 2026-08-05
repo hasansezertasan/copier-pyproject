@@ -41,6 +41,7 @@ Copier will prompt for:
 - `worker_broker` (kafka/nats/rabbitmq/redis - when `include_worker` is enabled)
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
+- `include_examples` (include an `examples/` folder with simple and advanced usage stubs)
 - `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
