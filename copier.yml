@@ -6,7 +6,20 @@ _subdirectory: template
 # Renovate's copier manager — the mechanism that opens template-update PRs in
 # generated projects (ADR-015). Keeping `_tasks` empty lets Renovate update
 # untrusted, at the cost of not auto-`git init`-ing on the initial copy (the
-# scaffold instructions tell the user to run `git init`).
+# after-copy message tells the user to run `git init`).
+
+_message_before_copy: >-
+  Pick a preset, then press Enter through the toggles to accept its defaults, or
+  tune any of them. Every toggle is still shown and saved regardless of preset.
+
+_message_after_copy: >-
+  Project {{ github_repo_name }} scaffolded. Next steps:
+  (1) git init && git add -A && git commit -m "chore: initial commit"
+  (2) uv sync
+  (3) complete the one-time repository setup documented in CONTRIBUTING.md
+  (squash-merge policy, workflow permissions, PyPI trusted publishing).
+
+# ── ① Identity ──────────────────────────────────────────────────────────────
 github_user:
   type: str
   help: The GitHub username
@@ -39,13 +52,65 @@ package_keywords:
   default: ""
   help: >-
     Extra PyPI keywords specific to your project (comma-separated, e.g. "data, async, etl"). Tooling and component keywords are added automatically.
+
+# ── ② Preset ────────────────────────────────────────────────────────────────
+preset:
+  type: str
+  default: custom
+  choices:
+    "Minimal — core only (library)": minimal
+    "Standard — CLI + config (recommended)": standard
+    "Full — every component & integration": full
+    "Custom — choose each toggle": custom
+  help: >-
+    Pick a starting point. Every toggle below is still shown and saved; the preset just chooses smart defaults you can accept by pressing Enter.
+preset_map:
+  type: yaml
+  when: false
+  default:
+    minimal: []
+    standard:
+      - include_cli
+      - include_pydantic_settings
+    full:
+      - include_cli
+      - include_web
+      - include_gui
+      - include_tui
+      - include_mcp
+      - include_worker
+      - include_c_extensions
+      - include_profiling
+      - include_examples
+      - include_launcher
+      - include_compiler
+      - include_freezer
+      - include_pydantic_settings
+      - include_sourcery
+      - include_sonarcloud
+      - include_all_contributors
+      - include_megalinter
+      - include_postgres
+      - include_pgadmin
+      - include_adminer
+      - include_redis
+      - include_dbeaver
+      - include_vpn
+    custom:
+      - include_cli
+      - include_web
+      - include_gui
+      - include_tui
+      - include_pydantic_settings
+
+# ── ③ Interfaces ────────────────────────────────────────────────────────────
 include_cli:
   type: bool
-  default: true
+  default: "{{ 'include_cli' in preset_map[preset] }}"
   help: "Include CLI (Command Line Interface) using Typer?"
 include_web:
   type: bool
-  default: true
+  default: "{{ 'include_web' in preset_map[preset] }}"
   help: "Include Web API?"
 web_framework:
   type: str
@@ -57,19 +122,19 @@ web_framework:
   help: "Choose the web framework to use"
 include_gui:
   type: bool
-  default: true
+  default: "{{ 'include_gui' in preset_map[preset] }}"
   help: "Include GUI (Graphical User Interface) using Tkinter?"
 include_tui:
   type: bool
-  default: true
+  default: "{{ 'include_tui' in preset_map[preset] }}"
   help: "Include TUI (Terminal User Interface) using Textual?"
 include_mcp:
   type: bool
-  default: false
+  default: "{{ 'include_mcp' in preset_map[preset] }}"
   help: "Include MCP (Model Context Protocol) server support?"
 include_worker:
   type: bool
-  default: false
+  default: "{{ 'include_worker' in preset_map[preset] }}"
   help: "Include message queue worker using FastStream?"
 worker_broker:
   type: str
@@ -81,61 +146,79 @@ worker_broker:
     - redis
   when: "{{ include_worker }}"
   help: "Choose the message broker to use"
+
+# ── ④ Packaging / build ─────────────────────────────────────────────────────
 include_c_extensions:
   type: bool
-  default: false
+  default: "{{ 'include_c_extensions' in preset_map[preset] }}"
   help: "Include C extensions support using Cython?"
 include_profiling:
   type: bool
-  default: false
+  default: "{{ 'include_profiling' in preset_map[preset] }}"
   help: "Include profiling and performance tools (py-spy, scalene, cProfile)?"
-include_examples:
-  type: bool
-  default: false
-  help: "Include an examples/ folder with simple and advanced usage stubs?"
 include_launcher:
   type: bool
-  default: false
+  default: "{{ 'include_launcher' in preset_map[preset] }}"
   help: "Include a uv-bootstrap launcher (PyCrucible) for a small online-first-run executable?"
 include_compiler:
   type: bool
-  default: false
+  default: "{{ 'include_compiler' in preset_map[preset] }}"
   help: "Include a compiler (Nuitka) to build a compiled native executable?"
 include_freezer:
   type: bool
-  default: false
+  default: "{{ 'include_freezer' in preset_map[preset] }}"
   help: "Include an offline freezer (PyInstaller) for a self-contained bundled executable?"
+include_examples:
+  type: bool
+  default: "{{ 'include_examples' in preset_map[preset] }}"
+  help: "Include an examples/ folder with simple and advanced usage stubs?"
+
+# ── ⑤ Config ────────────────────────────────────────────────────────────────
 include_pydantic_settings:
   type: bool
-  default: true
+  default: "{{ 'include_pydantic_settings' in preset_map[preset] }}"
   help: "Use pydantic-settings for type-safe configuration management?"
+
+# ── ⑥ Quality add-ons (opt-in, may need external accounts) ──────────────────
 include_sourcery:
   type: bool
-  default: false
+  default: "{{ 'include_sourcery' in preset_map[preset] }}"
   help: >-
     Include a Sourcery config (.sourcery.yaml) for AI refactoring suggestions? Requires installing the Sourcery GitHub App on the repository.
 include_sonarcloud:
   type: bool
-  default: false
+  default: "{{ 'include_sonarcloud' in preset_map[preset] }}"
   help: >-
     Include SonarCloud static analysis (sonar-project.properties + a CI job)? Requires a SonarCloud organization and a SONAR_TOKEN repository secret.
 include_all_contributors:
   type: bool
-  default: false
+  default: "{{ 'include_all_contributors' in preset_map[preset] }}"
   help: >-
     Include an all-contributors config (.all-contributorsrc) and a README section? Requires the all-contributors bot/CLI to maintain the list.
 include_megalinter:
   type: bool
-  default: false
+  default: "{{ 'include_megalinter' in preset_map[preset] }}"
   help: >-
     Add MegaLinter as an optional extra CI quality layer? It runs only linters that prek/tox do not already cover (shellcheck, hadolint, jsonlint, jscpd clone-detection, and a .md-scoped cspell prose pass) and uploads SARIF findings to the Security tab. Off by default so the fast, self-contained default is preserved (tox/prek remain the canonical runners).
+
+# ── ⑦ Devcontainer services ─────────────────────────────────────────────────
 include_postgres:
   type: bool
-  default: false
+  default: "{{ 'include_postgres' in preset_map[preset] }}"
   help: "Include PostgreSQL database service in devcontainer?"
+include_pgadmin:
+  type: bool
+  default: "{{ 'include_pgadmin' in preset_map[preset] }}"
+  when: "{{ include_postgres }}"
+  help: "Include pgAdmin for PostgreSQL management (gated behind 'tools' compose profile)?"
+include_adminer:
+  type: bool
+  default: "{{ 'include_adminer' in preset_map[preset] }}"
+  when: "{{ include_postgres }}"
+  help: "Include Adminer for database management (gated behind 'tools' compose profile)?"
 include_redis:
   type: bool
-  default: false
+  default: "{{ 'include_redis' in preset_map[preset] }}"
   help: "Include Redis/Valkey cache service in devcontainer?"
 redis_backend:
   type: str
@@ -143,23 +226,13 @@ redis_backend:
   choices:
     - redis
     - valkey
-  when: "{{ include_redis }}"
+  when: "{{ include_redis or (include_worker and worker_broker == 'redis') }}"
   help: "Choose the Redis-compatible backend image (redis or valkey)"
-include_pgadmin:
-  type: bool
-  default: false
-  when: "{{ include_postgres }}"
-  help: "Include pgAdmin for PostgreSQL management (gated behind 'tools' compose profile)?"
-include_adminer:
-  type: bool
-  default: false
-  when: "{{ include_postgres }}"
-  help: "Include Adminer for database management (gated behind 'tools' compose profile)?"
 include_dbeaver:
   type: bool
-  default: false
+  default: "{{ 'include_dbeaver' in preset_map[preset] }}"
   help: "Include DBeaver CloudBeaver for database management (gated behind 'tools' compose profile)?"
 include_vpn:
   type: bool
-  default: false
+  default: "{{ 'include_vpn' in preset_map[preset] }}"
   help: "Include OpenVPN client in devcontainer?"
