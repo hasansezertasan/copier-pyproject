@@ -37,8 +37,10 @@ MARKDOWN_SUMMARY_REPORTER: true
 REPORTERS_MARKDOWN_TYPE: simple
 SARIF_REPORTER: true
 ENABLE_LINTERS:
-  # Standalone shell scripts (actionlint already shellchecks workflow `run:`
-  # blocks; this covers scripts a project adds later). Keeps .shellcheckrc.
+  # Standalone shell scripts. prek's `shellcheck` hook is now the always-on
+  # primary (and actionlint shellchecks workflow `run:` blocks); this is a
+  # deliberate opt-in, non-blocking overlap that runs on the same scripts (like
+  # SPELL_CSPELL vs typos below), not a replacement. Keeps .shellcheckrc.
   - BASH_SHELLCHECK
 {%- if include_web %}
   # The generated Dockerfile (only rendered when include_web) -- otherwise
