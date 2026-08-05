@@ -17,11 +17,6 @@ python = "{{ get_env(name='PYTHON_VERSION', default='3.10') }}"
 # gitignore-check task and the gitignore-drift.yml workflow. 0.4.0+ ships the
 # `--eol` policy the block was sealed with.
 "pipx:cobo" = "0.4.0"
-# checkmake (Makefile linter) is delivered via mise because it ships no PyPI
-# wrapper and no tag-pinned pre-commit hook. The aqua backend is named
-# explicitly (Renovate-tracked), mirroring ghalint above; the prek `checkmake`
-# hook invokes this binary via `mise exec`.
-"aqua:checkmake/checkmake" = "0.3.2"
 {%- endraw %}
 {%- if include_all_contributors %}
 # all-contributors is a JS CLI delivered via mise's npm backend, so its version

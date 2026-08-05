@@ -168,6 +168,14 @@ repo = "https://github.com/shellcheck-py/shellcheck-py"
 rev = "v0.11.0.1"
 hooks = [{ id = "shellcheck" }]
 
+# checkmake lints Makefiles a project adds later. Built from source via prek's
+# `golang` language support (the hook's manifest `types: [makefile]` scopes it,
+# so it is a no-op until a Makefile exists).
+[[repos]]
+repo = "https://github.com/checkmake/checkmake"
+rev = "v0.3.2"
+hooks = [{ id = "checkmake" }]
+
 [[repos]]
 repo = "https://github.com/google/yamlfmt"
 rev = "v0.21.0"
@@ -193,11 +201,5 @@ hooks = [
   # itself on PATH, which local contributors have and the CI `hooks` job supplies
   # via jdx/mise-action.
   { id = "ghalint", name = "ghalint", entry = "mise exec -- ghalint run", language = "system", pass_filenames = false, always_run = true },
-  # checkmake lints Makefiles a project adds later. Like ghalint it ships no
-  # PyPI wrapper and no tag-pinned pre-commit hook (its .pre-commit-hooks.yaml
-  # lives only on the default branch, and it is a `language: golang` hook), so it
-  # is installed via mise (aqua backend, see mise.toml) and invoked through `mise
-  # exec`. Scoped to Makefiles by `types`, so it is a no-op until a Makefile exists.
-  { id = "checkmake", name = "checkmake", entry = "mise exec -- checkmake", language = "system", types = ["makefile"] },
   { id = "pytest", name = "Pytest Test Runner", entry = "uv run --locked pytest tests", language = "system", pass_filenames = false, always_run = true },
 ]
