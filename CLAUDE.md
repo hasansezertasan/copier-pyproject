@@ -10,7 +10,7 @@ Key architecture:
 
 - Template files use `.jinja` extension and contain variables like `{{github_repo_name}}`, `{{author_full_name}}`, etc.
 - Template variables are defined in `copier.yml`
-- The `example/` directory is a gitignored, locally-generated rendering (see `.gitignore`); regenerate it from `.example-input.yml` to smoke-test the template. Note: `.example-input.yml` disables every optional component, so the run commands below for CLI/web/etc. apply only after enabling those options (or to any other generated project)
+- The `example/` directory is a gitignored, locally-generated rendering (see `.gitignore`); regenerate it from `.example-input.yml` to smoke-test the template. Note: `.example-input.yml` uses the `library` preset (no interface components), so the run commands below for CLI/web/etc. apply only after enabling those options (or to any other generated project)
 - Generated projects use uv for dependency management, hatchling for builds, tox for testing, and include full CI/CD automation
 
 ## Development Commands
@@ -136,14 +136,18 @@ Free-form metadata:
 
 Starting point:
 
-- `preset` - `minimal`/`standard`/`full`/`custom`. Seeds the default of every
+- `preset` - `library`/`tool`/`web`/`full`. Seeds the default of every
   `include_*` toggle via the hidden `preset_map` computed variable (`when: false`,
-  never stored). `default: custom`, whose set equals the historical defaults, so
-  `--defaults` output is byte-identical to before and existing projects are
-  unaffected on update. Toggles remain asked and stored — the preset only changes
-  defaults; it hides nothing, though dependency-gated sub-questions (the DB UIs,
-  web framework, worker broker, redis backend) still appear only when their
-  parent toggle is enabled, independent of the preset.
+  never stored) — `library` → `examples`; `tool` → `cli` + `tui` +
+  `pydantic_settings`; `web` → `web` + `pydantic_settings` + `postgres` +
+  `redis`; `full` → everything. `default: library` (the smallest surface, so an
+  unattended `--defaults` run produces a plain package). Toggles remain asked and
+  stored — the preset only changes defaults; it hides nothing, though
+  dependency-gated sub-questions (the DB UIs, web framework, worker broker, redis
+  backend) still appear only when their parent toggle is enabled, independent of
+  the preset. The `minimal`/`standard`/`custom` presets and the byte-identical
+  `--defaults` guarantee were removed in
+  [ADR-016](../docs/adr/016-archetype-based-presets.md).
 
 Optional components (all boolean):
 
@@ -814,11 +818,14 @@ For generated projects to publish to PyPI:
    - Add entry point if applicable
    - Add keywords
    - Add the component to the `[tool.importlinter]` `layers` contract (a sibling in the `il_components` list, or — like `cli` — its own orchestrator layer if it imports other components)
-6. Update `.example-input.yml` with the new option
+6. Add the new toggle to the `full` entry in `copier.yml`'s `preset_map` (and to
+   any archetype preset — `library`/`tool`/`web` — whose shape includes it).
+   `.example-input.yml` no longer lists individual toggles, so it needs no change.
 7. Update `README.md` with documentation
 8. Keep the component's coverage at the `fail_under = 99` gate (see
    [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md)). Because
-   `.example-input.yml` disables every component, a component's coverage is only
+   `.example-input.yml` uses the `library` preset (no interface components), a
+   component's coverage is only
    validated when you generate it explicitly — do that and run the suite. Unit-test
    the business logic *including reachable error handling* (metadata-failure
    paths are tested via a `_MissingDistribution` monkeypatch stub — see the
