@@ -47,7 +47,7 @@ uv sync
 # Run tests across all Python versions
 uv run --locked tox run
 
-# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, sphinx-lint)
+# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter, taplo, typos, editorconfig-checker, sphinx-lint)
 uv run --locked tox run -e style
 
 # Run specific Python version tests
@@ -338,8 +338,8 @@ removed; see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
 **editorconfig-checker** enforces `.editorconfig` (the source of truth) on the
 axes no other tool owns — indent style/size and charset on config/markup files.
 It is delivered via the uv `style` group (PyPI wrapper, command `ec`), invoked
-in both the tox `style` env and a prek `local` hook. Unlike typos/actionlint
-(whose PyPI wrappers track their Go release tags), the `editorconfig-checker`
+in both the tox `style` env and a prek `local` hook. Unlike typos
+(whose PyPI wrapper tracks its Go release tags), the `editorconfig-checker`
 PyPI wrapper lags the Go releases, so a separate upstream prek `rev` pin would
 drift permanently out of sync with the `style` group — hence the `local` hook
 (single version source, like `basedpyright`) rather than an upstream repo hook.
