@@ -84,6 +84,22 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "basedpyright", name = "basedpyright Type Checker", entry = "uv run --locked --group style basedpyright", language = "system", types = ["python"], pass_filenames = false },
+  # import-linter (lint-imports) enforces the [tool.importlinter] architecture
+  # contract. Like basedpyright it is a whole-program analyzer that needs the
+  # installed package + its deps to build the import graph (via grimp), so it is a
+  # `local` `system` hook that shells out through `uv run --locked --group style`
+  # — NOT an upstream repo hook (that pattern runs in an isolated venv without the
+  # project installed, which is why it lived only in the tox `style` env before).
+  # Single version source: the `style` group pin (see ADR-014 §3). It builds the
+  # whole graph regardless of which files changed, so filenames are not passed.
+  { id = "import-linter", name = "Import Linter", entry = "uv run --locked --group style lint-imports", language = "system", pass_filenames = false, always_run = true },
+  # slotscheck imports every module under src/ to verify __slots__ definitions, so
+  # like basedpyright/import-linter it is a whole-program analyzer needing the
+  # installed package — a `local` `system` hook via `uv run`, not an upstream repo
+  # hook. It checks a property (slot correctness) no other tool covers, so it runs
+  # on the fast gate too (unlike the redundant type checkers ty/pyrefly/zuban,
+  # which stay style-env-only). Single version source: the `style` group pin.
+  { id = "slotscheck", name = "slotscheck", entry = "uv run --locked --group style python -m slotscheck src", language = "system", pass_filenames = false, always_run = true },
   # editorconfig-checker is run via the uv `style` group (not an upstream prek
   # repo) so its version has a single source of truth: its PyPI wrapper lags the
   # Go release tags, so a separate `rev` pin would drift permanently out of sync
