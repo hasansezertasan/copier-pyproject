@@ -22,8 +22,7 @@ author_given_names:
   type: str
   default: "{{ author_full_name.split(' ')[:-1] | join(' ') }}"
   help: >-
-    The author's given (first) names, used in CITATION.cff. Defaults to a best-effort
-    split of the full name — correct it here for compound surnames or "Last, First" ordering.
+    The author's given (first) names, used in CITATION.cff. Defaults to a best-effort split of the full name — correct it here for compound surnames or "Last, First" ordering.
 author_family_names:
   type: str
   default: "{{ author_full_name.split(' ')[-1] }}"
@@ -90,6 +89,10 @@ include_profiling:
   type: bool
   default: false
   help: "Include profiling and performance tools (py-spy, scalene, cProfile)?"
+include_examples:
+  type: bool
+  default: false
+  help: "Include an examples/ folder with simple and advanced usage stubs?"
 include_launcher:
   type: bool
   default: false

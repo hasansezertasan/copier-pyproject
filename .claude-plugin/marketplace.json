@@ -1,0 +1,33 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "copier-pyproject",
+  "description": "Single-plugin marketplace for the hasansezertasan/copier-pyproject Copier template's companion plugin.",
+  "owner": {
+    "name": "Hasan Sezer Taşan",
+    "email": "hasansezertasan@gmail.com",
+    "url": "https://github.com/hasansezertasan"
+  },
+  "plugins": [
+    {
+      "name": "copier-pyproject",
+      "source": "./",
+      "description": "Companion plugin for the copier-pyproject Copier template. Ships the adopt-copier-pyproject skill for adopting the template into an existing/published Python package and reconciling later `copier update` runs.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Hasan Sezer Taşan",
+        "email": "hasansezertasan@gmail.com"
+      },
+      "homepage": "https://github.com/hasansezertasan/copier-pyproject",
+      "repository": "https://github.com/hasansezertasan/copier-pyproject",
+      "license": "MIT",
+      "category": "development",
+      "keywords": [
+        "copier",
+        "template",
+        "python",
+        "packaging",
+        "migration"
+      ]
+    }
+  ]
+}

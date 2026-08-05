@@ -164,46 +164,34 @@ source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
 [dependency-groups]
 dev = [
   "{{github_repo_name}}[all]",
-  "tox==4.31.0",
-  "tox-uv==1.29.0",
-  "debugpy==1.8.0",
+  "tox==4.58.0",
+  "tox-uv==1.36.0",
+  "debugpy==1.8.21",
   { include-group = "style" },
   { include-group = "test" },
 ]
 style = [
-  "actionlint-py==1.7.12.24",
-  "basedpyright==1.39.8",
-  "editorconfig-checker==3.6.1",
+  "basedpyright==1.39.9",
+  "editorconfig-checker==3.8.0",
   "import-linter==2.13",
-  "mypy==2.1.0",
+  "mypy==2.3.0",
   "pylint==4.0.6",
-  "pyrefly==1.1.1",
-  "ruff==0.15.19",
-  "slotscheck==0.20.0",
+  "pyrefly==1.2.0",
+  "ruff==0.16.1",
+  "slotscheck==0.20.1",
   "sphinx-lint==1.0.2",
   "taplo==0.9.3",
-  "ty==0.0.53",
-  "typos==1.47.2",
-  "validate-pyproject[all]==0.25",
-  "vulture==2.16",
-  "zuban==0.9.0",
-  # "google-yamlfmt",
-  # "shellcheck-makefile>=1.27.3",
-  # "shellcheck-py>=0.10.0.1",
-  # "types-PyYAML",
-  # "types-setuptools",
-  # "types-ujson",
-  # "yamlfix>=1.18.0",
-  # "yamlfmt>=1.1.1",
-  # "yamllint>=1.37.1",
+  "ty==0.0.66",
+  "typos==1.49.0",
+  "zuban==0.9.1",
 ]
 test = [
   "coverage-enable-subprocess==1.0",
-  "coverage[toml]==7.11.0",
+  "coverage[toml]==7.15.3",
   "pytest-mock==3.15.1",
-  "pytest-rerunfailures==16.1",
+  "pytest-rerunfailures==16.4",
   "pytest-xdist[psutil]==3.8.0",
-  "pytest==8.4.2",
+  "pytest==9.1.1",
   "pytest-sugar",
   "pytest-asyncio>=0.23.0",
   "dirty-equals",
@@ -221,7 +209,7 @@ test = [
 ]
 docs = [
     "sphinx==8.1.3",
-    "shibuya==2026.5.19",
+    "shibuya==2026.7.12",
     "sphinx-autobuild==2024.10.3",  # 2025.x drops Python 3.10 (requires-python >= 3.11)
     "sphinx-copybutton==0.5.2",
     "sphinx-design==0.6.1",  # 0.7.0 drops Python 3.10 (requires-python >= 3.11)
@@ -234,7 +222,7 @@ docs = [
 {%- endif %}
 ]
 tool = [
-  "commitizen==4.10.0",
+  "commitizen==4.17.0",
 {%- if include_c_extensions %}
   "cython>=3.0.0",
 {%- endif %}
@@ -255,7 +243,7 @@ tool = [
   # "copier==9.11.0",
 ]
 prek = [
-    "prek==0.4.3",
+    "prek==0.4.12",
 ]
 
 
@@ -471,7 +459,7 @@ fix = true
 output-format = "full"
 preview = true
 show-fixes = true
-src = ["src", "tests", "examples"]
+src = ["src", "tests"{% if include_examples %}, "examples"{% endif %}]
 target-version = "py310"
 unsafe-fixes = true
 
@@ -490,7 +478,11 @@ skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
 fixable = ["ALL"]
-ignore = ["COM812", "CPY", "FIX", "TD"]
+# Two opinionated ruff 0.16 preview rules are disabled: RUF105 would rewrite the
+# portable `# noqa` comments into ruff's own `# ruff: ignore` syntax (its docs note
+# `# noqa` is needed for cross-tool compatibility), and RUF201 would rewrite every
+# rule *code* in this config's selectors into long rule *names*. Both are stylistic.
+ignore = ["COM812", "CPY", "FIX", "RUF105", "RUF201", "TD"]
 logger-objects = ["logging_setup.logger"]
 preview = true
 select = ["ALL"]
@@ -536,7 +528,9 @@ convention = "pep257"
 # Tests legitimately use asserts/magic values, reach into package internals, and
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
-"examples/*.py" = ["INP001"]
+{%- if include_examples %}
+"examples/**/*.py" = ["INP001"]
+{%- endif %}
 # The Sphinx config is a standalone module, not part of an importable package.
 "docs/conf.py" = ["INP001"]
 {%- if include_c_extensions %}
@@ -752,9 +746,6 @@ commands = [
     "src",
   ],
   [
-    "vulture",
-  ],
-  [
     "python",
     "-m",
     "slotscheck",
@@ -781,15 +772,8 @@ commands = [
     "*.toml",
   ],
   [
-    "validate-pyproject",
-    "pyproject.toml",
-  ],
-  [
     "typos",
     "--diff",
-  ],
-  [
-    "actionlint",
   ],
   [
     "ec",
@@ -798,7 +782,6 @@ commands = [
     "sphinx-lint",
     "docs",
   ],
-  # ["yamlfmt", "."],
 ]
 # `test` is included so the type checkers that scope tests (e.g. ty) can
 # resolve pytest and other test-only imports.

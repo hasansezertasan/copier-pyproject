@@ -47,7 +47,7 @@ uv sync
 # Run tests across all Python versions
 uv run --locked tox run
 
-# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, sphinx-lint)
+# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, slotscheck, import-linter, taplo, typos, editorconfig-checker, sphinx-lint)
 uv run --locked tox run -e style
 
 # Run specific Python version tests
@@ -250,10 +250,18 @@ orchestrator layer above them (its `web`/`gui`/`tui` subcommands lazy-import tho
 components to launch them), all layered above `core` above `utils`. The component
 layers are Jinja-conditional on the enabled toggles (omitted when none are
 enabled, leaving a `core > utils` contract), so no `ignore_imports` is needed.
-Delivered via the `style` group + a `lint-imports` command in the tox `style`
-env — **not** prek, because it needs the installed package and a
-whole-import-graph build. See
-[ADR-014](../docs/adr/014-import-linter-for-architecture-contracts.md).
+Delivered via the `style` group + a `lint-imports` command run from **both** the
+tox `style` env and a prek `local` `system` hook (`uv run --locked --group style
+lint-imports`) — the same dual-run, single-version-source pattern as
+`basedpyright`, since import-linter is likewise a whole-program analyzer that
+needs the installed package and a `grimp` import-graph build. It is **not**
+eligible as an upstream prek **repo hook** (those run in an isolated venv without
+the project installed); the `local` `system` hook shells out through `uv run`,
+which syncs and resolves the package. **slotscheck** (which imports `src/` to
+verify `__slots__`) is delivered the same dual-run way and for the same reason —
+whereas the redundant type checkers `ty`/`pyrefly`/`zuban` stay style-env-only so
+the fast gate carries one representative type checker (basedpyright), not five.
+See [ADR-014](../docs/adr/014-import-linter-for-architecture-contracts.md).
 
 Also always included (no toggle): a `SUPPORT.md` community-health file (points to
 docs/issues/discussions and cross-references `SECURITY.md`/`CONTRIBUTING.md`), a
@@ -338,8 +346,8 @@ removed; see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
 **editorconfig-checker** enforces `.editorconfig` (the source of truth) on the
 axes no other tool owns — indent style/size and charset on config/markup files.
 It is delivered via the uv `style` group (PyPI wrapper, command `ec`), invoked
-in both the tox `style` env and a prek `local` hook. Unlike typos/actionlint
-(whose PyPI wrappers track their Go release tags), the `editorconfig-checker`
+in both the tox `style` env and a prek `local` hook. Unlike typos
+(whose PyPI wrapper tracks its Go release tags), the `editorconfig-checker`
 PyPI wrapper lags the Go releases, so a separate upstream prek `rev` pin would
 drift permanently out of sync with the `style` group — hence the `local` hook
 (single version source, like `basedpyright`) rather than an upstream repo hook.
