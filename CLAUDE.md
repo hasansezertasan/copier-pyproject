@@ -141,7 +141,9 @@ Starting point:
   never stored). `default: custom`, whose set equals the historical defaults, so
   `--defaults` output is byte-identical to before and existing projects are
   unaffected on update. Toggles remain asked and stored — the preset only changes
-  defaults.
+  defaults; it hides nothing, though dependency-gated sub-questions (the DB UIs,
+  web framework, worker broker, redis backend) still appear only when their
+  parent toggle is enabled, independent of the preset.
 
 Optional components (all boolean):
 

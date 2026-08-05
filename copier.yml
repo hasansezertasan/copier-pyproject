@@ -9,16 +9,9 @@ _subdirectory: template
 # after-copy message tells the user to run `git init`).
 
 _message_before_copy: >-
-  Pick a preset, then press Enter through the toggles to accept its defaults, or
-  tune any of them. Every toggle is still shown and saved regardless of preset.
-
+  Pick a preset, then press Enter through the toggles to accept its defaults, or tune any of them. The preset only sets defaults — every toggle is still asked and saved (a few sub-questions stay conditional on their parent toggle).
 _message_after_copy: >-
-  Project {{ github_repo_name }} scaffolded. Next steps:
-  (1) git init && git add -A && git commit -m "chore: initial commit"
-  (2) uv sync
-  (3) complete the one-time repository setup documented in CONTRIBUTING.md
-  (squash-merge policy, workflow permissions, PyPI trusted publishing).
-
+  Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync (3) complete the one-time repository setup documented in CONTRIBUTING.md (squash-merge policy, workflow permissions, PyPI trusted publishing).
 # ── ① Identity ──────────────────────────────────────────────────────────────
 github_user:
   type: str
@@ -52,7 +45,6 @@ package_keywords:
   default: ""
   help: >-
     Extra PyPI keywords specific to your project (comma-separated, e.g. "data, async, etl"). Tooling and component keywords are added automatically.
-
 # ── ② Preset ────────────────────────────────────────────────────────────────
 preset:
   type: str
@@ -63,7 +55,7 @@ preset:
     "Full — every component & integration": full
     "Custom — choose each toggle": custom
   help: >-
-    Pick a starting point. Every toggle below is still shown and saved; the preset just chooses smart defaults you can accept by pressing Enter.
+    Pick a starting point. The preset just chooses smart defaults you can accept by pressing Enter; every toggle is still asked and saved (a few sub-questions remain conditional on their parent toggle).
 preset_map:
   type: yaml
   when: false
@@ -102,7 +94,6 @@ preset_map:
       - include_gui
       - include_tui
       - include_pydantic_settings
-
 # ── ③ Interfaces ────────────────────────────────────────────────────────────
 include_cli:
   type: bool
@@ -146,7 +137,6 @@ worker_broker:
     - redis
   when: "{{ include_worker }}"
   help: "Choose the message broker to use"
-
 # ── ④ Packaging / build ─────────────────────────────────────────────────────
 include_c_extensions:
   type: bool
@@ -172,13 +162,11 @@ include_examples:
   type: bool
   default: "{{ 'include_examples' in preset_map[preset] }}"
   help: "Include an examples/ folder with simple and advanced usage stubs?"
-
 # ── ⑤ Config ────────────────────────────────────────────────────────────────
 include_pydantic_settings:
   type: bool
   default: "{{ 'include_pydantic_settings' in preset_map[preset] }}"
   help: "Use pydantic-settings for type-safe configuration management?"
-
 # ── ⑥ Quality add-ons (opt-in, may need external accounts) ──────────────────
 include_sourcery:
   type: bool
@@ -200,7 +188,6 @@ include_megalinter:
   default: "{{ 'include_megalinter' in preset_map[preset] }}"
   help: >-
     Add MegaLinter as an optional extra CI quality layer? It runs only linters that prek/tox do not already cover (shellcheck, hadolint, jsonlint, jscpd clone-detection, and a .md-scoped cspell prose pass) and uploads SARIF findings to the Security tab. Off by default so the fast, self-contained default is preserved (tox/prek remain the canonical runners).
-
 # ── ⑦ Devcontainer services ─────────────────────────────────────────────────
 include_postgres:
   type: bool

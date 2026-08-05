@@ -34,9 +34,12 @@ below it:
 - `custom` — the historical defaults (CLI, web, GUI, TUI, pydantic-settings);
   choose each toggle yourself.
 
-Every toggle is still shown and written to `.copier-answers.yml`, so the preset
-only changes the *default* you can accept with Enter — it never hides a question
-and never changes an existing project on `copier update`.
+The preset only changes each toggle's *default* (which you can accept with
+Enter) — it never hides a question and never changes an existing project on
+`copier update`; every toggle is still written to `.copier-answers.yml`. A few
+sub-questions (the web framework, worker broker, Redis backend, and the
+PostgreSQL UIs) remain conditional on their parent toggle, independently of the
+preset.
 
 Copier will prompt for:
 
@@ -64,7 +67,8 @@ Copier will prompt for:
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
-- `redis_backend` (redis/valkey - when `include_redis` is enabled)
+- `redis_backend` (redis/valkey - when `include_redis` is enabled, or when a
+  `redis` worker broker is used even with `include_redis` disabled)
 - `include_pgadmin` (include pgAdmin - when `include_postgres` is enabled)
 - `include_adminer` (include Adminer - when `include_postgres` is enabled)
 - `include_dbeaver` (include CloudBeaver database UI in devcontainer)
