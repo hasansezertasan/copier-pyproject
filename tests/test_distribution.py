@@ -130,3 +130,17 @@ def test_publish_homebrew_pypi_branch(render: Callable[..., Path]) -> None:
     assert "pypi.org/pypi" in text
     assert "@@SDIST_URL@@".replace("@@", "") in text
     assert "gh release download" not in text
+
+
+def test_release_has_publish_scoop_job(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_scoop=True, include_compiler=True)
+    wf = yaml.safe_load(_read(root, ".github", "workflows", "release.yml"))
+    job = wf["jobs"]["publish-scoop"]
+    assert "finalize-release" in job["needs"]
+    text = _read(root, ".github", "workflows", "release.yml")
+    assert "SCOOP_BUCKET_TOKEN_SET" in text or "SCOOP_BUCKET_TOKEN != ''" in text
+
+
+def test_release_omits_publish_scoop_when_disabled(render: Callable[..., Path]) -> None:
+    text = _read(render(preset="tool"), ".github", "workflows", "release.yml")
+    assert "publish-scoop" not in text

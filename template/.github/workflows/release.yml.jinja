@@ -597,6 +597,82 @@ jobs:
           base: main
           delete-branch: true
 {% endif %}
+{% if include_scoop %}
+  publish-scoop:
+    name: Publish Scoop manifest
+    # Runs after the release is published so the tagged assets exist. Opens a PR
+    # to the author's scoop-bucket repo with the freshly rendered manifest. Gated
+    # on the SCOOP_BUCKET_TOKEN secret: without it the job announces a skip
+    # ::notice:: and does nothing (mirrors the Codecov/Sonar opt-in posture).
+    needs: [release-please, finalize-release]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      SCOOP_BUCKET_TOKEN_SET: {% raw %}${{ secrets.SCOOP_BUCKET_TOKEN != '' }}{% endraw %}
+    steps:
+      - name: Announce skip when bucket token unset
+        if: {% raw %}${{ env.SCOOP_BUCKET_TOKEN_SET != 'true' }}{% endraw %}
+        run: echo "::notice::SCOOP_BUCKET_TOKEN not set — skipping Scoop publish."
+      - name: Checkout bucket repo
+        if: {% raw %}${{ env.SCOOP_BUCKET_TOKEN_SET == 'true' }}{% endraw %}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          repository: {% raw %}${{ github.repository_owner }}{% endraw %}/scoop-bucket
+          token: {% raw %}${{ secrets.SCOOP_BUCKET_TOKEN }}{% endraw %}
+          path: bucket
+          persist-credentials: false
+      - name: Checkout source for the packaging template
+        if: {% raw %}${{ env.SCOOP_BUCKET_TOKEN_SET == 'true' }}{% endraw %}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          path: src
+          persist-credentials: false
+      - name: Render manifest
+        if: {% raw %}${{ env.SCOOP_BUCKET_TOKEN_SET == 'true' }}{% endraw %}
+        env:
+          # GitHub-context values pass through env and are read as shell vars, per
+          # the repo's no-untrusted-context-in-run convention (satisfies zizmor's
+          # template-injection audit). This job runs only on push to main.
+          TAG_NAME: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+          VERSION: {% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
+          REPO: {% raw %}${{ github.repository }}{% endraw %}
+          GH_TOKEN: {% raw %}${{ github.token }}{% endraw %}
+        run: |
+          set -euo pipefail
+          tmpl="src/.github/packaging/scoop-manifest.json.tmpl"
+          out="bucket/{{github_repo_name}}.json"
+          mkdir -p bucket
+          base="https://github.com/$REPO/releases/download/$TAG_NAME"
+{% if primary_executable %}
+          workdir="$(mktemp -d)"
+          asset="{{github_repo_name}}-{{primary_executable}}-windows.exe"
+          gh release download "$TAG_NAME" --repo "$REPO" --pattern "$asset" --dir "$workdir"
+          sha_win="$(shasum -a 256 "$workdir/$asset" | cut -d' ' -f1)"
+          sed \
+            -e "s|@@VERSION@@|$VERSION|g" \
+            -e "s|@@URL_WIN@@|$base/$asset|g" \
+            -e "s|@@SHA256_WIN@@|$sha_win|g" \
+            "$tmpl" > "$out"
+{% else %}
+          # No executable toggle: the manifest's install script does `pip
+          # install` at runtime, so only the version needs substituting.
+          sed -e "s|@@VERSION@@|$VERSION|g" "$tmpl" > "$out"
+{% endif %}
+      - name: Open PR to bucket
+        if: {% raw %}${{ env.SCOOP_BUCKET_TOKEN_SET == 'true' }}{% endraw %}
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        with:
+          token: {% raw %}${{ secrets.SCOOP_BUCKET_TOKEN }}{% endraw %}
+          path: bucket
+          commit-message: {% raw %}"chore: update {% endraw %}{{github_repo_name}}{% raw %} to ${{ needs.release-please.outputs.tag_name }}"{% endraw %}
+          title: {% raw %}"chore: update {% endraw %}{{github_repo_name}}{% raw %} to ${{ needs.release-please.outputs.tag_name }}"{% endraw %}
+          branch: chore/{{github_repo_name}}-manifest
+          base: main
+          delete-branch: true
+{% endif %}
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs
