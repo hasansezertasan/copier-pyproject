@@ -89,6 +89,7 @@ preset_map:
       - include_sonarcloud
       - include_all_contributors
       - include_megalinter
+      - include_repo_settings
       - include_postgres
       - include_pgadmin
       - include_adminer
@@ -189,6 +190,11 @@ include_megalinter:
   default: "{{ 'include_megalinter' in preset_map[preset] }}"
   help: >-
     Add MegaLinter as an optional extra CI quality layer? It runs only linters that prek/tox do not already cover (shellcheck, hadolint, jsonlint, jscpd clone-detection, and a .md-scoped cspell prose pass) and uploads SARIF findings to the Security tab. Off by default so the fast, self-contained default is preserved (tox/prek remain the canonical runners).
+include_repo_settings:
+  type: bool
+  default: "{{ 'include_repo_settings' in preset_map[preset] }}"
+  help: >-
+    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? Requires installing that App on the repository; it escalates push access to admin, so review the CONTRIBUTING note before enabling.
 # ── ⑦ Devcontainer services ─────────────────────────────────────────────────
 include_postgres:
   type: bool
