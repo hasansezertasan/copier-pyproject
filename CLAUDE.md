@@ -222,6 +222,14 @@ Optional components (all boolean):
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
   [ADR-013](docs/adr/013-megalinter-opt-in-lean-complement.md).
+- `include_homebrew` - Homebrew tap formula published on each release (opt-in;
+  needs a `homebrew-tap` repo + `HOMEBREW_TAP_TOKEN` secret). See
+  [ADR-017](docs/adr/017-opt-in-homebrew-scoop-distribution.md).
+- `include_scoop` - Scoop bucket manifest published on each release (opt-in;
+  needs a `scoop-bucket` repo + `SCOOP_BUCKET_TOKEN` secret). Both ship the
+  prebuilt binary chosen by the `primary_executable` precedence
+  (`freezer` > `compiler` > `launcher`) when an executable toggle is enabled,
+  else a PyPI/virtualenv fallback.
 
 Framework/broker choices (when parent option is enabled):
 
