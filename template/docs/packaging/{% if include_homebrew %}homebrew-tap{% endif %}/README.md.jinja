@@ -1,0 +1,67 @@
+# Homebrew tap setup
+
+This folder is a **reference bundle**, rendered here for convenience — it is
+not consumed by {{github_repo_name}} itself. Copy its contents into your
+`{{github_user}}/homebrew-tap` repository to receive automated Homebrew
+{% if primary_executable %}cask{% else %}formula{% endif %} bumps on every release.
+
+## How it works
+
+On each release, this project's `bump-homebrew` job (in `release.yml`) sends a
+`repository_dispatch` event to `{{github_user}}/homebrew-tap`. The listener
+workflow in this folder receives that event, resolves the new version, bumps
+the {% if primary_executable %}cask{% else %}formula{% endif %}, audits it, and opens a pull request against the tap —
+all inside the tap repository, using the tap's own `GITHUB_TOKEN`.
+
+## One-time tap setup
+
+1. Create the tap repository:
+
+   ```sh
+   gh repo create {{github_user}}/homebrew-tap --public \
+     --description "Homebrew tap for {{github_user}} packages"
+   ```
+
+2. Bootstrap the initial {% if primary_executable %}cask{% else %}formula{% endif %}:
+{% if primary_executable %}
+   ```sh
+   brew create --cask <github-release-asset-url>
+   ```
+
+   Then edit the generated `Casks/{{github_repo_name}}.rb` to fill in the
+   `sha256`, `url`, and `version` stanzas for your release artifact.
+{% else %}
+   ```sh
+   brew tap-new {{github_user}}/tap
+   brew create --set-name {{github_repo_name}} <pypi-sdist-url>
+   brew update-python-resources {{github_user}}/tap/{{github_repo_name}}
+   ```
+
+   `update-python-resources` fills in the Python `resource` blocks for the
+   formula's dependencies.
+{% endif %}
+
+3. Commit the listener workflow from this folder,
+   `update-{% if primary_executable %}cask{% else %}formula{% endif %}-dispatch.yml`, to the tap's
+   `.github/workflows/` directory.
+
+## Token setup (in this project's repo)
+
+In **this** project's repository — `{{github_user}}/{{github_repo_name}}` — add
+a fine-grained personal access token as the `HOMEBREW_TAP_TOKEN` secret, scoped
+to `{{github_user}}/homebrew-tap` with **Contents: write** permission only.
+That is all the `POST /dispatches` API requires; the tap opens its own pull
+request with its own `GITHUB_TOKEN`, so **Pull requests: write** is not needed
+on the PAT.
+
+```sh
+gh secret set HOMEBREW_TAP_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+When `HOMEBREW_TAP_TOKEN` is unset, the `bump-homebrew` job skips with a
+notice — it never fails the release.
+
+## Reference implementation
+
+[`hasansezertasan/homebrew-tap`](https://github.com/hasansezertasan/homebrew-tap)
+is a working tap built with this same listener, kept as a live reference.
