@@ -40,7 +40,6 @@ all inside the tap repository, using the tap's own `GITHUB_TOKEN`.
    `update-python-resources` fills in the Python `resource` blocks for the
    formula's dependencies.
 {% endif %}
-
 3. Commit the listener workflow from this folder,
    `update-{% if primary_executable %}cask{% else %}formula{% endif %}-dispatch.yml`, to the tap's
    `.github/workflows/` directory.
