@@ -1,4 +1,9 @@
-"""Opt-in Homebrew tap + Scoop bucket distribution (issue #146)."""
+"""Opt-in Homebrew tap + Scoop bucket distribution (issue #146).
+
+The generated project no longer renders/pushes the formula/manifest itself; it
+fires a cross-repo ``repository_dispatch`` at the author's tap/bucket, which own
+the manifest logic (the "keycast" pattern).
+"""
 
 from __future__ import annotations
 
@@ -14,6 +19,13 @@ USER = "octocat"
 def _answers(root: Path) -> dict[str, Any]:
     text = (root / ".copier-answers.yml").read_text(encoding="utf-8")
     return yaml.safe_load(text)
+
+
+def _read(root: Path, *parts: str) -> str:
+    return (root / Path(*parts)).read_text(encoding="utf-8")
+
+
+# --- copier toggle behaviour -------------------------------------------------
 
 
 def test_full_preset_enables_distribution(render: Callable[..., Path]) -> None:
@@ -35,8 +47,7 @@ def test_app_defaults_distribution_off(render: Callable[..., Path]) -> None:
     assert answers["include_scoop"] is False
 
 
-def _read(root: Path, *parts: str) -> str:
-    return (root / Path(*parts)).read_text(encoding="utf-8")
+# --- documentation (rewritten in a later task; kept while content renders) ---
 
 
 def test_readme_shows_brew_and_scoop_when_enabled(render: Callable[..., Path]) -> None:
@@ -72,167 +83,78 @@ def test_contributing_omits_tap_setup_when_disabled(render: Callable[..., Path])
     assert "SCOOP_BUCKET_TOKEN" not in contributing
 
 
-def test_homebrew_binary_formula_when_executable(render: Callable[..., Path]) -> None:
-    root = render(preset="tool", include_homebrew=True, include_freezer=True)
-    tmpl = _read(root, ".github", "packaging", "homebrew-formula.rb.tmpl")
-    assert "@@SHA256_MACOS@@" in tmpl  # binary path
-    assert f"{PKG}-freezer-macos" in tmpl  # primary_executable asset
-    assert "virtualenv" not in tmpl.lower()
+# --- producer: cross-repo dispatch jobs --------------------------------------
 
 
-def test_homebrew_pypi_formula_when_no_executable(render: Callable[..., Path]) -> None:
+def test_bump_homebrew_formula_when_no_executable(render: Callable[..., Path]) -> None:
     root = render(preset="tool", include_homebrew=True)  # no executable toggle
-    tmpl = _read(root, ".github", "packaging", "homebrew-formula.rb.tmpl")
-    assert "@@SDIST_SHA256@@" in tmpl  # PyPI path
-    assert 'pip", "install"' in tmpl or "pip install" in tmpl
+    text = _read(root, ".github", "workflows", "release.yml")
+    wf = yaml.safe_load(text)
+    job = wf["jobs"]["bump-homebrew"]
+    assert "release-please" in job["needs"]
+    assert "finalize-release" in job["needs"]
+    assert "HOMEBREW_TAP_TOKEN" in text
+    assert "event_type=update-formula" in text
+    assert "event_type=update-cask" not in text
+    assert f"{USER}/homebrew-tap/dispatches" in text
 
 
-def test_scoop_binary_manifest_when_executable(render: Callable[..., Path]) -> None:
-    root = render(preset="tool", include_scoop=True, include_compiler=True)
-    tmpl = _read(root, ".github", "packaging", "scoop-manifest.json.tmpl")
-    assert "@@SHA256_WIN@@" in tmpl
-    # The manifest no longer hardcodes a `.exe`; the real asset name is
-    # substituted at publish time via the @@BIN_WIN@@ placeholder.
-    assert "@@BIN_WIN@@" in tmpl
-    assert f"{PKG}-compiler-windows.exe" not in tmpl
+def test_bump_homebrew_cask_when_executable(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True, include_freezer=True)
+    text = _read(root, ".github", "workflows", "release.yml")
+    wf = yaml.safe_load(text)
+    assert "bump-homebrew" in wf["jobs"]
+    assert "event_type=update-cask" in text
+    assert "event_type=update-formula" not in text
 
 
-def test_packaging_absent_when_disabled(render: Callable[..., Path]) -> None:
-    root = render(preset="tool")
+def test_release_omits_bump_homebrew_when_disabled(render: Callable[..., Path]) -> None:
+    text = _read(render(preset="tool"), ".github", "workflows", "release.yml")
+    assert "bump-homebrew" not in text
+
+
+def test_bump_scoop_dispatches_manifest(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_scoop=True)
+    text = _read(root, ".github", "workflows", "release.yml")
+    wf = yaml.safe_load(text)
+    job = wf["jobs"]["bump-scoop"]
+    assert "release-please" in job["needs"]
+    assert "finalize-release" in job["needs"]
+    assert "SCOOP_BUCKET_TOKEN" in text
+    assert "event_type=update-manifest" in text
+    assert f"{USER}/scoop-bucket/dispatches" in text
+
+
+def test_release_omits_bump_scoop_when_disabled(render: Callable[..., Path]) -> None:
+    text = _read(render(preset="tool"), ".github", "workflows", "release.yml")
+    assert "bump-scoop" not in text
+
+
+def test_no_dispatch_jobs_or_packaging_when_disabled(
+    render: Callable[..., Path],
+) -> None:
+    root = render(preset="tool")  # neither homebrew nor scoop
+    text = _read(root, ".github", "workflows", "release.yml")
+    assert "bump-homebrew" not in text
+    assert "bump-scoop" not in text
     assert not (root / ".github" / "packaging").exists()
 
 
-def test_release_has_publish_homebrew_job(render: Callable[..., Path]) -> None:
-    root = render(preset="tool", include_homebrew=True, include_freezer=True)
-    wf = yaml.safe_load(_read(root, ".github", "workflows", "release.yml"))
-    job = wf["jobs"]["publish-homebrew"]
-    assert "finalize-release" in job["needs"]
-    # gated-on-secret presence flag
-    text = _read(root, ".github", "workflows", "release.yml")
-    assert "HOMEBREW_TAP_TOKEN_SET" in text
-    assert "peter-evans/create-pull-request" in text
-    # binary branch downloads the release assets, no PyPI fallback
-    assert "gh release download" in text
+# --- ghalint (reverted to web-only) ------------------------------------------
 
 
-def test_release_omits_publish_homebrew_when_disabled(
-    render: Callable[..., Path],
-) -> None:
-    text = _read(render(preset="tool"), ".github", "workflows", "release.yml")
-    assert "publish-homebrew" not in text
-
-
-def test_publish_homebrew_pypi_branch(render: Callable[..., Path]) -> None:
-    text = _read(
-        render(preset="tool", include_homebrew=True),
-        ".github",
-        "workflows",
-        "release.yml",
-    )
-    # PyPI JSON-API fallback (no executable toggle)
-    assert "pypi.org/pypi" in text
-    assert "@@SDIST_URL@@".replace("@@", "") in text
-    assert "gh release download" not in text
-
-
-def test_release_has_publish_scoop_job(render: Callable[..., Path]) -> None:
-    root = render(preset="tool", include_scoop=True, include_compiler=True)
-    wf = yaml.safe_load(_read(root, ".github", "workflows", "release.yml"))
-    job = wf["jobs"]["publish-scoop"]
-    assert "finalize-release" in job["needs"]
-    text = _read(root, ".github", "workflows", "release.yml")
-    assert "SCOOP_BUCKET_TOKEN_SET" in text or "SCOOP_BUCKET_TOKEN != ''" in text
-    # The Windows asset is glob-derived (no assumed `.exe` extension) so the
-    # launcher's extension-less asset is still matched.
-    assert f"{PKG}-compiler-windows*" in text
-
-
-def test_release_omits_publish_scoop_when_disabled(render: Callable[..., Path]) -> None:
-    text = _read(render(preset="tool"), ".github", "workflows", "release.yml")
-    assert "publish-scoop" not in text
-
-
-def test_ghalint_excludes_publish_jobs(render: Callable[..., Path]) -> None:
+def test_ghalint_absent_without_web(render: Callable[..., Path]) -> None:
+    # brew/scoop no longer need a ghalint exclusion; only web (docker) does.
     root = render(preset="tool", include_homebrew=True, include_scoop=True)
-    ghalint = _read(root, ".github", "ghalint.yaml")
-    assert "publish-homebrew" in ghalint
-    assert "publish-scoop" in ghalint
-    parsed = yaml.safe_load(ghalint)
-    job_names = {entry["job_name"] for entry in parsed["excludes"]}
-    assert "publish-homebrew" in job_names
-    assert "publish-scoop" in job_names
-
-
-def test_ghalint_absent_without_any_secret_job(render: Callable[..., Path]) -> None:
-    root = render(preset="tool")  # no web, no brew/scoop
     assert not (root / ".github" / "ghalint.yaml").exists()
 
 
-def test_ghalint_web_only_excludes_docker_not_publish_jobs(
-    render: Callable[..., Path],
-) -> None:
+def test_ghalint_web_only_excludes_docker(render: Callable[..., Path]) -> None:
     root = render(preset="tool", include_web=True)
     ghalint = _read(root, ".github", "ghalint.yaml")
     assert "docker-publish" in ghalint
     assert "publish-homebrew" not in ghalint
     assert "publish-scoop" not in ghalint
-    yaml.safe_load(ghalint)  # must still be valid YAML
-
-
-def test_homebrew_formula_classname_handles_underscores(
-    render: Callable[..., Path],
-) -> None:
-    # underscores are valid in github_repo_name; the classname must CamelCase
-    # across both '-' and '_' separators, e.g. my_app -> MyApp.
-    root = render(
-        github_repo_name="my_app",
-        preset="tool",
-        include_homebrew=True,
-        include_freezer=True,
-    )
-    tmpl = _read(root, ".github", "packaging", "homebrew-formula.rb.tmpl")
-    assert "class MyApp" in tmpl
-
-
-def test_packaging_templates_declare_license(render: Callable[..., Path]) -> None:
-    root = render(
-        preset="tool",
-        include_homebrew=True,
-        include_scoop=True,
-        include_freezer=True,
-    )
-    formula = _read(root, ".github", "packaging", "homebrew-formula.rb.tmpl")
-    manifest = _read(root, ".github", "packaging", "scoop-manifest.json.tmpl")
-    assert 'license "MIT"' in formula
-    assert '"license": "MIT"' in manifest
-
-
-def test_scoop_pypi_manifest_uses_jsonpath_checkver(
-    render: Callable[..., Path],
-) -> None:
-    # PyPI (no-executable) branch: the invalid `"checkver": "pypi"` is replaced
-    # by a proper checkver object querying the PyPI JSON API.
-    root = render(preset="tool", include_scoop=True)  # no executable toggle
-    manifest = _read(root, ".github", "packaging", "scoop-manifest.json.tmpl")
-    assert "jsonpath" in manifest
-    assert '"checkver": "pypi"' not in manifest
-
-
-def test_publish_jobs_pin_checkout_and_target_default_branch(
-    render: Callable[..., Path],
-) -> None:
-    text = _read(
-        render(
-            preset="tool",
-            include_homebrew=True,
-            include_scoop=True,
-            include_freezer=True,
-        ),
-        ".github",
-        "workflows",
-        "release.yml",
-    )
-    # both source checkouts pin to the release tag
-    assert "ref: ${{ needs.release-please.outputs.tag_name }}" in text
-    # create-pull-request targets each tap/bucket repo's own default branch
-    assert "base: main" not in text
+    parsed = yaml.safe_load(ghalint)
+    job_names = {entry["job_name"] for entry in parsed["excludes"]}
+    assert job_names == {"docker-publish-preflight", "docker-publish"}
