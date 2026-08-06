@@ -436,6 +436,46 @@ misconfiguration can never produce a partial release. The image is pushed
 to `docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}`, so the namespace
 follows the Docker Hub account — it does not need to match the GitHub owner.
 {%- endif %}
+{%- if include_homebrew %}
+
+**12. Homebrew tap (optional).** The release workflow opens a PR to your
+Homebrew tap on each release. Create the tap repo once:
+
+```sh
+gh repo create {{github_user}}/homebrew-tap --public \
+  --description "Homebrew tap for {{github_user}} packages"
+```
+
+Then create a fine-grained PAT with **Contents: read/write** and **Pull
+requests: read/write** scoped to `{{github_user}}/homebrew-tap`, and set it as
+the `HOMEBREW_TAP_TOKEN` repository secret:
+
+```sh
+gh secret set HOMEBREW_TAP_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+When unset, the publish job skips with a notice (never fails the release).
+{%- endif %}
+{%- if include_scoop %}
+
+**13. Scoop bucket (optional).** The release workflow opens a PR to your Scoop
+bucket on each release. Create the bucket repo once:
+
+```sh
+gh repo create {{github_user}}/scoop-bucket --public \
+  --description "Scoop bucket for {{github_user}} packages"
+```
+
+Then create a fine-grained PAT with **Contents: read/write** and **Pull
+requests: read/write** scoped to `{{github_user}}/scoop-bucket`, and set it as
+the `SCOOP_BUCKET_TOKEN` repository secret:
+
+```sh
+gh secret set SCOOP_BUCKET_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+When unset, the publish job skips with a notice (never fails the release).
+{%- endif %}
 {%- if include_sourcery or include_sonarcloud or include_all_contributors %}
 
 ### Optional third-party integrations

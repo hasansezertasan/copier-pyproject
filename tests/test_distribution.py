@@ -55,3 +55,18 @@ def test_readme_omits_brew_and_scoop_when_disabled(render: Callable[..., Path]) 
 def test_installation_rst_shows_brew_when_enabled(render: Callable[..., Path]) -> None:
     rst = _read(render(preset="tool", include_homebrew=True), "docs", "installation.rst")
     assert f"brew install {USER}/tap/{PKG}" in rst
+
+
+def test_contributing_documents_tap_setup(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True, include_scoop=True)
+    contributing = _read(root, ".github", "CONTRIBUTING.md")
+    assert "homebrew-tap" in contributing
+    assert "HOMEBREW_TAP_TOKEN" in contributing
+    assert "scoop-bucket" in contributing
+    assert "SCOOP_BUCKET_TOKEN" in contributing
+
+
+def test_contributing_omits_tap_setup_when_disabled(render: Callable[..., Path]) -> None:
+    contributing = _read(render(preset="tool"), ".github", "CONTRIBUTING.md")
+    assert "HOMEBREW_TAP_TOKEN" not in contributing
+    assert "SCOOP_BUCKET_TOKEN" not in contributing
