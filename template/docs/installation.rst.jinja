@@ -15,25 +15,27 @@ Stable release
 --------------
 
 {% if include_cli or include_tui or include_gui or include_web or include_mcp or include_worker -%}
+{% set app_command = github_repo_name if include_cli else (github_repo_name ~ "-tui" if include_tui else (github_repo_name ~ "-gui" if include_gui else (github_repo_name ~ "-web" if include_web else (github_repo_name ~ "-mcp" if include_mcp else github_repo_name ~ "-worker")))) -%}
 ``{{github_repo_name}}`` is an end-user application, so install it into an
-isolated environment with your preferred tool installer:
+isolated environment with your preferred tool installer (the ``all`` extra pulls
+in the runtime dependencies that live behind the component extras):
 
 .. code-block:: sh
 
-   uv tool install {{github_repo_name}}
+   uv tool install '{{github_repo_name}}[all]'
 
 .. code-block:: sh
 
-   pipx install {{github_repo_name}}
+   pipx install '{{github_repo_name}}[all]'
 
 Or run it once without installing:
 
 .. code-block:: sh
 
-   uvx {{github_repo_name}}
+   {% if include_cli %}uvx '{{github_repo_name}}[all]'{% else %}uvx --from '{{github_repo_name}}[all]' {{app_command}}{% endif %}
 
 To add ``{{github_repo_name}}`` as a dependency of another project instead, use
-``uv add {{github_repo_name}}`` or ``pip install {{github_repo_name}}``.
+``uv add '{{github_repo_name}}[all]'`` or ``pip install '{{github_repo_name}}[all]'``.
 {% else -%}
 To install ``{{github_repo_name}}``, run this command in your terminal:
 
