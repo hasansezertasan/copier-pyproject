@@ -47,7 +47,7 @@ def test_app_defaults_distribution_off(render: Callable[..., Path]) -> None:
     assert answers["include_scoop"] is False
 
 
-# --- documentation (rewritten in a later task; kept while content renders) ---
+# --- documentation ------------------------------------------------------------
 
 
 def test_readme_shows_brew_and_scoop_when_enabled(render: Callable[..., Path]) -> None:
@@ -66,6 +66,20 @@ def test_readme_omits_brew_and_scoop_when_disabled(render: Callable[..., Path]) 
 def test_installation_rst_shows_brew_when_enabled(render: Callable[..., Path]) -> None:
     rst = _read(render(preset="tool", include_homebrew=True), "docs", "installation.rst")
     assert f"brew install {USER}/tap/{PKG}" in rst
+
+
+def test_readme_shows_brew_cask_when_executable(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True, include_freezer=True)
+    readme = _read(root, "README.md")
+    assert f"brew install --cask {USER}/tap/{PKG}" in readme
+
+
+def test_installation_rst_shows_brew_cask_when_executable(
+    render: Callable[..., Path],
+) -> None:
+    root = render(preset="tool", include_homebrew=True, include_freezer=True)
+    rst = _read(root, "docs", "installation.rst")
+    assert f"brew install --cask {USER}/tap/{PKG}" in rst
 
 
 def test_contributing_documents_tap_setup(render: Callable[..., Path]) -> None:

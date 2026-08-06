@@ -1,8 +1,10 @@
-# ADR-017: Opt-in Homebrew tap and Scoop bucket distribution
+# 017. Opt-in Homebrew tap and Scoop bucket distribution
 
 ## Status
 
-Proposed (2026-08).
+Accepted (2026-08). Supersedes the in-repo-generation design this ADR
+originally proposed: the generated project no longer renders or pushes a
+formula/manifest itself. See "Dispatch, not generation" below.
 
 ## Context
 
@@ -13,17 +15,17 @@ package-manager ecosystems that end users commonly expect for command-line
 tools are not covered by either path:
 
 - **Homebrew**, via a per-owner "tap" repository (`<owner>/homebrew-tap`)
-  holding a formula file.
+  holding a formula or cask file.
 - **Scoop** (Windows), via a per-owner "bucket" repository
   (`<owner>/scoop-bucket`) holding a manifest file.
 
 Both ecosystems follow the same shape as the ADR-009 trio (Sourcery,
 SonarCloud, all-contributors): they depend on an **external, per-owner
 repository** the project owner must create out-of-band, and a **cross-repo
-secret** (a PAT, not the workflow's own `GITHUB_TOKEN`) to push to it. A
-project generated with these always on would fail on first release for every
-owner who has not created the tap/bucket repo, violating the template's
-self-contained, green-on-first-push default.
+secret** (a PAT, not the workflow's own `GITHUB_TOKEN`) to reach it. A project
+generated with these always on would fail on first release for every owner who
+has not created the tap/bucket repo, violating the template's self-contained,
+green-on-first-push default.
 
 Distribution to a tap/bucket is also meaningless for a pure **library** —
 nothing to install as a command-line tool — so the toggles should not even be
@@ -33,9 +35,9 @@ offered in that shape.
 
 ### Two independent, opt-in toggles, gated on `is_app`
 
-Add `include_homebrew` and `include_scoop` to `copier.yml`, both
+`copier.yml` carries `include_homebrew` and `include_scoop`, both
 `default: false` (seeded from `preset_map` like every other toggle) and both
-`when: "{{ is_app }}"`, where `is_app` is a new hidden (`when: false`) computed
+`when: "{{ is_app }}"`, where `is_app` is a hidden (`when: false`) computed
 variable:
 
 ```jinja
@@ -47,12 +49,48 @@ an owner may want only one ecosystem, mirroring the independent-boolean
 precedent in [ADR-007](007-standalone-executable-toggles.md) and
 [ADR-009](009-optional-external-quality-community-integrations.md).
 
+### Dispatch, not generation: the tap/bucket own the manifest logic
+
+The generated project does **not** compute a formula/cask/manifest, does not
+compute a sha256, and does not open a PR against the tap/bucket. Instead, its
+`release.yml` fires a `repository_dispatch` event at the owner's own
+`homebrew-tap`/`scoop-bucket` repository (the "keycast" pattern — validated
+against the real [`hasansezertasan/keycast`](https://github.com/hasansezertasan/keycast)
+project and its companion
+[`homebrew-tap`](https://github.com/hasansezertasan/homebrew-tap)/
+[`scoop-bucket`](https://github.com/hasansezertasan/scoop-bucket) repos). A
+listener workflow living *in the tap/bucket* receives the event and does the
+actual manifest work using each ecosystem's own maintained tooling:
+
+- Homebrew: `brew bump-formula-pr` / `brew bump-cask-pr`, plus
+  `brew update-python-resources` to resolve a formula's Python `resource`
+  blocks.
+- Scoop: the bucket's own `checkver`/`autoupdate` scripts (the
+  `ScoopInstaller/BucketTemplate` convention), or a bucket-provided updater
+  script.
+
+This is a deliberate change from generating the manifest in the producing
+repo. Reimplementing sha256 computation, PyPI resource resolution, per-OS
+asset-name matching, and Homebrew/Scoop's own audit rules *inside every
+generated project* means that logic — and its bugs (escaping, `checkver`
+drift, malformed resource blocks, asset-name mismatches) — is duplicated once
+per generated project instead of living in one place, written with the tools
+each ecosystem already maintains for exactly this job. Dispatching keeps that
+logic in a single downstream location (the tap/bucket itself), reviewable and
+fixable independently of any one generated project.
+
+A reference listener workflow and setup guide for each ecosystem ships under
+`docs/packaging/homebrew-tap/` and `docs/packaging/scoop-bucket/` in the
+generated project — a **rendered reference bundle**, not code the generated
+project runs. It is meant to be copied into the owner's tap/bucket repository
+once, during that repository's one-time setup.
+
 ### Binary-vs-PyPI payload via `primary_executable`
 
-A tap formula/bucket manifest can point at either a prebuilt binary or a
-PyPI/virtualenv install script. Which one it uses is decided by a single new
-hidden computed variable, `primary_executable`, so the choice lives in one
-place rather than being re-derived per template:
+Whether the tap/bucket ends up building from a prebuilt binary or a
+PyPI/virtualenv install is decided by a single hidden computed variable,
+`primary_executable`, so the choice lives in one place rather than being
+re-derived per template:
 
 ```jinja
 primary_executable: "{% if include_freezer %}freezer{% elif include_compiler %}compiler{% elif include_launcher %}launcher{% endif %}"
@@ -64,84 +102,104 @@ no runtime dependency, while the PyCrucible launcher (`launcher`) still needs
 network access on first run to bootstrap Python + deps — the least
 self-contained of the three, so it is the fallback of last resort among
 executable toggles. When none of the three executable toggles are enabled,
-`primary_executable` is empty and the formula/manifest falls back to a
-PyPI/virtualenv install instead of a binary download.
+`primary_executable` is empty and both ecosystems fall back to a PyPI install
+instead of a binary download.
 
-This mirrors `primary_component`'s existing role as the single source of
-truth for console-script precedence (CLI > GUI > TUI > web > MCP > worker) —
+`primary_executable` selects the **event type** and Homebrew artifact kind:
+non-empty ⇒ a Homebrew **cask** (`update-cask`, binary asset from the GitHub
+release) and a Scoop binary-zip manifest; empty ⇒ a Homebrew **formula**
+(`update-formula`, built from the PyPI sdist) and a Scoop pipx manifest. This
+mirrors `primary_component`'s existing role as the single source of truth for
+console-script precedence (CLI > GUI > TUI > web > MCP > worker) —
 `primary_executable` is the analogous single source of truth for the
 distribution payload, and no template re-spells the `freezer`/`compiler`/
 `launcher` ordering inline.
 
-### Publish jobs live inside `release.yml`, not a separate workflow
+### Dispatch jobs live inside `release.yml`, not a separate workflow
 
-The Homebrew/Scoop publish steps are jobs added to the existing unified
-`release.yml`, gated `needs: finalize-release` (the same dependency
-`deploy-docs` and `notify-released-issues` use) — **not** a workflow reacting
-to the `release: published` event. A `release: published` event fired by
-`finalize-release`'s own `GITHUB_TOKEN` cannot trigger another
+`bump-homebrew` and `bump-scoop` are jobs added to the existing unified
+`release.yml`, `needs: [release-please, finalize-release]` (the same
+dependency `deploy-docs` and `notify-released-issues` use) — **not** a
+workflow reacting to the `release: published` event. A `release: published`
+event fired by `finalize-release`'s own `GITHUB_TOKEN` cannot trigger another
 `on: release` workflow — the same loop-prevention rule already documented for
-`deploy-docs` in CLAUDE.md. Living inside `release.yml` also gives the publish
-jobs direct access to `needs.release-please.outputs.tag_name`/`version` without
-re-deriving them from a ref.
+`deploy-docs` in CLAUDE.md. Living inside `release.yml` also gives the jobs
+direct access to `needs.release-please.outputs.version` without re-deriving it
+from a ref.
 
-### Cross-repo PAT, gated-on-secret, non-blocking
+Each job's body is a single `gh api repos/<owner>/<tap-or-bucket>/dispatches
+--method POST` call carrying an `event_type` (`update-formula` /
+`update-cask` / `update-manifest`) and a minimal `client_payload`
+(`{formula|cask|package, version}`). No formula/manifest content crosses the
+wire — only the package name and version the listener needs to run its own
+bump tooling.
 
-Pushing a formula/manifest PR to a separate `homebrew-tap`/`scoop-bucket`
-repository needs a fine-grained PAT scoped to that repo (`Contents: read/write`
-and `Pull requests: read/write`) — the workflow's own `GITHUB_TOKEN` is scoped
-to the *generating* repo only and cannot open a PR elsewhere. Each publish job
-follows the same gated-on-secret, non-blocking pattern the template already
-uses for Codecov and the ADR-009 SonarCloud job:
+### Cross-repo PAT, gated-on-secret, non-blocking, Contents-write only
 
-- `HOMEBREW_TAP_TOKEN` gates the Homebrew publish job, `SCOOP_BUCKET_TOKEN`
-  gates the Scoop publish job — both read via a job-level presence flag
-  (`secrets.<NAME> != ''`), since the `secrets` context is unavailable directly
-  in `if:`.
-- When the secret is unset, the job **skips with a visible notice** rather than
-  failing — a project owner who has enabled the toggle but not yet created the
-  tap/bucket repo (or set the secret) never gets a red release.
+Firing a `repository_dispatch` at a separate `homebrew-tap`/`scoop-bucket`
+repository needs a fine-grained PAT scoped to that repo — but the
+`POST /repos/{owner}/{repo}/dispatches` API requires only **Contents: write**
+on the target repo. The tap/bucket's listener workflow opens its own PR using
+its *own* `GITHUB_TOKEN`, not the dispatching PAT, so the PAT needs **no**
+`Pull requests` scope at all — a narrower grant than the original design in
+this ADR called for.
+
+Each job follows the same gated-on-secret, non-blocking pattern the template
+already uses for Codecov and the ADR-009 SonarCloud job:
+
+- `HOMEBREW_TAP_TOKEN` gates `bump-homebrew`, `SCOOP_BUCKET_TOKEN` gates
+  `bump-scoop` — both read via `GH_TOKEN` and an empty-string check, since the
+  `secrets` context is unavailable directly in `if:`.
+- When the secret is unset, the job **skips with a visible `::warning::`**
+  rather than failing — a project owner who has enabled the toggle but not
+  yet created the tap/bucket repo (or set the secret) never gets a red
+  release.
 - Neither job is wired into the `check` CI gate; both are release-time-only.
+- Both jobs declare `permissions: {}` — the dispatch call authenticates via
+  the PAT in `GH_TOKEN`, not the workflow's own `GITHUB_TOKEN`.
 
-### Documented one-time manual repo creation
+### Documented one-time setup, delegated to the packaging reference bundle
 
-Creating the `homebrew-tap`/`scoop-bucket` repository and the corresponding PAT
-is **manual, one-time, out-of-band setup** — not automated by the template
-(mirroring the ADR-009 "install the GitHub App" / "create the SonarCloud org"
-steps). The generated `CONTRIBUTING.md`'s repository-setup section documents
-it per toggle with ready-to-run `gh repo create` and `gh secret set` commands:
-
-```sh
-gh repo create <owner>/homebrew-tap --public \
-  --description "Homebrew tap for <owner> packages"
-gh secret set HOMEBREW_TAP_TOKEN --repo <owner>/<repo>
-```
-
-```sh
-gh repo create <owner>/scoop-bucket --public \
-  --description "Scoop bucket for <owner> packages"
-gh secret set SCOOP_BUCKET_TOKEN --repo <owner>/<repo>
-```
+Creating the `homebrew-tap`/`scoop-bucket` repository, bootstrapping its
+initial formula/cask/manifest, installing the listener workflow, and minting
+the PAT is manual, one-time, out-of-band setup — not automated by the
+template (mirroring the ADR-009 "install the GitHub App" / "create the
+SonarCloud org" steps). The generated `CONTRIBUTING.md`'s repository-setup
+section states the PAT/secret requirement per toggle and points to the full
+walkthrough in `docs/packaging/homebrew-tap/README.md` /
+`docs/packaging/scoop-bucket/README.md` rather than duplicating it — those
+READMEs are the detailed, ecosystem-specific setup guide (repo creation,
+bootstrapping the initial artifact with `brew create`/`brew tap-new` or
+`ScoopInstaller/BucketTemplate`, installing the listener, and minting the
+PAT with the correct scope).
 
 ## Consequences
 
-- Two new `copier.yml` booleans (`include_homebrew`, `include_scoop`), both
+- Two `copier.yml` booleans (`include_homebrew`, `include_scoop`), both
   `default: false`, both `when: "{{ is_app }}"` — never asked for a library.
-- Two new hidden (`when: false`) computed variables: `is_app` (any runnable
+- Two hidden (`when: false`) computed variables: `is_app` (any runnable
   component enabled) and `primary_executable` (`freezer` > `compiler` >
   `launcher`, empty ⇒ PyPI fallback).
-- `release.yml.jinja` gains `publish-homebrew`/`publish-scoop` jobs,
-  `needs: finalize-release`, each gated on its own secret-presence flag and
-  skipping with a notice rather than failing when unset. They must stay
-  zizmor/ghalint-green like every workflow: `permissions: {}` top-level with
-  least-privilege per-job grants, `persist-credentials: false`, per-job
-  `timeout-minutes`, SHA-pinned actions (Renovate-tracked).
+- `release.yml.jinja` gains `bump-homebrew`/`bump-scoop` jobs,
+  `needs: [release-please, finalize-release]`, each gated on its own
+  secret-presence check and skipping with a `::warning::` rather than failing
+  when unset. They must stay zizmor/ghalint-green like every workflow:
+  `permissions: {}`, `timeout-minutes`, no committed manifest logic to audit.
+- `docs/packaging/homebrew-tap/` and `docs/packaging/scoop-bucket/` ship a
+  reference listener workflow (`update-{formula,cask}-dispatch.yml` /
+  `update-manifest-dispatch.yml`) plus a setup `README.md`, rendered into
+  every generated project as a copy-into-your-tap reference bundle — not code
+  the generated project itself runs.
 - `README.md.jinja` and `docs/installation.rst.jinja` conditionally document
-  the `brew install <owner>/tap/<pkg>` / `scoop bucket add` /
-  `scoop install <pkg>` flows behind their toggles.
-- `template/.github/CONTRIBUTING.md.jinja`'s repository-setup section documents
-  the one-time tap/bucket repo creation and PAT secret for each enabled toggle.
-- The CLAUDE.md "Optional components" list gains both toggles, linking here.
+  the `brew install <owner>/tap/<pkg>` (or `brew install --cask …` when
+  `primary_executable` is set) / `scoop bucket add` / `scoop install <pkg>`
+  end-user install flows behind their toggles.
+- `template/.github/CONTRIBUTING.md.jinja`'s repository-setup section
+  documents the `HOMEBREW_TAP_TOKEN`/`SCOOP_BUCKET_TOKEN` secret (fine-grained
+  PAT, **Contents: write** only, no `Pull requests` scope) for each enabled
+  toggle, and links to the `docs/packaging/*/README.md` walkthrough for the
+  rest of the one-time setup.
+- The CLAUDE.md "Optional components" list carries both toggles, linking here.
 
 ### Known limitations
 
@@ -153,10 +211,22 @@ gh secret set SCOOP_BUCKET_TOKEN --repo <owner>/<repo>
   matching binary asset. Extending the build matrix to per-arch is out of
   scope for this ADR.
 - **Best-effort Scoop PyPI fallback.** When no executable toggle is enabled,
-  the Scoop manifest falls back to installing from PyPI via a virtualenv
-  script rather than a binary — but Scoop's ecosystem and tooling are built
-  around binary downloads, so this fallback is a lower-fidelity, best-effort
-  path. Pairing `include_scoop` with an executable toggle (per its `help` text)
-  is the intended combination; the PyPI fallback exists so the toggle still
-  does something useful on its own rather than being blocked on another
-  toggle.
+  the Scoop manifest falls back to installing from PyPI via `pipx` rather than
+  a binary — but Scoop's ecosystem and tooling are built around binary
+  downloads, so this fallback is a lower-fidelity, best-effort path. Pairing
+  `include_scoop` with an executable toggle (per its `help` text) is the
+  intended combination; the PyPI fallback exists so the toggle still does
+  something useful on its own rather than being blocked on another toggle.
+- **The listener is not validated by this template's own test suite.** The
+  reference listener workflows under `docs/packaging/` run inside the
+  tap/bucket repository, not the generated project, so this template's tests
+  can only assert that the dispatch payload and reference bundle render
+  correctly — not that a real tap/bucket successfully bumps a formula. The
+  keycast tap/bucket repos are the live, exercised reference implementation.
+- **Payload validation is the listener's responsibility.** Because the
+  producing project sends only `{package|formula|cask, version}` and no
+  manifest content, the listener workflow in the tap/bucket must validate
+  that payload (env-scoped, regex-checked) before acting on it — this ADR's
+  reference listeners do so, but a hand-written listener that skips
+  validation would be trusting unauthenticated-looking input from whatever
+  holds the PAT.

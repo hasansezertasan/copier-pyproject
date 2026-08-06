@@ -29,7 +29,7 @@ Homebrew (macOS/Linux):
 
 .. code-block:: sh
 
-    brew install {{github_user}}/tap/{{github_repo_name}}
+    brew install {% if primary_executable %}--cask {% endif %}{{github_user}}/tap/{{github_repo_name}}
 {% endif -%}
 {% if include_scoop %}
 Scoop (Windows):
