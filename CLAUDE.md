@@ -222,6 +222,14 @@ Optional components (all boolean):
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
   [ADR-013](docs/adr/013-megalinter-opt-in-lean-complement.md).
+- `include_repo_settings` - repository metadata as code: a `.github/settings.yml`
+  (description/homepage/topics + squash-merge flags) synced by the "Settings"
+  GitHub App, `default: false`. Opt-in like the ADR-009 integrations because the
+  App is an external install (and it escalates push→admin — mitigated via the
+  shipped CODEOWNERS + "Require review from Code Owners"). Labels are NOT managed
+  here — they stay App-free in `labels.yml`/`label-sync.yml`. The "Include in the
+  home page" sidebar toggles are not settable via any API (UI-only). See
+  [ADR-018](docs/adr/018-repository-settings-as-code.md).
 
 Framework/broker choices (when parent option is enabled):
 
