@@ -27,9 +27,10 @@ Two facts constrain the design:
 Add an **opt-in** `include_repo_settings` toggle (`default: false`, in the
 `full` preset only) that renders `.github/settings.yml` for the
 [Settings GitHub App](https://github.com/apps/settings). It manages
-`description`, `homepage` (the docs site), `topics` (derived from the project
-keywords, sanitised to GitHub's topic rules), and the squash-merge policy flags
-release-please requires. It is a plain config file, not a workflow, so it carries
+`description`, `homepage` (the docs site), `topics` (from a free-form
+`repository_topics` answer, sanitised to GitHub's topic rules — omitted entirely
+when empty so the App leaves existing topics untouched), and the squash-merge
+policy flags release-please requires. It is a plain config file, not a workflow, so it carries
 no zizmor/ghalint/actionlint obligations.
 
 It is **opt-in** because the App is an external install — the same posture as

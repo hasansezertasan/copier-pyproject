@@ -45,6 +45,11 @@ package_keywords:
   default: ""
   help: >-
     Extra PyPI keywords specific to your project (comma-separated, e.g. "data, async, etl"). Tooling and component keywords are added automatically.
+repository_topics:
+  type: str
+  default: ""
+  help: >-
+    GitHub repository topics for the "About" sidebar (comma-separated, e.g. "python, cli, automation"). Only applied when include_repo_settings is enabled. Leave empty to leave the repository's existing topics untouched. GitHub rules apply: lowercase letters/digits/hyphens, <=50 chars each, <=20 total.
 # ── ② Preset ────────────────────────────────────────────────────────────────
 preset:
   type: str

@@ -485,7 +485,8 @@ let the workflow regenerate, or install the
 {%- if include_repo_settings %}
 
 **Repository settings ("Settings" App).** `.github/settings.yml` declares this
-repository's description, homepage, and topics. It is applied by the
+repository's description, homepage, and (when the `repository_topics` template
+answer is set) topics. It is applied by the
 [Settings GitHub App](https://github.com/apps/settings) on every push to the
 default branch — install it once on this repository (or your account) from the
 [App page](https://github.com/apps/settings). Nothing syncs until it is

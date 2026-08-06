@@ -16,36 +16,16 @@ repository:
   # The generated project's docs site (GitHub Pages). Change if you host docs
   # elsewhere.
   homepage: "https://{{ github_user }}.github.io/{{ github_repo_name }}"
-  # GitHub topics rules: lowercase letters/digits/hyphens, <=50 chars each, <=20
-  # total. Trim or extend to taste — the App applies exactly this set. Any
-  # `package_keywords` are lower-cased and space/underscore-hyphenated below;
-  # remove any that are not valid topics.
+{%- set topic_list = repository_topics.split(",") | map("trim") | reject("equalto", "") | list %}
+{%- if topic_list %}
+  # Topics from the `repository_topics` answer, lower-cased and
+  # space/underscore-hyphenated. Omitted entirely when that answer is empty, so
+  # the App leaves the repository's existing topics untouched. GitHub rules:
+  # lowercase letters/digits/hyphens, <=50 chars each, <=20 total.
   topics:
-    - python
-    - python-package
-{%- for keyword in package_keywords.split(",") if keyword.strip() %}
-    - "{{ keyword.strip() | lower | replace(' ', '-') | replace('_', '-') }}"
+{%- for topic in topic_list %}
+    - "{{ topic | lower | replace(' ', '-') | replace('_', '-') }}"
 {%- endfor %}
-{%- if include_cli %}
-    - cli
-{%- endif %}
-{%- if include_web %}
-    - {{ web_framework }}
-{%- endif %}
-{%- if include_tui %}
-    - tui
-{%- endif %}
-{%- if include_gui %}
-    - gui
-{%- endif %}
-{%- if include_mcp %}
-    - mcp
-{%- endif %}
-{%- if include_worker %}
-    - message-queue
-{%- endif %}
-{%- if include_c_extensions %}
-    - cython
 {%- endif %}
   # Encodes the squash-merge policy release-please REQUIRES (see CONTRIBUTING's
   # "Repository setup") as code, so it survives a settings drift.
