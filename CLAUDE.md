@@ -444,10 +444,10 @@ is the *primary* and owns the bare `pkg` command, wired to `pkg.__main__:main`
 (the single entrypoint standalone builds also target). Every *other* enabled
 component keeps a suffixed `pkg-<name>` command pointing at its own
 `pkg.<name>.app:main`. The precedence lives in **one** place — the
-`_primary_component` computed variable in `copier.yml` (empty for a library) —
+`primary_component` computed variable in `copier.yml` (empty for a library) —
 and every template (`pyproject`, `README`, `docs/usage`, `docs/installation`,
 `.vscode/launch.json`, tox) derives the primary and each command's suffix from
-it: a component `X` is suffixed exactly when `_primary_component != "X"`. Do
+it: a component `X` is suffixed exactly when `primary_component != "X"`. Do
 **not** re-spell the precedence as inline `include_x or include_y …` conditions.
 
 - `project.scripts`: bare `pkg = "pkg.__main__:main"` when the primary is a
@@ -833,7 +833,7 @@ For generated projects to publish to PyPI:
      <pkg>` must pull it. (`all` stays empty; it exists only so the `dev`
      group's `<pkg>[all]` resolves.)
    - Add the entry point if applicable. If the component is runnable, fold it
-     into the console-script precedence in `_primary_component` (`copier.yml`)
+     into the console-script precedence in `primary_component` (`copier.yml`)
      and the `_console`/`_gui` wiring block — a non-primary component gets a
      `<pkg>-<name>` command; do not spell out the precedence inline anywhere.
    - Add keywords
