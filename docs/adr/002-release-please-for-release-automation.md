@@ -117,6 +117,20 @@ release-please should be wired:
   and hatch-vcs would stamp the *previous* version (or `fallback-version`). This
   latent wrong-version bug was caught in
   [cobo#49](https://github.com/hasansezertasan/cobo/pull/49) and is fixed here.
+- **Accepted cosmetic limitation of the draft flow: a stale release-link
+  comment.** release-please posts a `🤖 Created releases:` comment on the merged
+  release PR exactly once, at draft-creation time. While the release is a draft
+  it has no public tag page, so that comment captures the transient
+  `/releases/tag/untagged-<hash>` slug. When `finalize-release` un-drafts the
+  release GitHub moves it to `/releases/tag/vX.Y.Z` and the `untagged-…` link
+  404s; release-please never rewrites the comment. This is purely a dead link on
+  an already-merged PR — the release, tag, artifacts, and SBOM are all correct
+  ([#143](https://github.com/hasansezertasan/copier-pyproject/issues/143)). It is
+  accepted rather than fixed: `draft: false` would repair the link but reintroduce
+  a window where a public release exists with no artifacts/SBOM attached, and
+  having `finalize-release` patch the comment adds API surface for no functional
+  gain. The trade-off is documented inline at the `finalize-release` "Publish the
+  draft release" step.
 - **Validation limit:** rendering and `actionlint` confirm the workflow is correct
   across option combinations (default, c-extensions, PyCrucible, web, all-on), but
   the end-to-end release behavior (draft tag timing, OIDC publish, reconciliation)

@@ -471,6 +471,17 @@ jobs:
       actions: write  # IMPORTANT: Mandatory to re-dispatch this workflow
     steps:
       - name: Publish the draft release
+        # KNOWN COSMETIC LIMITATION (accepted, see ADR-002): while the release is
+        # a draft it has no public tag page, so its URL is a transient
+        # `/releases/tag/untagged-<hash>` slug. release-please writes its
+        # "🤖 Created releases:" comment on the merged release PR once, at
+        # draft-creation time, capturing that slug — and never rewrites it. When
+        # this step un-drafts the release GitHub moves it to
+        # `/releases/tag/<TAG_NAME>` and the `untagged-…` link 404s. This is a
+        # dead link on an already-merged PR, not a broken release: the release,
+        # its tag, artifacts, and SBOM are all correct. Left as-is on purpose —
+        # `draft: false` would fix the link but reintroduce a window where a
+        # public release exists with no artifacts/SBOM attached (a worse trade).
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
           TAG_NAME: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}

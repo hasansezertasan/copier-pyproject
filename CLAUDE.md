@@ -133,6 +133,13 @@ Free-form metadata:
   enabled-component keywords are always appended automatically. (The classifiers list
   is still auto-generated from enabled components — it carries a `TODO` marker for the
   generated project's author to fill in project-specific classifiers.)
+- `repository_topics` - comma-separated GitHub repository topics (default empty),
+  asked and used **only** when `include_repo_settings` is enabled
+  (`when: "{{ include_repo_settings }}"`). Rendered into
+  `.github/settings.yml` as the `topics:` list (lower-cased, space/underscore
+  hyphenated). Left empty, the `topics:` key is omitted entirely so the Settings
+  App leaves the repository's existing topics untouched. See
+  [ADR-018](docs/adr/018-repository-settings-as-code.md).
 
 Starting point:
 
@@ -244,6 +251,14 @@ Optional components (all boolean):
   `primary_executable` precedence (`freezer` > `compiler` > `launcher`; empty
   ⇒ PyPI fallback). See
   [ADR-017](docs/adr/017-opt-in-homebrew-scoop-distribution.md).
+- `include_repo_settings` - repository metadata as code: a `.github/settings.yml`
+  (description/homepage/topics + squash-merge flags) synced by the "Settings"
+  GitHub App, `default: false`. Opt-in like the ADR-009 integrations because the
+  App is an external install (and it escalates push→admin — mitigated via the
+  shipped CODEOWNERS + "Require review from Code Owners"). Labels are NOT managed
+  here — they stay App-free in `labels.yml`/`label-sync.yml`. The "Include in the
+  home page" sidebar toggles are not settable via any API (UI-only). See
+  [ADR-018](docs/adr/018-repository-settings-as-code.md).
 
 Framework/broker choices (when parent option is enabled):
 
