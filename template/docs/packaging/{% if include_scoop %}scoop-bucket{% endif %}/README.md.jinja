@@ -1,0 +1,103 @@
+# Scoop bucket setup
+
+This folder is a **reference bundle**, rendered here for convenience — it is
+not consumed by {{github_repo_name}} itself. Copy its contents into your
+`{{github_user}}/scoop-bucket` repository to receive automated Scoop manifest
+bumps on every release.
+
+## How it works
+
+On each release, this project's `bump-scoop` job (in `release.yml`) sends a
+`repository_dispatch` event of type `update-manifest` (payload:
+`{package, version}`) to `{{github_user}}/scoop-bucket`. The listener workflow
+in this folder receives that event, validates the payload, runs the bucket's
+manifest updater, and opens a pull request against the bucket — all inside the
+bucket repository, using the bucket's own `GITHUB_TOKEN`.
+
+## One-time bucket setup
+
+1. Create the bucket repository. The easiest starting point is
+   [`ScoopInstaller/BucketTemplate`](https://github.com/ScoopInstaller/BucketTemplate),
+   which already ships `bin/checkver.ps1` and `bin/auto-pr.ps1`:
+
+   ```sh
+   gh repo create {{github_user}}/scoop-bucket --public \
+     --template ScoopInstaller/BucketTemplate \
+     --description "Scoop bucket for {{github_user}} packages"
+   ```
+
+   [`hasansezertasan/scoop-bucket`](https://github.com/hasansezertasan/scoop-bucket)
+   is a working bucket built on this listener that also provides the
+   `scripts/update_manifests.py` updater the workflow below calls — use it as
+   a concrete reference for that script.
+
+2. Add the initial manifest(s) under `bucket/`:
+
+   - A **pipx manifest** for the PyPI install — `installer.script` runs
+     `pipx install {{github_repo_name}}==$version`, and `checkver` polls
+     PyPI for the latest release:
+
+     ```json
+     {
+       "checkver": {
+         "url": "https://pypi.org/pypi/{{github_repo_name}}/json",
+         "jsonpath": "$.info.version"
+       },
+       "installer": {
+         "script": "pipx install {{github_repo_name}}==$version --force"
+       }
+     }
+     ```
+
+     See keycast's
+     [`bucket/keycast-pipx.json`](https://github.com/hasansezertasan/scoop-bucket/blob/main/bucket/keycast-pipx.json)
+     for a full manifest to copy and adapt.
+{% if primary_executable %}
+   - A **binary-zip manifest** pointing at the GitHub release asset the
+     standalone-executable build attaches, with `checkver: github` and a
+     matching `autoupdate` block so future releases resolve automatically:
+
+     ```json
+     {
+       "checkver": {
+         "github": "https://github.com/{{github_user}}/{{github_repo_name}}"
+       },
+       "autoupdate": {
+         "architecture": {
+           "64bit": {
+             "url": "https://github.com/{{github_user}}/{{github_repo_name}}/releases/download/v$version/{{github_repo_name}}-windows.zip"
+           }
+         }
+       }
+     }
+     ```
+
+     See keycast's
+     [`bucket/keycast.json`](https://github.com/hasansezertasan/scoop-bucket/blob/main/bucket/keycast.json)
+     for a full manifest to copy and adapt.
+{% endif %}
+3. Commit the listener workflow from this folder, `update-manifest-dispatch.yml`,
+   to the bucket's `.github/workflows/` directory. It expects the bucket to
+   provide a `scripts/update_manifests.py <package>` updater (see the
+   reference bucket above).
+
+## Token setup (in this project's repo)
+
+In **this** project's repository — `{{github_user}}/{{github_repo_name}}` — add
+a fine-grained personal access token as the `SCOOP_BUCKET_TOKEN` secret, scoped
+to `{{github_user}}/scoop-bucket` with **Contents: write** permission only.
+That is all the `POST /dispatches` API requires; the bucket opens its own pull
+request with its own `GITHUB_TOKEN`, so **Pull requests: write** is not needed
+on the PAT.
+
+```sh
+gh secret set SCOOP_BUCKET_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+When `SCOOP_BUCKET_TOKEN` is unset, the `bump-scoop` job skips with a notice —
+it never fails the release.
+
+## Reference implementation
+
+[`hasansezertasan/scoop-bucket`](https://github.com/hasansezertasan/scoop-bucket)
+is a working bucket built with this same listener, kept as a live reference.
