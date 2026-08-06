@@ -93,8 +93,9 @@ def test_gui_primary_with_secondaries_no_collision(
         f"{PKG}-tui": f"{PKG}.tui.app:main",
         f"{PKG}-web": f"{PKG}.web.app:main",
     }
-    tables = {**project["scripts"], **project["gui-scripts"]}
-    assert sum(name == PKG for name in tables) == 1
+    # The bare name is in exactly one table — checked per-table, since merging
+    # with ** would collapse a duplicate key and hide a both-tables collision.
+    assert (PKG in project["gui-scripts"]) ^ (PKG in project["scripts"])
 
 
 def test_pydantic_settings_is_core_dependency(render: Callable[..., Path]) -> None:
@@ -113,8 +114,11 @@ def test_pydantic_settings_is_core_dependency(render: Callable[..., Path]) -> No
 
 
 def test_bare_command_is_unique_across_tables(render: Callable[..., Path]) -> None:
-    # Full project: every component enabled -> the bare name must appear exactly
-    # once across both script tables (no packaging conflict).
+    # Full project: every component enabled -> the bare name must appear in
+    # exactly one of the two script tables (never both, which is a packaging
+    # conflict; never neither). Count per-table rather than merging with **,
+    # which would silently collapse a duplicate key and mask a collision.
     project = _pyproject(render(preset="full"))
-    tables = {**project.get("scripts", {}), **project.get("gui-scripts", {})}
-    assert sum(name == PKG for name in tables) == 1
+    in_scripts = PKG in project.get("scripts", {})
+    in_gui = PKG in project.get("gui-scripts", {})
+    assert in_scripts ^ in_gui
