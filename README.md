@@ -77,7 +77,7 @@ Copier will prompt for:
 ## Scaffold a project
 
 1. Install Copier and uv (e.g., `uvx copier`).
-2. Run `copier copy gh:hasansezertasan/copier-pyproject <destination>` (or `copier copy . <destination>` from a local clone).
+2. Run `copier copy https://github.com/hasansezertasan/copier-pyproject.git <destination>` (or `copier copy . <destination>` from a local clone). Use the `.git` HTTPS URL, **not** the `gh:hasansezertasan/copier-pyproject` shorthand — Copier records the argument verbatim as `_src_path`, and Renovate's copier manager only resolves template tags when `_src_path` is a real git URL (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 3. Optionally seed answers with `.example-input.yml` using `--data-file .example-input.yml --defaults`.
 4. Initialize git in the destination: `cd <destination> && git init` (the template intentionally defines no Copier tasks, so it does not auto-init — see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 5. Open the generated README (rendered from `template/README.md.jinja`) and clear the `TODO @...` markers in `README.md`, `pyproject.toml`, docs, and workflows.
