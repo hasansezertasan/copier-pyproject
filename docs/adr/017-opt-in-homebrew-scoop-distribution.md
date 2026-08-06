@@ -1,4 +1,4 @@
-# 017. Opt-in Homebrew tap and Scoop bucket distribution
+# ADR-017: Opt-in Homebrew tap and Scoop bucket distribution
 
 ## Status
 
