@@ -10,7 +10,7 @@ Key architecture:
 
 - Template files use `.jinja` extension and contain variables like `{{github_repo_name}}`, `{{author_full_name}}`, etc.
 - Template variables are defined in `copier.yml`
-- The `example/` directory is a gitignored, locally-generated rendering (see `.gitignore`); regenerate it from `.example-input.yml` to smoke-test the template. Note: `.example-input.yml` disables every optional component, so the run commands below for CLI/web/etc. apply only after enabling those options (or to any other generated project)
+- The `example/` directory is a gitignored, locally-generated rendering (see `.gitignore`); regenerate it from `.example-input.yml` to smoke-test the template. Note: `.example-input.yml` uses the `library` preset (no interface components), so the run commands below for CLI/web/etc. apply only after enabling those options (or to any other generated project)
 - Generated projects use uv for dependency management, hatchling for builds, tox for testing, and include full CI/CD automation
 
 ## Development Commands
@@ -47,7 +47,7 @@ uv sync
 # Run tests across all Python versions
 uv run --locked tox run
 
-# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, sphinx-lint)
+# Run style checks (ruff, mypy, basedpyright, ty, pyrefly, zuban, slotscheck, import-linter, taplo, typos, editorconfig-checker, sphinx-lint)
 uv run --locked tox run -e style
 
 # Run specific Python version tests
@@ -134,6 +134,21 @@ Free-form metadata:
   is still auto-generated from enabled components — it carries a `TODO` marker for the
   generated project's author to fill in project-specific classifiers.)
 
+Starting point:
+
+- `preset` - `library`/`tool`/`web`/`full`. Seeds the default of every
+  `include_*` toggle via the hidden `preset_map` computed variable (`when: false`,
+  never stored) — `library` → `examples`; `tool` → `cli` + `tui` +
+  `pydantic_settings`; `web` → `web` + `pydantic_settings` + `postgres` +
+  `redis`; `full` → everything. `default: library` (the smallest surface, so an
+  unattended `--defaults` run produces a plain package). Toggles remain asked and
+  stored — the preset only changes defaults; it hides nothing, though
+  dependency-gated sub-questions (the DB UIs, web framework, worker broker, redis
+  backend) still appear only when their parent toggle is enabled, independent of
+  the preset. The `minimal`/`standard`/`custom` presets and the byte-identical
+  `--defaults` guarantee were removed in
+  [ADR-016](docs/adr/016-archetype-based-presets.md).
+
 Optional components (all boolean):
 
 - `include_cli` - Typer CLI
@@ -150,7 +165,7 @@ Optional components (all boolean):
 
   These three standalone-executable toggles are independent and combinable; each
   maps to one architectural category (launcher / compiler / freezer). See
-  [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
+  [ADR-007](docs/adr/007-standalone-executable-toggles.md).
 - `include_pydantic_settings` - pydantic-settings for config
 - `include_sourcery` - Sourcery AI-refactoring config (`.sourcery.yaml`)
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
@@ -171,7 +186,7 @@ Optional components (all boolean):
   so `persist-credentials: false` holds), so the bot/App is optional — it only
   needs the *Allow Actions to create PRs* setting release-please already requires.
   See
-  [ADR-009](../docs/adr/009-optional-external-quality-community-integrations.md).
+  [ADR-009](docs/adr/009-optional-external-quality-community-integrations.md).
 - `include_megalinter` - MegaLinter as an opt-in extra CI quality layer
   (`mega-linter.yml` + `.mega-linter.yml`), `default: false`.
 
@@ -206,7 +221,7 @@ Optional components (all boolean):
   `.shellcheckrc` is gated with the toggle; the prek-shared configs
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
-  [ADR-013](../docs/adr/013-megalinter-opt-in-lean-complement.md).
+  [ADR-013](docs/adr/013-megalinter-opt-in-lean-complement.md).
 
 Framework/broker choices (when parent option is enabled):
 
@@ -241,7 +256,7 @@ removed — it is now always rendered and validated via
 `citation-file-format/cffconvert-github-action`), and mise
 (`mise.toml` + devcontainer feature) for tool version management and task
 running. Pants and Trunk were removed entirely — the tox `style` env is the sole
-lint/build orchestrator (see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
+lint/build orchestrator (see [ADR-003](docs/adr/003-tox-as-canonical-lint-runner.md)).
 
 **import-linter** enforces the generated package's architecture: one always-on
 `layers` contract (in `[tool.importlinter]`) keeps the component group
@@ -250,25 +265,43 @@ orchestrator layer above them (its `web`/`gui`/`tui` subcommands lazy-import tho
 components to launch them), all layered above `core` above `utils`. The component
 layers are Jinja-conditional on the enabled toggles (omitted when none are
 enabled, leaving a `core > utils` contract), so no `ignore_imports` is needed.
-Delivered via the `style` group + a `lint-imports` command in the tox `style`
-env — **not** prek, because it needs the installed package and a
-whole-import-graph build. See
-[ADR-014](../docs/adr/014-import-linter-for-architecture-contracts.md).
+Delivered via the `style` group + a `lint-imports` command run from **both** the
+tox `style` env and a prek `local` `system` hook (`uv run --locked --group style
+lint-imports`) — the same dual-run, single-version-source pattern as
+`basedpyright`, since import-linter is likewise a whole-program analyzer that
+needs the installed package and a `grimp` import-graph build. It is **not**
+eligible as an upstream prek **repo hook** (those run in an isolated venv without
+the project installed); the `local` `system` hook shells out through `uv run`,
+which syncs and resolves the package. **slotscheck** (which imports `src/` to
+verify `__slots__`) is delivered the same dual-run way and for the same reason —
+whereas the redundant type checkers `ty`/`pyrefly`/`zuban` stay style-env-only so
+the fast gate carries one representative type checker (basedpyright), not five.
+See [ADR-014](docs/adr/014-import-linter-for-architecture-contracts.md).
 
 Also always included (no toggle): a `SUPPORT.md` community-health file (points to
 docs/issues/discussions and cross-references `SECURITY.md`/`CONTRIBUTING.md`), a
 `.gitattributes` (LF normalization matching the ruff/EditorConfig policy, Linguist
 overrides marking `_version.py`/`CHANGELOG.md`/`uv.lock`/`cobo.lock` as generated
 and `docs/`
-as documentation, and `export-ignore` archive hygiene), and AI-agent onboarding
+as documentation, `export-ignore` archive hygiene, and an `export-subst` entry
+for `.git_archival.txt`), and AI-agent onboarding
 files — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that
 `@AGENTS.md`-imports it so there is a single source of truth (no divergent copies).
 `AGENTS.md` intentionally carries **no** commit-attribution/`Co-Authored-By` block.
 
+Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
+`node`/`node-date`/`describe-name` `$Format:...$` template). Paired with the
+`.gitattributes` `export-subst` entry, `git archive`/GitHub source tarballs (the
+install flow documented in `docs/installation.rst`) expand it to the real
+tag-derived version, so hatch-vcs recovers the correct version without a `.git`
+directory instead of stamping the `[tool.hatch.version] fallback-version` literal.
+That fallback is kept at the obvious sentinel `0.0.0` (used only when an archive
+has no reachable tag), not a plausible-looking `0.1.0`.
+
 Commitizen (Conventional Commit authoring/linting) is **always included** — it
 is no longer gated behind an `include_commitizen` option. release-please still
 owns versioning/changelog; Commitizen only authors/lints messages (see
-[ADR-004](../docs/adr/004-commitizen-as-commit-helper-not-release-tool.md)).
+[ADR-004](docs/adr/004-commitizen-as-commit-helper-not-release-tool.md)).
 
 The `.gitignore` is **always** managed by
 [cobo](https://github.com/hasansezertasan/cobo) (no toggle, like mise/renovate),
@@ -287,14 +320,14 @@ own `.gitignore`, which is cobo-managed too as dogfooding) and
 `template/cobo.lock` (`path = .gitignore`, shipped to generated projects). cobo
 is delivered to generated projects as a mise tool (`pipx:cobo`, Renovate-tracked)
 with a `mise run gitignore-check` task and a weekly, non-blocking
-`gitignore-drift.yml` workflow (`cobo update && cobo check` on `schedule` +
+`gitignore-drift.yml` workflow (`cobo update && cobo check --strict` on `schedule` +
 `workflow_dispatch` only — not in the `check` gate; network-flaky, same posture
 as `docs-linkcheck`). **Regenerate** from the repo root with `cobo update && cobo
 sync` (re-renders the fenced region in place, preserving the author section and
 the `eol = "lf"` policy); refresh `template/cobo.lock` the same way from a scratch
 dir dumping with `--eol lf --out .gitignore --lock`. Do **not** hand-edit inside
 the fence (it breaks the sha256). See
-[ADR-012](../docs/adr/012-cobo-for-gitignore-generation.md).
+[ADR-012](docs/adr/012-cobo-for-gitignore-generation.md).
 
 Git hooks are **always included** (there is no `include_precommit`
 option). They are run via [prek](https://prek.j178.dev), a Rust-native
@@ -323,13 +356,13 @@ the uv `style` group.
 
 The tox `style` env is the *single* lint/type-check orchestrator for a generated
 project — there is no Pants or Trunk config to drift against it (both were
-removed; see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
+removed; see [ADR-003](docs/adr/003-tox-as-canonical-lint-runner.md)).
 
 **editorconfig-checker** enforces `.editorconfig` (the source of truth) on the
 axes no other tool owns — indent style/size and charset on config/markup files.
 It is delivered via the uv `style` group (PyPI wrapper, command `ec`), invoked
-in both the tox `style` env and a prek `local` hook. Unlike typos/actionlint
-(whose PyPI wrappers track their Go release tags), the `editorconfig-checker`
+in both the tox `style` env and a prek `local` hook. Unlike typos
+(whose PyPI wrapper tracks its Go release tags), the `editorconfig-checker`
 PyPI wrapper lags the Go releases, so a separate upstream prek `rev` pin would
 drift permanently out of sync with the `style` group — hence the `local` hook
 (single version source, like `basedpyright`) rather than an upstream repo hook.
@@ -389,7 +422,7 @@ Subpackages (each with `__init__.py` and `app.py`):
   a fresh, self-contained broker at a throwaway instance (e.g. testcontainers)
   without import-order/caching pitfalls; the module still exposes a default
   `broker = build_broker()` for the entry point. See
-  [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
+  [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 
 Other conditional files:
 
@@ -403,12 +436,25 @@ Test packages mirror source structure in `tests/`:
 - `tests/worker/` holds both the in-memory `Test<Broker>` unit tests (always run)
   and a testcontainers-backed integration test marked `integration` (excluded
   from the default run, Docker required); see
-  [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
+  [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 
-Entry points configured in `pyproject.toml`:
+Entry points configured in `pyproject.toml` (console-script wiring): the
+highest-precedence enabled component (**CLI > GUI > TUI > web > MCP > worker**)
+is the *primary* and owns the bare `pkg` command, wired to `pkg.__main__:main`
+(the single entrypoint standalone builds also target). Every *other* enabled
+component keeps a suffixed `pkg-<name>` command pointing at its own
+`pkg.<name>.app:main`. The precedence lives in **one** place — the
+`primary_component` computed variable in `copier.yml` (empty for a library) —
+and every template (`pyproject`, `README`, `docs/usage`, `docs/installation`,
+`.vscode/launch.json`, tox) derives the primary and each command's suffix from
+it: a component `X` is suffixed exactly when `primary_component != "X"`. Do
+**not** re-spell the precedence as inline `include_x or include_y …` conditions.
 
-- `project.scripts`: `pkg.cli.app:app`, `pkg.tui.app:main`, `pkg.web.app:main`, `pkg.mcp.app:main`, `pkg.worker.app:main`
-- `project.gui-scripts`: `pkg.gui.app:main` (launches without terminal)
+- `project.scripts`: bare `pkg = "pkg.__main__:main"` when the primary is a
+  console component, plus a `pkg-<name>` entry per non-primary console component.
+- `project.gui-scripts`: `pkg-gui = "pkg.gui.app:main"` (windowless launcher);
+  when GUI is the primary it instead takes the bare `pkg = "pkg.__main__:main"`
+  here, so there is never a bare-name collision across the two tables.
 
 ### Devcontainer Structure
 
@@ -438,7 +484,10 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ### Build System
 
 - **Builder**: `hatchling` with `hatch-vcs` plugin
-- **Versioning**: Git tags via hatch-vcs, fallback to 0.1.0
+- **Versioning**: Git tags via hatch-vcs; archive/tarball installs recover the
+  tag via `.git_archival.txt` (`export-subst`), and the `fallback-version = "0.0.0"`
+  sentinel is used only when neither live git metadata nor an expanded
+  `.git_archival.txt` is available
 - **Build Command**: `uv build`
 
 ### CI/CD Workflows
@@ -466,7 +515,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      preview artifact. They closely follow the `release.yml` build jobs
      (same setup + build commands), skipping the release-only rename/publish
      steps, and they gate the `check` aggregation job. See
-     [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
+     [ADR-007](docs/adr/007-standalone-executable-toggles.md).
    - When `include_worker` is set, adds a single `worker-integration` job —
      **Ubuntu-only** (Docker is reliably present on GitHub's Ubuntu runners but
      not macOS/Windows) — that runs `tox run -e integration` (an on-demand tox
@@ -474,10 +523,10 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      via testcontainers. The default OS matrix stays broker-free and fast (the
      `integration` marker is deselected by default via the pytest `addopts`); this
      job is the only thing exercising the real driver, and it gates the `check`
-     aggregation job. See [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
+     aggregation job. See [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 2. **Release + CD** (`release.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
-   (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:
+   (see [ADR-002](docs/adr/002-release-please-for-release-automation.md)). Jobs:
    - `release-please`: opens/maintains a release PR from Conventional Commits on
      push to `main`; on merge, tags the commit and creates a **draft** GitHub
      Release (`draft: true` in `.github/release-please-config.json`). Exposes
@@ -494,7 +543,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      independent `fail-fast: false` matrices producing per-platform artifacts
      named `<repo>-executable-{launcher,freezer,compiler}-<os>`, all caught by
      `attach-github-release`'s `<repo>-executable-*` download pattern (see
-     [ADR-007](../docs/adr/007-standalone-executable-toggles.md)). Docker tags feed
+     [ADR-007](docs/adr/007-standalone-executable-toggles.md)). Docker tags feed
      `needs.release-please.outputs.tag_name` into the metadata-action `value=`
      because a push-triggered run has no tag ref.
    - `attach-github-release`: uploads artifacts to the still-draft release.
@@ -507,7 +556,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      (the same loop-prevention rule that forces the `workflow_dispatch`
      re-dispatch above). `gh-pages.yml` is kept only for manual redeploys.
      Docs are built with Sphinx + the Shibuya theme (autodoc API reference),
-     not MkDocs (see [ADR-006](../docs/adr/006-sphinx-shibuya-for-documentation.md)).
+     not MkDocs (see [ADR-006](docs/adr/006-sphinx-shibuya-for-documentation.md)).
      The `deploy-docs` publish (and the manual `gh-pages.yml`) set
      `clean-exclude: pr-preview/**` so a release never wipes the live PR previews
      `docs-preview.yml` maintains under that path (see ADR-010 below).
@@ -516,7 +565,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      (previous published tag → this tag) to the PRs that carried it, resolves each
      PR's `closingIssuesReferences`, and comments the release link on those
      issues. Inline (no committed script), best-effort. See
-     [ADR-010](../docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
+     [ADR-010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
    - Versions come from git tags via hatch-vcs, so release-please never edits a
      static version literal and `uv.lock` cannot desync.
 3. **PR title linting** (`check-pr-title.yml`): validates the **PR title** (not
@@ -570,13 +619,14 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
        secret (noted inline in the workflow).
      - `pip-audit` (always): `uv export`s the locked shipped deps
        (`--all-extras --no-dev --no-emit-project --no-hashes`) and audits them
-       with `uvx pip-audit`. `--all-extras` is load-bearing: this template keeps
-       component dependencies under `[project.optional-dependencies]` extras with
-       an empty base `dependencies = []`, so an export without it is empty and
-       the audit/SBOM silently cover nothing. `--all-extras` applies equally to
-       the release `sbom` job's export — though that job omits `--no-hashes`
-       (the SBOM keeps per-pin integrity hashes; only pip-audit drops them, since
-       its resolver would otherwise demand a hash for every transitive pin).
+       with `uvx pip-audit`. Component and settings deps are core
+       `dependencies` (each console script imports its component
+       unconditionally), so a plain export already covers the whole shipped
+       tree; `--all-extras` is retained as a harmless safeguard should a future
+       extra reintroduce shipped deps (and applies equally to the release `sbom`
+       job's export — though that job omits `--no-hashes`, since the SBOM keeps
+       per-pin integrity hashes; only pip-audit drops them, as its resolver would
+       otherwise demand a hash for every transitive pin).
        Unlike `dependency-review` (PR-diff only, GitHub Advisory
        DB), this re-audits the *entire* resolved tree against the PyPI Advisory
        DB on the weekly cron, so a CVE disclosed *after* a dependency merged is
@@ -646,7 +696,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    (best-effort). Previews live under `pr-preview/**`, disjoint from the root docs
    deploy, and the two `JamesIves` publishes carry `clean-exclude: pr-preview/**`
    so a release never wipes them. See
-   [ADR-010](../docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
+   [ADR-010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
 10. **Docs link check** (`docs-linkcheck.yml`, always included, static workflow).
    Runs Sphinx's `linkcheck` builder on a **weekly cron** + `workflow_dispatch`
    to catch dead links/moved anchors in the docs. Deliberately **not** on
@@ -657,7 +707,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    it: `sphinx-lint` (a `local` prek hook backed by the `style` group + a tox
    `style` command, linting the `.rst` sources) and the `check-case-conflict`
    prek builtin (cross-platform filename-collision guard). See
-   [ADR-011](../docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
+   [ADR-011](docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
 Downstream template updates are **not** a shipped workflow — they are handled by
 **Renovate's [`copier` manager](https://docs.renovatebot.com/modules/manager/copier/)**
 (ADR-015). Renovate (already the canonical updater, and a documented one-time
@@ -777,16 +827,25 @@ For generated projects to publish to PyPI:
 3. Create conditional directory: `template/src/{{github_repo_name}}/{% if include_xxx %}xxx{% endif %}/`
 4. Create matching test directory: `template/tests/{% if include_xxx %}xxx{% endif %}/`
 5. Update `pyproject.toml.jinja`:
-   - Add optional dependency
-   - Add to `all` extras
-   - Add entry point if applicable
+   - Add the runtime dependency to the core `dependencies` list under the
+     component's `{% if include_xxx %}` guard — **not** an optional extra: the
+     component's console script imports it unconditionally, so `pip install
+     <pkg>` must pull it. (`all` stays empty; it exists only so the `dev`
+     group's `<pkg>[all]` resolves.)
+   - Add the entry point if applicable. If the component is runnable, fold it
+     into the console-script precedence in `primary_component` (`copier.yml`)
+     and the `_console`/`_gui` wiring block — a non-primary component gets a
+     `<pkg>-<name>` command; do not spell out the precedence inline anywhere.
    - Add keywords
    - Add the component to the `[tool.importlinter]` `layers` contract (a sibling in the `il_components` list, or — like `cli` — its own orchestrator layer if it imports other components)
-6. Update `.example-input.yml` with the new option
+6. Add the new toggle to the `full` entry in `copier.yml`'s `preset_map` (and to
+   any archetype preset — `library`/`tool`/`web` — whose shape includes it).
+   `.example-input.yml` no longer lists individual toggles, so it needs no change.
 7. Update `README.md` with documentation
 8. Keep the component's coverage at the `fail_under = 99` gate (see
-   [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md)). Because
-   `.example-input.yml` disables every component, a component's coverage is only
+   [ADR-008](docs/adr/008-worker-broker-testing-strategy.md)). Because
+   `.example-input.yml` uses the `library` preset (no interface components), a
+   component's coverage is only
    validated when you generate it explicitly — do that and run the suite. Unit-test
    the business logic *including reachable error handling* (metadata-failure
    paths are tested via a `_MissingDistribution` monkeypatch stub — see the
@@ -836,7 +895,7 @@ or the gate silently fails for *every* generated project:
 
 Always verify coverage via the real `tox run` path (installed package, all envs),
 never editable `pytest` — both defects are invisible otherwise. See
-[ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
+[ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 
 ### Modifying Template Variables
 

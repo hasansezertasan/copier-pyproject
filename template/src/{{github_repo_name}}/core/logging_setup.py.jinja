@@ -4,6 +4,10 @@ This module configures logging for the project, ensuring that
 log handlers are only added once to prevent duplicate log entries if the
 module is imported multiple times.
 
+Setup is resilient to a read-only or unavailable ``$HOME``: if the log
+directory cannot be created it degrades to console-only logging instead of
+raising, so read-only commands (``--help``, ``version``) stay usable.
+
 """
 
 import logging
@@ -13,7 +17,7 @@ from logging.handlers import RotatingFileHandler
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.config import get_settings
-from {{github_repo_name}}.core.dirs import LOG_FILE_PATH, ROOT_FOLDER_PATH
+from {{github_repo_name}}.core.dirs import HOME_IS_RESOLVABLE, LOG_FILE_PATH, ROOT_FOLDER_PATH
 
 __all__ = ["get_logger", "setup_logger"]
 
@@ -60,33 +64,42 @@ def setup_logger() -> logging.Logger:
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
 
-        # Console handler (errors only). Added first and unconditionally so the
-        # application stays usable even when no log file can be created.
+        # Create a console handler for errors only. This is always available and
+        # never depends on a writable filesystem.
         console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setLevel(logging.ERROR)
         console_handler.setFormatter(formatter)
         logger_.addHandler(console_handler)
 
-        # File handler is best-effort: a read-only or otherwise unwritable home
-        # directory (containers, restricted service accounts) must not break the
-        # CLI at import time, so fall back to console-only logging on failure.
-        try:
-            ROOT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
-            file_handler = RotatingFileHandler(
-                LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
+        # Add a rotating file handler when there is a user-owned directory to
+        # write to. This runs at import time (loggers are created at module
+        # load), so a read-only or unavailable ``$HOME`` -- locked-down
+        # containers, service accounts, sandboxes -- must not crash read-only
+        # commands like ``--help`` or ``version``. Degrade to console-only
+        # logging instead, reporting it to ``stderr`` so it stays discoverable.
+        if not HOME_IS_RESOLVABLE:
+            # No home directory means no safe, user-private place for the log
+            # file; falling back to a shared temp path would let another local
+            # user hijack it, so skip file logging entirely.
+            print(  # noqa: T201 - logging is only partially configured here
+                "Home directory unavailable; using console-only logging.",
+                file=sys.stderr,
             )
-            file_handler.setLevel(level)
-            file_handler.setFormatter(formatter)
-            logger_.addHandler(file_handler)
-        except OSError:
-            # Emit at ERROR so the console handler (errors-only) actually shows it
-            # — operators must know file logging is off. `exception` also records
-            # the OSError cause. This runs inside the ``except`` block, so it is
-            # the correct logging idiom (and TRY400-clean).
-            logger_.exception(
-                "Could not initialise file logging at %s; using console only.",
-                LOG_FILE_PATH,
-            )
+        else:
+            try:
+                ROOT_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
+                file_handler = RotatingFileHandler(
+                    LOG_FILE_PATH, maxBytes=10 * 1024 * 1024, backupCount=5
+                )
+            except OSError as error:
+                print(  # noqa: T201 - logging is only partially configured here
+                    f"File logging unavailable ({error}); using console-only logging.",
+                    file=sys.stderr,
+                )
+            else:
+                file_handler.setLevel(level)
+                file_handler.setFormatter(formatter)
+                logger_.addHandler(file_handler)
 
     return logger_
 

@@ -19,4 +19,4 @@ yamllint = "latest"
 
 [tasks.example]
 description = "Generate an example project from the template"
-run = "copier copy --trust --force --vcs-ref=HEAD --data-file=.example-input.yml . example"
+run = "copier copy --trust --force --defaults --vcs-ref=HEAD --data-file=.example-input.yml . example"

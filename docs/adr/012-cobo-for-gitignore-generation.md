@@ -42,9 +42,50 @@ cobo#120/#121) that LF-normalizes the block **before** sealing, so the seal and
 the on-disk (LF) bytes agree. `.gitignore` is sealed with `--eol lf`; the policy
 is persisted on the lock fragment (`eol = "lf"`) and `sync` re-applies it. A
 consumer that only runs `cobo check` needs no configuration — the LF seal is
-self-describing. (The `Icon[\r]` character-class pattern becomes `Icon[`/`]`
-under LF, an unavoidable and harmless artifact of any LF-normalized macOS
-boilerplate, not specific to cobo.)
+self-describing.
+
+#### Known tradeoff: LF-corrupted macOS char-class patterns
+
+The macOS boilerplate encodes two filenames whose real name ends in a
+carriage return — the legacy custom-folder icon `Icon␍` and `.HFS+ Private
+Directory Data␍` — as single-line character classes (`Icon[<CR>]`,
+`.HFS+ Private Directory Data[<CR>]`). The `<CR>` there is a **semantic** byte
+matched literally, not a line terminator. LF normalization rewrites it to a
+newline, splitting each pattern in two:
+
+```text
+Icon[
+]
+```
+
+`Icon[` is now an unterminated char-class, which git's wildmatch treats as a
+non-matching pattern — it matches **nothing** (not even a literal `Icon[`), so
+it is inert, and the `Icon␍` file is no longer ignored. The orphaned `]` is a
+separate pattern that *is* effective: it ignores a file literally named `]`.
+Same for the HFS entry. This is accepted as a deliberate tradeoff,
+not "harmless": these are legacy HFS resource-fork artifacts modern macOS rarely
+creates and almost never commits, and there is **no LF-only pattern** that
+matches `Icon␍` precisely (`Icon?` over-matches `Icons`/`Icon1`/…), so fidelity
+genuinely requires the CR. Keeping the CR is still the wrong call — it fights
+this template's LF-everywhere invariant: EditorConfig `end_of_line = lf` makes
+the `style` env's `editorconfig-checker` fail on the embedded CR, and — the
+decisive blocker — Copier renders `.gitignore.jinja` through Jinja, whose lexer
+normalizes a lone `\r` to `\n` on scaffold (`Icon[\r]` → `Icon[\n]`), so an
+`eol=preserve` seal would be re-corrupted in **every** generated project anyway.
+(Git itself does **not** strip the CR: `* text=auto eol=lf` only rewrites CRLF
+*terminators*, leaving a lone mid-line CR intact in the index — but the Jinja
+render happens at scaffold time, before anything is committed, so that does not
+rescue the pattern.)
+
+The root cobo-level fix — `eol=lf` should normalize line *terminators* only,
+not a CR embedded mid-line inside a char-class — is tracked in
+[cobo#124](https://github.com/hasansezertasan/cobo/issues/124). It is
+**necessary but not sufficient**: because Copier's Jinja render also strips the
+lone CR (above), fully restoring the patterns in generated projects would
+*additionally* require the render to preserve it (a `{% raw %}` wrap or a Copier
+newline/`_envops` carve-out scoped to this file). Until both are in place the
+split patterns stand as documented. See also
+[#111](https://github.com/hasansezertasan/copier-pyproject/issues/111).
 
 ### 2. Project overrides move below the fence
 
@@ -68,7 +109,7 @@ wins.
 
 ### 4. Drift check = weekly non-blocking cron
 
-`gitignore-drift.yml` runs `cobo update && cobo check` on a weekly `schedule` +
+`gitignore-drift.yml` runs `cobo update && cobo check --strict` on a weekly `schedule` +
 `workflow_dispatch` only — **not** on `pull_request` and **not** in the `check`
 aggregation gate. `cobo update` hits the network, and this template keeps
 network-flaky checks out of the blocking gate (same posture as `docs-linkcheck`,

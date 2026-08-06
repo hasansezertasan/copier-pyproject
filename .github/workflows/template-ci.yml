@@ -19,9 +19,11 @@ jobs:
       fail-fast: false
       matrix:
         scenario:
-          # Bare template — only the always-on core/utils modules.
+          # Bare template — only the always-on core/utils modules. The base
+          # data-file uses the `library` preset (which seeds examples/), so this
+          # scenario turns examples back off to keep a true core-only render.
           - name: minimal
-            data: ""
+            data: --data include_examples=false
           # Kitchen sink with FastAPI + Redis worker + pydantic settings.
           - name: full-fastapi-redis
             data: >-
@@ -136,3 +138,25 @@ jobs:
             grep -Eq "example-${tool}-.*matrix\.label" "$wf" \
               || { echo "::error::release.yml does not name the ${tool} artifact uniquely per OS (missing matrix.label qualifier)"; exit 1; }
           done
+  render-tests:
+    name: Render harness (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+          # Copier renders from a git ref, so it needs the repo's history.
+          fetch-depth: 0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          enable-cache: true
+      - name: Run render harness
+        # No root Python project (tooling is mise-managed), so pytest + copier
+        # come from an ephemeral uv env. The harness renders the template into
+        # tmp dirs and asserts preset behavior and the redis_backend fix.
+        run: uv run --with pytest --with copier pytest tests/ -v

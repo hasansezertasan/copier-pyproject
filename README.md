@@ -2,18 +2,44 @@
 
 Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`, and GitHub automation baked in.
 
-## What this template includes
+## Features
 
-- uv-first workflow with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions from Git tags.
-- Optional components: Typer CLI entrypoint, FastAPI web app, Textual TUI, Tkinter GUI, C extensions via Cython with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), logging/config modules, type hints, and a `py.typed` marker plus corresponding tests; container-ready `Dockerfile`.
-- QA stack: pytest with coverage/xdist/reruns (and `.github/codecov.yml`), ruff, mypy, basedpyright, ty, pyrefly, zuban, vulture, slotscheck, import-linter (architecture contracts), taplo, validate-pyproject, typos, actionlint, and editorconfig-checker. MegaLinter is available as an optional (`include_megalinter`) extra CI layer that adds gap checks (shellcheck, hadolint, jsonlint, jscpd clone-detection, plus a `.md`-scoped cspell prose pass) not already covered by prek/tox.
-- Docs and site: Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme, autodoc API reference, and a GitHub Pages deploy workflow.
-- Automation and hygiene: CI/CD workflows (matrix tests, trusted-publishing to PyPI, gh-pages), release automation via release-please, PR title linting, linked-issue enforcement, PR task-list completion check, issue/PR templates, `SECURITY.md` policy, `SUPPORT.md`, `CODEOWNERS`, dependency management (Renovate), always-on Commitizen and git hooks (run via prek), always-on `CITATION.cff` with a validation workflow, automated template updates via Renovate's copier manager — it opens a `copier update` PR when the template publishes a new tag (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)), devcontainer, VS Code launch config, gitignore, `.gitattributes`, FUNDING, and LICENSE.
-- Supply-chain security: CodeQL analysis, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks PRs introducing high-severity vulnerabilities, active scanning (gitleaks, pip-audit, and Trivy for web images), and static GitHub Actions analysis (zizmor + ghalint) enforcing least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, and full-length action SHA pins — a blocking prek/CI gate plus a zizmor Security-tab dashboard (ghalint is delivered via mise since it ships no PyPI/pre-commit distribution).
-- AI-agent onboarding: a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
-- Extra tooling: `.dockerignore`, badge-rich README template, and enhanced VS Code launch.json for debugging (current file, tests, attach, entry points).
+Always included in every generated project:
+
+- **Packaging & workflow** — uv-first with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions derived from Git tags.
+- **Type safety** — full type hints and a `py.typed` marker, checked by mypy, basedpyright, ty, pyrefly, and zuban.
+- **Code quality** — ruff linting/formatting and an always-on pylint gate, plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement.
+- **Testing** — pytest with coverage/xdist/reruns (and `.github/codecov.yml`) and parallel execution.
+- **Documentation** — a Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme and autodoc API reference, GitHub Pages deployment, and live per-PR previews.
+- **CI/CD & release** — matrix tests on macOS/Linux/Windows, trusted-publishing to PyPI, and release automation via release-please, with PR title linting, linked-issue enforcement, and a PR task-list completion check.
+- **Security** — CodeQL, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks high-severity vulnerabilities, active scanning (gitleaks, pip-audit, and Trivy for web images), GitHub Actions static analysis (zizmor + ghalint) enforcing least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, and full-length action SHA pins — a blocking prek/CI gate plus a zizmor Security-tab dashboard — and a CycloneDX SBOM attached to every release.
+- **Repo hygiene** — issue/PR templates, `SECURITY.md`, `SUPPORT.md`, `CODEOWNERS`, `FUNDING`, `LICENSE`, `.gitattributes`, `.dockerignore`, a badge-rich README, and VS Code launch configs (current file, tests, attach, entry points); always-on Commitizen and git hooks (run via prek) and an always-on `CITATION.cff` with a validation workflow.
+- **Managed `.gitignore`** — kept in sync with the upstream [github/gitignore](https://github.com/github/gitignore) templates by [cobo](https://github.com/hasansezertasan/cobo), with a weekly drift check.
+- **Dependency & template updates** — Renovate manages dependencies and, via its copier manager, opens a `copier update` PR whenever this template publishes a new tag (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
+- **AI-agent onboarding** — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
+- **Modern Python** — uv for dependency management, hatch for building, and a devcontainer for reproducible environments.
+
+Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, and MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox).
 
 ## Inputs
+
+### Preset
+
+The first component question, `preset`, seeds sensible defaults matching your
+project's shape:
+
+- `library` — a pure importable package (seeds an `examples/` folder). **Default.**
+- `tool` — a CLI/TUI application distributed on PyPI (CLI + TUI + pydantic-settings).
+- `web` — a web app with a database and cache (web app + pydantic-settings +
+  PostgreSQL + Redis in the devcontainer).
+- `full` — every component and integration enabled.
+
+The preset only changes each toggle's *default* (which you can accept with
+Enter) — it never hides a question and never changes an existing project on
+`copier update`; every toggle is still written to `.copier-answers.yml`. A few
+sub-questions (the web framework, worker broker, Redis backend, and the
+PostgreSQL UIs) remain conditional on their parent toggle, independently of the
+preset.
 
 Copier will prompt for:
 
@@ -33,6 +59,7 @@ Copier will prompt for:
 - `worker_broker` (kafka/nats/rabbitmq/redis - when `include_worker` is enabled)
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
+- `include_examples` (include an `examples/` folder with simple and advanced usage stubs)
 - `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
@@ -40,7 +67,8 @@ Copier will prompt for:
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
-- `redis_backend` (redis/valkey - when `include_redis` is enabled)
+- `redis_backend` (redis/valkey - when `include_redis` is enabled, or when a
+  `redis` worker broker is used even with `include_redis` disabled)
 - `include_pgadmin` (include pgAdmin - when `include_postgres` is enabled)
 - `include_adminer` (include Adminer - when `include_postgres` is enabled)
 - `include_dbeaver` (include CloudBeaver database UI in devcontainer)
@@ -49,10 +77,34 @@ Copier will prompt for:
 ## Scaffold a project
 
 1. Install Copier and uv (e.g., `uvx copier`).
-2. Run `copier copy gh:hasansezertasan/copier-pyproject <destination>` (or `copier copy . <destination>` from a local clone).
+2. Run `copier copy https://github.com/hasansezertasan/copier-pyproject.git <destination>` (or `copier copy . <destination>` from a local clone). Use the `.git` HTTPS URL, **not** the `gh:hasansezertasan/copier-pyproject` shorthand — Copier records the argument verbatim as `_src_path`, and Renovate's copier manager only resolves template tags when `_src_path` is a real git URL (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 3. Optionally seed answers with `.example-input.yml` using `--data-file .example-input.yml --defaults`.
 4. Initialize git in the destination: `cd <destination> && git init` (the template intentionally defines no Copier tasks, so it does not auto-init — see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 5. Open the generated README (rendered from `template/README.md.jinja`) and clear the `TODO @...` markers in `README.md`, `pyproject.toml`, docs, and workflows.
+
+## Adopt into an existing project (Claude Code plugin)
+
+The `copier copy` flow above is for **new** projects. Adopting this template into an **existing or already-published** package is a different job: `copier copy` overwrites source, config, docs, and CI, so it must be run as a migrate-and-reconcile rather than a scaffold.
+
+This repository therefore doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) **plugin** that ships an `adopt-copier-pyproject` skill capturing that procedure — the source-skeleton collision, ruff auto-fix source corruption, the release-please/hatch-vcs version clash, the `copier update` 3-way-merge flow, and the placeholder prose the template plants in issue templates and docs. Plugin metadata lives in [`.claude-plugin/`](.claude-plugin) and the skill in [`skills/adopt-copier-pyproject/SKILL.md`](skills/adopt-copier-pyproject/SKILL.md).
+
+### For humans
+
+Install the plugin once from inside Claude Code:
+
+```text
+/plugin marketplace add hasansezertasan/copier-pyproject
+/plugin install copier-pyproject@copier-pyproject
+```
+
+Then, in a Claude Code session opened **inside the package you are adopting the template into**, describe the task (e.g. "adopt copier-pyproject into this project"). Claude follows the skill's procedure and checks in with you at each decision it cannot make alone — the planted `TODO` markers, the issue-template example prose, and the release-please version manifest.
+
+### For agents
+
+Once the plugin is installed the skill is auto-discovered; no explicit invocation is needed. It triggers on its own whenever a task matches its description: adopting `hasansezertasan/copier-pyproject` into an existing package, or reconciling a `copier update` that overwrote source/config. Working directly from a clone (without installing the plugin), an agent can read [`skills/adopt-copier-pyproject/SKILL.md`](skills/adopt-copier-pyproject/SKILL.md) and follow it as a checklist.
+
+> [!NOTE]
+> For a brand-new project, ignore the plugin and use [Scaffold a project](#scaffold-a-project) above — the skill is only for adopting the template into code that already exists.
 
 ## Generated project quickstart
 
@@ -63,7 +115,9 @@ Copier will prompt for:
 - Run the web app (if included): `uv run --locked <repo-name>-web`
 - Serve docs locally: `uv run --locked tox run -e docs-server` (deploys via GitHub Pages on release)
 
-`.example-input.yml` provides default values for all template options.
+`.example-input.yml` supplies the required identity answers plus a starting
+`preset` (`library`), so the template can be rendered non-interactively (e.g.
+`mise run example`); every other toggle follows from the preset's defaults.
 
 ## Release automation
 

@@ -4,6 +4,9 @@
 import logging
 
 try:
+    # pylint: disable-next=import-self
+    # (false positive: a package __init__ importing one of its own submodules
+    # by the full dotted path is not a self-import).
     from {{github_repo_name}}._c_extension import ExampleExtension, fibonacci_cython
 except ImportError as exc:  # pragma: no cover
     # Warn at import time rather than passing silently or logging at debug:

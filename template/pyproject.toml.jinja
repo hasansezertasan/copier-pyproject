@@ -100,22 +100,48 @@ classifiers = [
 {% endif %}
 ]
 requires-python = ">=3.10"
-# Runtime dependencies. Each enabled component registers an unconditional
-# console/GUI entry point that imports its framework, so those frameworks are
-# required (not optional extras) — otherwise a plain `pip install {{github_repo_name}}` yields
-# entry points that crash with ModuleNotFoundError.
-{% set _deps = [] -%}
-{%- if include_cli %}{% set _ = _deps.append("typer>=0.20.0") %}{% endif -%}
-{%- if include_web and web_framework == "fastapi" %}{% set _ = _deps.append("fastapi[all]>=0.123.5") %}{% elif include_web %}{% set _ = _deps.append("litestar[standard]>=2.0.0") %}{% endif -%}
-{%- if include_tui %}{% set _ = _deps.append("textual>=0.50.0") %}{% set _ = _deps.append("typing-extensions>=4.4.0") %}{% endif -%}
-{%- if include_mcp %}{% set _ = _deps.append("mcp>=1.0.0,<2") %}{% endif -%}
-{%- if include_worker %}{% set _ = _deps.append("faststream[" ~ ("rabbit" if worker_broker == "rabbitmq" else worker_broker) ~ "]>=0.5.0") %}{% set _ = _deps.append("pydantic>=2.0.0") %}{% set _ = _deps.append("uvloop>=0.19.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation == 'CPython'") %}{% endif -%}
-{%- if include_pydantic_settings %}{% set _ = _deps.append("pydantic-settings>=2.0.0") %}{% endif -%}
-{% if _deps %}dependencies = [
-{%- for d in _deps %}
-    "{{ d }}",
-{%- endfor %}
-]{% else %}dependencies = []{% endif %}
+{% if is_app or include_pydantic_settings -%}
+# The enabled component's runtime deps live here, not in an optional extra: a
+# selected component is chosen at generation time and ``__main__`` imports it
+# unconditionally (see the CLI > GUI > TUI > web > MCP > worker precedence
+# there), so ``pip install {{github_repo_name}}`` must pull them or the binary
+# fails at launch. Same for pydantic-settings, which ``core.config`` imports
+# unconditionally when enabled.
+{% endif -%}
+dependencies = [
+{%- if include_cli %}
+    "typer>=0.20.0",
+{%- endif %}
+{%- if include_tui %}
+    "textual>=0.50.0",
+    "typing-extensions>=4.4.0",
+{%- endif %}
+{%- if include_web %}
+{%- if web_framework == "fastapi" %}
+    "fastapi[all]>=0.123.5",
+{%- endif %}
+{%- if web_framework == "litestar" %}
+    "litestar[standard]>=2.0.0",
+{%- endif %}
+{%- endif %}
+{%- if include_mcp %}
+    "mcp>=1.0.0,<2",  # TODO @{{github_user}}: mcp 2.0.0 is a breaking API rewrite (input_schema, new Server API); migrate mcp/app.py before relaxing this cap
+{%- endif %}
+{%- if include_worker %}
+    "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0",
+    "pydantic>=2.0.0",
+    "uvloop>=0.19.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation == 'CPython'",
+{%- endif %}
+{%- if include_pydantic_settings %}
+    "pydantic-settings>=2.0.0",
+{%- endif %}
+]
+
+[project.optional-dependencies]
+# Runnable-component and settings deps are core (see ``dependencies`` above), so
+# no per-component extras remain. ``all`` is kept (empty) because the ``dev``
+# dependency-group installs ``{{github_repo_name}}[all]``.
+all = []
 
 
 [project.urls]
@@ -126,62 +152,66 @@ issues = "https://github.com/{{github_user}}/{{github_repo_name}}/issues"
 releasenotes = "https://github.com/{{github_user}}/{{github_repo_name}}/releases"
 source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
 
-{% if include_cli or include_tui or include_web or include_mcp or include_worker %}
+{#- Console-script wiring. The highest-precedence enabled component (CLI > GUI >
+    TUI > web > MCP > worker) is the "primary": it owns the bare
+    ``{{github_repo_name}}`` command, wired to ``__main__:main`` (the single
+    entrypoint that standalone builds also target). Every other enabled component
+    keeps a ``{{github_repo_name}}-<name>`` command pointing at its own ``app``
+    entrypoint, so a multi-component project can still launch each one. GUI uses
+    ``[project.gui-scripts]`` so it starts without a console window on Windows;
+    it is only ever the primary when CLI is absent. The precedence order itself
+    lives in ``copier.yml``'s ``primary_component`` (empty for a library). #}
+{%- set _primary = primary_component or none %}
+{%- set _console = [] %}
+{%- set _gui = [] %}
+{%- if _primary == "gui" %}{% set _ = _gui.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}
+{%- elif _primary %}{% set _ = _console.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}{% endif %}
+{%- if include_gui and _primary != "gui" %}{% set _ = _gui.append((github_repo_name ~ "-gui", github_repo_name ~ ".gui.app:main")) %}{% endif %}
+{%- if include_tui and _primary != "tui" %}{% set _ = _console.append((github_repo_name ~ "-tui", github_repo_name ~ ".tui.app:main")) %}{% endif %}
+{%- if include_web and _primary != "web" %}{% set _ = _console.append((github_repo_name ~ "-web", github_repo_name ~ ".web.app:main")) %}{% endif %}
+{%- if include_mcp and _primary != "mcp" %}{% set _ = _console.append((github_repo_name ~ "-mcp", github_repo_name ~ ".mcp.app:main")) %}{% endif %}
+{%- if include_worker and _primary != "worker" %}{% set _ = _console.append((github_repo_name ~ "-worker", github_repo_name ~ ".worker.app:main")) %}{% endif %}
+{% if _console %}
 [project.scripts]
-{% if include_cli %}{{github_repo_name}} = "{{github_repo_name}}.cli.app:app"{% endif %}
-{% if include_tui %}{{github_repo_name}}-tui = "{{github_repo_name}}.tui.app:main"{% endif %}
-{% if include_web %}{{github_repo_name}}-web = "{{github_repo_name}}.web.app:main"{% endif %}
-{% if include_mcp %}{{github_repo_name}}-mcp = "{{github_repo_name}}.mcp.app:main"{% endif %}
-{% if include_worker %}{{github_repo_name}}-worker = "{{github_repo_name}}.worker.app:main"{% endif %}
-{% endif %}
-{% if include_gui %}
+{% for name, target in _console %}{{ name }} = "{{ target }}"
+{% endfor %}{% endif %}
+{% if _gui %}
 [project.gui-scripts]
-{{github_repo_name}}-gui = "{{github_repo_name}}.gui.app:main"
-{% endif %}
+{% for name, target in _gui %}{{ name }} = "{{ target }}"
+{% endfor %}{% endif %}
 
 
 [dependency-groups]
 dev = [
-  "{{github_repo_name}}",
-  "tox==4.31.0",
-  "tox-uv==1.29.0",
-  "debugpy==1.8.0",
+  "{{github_repo_name}}[all]",
+  "tox==4.58.0",
+  "tox-uv==1.36.0",
+  "debugpy==1.8.21",
   { include-group = "style" },
   { include-group = "test" },
 ]
 style = [
-  "actionlint-py==1.7.12.24",
-  "basedpyright==1.39.8",
-  "editorconfig-checker==3.6.1",
+  "basedpyright==1.39.9",
+  "editorconfig-checker==3.8.0",
   "import-linter==2.13",
-  "mypy==2.1.0",
-  "pyrefly==1.1.1",
-  "ruff==0.15.19",
-  "slotscheck==0.20.0",
+  "mypy==2.3.0",
+  "pylint==4.0.6",
+  "pyrefly==1.2.0",
+  "ruff==0.16.1",
+  "slotscheck==0.20.1",
   "sphinx-lint==1.0.2",
   "taplo==0.9.3",
-  "ty==0.0.53",
-  "typos==1.47.2",
-  "validate-pyproject[all]==0.25",
-  "vulture==2.16",
-  "zuban==0.9.0",
-  # "google-yamlfmt",
-  # "shellcheck-makefile>=1.27.3",
-  # "shellcheck-py>=0.10.0.1",
-  # "types-PyYAML",
-  # "types-setuptools",
-  # "types-ujson",
-  # "yamlfix>=1.18.0",
-  # "yamlfmt>=1.1.1",
-  # "yamllint>=1.37.1",
+  "ty==0.0.66",
+  "typos==1.49.0",
+  "zuban==0.9.1",
 ]
 test = [
   "coverage-enable-subprocess==1.0",
-  "coverage[toml]==7.11.0",
+  "coverage[toml]==7.15.3",
   "pytest-mock==3.15.1",
-  "pytest-rerunfailures==16.1",
+  "pytest-rerunfailures==16.4",
   "pytest-xdist[psutil]==3.8.0",
-  "pytest==8.4.2",
+  "pytest==9.1.1",
   "pytest-sugar",
   "pytest-asyncio>=0.23.0",
   "dirty-equals",
@@ -199,7 +229,7 @@ test = [
 ]
 docs = [
     "sphinx==8.1.3",
-    "shibuya==2026.5.19",
+    "shibuya==2026.7.12",
     "sphinx-autobuild==2024.10.3",  # 2025.x drops Python 3.10 (requires-python >= 3.11)
     "sphinx-copybutton==0.5.2",
     "sphinx-design==0.6.1",  # 0.7.0 drops Python 3.10 (requires-python >= 3.11)
@@ -212,7 +242,7 @@ docs = [
 {%- endif %}
 ]
 tool = [
-  "commitizen==4.10.0",
+  "commitizen==4.17.0",
 {%- if include_c_extensions %}
   "cython>=3.0.0",
 {%- endif %}
@@ -233,7 +263,7 @@ tool = [
   # "copier==9.11.0",
 ]
 prek = [
-    "prek==0.4.3",
+    "prek==0.4.12",
 ]
 
 
@@ -258,7 +288,12 @@ trusted-publishing = "always"
 
 [tool.hatch.version]
 source = "vcs"
-fallback-version = "0.1.0"
+# Last-resort sentinel: only used when a build sees neither a .git directory nor
+# an expanded .git_archival.txt (e.g. an archive of a commit with no reachable
+# tag). "0.0.0" reads clearly as "version could not be determined" rather than
+# masquerading as a real early release. See .git_archival.txt + .gitattributes
+# `export-subst` for the archive path that recovers the real tag-derived version.
+fallback-version = "0.0.0"
 
 
 [tool.hatch.build]
@@ -444,7 +479,7 @@ fix = true
 output-format = "full"
 preview = true
 show-fixes = true
-src = ["src", "tests", "examples"]
+src = ["src", "tests"{% if include_examples %}, "examples"{% endif %}]
 target-version = "py310"
 unsafe-fixes = true
 
@@ -463,7 +498,11 @@ skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
 fixable = ["ALL"]
-ignore = ["COM812", "CPY", "FIX", "TD"]
+# Two opinionated ruff 0.16 preview rules are disabled: RUF105 would rewrite the
+# portable `# noqa` comments into ruff's own `# ruff: ignore` syntax (its docs note
+# `# noqa` is needed for cross-tool compatibility), and RUF201 would rewrite every
+# rule *code* in this config's selectors into long rule *names*. Both are stylistic.
+ignore = ["COM812", "CPY", "FIX", "RUF105", "RUF201", "TD"]
 logger-objects = ["logging_setup.logger"]
 preview = true
 select = ["ALL"]
@@ -509,7 +548,9 @@ convention = "pep257"
 # Tests legitimately use asserts/magic values, reach into package internals, and
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
-"examples/*.py" = ["INP001"]
+{%- if include_examples %}
+"examples/**/*.py" = ["INP001"]
+{%- endif %}
 # The Sphinx config is a standalone module, not part of an importable package.
 "docs/conf.py" = ["INP001"]
 {%- if include_c_extensions %}
@@ -572,6 +613,51 @@ error-on-warning = true
 [tool.pyrefly]
 python-version = "3.10"
 project-includes = ["src"]
+
+[tool.pylint.main]
+# pylint runs as an always-on gate that deliberately overlaps ruff's PL* rules.
+# Its canonical invocation is `pylint src`, so it never descends into tests; this
+# ignore-paths is a defensive scope guard for broader invocations (`pylint .`,
+# filename-passing hooks). Tests are linted by ruff, not pylint.
+ignore-paths = ["^tests/.*$"]
+# `.pyi` stubs (the c-extension type stub) are signature-only: their bodies are
+# `...` and every parameter is unused by construction, so pylint's unused-argument
+# check is a guaranteed false positive there. Stubs are type-checked by the
+# type-checker gate, not pylint.
+ignore-patterns = ['.*\.pyi$']
+
+[tool.pylint."messages control"]
+# Only formatter-owned checks, the docstring family, and too-few-public-methods
+# are disabled so pylint is usable out of the box; everything else stays on.
+disable = [
+  "line-too-long",              # C0301 — ruff-format owns line length
+  "missing-module-docstring",   # C0114
+  "missing-class-docstring",    # C0115
+  "missing-function-docstring", # C0116
+  "too-few-public-methods",     # R0903 — trips dataclasses / config / Protocol classes
+  "import-outside-toplevel",    # C0415 — components (cli->tui/gui/web, and each
+                                 # component's own optional-dependency probe) are
+                                 # deliberately lazy-imported so import-linter's
+                                 # layering contract holds and optional extras
+                                 # aren't required at import time.
+  "try-except-raise",           # W0706 — the generated TUI entry point
+                                 # explicitly re-raises KeyboardInterrupt/SystemExit
+                                 # ahead of a broad `except Exception` to make the
+                                 # "let these propagate" intent obvious to readers,
+                                 # even though BaseException subclasses wouldn't be
+                                 # caught by the Exception clause anyway.
+  "duplicate-code",             # R0801 — the component skeletons (gui/tui/mcp/
+                                 # worker) are deliberately parallel: each fetches
+                                 # package metadata and formats the same info block
+                                 # the same way. That structural symmetry is a
+                                 # feature of the scaffold, not copy-paste debt, and
+                                 # R0801 cannot be suppressed inline at the call site.
+]
+
+[tool.pylint.design]
+max-args = 10
+max-positional-arguments = 10
+max-branches = 20
 {% if include_freezer %}
 [tool.typos.default.extend-identifiers]
 # `datas` is the PyInstaller `Analysis(datas=...)` / `a.datas` field in
@@ -620,6 +706,7 @@ env_tmp_dir = "{toxworkdir}/tmp/{envname}"
 # `coverage run` plus `parallel = true` writes per-env data files that the CI
 # `coverage combine` step merges.
 set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
+extras = ["all"]
 {% if include_c_extensions %}
 # The compiled extension makes each wheel ABI-specific. Distributing as an sdist
 # lets every environment compile it against its own interpreter, producing a
@@ -675,7 +762,8 @@ commands = [
     "src",
   ],
   [
-    "vulture",
+    "pylint",
+    "src",
   ],
   [
     "python",
@@ -704,15 +792,8 @@ commands = [
     "*.toml",
   ],
   [
-    "validate-pyproject",
-    "pyproject.toml",
-  ],
-  [
     "typos",
     "--diff",
-  ],
-  [
-    "actionlint",
   ],
   [
     "ec",
@@ -721,12 +802,15 @@ commands = [
     "sphinx-lint",
     "docs",
   ],
-  # ["yamlfmt", "."],
 ]
 # `test` is included so the type checkers that scope tests (e.g. ty) can
 # resolve pytest and other test-only imports.
 dependency_groups = ["style", "test"]
 description = "Run Checkers, Linters and Formatters"
+# Optional components (web/gui/tui/mcp/worker) are only importable when their
+# extra is installed; without this, pylint/mypy/etc. see import-error for any
+# optional component present in this render.
+extras = ["all"]
 runner = "uv-venv-runner"
 
 
@@ -739,6 +823,7 @@ runner = "uv-venv-runner"
 
 [tool.tox.env.docs-build]
 commands = [["sphinx-build", "-b", "html", "docs", "docs/_build/html"]]
+extras = ["all"]
 dependency_groups = ["docs"]
 description = "Build Docs"
 runner = "uv-venv-runner"
@@ -746,6 +831,7 @@ runner = "uv-venv-runner"
 
 [tool.tox.env.docs-server]
 commands = [["sphinx-autobuild", "docs", "docs/_build/html"]]
+extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
 runner = "uv-venv-runner"
@@ -755,6 +841,7 @@ runner = "uv-venv-runner"
 # On-demand link checker. Also run weekly (non-blocking) by docs-linkcheck.yml.
 # Hits the network, so it is deliberately not part of the `style` env or PR CI.
 commands = [["sphinx-build", "-b", "linkcheck", "docs", "docs/_build/linkcheck"]]
+extras = ["all"]
 dependency_groups = ["docs"]
 description = "Check documentation for broken links"
 runner = "uv-venv-runner"
@@ -785,7 +872,7 @@ runner = "uv-venv-runner"
 # On-demand only (not in env_list): starts a broker-bound worker, so run it with
 # ``tox -e worker`` when a broker is reachable. CI relies on the pytest suite.
 [tool.tox.env.worker]
-commands = [["{{github_repo_name}}-worker", { replace = "posargs", extend = true }]]
+commands = [["{{github_repo_name}}{% if primary_component != 'worker' %}-worker{% endif %}", { replace = "posargs", extend = true }]]
 description = "Run the message queue worker application."
 runner = "uv-venv-runner"
 
@@ -820,6 +907,7 @@ commands = [
   ],
 ]
 description = "Run worker broker integration tests against a real broker."
+extras = ["all"]
 dependency_groups = ["test"]
 runner = "uv-venv-runner"
 {%- endif %}
