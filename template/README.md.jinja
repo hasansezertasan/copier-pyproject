@@ -64,9 +64,26 @@
 
 ## Installation
 
+{% if include_cli or include_tui or include_gui or include_web or include_mcp or include_worker -%}
+{% set app_command = github_repo_name if include_cli else (github_repo_name ~ "-tui" if include_tui else (github_repo_name ~ "-gui" if include_gui else (github_repo_name ~ "-web" if include_web else (github_repo_name ~ "-mcp" if include_mcp else github_repo_name ~ "-worker")))) -%}
+`{{github_repo_name}}` is an end-user application; install it into an isolated environment (the `all` extra pulls in the runtime dependencies that live behind the component extras):
+
+```console
+uv tool install '{{github_repo_name}}[all]'
+```
+
+Or run it once without installing:
+
+```console
+{% if include_cli %}uvx '{{github_repo_name}}[all]'{% else %}uvx --from '{{github_repo_name}}[all]' {{app_command}}{% endif %}
+```
+
+To add it as a dependency of another project instead, use `uv add '{{github_repo_name}}[all]'` or `pip install '{{github_repo_name}}[all]'`.
+{% else -%}
 ```console
 pip install {{github_repo_name}}
 ```
+{% endif -%}
 {% if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_profiling or include_c_extensions %}
 ## Usage
 {%- if include_cli %}
