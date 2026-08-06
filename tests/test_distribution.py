@@ -97,3 +97,36 @@ def test_scoop_binary_manifest_when_executable(render: Callable[..., Path]) -> N
 def test_packaging_absent_when_disabled(render: Callable[..., Path]) -> None:
     root = render(preset="tool")
     assert not (root / ".github" / "packaging").exists()
+
+
+def test_release_has_publish_homebrew_job(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True, include_freezer=True)
+    wf = yaml.safe_load(_read(root, ".github", "workflows", "release.yml"))
+    job = wf["jobs"]["publish-homebrew"]
+    assert "finalize-release" in job["needs"]
+    # gated-on-secret presence flag
+    text = _read(root, ".github", "workflows", "release.yml")
+    assert "HOMEBREW_TAP_TOKEN_SET" in text
+    assert "peter-evans/create-pull-request" in text
+    # binary branch downloads the release assets, no PyPI fallback
+    assert "gh release download" in text
+
+
+def test_release_omits_publish_homebrew_when_disabled(
+    render: Callable[..., Path],
+) -> None:
+    text = _read(render(preset="tool"), ".github", "workflows", "release.yml")
+    assert "publish-homebrew" not in text
+
+
+def test_publish_homebrew_pypi_branch(render: Callable[..., Path]) -> None:
+    text = _read(
+        render(preset="tool", include_homebrew=True),
+        ".github",
+        "workflows",
+        "release.yml",
+    )
+    # PyPI JSON-API fallback (no executable toggle)
+    assert "pypi.org/pypi" in text
+    assert "@@SDIST_URL@@".replace("@@", "") in text
+    assert "gh release download" not in text

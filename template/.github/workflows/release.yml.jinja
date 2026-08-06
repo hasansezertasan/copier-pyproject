@@ -509,6 +509,94 @@ jobs:
             gh pr close "$pr" --delete-branch --repo "$REPO"
           fi
           gh workflow run "$WORKFLOW" --ref "$REF_NAME" --repo "$REPO"
+{% if include_homebrew %}
+  publish-homebrew:
+    name: Publish Homebrew formula
+    # Runs after the release is published so the tagged assets exist. Opens a PR
+    # to the author's homebrew-tap repo with the freshly rendered formula. Gated
+    # on the HOMEBREW_TAP_TOKEN secret: without it the job announces a skip
+    # ::notice:: and does nothing (mirrors the Codecov/Sonar opt-in posture).
+    needs: [release-please, finalize-release]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      HOMEBREW_TAP_TOKEN_SET: {% raw %}${{ secrets.HOMEBREW_TAP_TOKEN != '' }}{% endraw %}
+    steps:
+      - name: Announce skip when tap token unset
+        if: {% raw %}${{ env.HOMEBREW_TAP_TOKEN_SET != 'true' }}{% endraw %}
+        run: echo "::notice::HOMEBREW_TAP_TOKEN not set — skipping Homebrew publish."
+      - name: Checkout tap repo
+        if: {% raw %}${{ env.HOMEBREW_TAP_TOKEN_SET == 'true' }}{% endraw %}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          repository: {% raw %}${{ github.repository_owner }}{% endraw %}/homebrew-tap
+          token: {% raw %}${{ secrets.HOMEBREW_TAP_TOKEN }}{% endraw %}
+          path: tap
+          persist-credentials: false
+      - name: Checkout source for the packaging template
+        if: {% raw %}${{ env.HOMEBREW_TAP_TOKEN_SET == 'true' }}{% endraw %}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          path: src
+          persist-credentials: false
+      - name: Render formula
+        if: {% raw %}${{ env.HOMEBREW_TAP_TOKEN_SET == 'true' }}{% endraw %}
+        env:
+          # GitHub-context values pass through env and are read as shell vars, per
+          # the repo's no-untrusted-context-in-run convention (satisfies zizmor's
+          # template-injection audit). This job runs only on push to main.
+          TAG_NAME: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
+          VERSION: {% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
+          REPO: {% raw %}${{ github.repository }}{% endraw %}
+          GH_TOKEN: {% raw %}${{ github.token }}{% endraw %}
+        run: |
+          set -euo pipefail
+          tmpl="src/.github/packaging/homebrew-formula.rb.tmpl"
+          out="tap/Formula/{{github_repo_name}}.rb"
+          mkdir -p tap/Formula
+          base="https://github.com/$REPO/releases/download/$TAG_NAME"
+{% if primary_executable %}
+          workdir="$(mktemp -d)"
+          declare -A sha
+          for label in macos linux; do
+            asset="{{github_repo_name}}-{{primary_executable}}-$label"
+            gh release download "$TAG_NAME" --repo "$REPO" --pattern "$asset" --dir "$workdir"
+            sha[$label]="$(shasum -a 256 "$workdir/$asset" | cut -d' ' -f1)"
+          done
+          sed \
+            -e "s|@@VERSION@@|$VERSION|g" \
+            -e "s|@@URL_MACOS@@|$base/{{github_repo_name}}-{{primary_executable}}-macos|g" \
+            -e "s|@@SHA256_MACOS@@|${sha[macos]}|g" \
+            -e "s|@@URL_LINUX@@|$base/{{github_repo_name}}-{{primary_executable}}-linux|g" \
+            -e "s|@@SHA256_LINUX@@|${sha[linux]}|g" \
+            "$tmpl" > "$out"
+{% else %}
+          # No executable toggle: reference the PyPI sdist. Resolve its URL and
+          # sha256 from the PyPI JSON API (jq is preinstalled on ubuntu runners).
+          meta="$(curl -fsSL "https://pypi.org/pypi/{{github_repo_name}}/$VERSION/json")"
+          sdist_url="$(printf '%s' "$meta" | jq -r '.urls[] | select(.packagetype=="sdist") | .url')"
+          sdist_sha="$(printf '%s' "$meta" | jq -r '.urls[] | select(.packagetype=="sdist") | .digests.sha256')"
+          sed \
+            -e "s|@@VERSION@@|$VERSION|g" \
+            -e "s|@@SDIST_URL@@|$sdist_url|g" \
+            -e "s|@@SDIST_SHA256@@|$sdist_sha|g" \
+            "$tmpl" > "$out"
+{% endif %}
+      - name: Open PR to tap
+        if: {% raw %}${{ env.HOMEBREW_TAP_TOKEN_SET == 'true' }}{% endraw %}
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        with:
+          token: {% raw %}${{ secrets.HOMEBREW_TAP_TOKEN }}{% endraw %}
+          path: tap
+          commit-message: {% raw %}"chore: update {% endraw %}{{github_repo_name}}{% raw %} to ${{ needs.release-please.outputs.tag_name }}"{% endraw %}
+          title: {% raw %}"chore: update {% endraw %}{{github_repo_name}}{% raw %} to ${{ needs.release-please.outputs.tag_name }}"{% endraw %}
+          branch: chore/{{github_repo_name}}-formula
+          base: main
+          delete-branch: true
+{% endif %}
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs
