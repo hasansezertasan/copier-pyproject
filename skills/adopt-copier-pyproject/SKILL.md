@@ -25,9 +25,11 @@ entire job.** Run copier, let it overwrite everything, then restore your side fr
 
 2. **Run copier, overwrite everything:**
    ```bash
-   copier copy --overwrite --defaults --data <k=v>... gh:hasansezertasan/copier-pyproject .
+   copier copy --overwrite --defaults --data <k=v>... https://github.com/hasansezertasan/copier-pyproject.git .
    ```
-   **No `--trust` is needed** — the template deliberately defines **no `_tasks`** (or
+   Use the `.git` HTTPS URL, **not** the `gh:…` shorthand — Copier records it verbatim
+   as `_src_path`, and Renovate's copier manager only resolves template tags when
+   `_src_path` is a real git URL (ADR-015). **No `--trust` is needed** — the template deliberately defines **no `_tasks`** (or
    other unsafe features) so Renovate's copier manager can run it (ADR-015), and it
    does **not** auto-`git init`; run `git init` yourself afterward. (Only add
    `--trust` if you target an older template version that still defined
