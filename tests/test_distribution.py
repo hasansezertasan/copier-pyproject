@@ -177,3 +177,62 @@ def test_ghalint_web_only_excludes_docker_not_publish_jobs(
     assert "publish-homebrew" not in ghalint
     assert "publish-scoop" not in ghalint
     yaml.safe_load(ghalint)  # must still be valid YAML
+
+
+def test_homebrew_formula_classname_handles_underscores(
+    render: Callable[..., Path],
+) -> None:
+    # underscores are valid in github_repo_name; the classname must CamelCase
+    # across both '-' and '_' separators, e.g. my_app -> MyApp.
+    root = render(
+        github_repo_name="my_app",
+        preset="tool",
+        include_homebrew=True,
+        include_freezer=True,
+    )
+    tmpl = _read(root, ".github", "packaging", "homebrew-formula.rb.tmpl")
+    assert "class MyApp" in tmpl
+
+
+def test_packaging_templates_declare_license(render: Callable[..., Path]) -> None:
+    root = render(
+        preset="tool",
+        include_homebrew=True,
+        include_scoop=True,
+        include_freezer=True,
+    )
+    formula = _read(root, ".github", "packaging", "homebrew-formula.rb.tmpl")
+    manifest = _read(root, ".github", "packaging", "scoop-manifest.json.tmpl")
+    assert 'license "MIT"' in formula
+    assert '"license": "MIT"' in manifest
+
+
+def test_scoop_pypi_manifest_uses_jsonpath_checkver(
+    render: Callable[..., Path],
+) -> None:
+    # PyPI (no-executable) branch: the invalid `"checkver": "pypi"` is replaced
+    # by a proper checkver object querying the PyPI JSON API.
+    root = render(preset="tool", include_scoop=True)  # no executable toggle
+    manifest = _read(root, ".github", "packaging", "scoop-manifest.json.tmpl")
+    assert "jsonpath" in manifest
+    assert '"checkver": "pypi"' not in manifest
+
+
+def test_publish_jobs_pin_checkout_and_target_default_branch(
+    render: Callable[..., Path],
+) -> None:
+    text = _read(
+        render(
+            preset="tool",
+            include_homebrew=True,
+            include_scoop=True,
+            include_freezer=True,
+        ),
+        ".github",
+        "workflows",
+        "release.yml",
+    )
+    # both source checkouts pin to the release tag
+    assert "ref: ${{ needs.release-please.outputs.tag_name }}" in text
+    # create-pull-request targets each tap/bucket repo's own default branch
+    assert "base: main" not in text

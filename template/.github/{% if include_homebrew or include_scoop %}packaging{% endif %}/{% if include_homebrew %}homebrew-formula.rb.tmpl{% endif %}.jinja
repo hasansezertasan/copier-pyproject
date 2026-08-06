@@ -1,8 +1,9 @@
-{% set classname = github_repo_name.split('-') | map('capitalize') | join %}
+{% set classname = github_repo_name.replace('_', '-').split('-') | map('capitalize') | join %}
 {# Rendered at release time: @@VERSION@@ etc. are substituted by publish-homebrew. #}
 class {{classname}} < Formula
-  desc "{{short_description}}"
+  desc {{ short_description | tojson }}
   homepage "https://github.com/{{github_user}}/{{github_repo_name}}"
+  license "MIT"
 {% if primary_executable %}
   version "@@VERSION@@"
 
@@ -19,7 +20,9 @@ class {{classname}} < Formula
   end
 
   def install
-    bin.install Dir["*"].first => "{{github_repo_name}}"
+    asset = "{{github_repo_name}}-{{primary_executable}}-#{OS.mac? ? "macos" : "linux"}"
+    chmod "+x", asset
+    bin.install asset => "{{github_repo_name}}"
   end
 {% else %}
   url "@@SDIST_URL@@"
@@ -39,6 +42,6 @@ class {{classname}} < Formula
 {% endif %}
 
   test do
-    assert_match version.to_s, shell_output("#{bin}/{{github_repo_name}} --version")
+    assert_predicate bin/"{{github_repo_name}}", :executable?
   end
 end

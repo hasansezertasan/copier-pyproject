@@ -540,6 +540,7 @@ jobs:
         if: {% raw %}${{ env.HOMEBREW_TAP_TOKEN_SET == 'true' }}{% endraw %}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
+          ref: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
           path: src
           persist-credentials: false
       - name: Render formula
@@ -576,9 +577,20 @@ jobs:
 {%- else %}
           # No executable toggle: reference the PyPI sdist. Resolve its URL and
           # sha256 from the PyPI JSON API (jq is preinstalled on ubuntu runners).
-          meta="$(curl -fsSL "https://pypi.org/pypi/{{github_repo_name}}/$VERSION/json")"
+          meta=""
+          for attempt in 1 2 3 4 5; do
+            if meta="$(curl -fsSL "https://pypi.org/pypi/{{github_repo_name}}/$VERSION/json")"; then
+              break
+            fi
+            echo "::warning::PyPI metadata not ready (attempt $attempt), retrying…" >&2
+            sleep 15
+          done
           sdist_url="$(printf '%s' "$meta" | jq -r '.urls[] | select(.packagetype=="sdist") | .url')"
           sdist_sha="$(printf '%s' "$meta" | jq -r '.urls[] | select(.packagetype=="sdist") | .digests.sha256')"
+          if [ -z "$sdist_url" ] || [ -z "$sdist_sha" ]; then
+            echo "::error::could not resolve PyPI sdist for {{github_repo_name}} $VERSION" >&2
+            exit 1
+          fi
           sed \
             -e "s|@@VERSION@@|$VERSION|g" \
             -e "s|@@SDIST_URL@@|$sdist_url|g" \
@@ -594,7 +606,6 @@ jobs:
           commit-message: {% raw %}"chore: update {% endraw %}{{github_repo_name}}{% raw %} to ${{ needs.release-please.outputs.tag_name }}"{% endraw %}
           title: {% raw %}"chore: update {% endraw %}{{github_repo_name}}{% raw %} to ${{ needs.release-please.outputs.tag_name }}"{% endraw %}
           branch: chore/{{github_repo_name}}-formula
-          base: main
           delete-branch: true
 {%- endif %}
 {%- if include_scoop %}
@@ -628,6 +639,7 @@ jobs:
         if: {% raw %}${{ env.SCOOP_BUCKET_TOKEN_SET == 'true' }}{% endraw %}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
+          ref: {% raw %}${{ needs.release-please.outputs.tag_name }}{% endraw %}
           path: src
           persist-credentials: false
       - name: Render manifest
@@ -681,7 +693,6 @@ jobs:
           commit-message: {% raw %}"chore: update {% endraw %}{{github_repo_name}}{% raw %} to ${{ needs.release-please.outputs.tag_name }}"{% endraw %}
           title: {% raw %}"chore: update {% endraw %}{{github_repo_name}}{% raw %} to ${{ needs.release-please.outputs.tag_name }}"{% endraw %}
           branch: chore/{{github_repo_name}}-manifest
-          base: main
           delete-branch: true
 {%- endif %}
   deploy-docs:

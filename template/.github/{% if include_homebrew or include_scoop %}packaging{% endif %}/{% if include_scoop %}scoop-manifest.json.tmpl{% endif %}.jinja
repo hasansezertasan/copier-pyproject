@@ -1,8 +1,9 @@
 {% if primary_executable %}
 {
   "version": "@@VERSION@@",
-  "description": "{{short_description}}",
+  "description": {{ short_description | tojson }},
   "homepage": "https://github.com/{{github_user}}/{{github_repo_name}}",
+  "license": "MIT",
   "architecture": {
     "64bit": {
       "url": "@@URL_WIN@@",
@@ -22,8 +23,9 @@
 {% else %}
 {
   "version": "@@VERSION@@",
-  "description": "{{short_description}}",
+  "description": {{ short_description | tojson }},
   "homepage": "https://github.com/{{github_user}}/{{github_repo_name}}",
+  "license": "MIT",
   "depends": "python",
   "installer": {
     "script": ["python -m pip install --upgrade {{github_repo_name}}==@@VERSION@@"]
@@ -31,6 +33,6 @@
   "uninstaller": {
     "script": ["python -m pip uninstall -y {{github_repo_name}}"]
   },
-  "checkver": "pypi"
+  "checkver": { "url": "https://pypi.org/pypi/{{github_repo_name}}/json", "jsonpath": "$.info.version" }
 }
 {% endif -%}

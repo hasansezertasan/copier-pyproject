@@ -416,9 +416,11 @@ gh api -X PATCH repos/{{github_user}}/{{github_repo_name}} -F has_discussions=tr
 ```
 
 (UI: **Settings → General → Features** — tick **Discussions**.)
+{%- set ns = namespace(step=10) -%}
 {%- if include_web %}
+{%- set ns.step = ns.step + 1 %}
 
-**11. Docker Hub publishing (optional).** The release workflow always publishes
+**{{ ns.step }}. Docker Hub publishing (optional).** The release workflow always publishes
 the Docker image to GHCR (`ghcr.io/{{github_user}}/{{github_repo_name}}`) using
 the built-in `GITHUB_TOKEN` — no setup needed. To _additionally_ publish to
 Docker Hub, create an [access token](https://app.docker.com/settings/personal-access-tokens)
@@ -437,8 +439,9 @@ to `docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}`, so the namespace
 follows the Docker Hub account — it does not need to match the GitHub owner.
 {%- endif %}
 {%- if include_homebrew %}
+{%- set ns.step = ns.step + 1 %}
 
-**12. Homebrew tap (optional).** The release workflow opens a PR to your
+**{{ ns.step }}. Homebrew tap (optional).** The release workflow opens a PR to your
 Homebrew tap on each release. Create the tap repo once:
 
 ```sh
@@ -457,8 +460,9 @@ gh secret set HOMEBREW_TAP_TOKEN --repo {{github_user}}/{{github_repo_name}}
 When unset, the publish job skips with a notice (never fails the release).
 {%- endif %}
 {%- if include_scoop %}
+{%- set ns.step = ns.step + 1 %}
 
-**13. Scoop bucket (optional).** The release workflow opens a PR to your Scoop
+**{{ ns.step }}. Scoop bucket (optional).** The release workflow opens a PR to your Scoop
 bucket on each release. Create the bucket repo once:
 
 ```sh
