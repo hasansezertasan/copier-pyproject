@@ -114,9 +114,9 @@ jobs:
             --version="$RESOLVED_VERSION" \
             "$ref"
 
-          # Update Python resources (may fail for non-Python packages)
-          brew update-python-resources "$ref" \
-            || echo "Note: update-python-resources failed for $FORMULA (may not be a Python package)"
+          # --ignore-non-pypi-packages: skip resources with no PyPI release
+          # instead of failing; a real resource-resolution error still stops the job.
+          brew update-python-resources --ignore-non-pypi-packages "$ref"
 
           # The PR is opened with GITHUB_TOKEN and so won't trigger tests.yml.
           # Audit HERE instead so the auto-PR is verified inside the run that

@@ -229,7 +229,9 @@ Optional components (all boolean):
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
   [ADR-013](docs/adr/013-megalinter-opt-in-lean-complement.md).
-- `include_homebrew` - Homebrew tap distribution (opt-in). The generated
+- `include_homebrew` - Homebrew tap distribution, `default: false` and
+  `when: "{{ is_app }}"`-gated (only offered for app-like projects, not a
+  library). The generated
   project does not build a formula/cask itself: its `release.yml` fires a
   `repository_dispatch` (`update-formula`/`update-cask`) at the owner's own
   `homebrew-tap` repo, which owns the manifest logic via `brew

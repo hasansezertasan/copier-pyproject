@@ -39,7 +39,14 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
    cd scoop-bucket
    ```
 
-3. Add the initial manifest(s) under `bucket/`:
+3. Add the initial manifest(s) under `bucket/`. Each JSON block below shows
+   only the package-specific fields (`checkver`/`autoupdate`/`installer` plus
+   the identifying fields) — a complete Scoop manifest also needs the
+   standard install fields (top-level `version`, `url`, `hash`, `bin`, etc.).
+   Copy a full example from the reference bucket
+   [`hasansezertasan/scoop-bucket`](https://github.com/hasansezertasan/scoop-bucket)
+   (`bucket/{{github_repo_name}}.json` / `bucket/{{github_repo_name}}-pipx.json`
+   shapes) and adapt it, rather than trying to complete these fragments by hand:
 
    - A **pipx manifest** for the PyPI install — `installer.script` runs
      `pipx install {{github_repo_name}}==$version`, and `checkver` polls
@@ -60,7 +67,8 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
      See keycast's
      [`bucket/keycast-pipx.json`](https://github.com/hasansezertasan/scoop-bucket/blob/main/bucket/keycast-pipx.json)
      for a full manifest to copy and adapt.
-{% if primary_executable %}
+{%- if primary_executable %}
+
    - A **binary-zip manifest** pointing at the GitHub release asset the
      standalone-executable build attaches, with `checkver: github` and a
      matching `autoupdate` block so future releases resolve automatically:
@@ -83,22 +91,38 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
      See keycast's
      [`bucket/keycast.json`](https://github.com/hasansezertasan/scoop-bucket/blob/main/bucket/keycast.json)
      for a full manifest to copy and adapt.
-{% endif %}
+{%- endif %}
+
 4. Provision the updater script the listener calls,
    `scripts/update_manifests.py <package>` — the listener does **not** ship
    this script itself, and without it a dispatched update has nothing to run.
-   Either copy
+   Copy
    [`scripts/update_manifests.py`](https://github.com/hasansezertasan/scoop-bucket/blob/main/scripts/update_manifests.py)
    (and its dependencies) from the reference bucket
    [`hasansezertasan/scoop-bucket`](https://github.com/hasansezertasan/scoop-bucket)
-   linked above, or base the bucket on
+   linked above.
+
+   Alternatively, base the bucket on
    [`ScoopInstaller/BucketTemplate`](https://github.com/ScoopInstaller/BucketTemplate)
-   and adapt its `bin/checkver.ps1` / `bin/auto-pr.ps1` updater flow instead.
+   and adapt its `bin/checkver.ps1` / `bin/auto-pr.ps1` updater flow instead —
+   but if you do, the listener workflow (step 5 below) must be edited to
+   invoke that `checkver.ps1` / `auto-pr.ps1` flow rather than
+   `scripts/update_manifests.py`, since the two updater flows are not
+   interchangeable.
 
 5. Commit the listener workflow from this folder, `update-manifest-dispatch.yml`,
    to the bucket's `.github/workflows/` directory. It expects the bucket to
    provide the `scripts/update_manifests.py <package>` updater from the
    previous step.
+
+6. Push everything so the bucket repository actually contains the listener
+   and the initial manifest(s) before any release fires a dispatch:
+
+   ```sh
+   git add -A
+   git commit -m "Add {{github_repo_name}} + release listener"
+   git push
+   ```
 
 ## Token setup (in this project's repo)
 
