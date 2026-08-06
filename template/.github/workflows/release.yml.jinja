@@ -510,10 +510,8 @@ jobs:
           fi
           gh workflow run "$WORKFLOW" --ref "$REF_NAME" --repo "$REPO"
 {%- if include_homebrew %}
-
   bump-homebrew:
     name: Bump Homebrew {% if primary_executable %}cask{% else %}formula{% endif %}
-
     needs: [release-please, finalize-release]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     runs-on: ubuntu-latest
@@ -539,7 +537,6 @@ jobs:
             -f "client_payload[version]=$VERSION"
 {%- endif %}
 {%- if include_scoop %}
-
   bump-scoop:
     name: Bump Scoop bucket
     needs: [release-please, finalize-release]
@@ -564,7 +561,6 @@ jobs:
             -f 'client_payload[package]={{github_repo_name}}' \
             -f "client_payload[version]=$VERSION"
 {%- endif %}
-
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs
