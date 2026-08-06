@@ -438,10 +438,23 @@ Test packages mirror source structure in `tests/`:
   from the default run, Docker required); see
   [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 
-Entry points configured in `pyproject.toml`:
+Entry points configured in `pyproject.toml` (console-script wiring): the
+highest-precedence enabled component (**CLI > GUI > TUI > web > MCP > worker**)
+is the *primary* and owns the bare `pkg` command, wired to `pkg.__main__:main`
+(the single entrypoint standalone builds also target). Every *other* enabled
+component keeps a suffixed `pkg-<name>` command pointing at its own
+`pkg.<name>.app:main`. The precedence lives in **one** place — the
+`primary_component` computed variable in `copier.yml` (empty for a library) —
+and every template (`pyproject`, `README`, `docs/usage`, `docs/installation`,
+`.vscode/launch.json`, tox) derives the primary and each command's suffix from
+it: a component `X` is suffixed exactly when `primary_component != "X"`. Do
+**not** re-spell the precedence as inline `include_x or include_y …` conditions.
 
-- `project.scripts`: `pkg.cli.app:app`, `pkg.tui.app:main`, `pkg.web.app:main`, `pkg.mcp.app:main`, `pkg.worker.app:main`
-- `project.gui-scripts`: `pkg.gui.app:main` (launches without terminal)
+- `project.scripts`: bare `pkg = "pkg.__main__:main"` when the primary is a
+  console component, plus a `pkg-<name>` entry per non-primary console component.
+- `project.gui-scripts`: `pkg-gui = "pkg.gui.app:main"` (windowless launcher);
+  when GUI is the primary it instead takes the bare `pkg = "pkg.__main__:main"`
+  here, so there is never a bare-name collision across the two tables.
 
 ### Devcontainer Structure
 
@@ -606,13 +619,14 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
        secret (noted inline in the workflow).
      - `pip-audit` (always): `uv export`s the locked shipped deps
        (`--all-extras --no-dev --no-emit-project --no-hashes`) and audits them
-       with `uvx pip-audit`. `--all-extras` is load-bearing: this template keeps
-       component dependencies under `[project.optional-dependencies]` extras with
-       an empty base `dependencies = []`, so an export without it is empty and
-       the audit/SBOM silently cover nothing. `--all-extras` applies equally to
-       the release `sbom` job's export — though that job omits `--no-hashes`
-       (the SBOM keeps per-pin integrity hashes; only pip-audit drops them, since
-       its resolver would otherwise demand a hash for every transitive pin).
+       with `uvx pip-audit`. Component and settings deps are core
+       `dependencies` (each console script imports its component
+       unconditionally), so a plain export already covers the whole shipped
+       tree; `--all-extras` is retained as a harmless safeguard should a future
+       extra reintroduce shipped deps (and applies equally to the release `sbom`
+       job's export — though that job omits `--no-hashes`, since the SBOM keeps
+       per-pin integrity hashes; only pip-audit drops them, as its resolver would
+       otherwise demand a hash for every transitive pin).
        Unlike `dependency-review` (PR-diff only, GitHub Advisory
        DB), this re-audits the *entire* resolved tree against the PyPI Advisory
        DB on the weekly cron, so a CVE disclosed *after* a dependency merged is
@@ -813,9 +827,15 @@ For generated projects to publish to PyPI:
 3. Create conditional directory: `template/src/{{github_repo_name}}/{% if include_xxx %}xxx{% endif %}/`
 4. Create matching test directory: `template/tests/{% if include_xxx %}xxx{% endif %}/`
 5. Update `pyproject.toml.jinja`:
-   - Add optional dependency
-   - Add to `all` extras
-   - Add entry point if applicable
+   - Add the runtime dependency to the core `dependencies` list under the
+     component's `{% if include_xxx %}` guard — **not** an optional extra: the
+     component's console script imports it unconditionally, so `pip install
+     <pkg>` must pull it. (`all` stays empty; it exists only so the `dev`
+     group's `<pkg>[all]` resolves.)
+   - Add the entry point if applicable. If the component is runnable, fold it
+     into the console-script precedence in `primary_component` (`copier.yml`)
+     and the `_console`/`_gui` wiring block — a non-primary component gets a
+     `<pkg>-<name>` command; do not spell out the precedence inline anywhere.
    - Add keywords
    - Add the component to the `[tool.importlinter]` `layers` contract (a sibling in the `il_components` list, or — like `cli` — its own orchestrator layer if it imports other components)
 6. Add the new toggle to the `full` entry in `copier.yml`'s `preset_map` (and to

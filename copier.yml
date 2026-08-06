@@ -224,3 +224,21 @@ include_vpn:
   type: bool
   default: "{{ 'include_vpn' in preset_map[preset] }}"
   help: "Include OpenVPN client in devcontainer?"
+# ── Computed helpers (never asked or stored) ─────────────────────────────────
+# Single source of truth for the console-script wiring rule. The highest-
+# precedence enabled runnable component (CLI > GUI > TUI > web > MCP > worker) is
+# the "primary": it owns the bare ``{{github_repo_name}}`` command; every other
+# enabled component keeps a ``{{github_repo_name}}-<name>`` command. Templates
+# (pyproject, docs, launch.json, tox) derive both the primary and each command's
+# suffix from these, so the precedence order lives here and nowhere else — a
+# component X is suffixed exactly when ``primary_component != "X"``.
+primary_component:
+  type: str
+  when: false
+  default: "{% if include_cli %}cli{% elif include_gui %}gui{% elif include_tui %}tui{% elif include_web %}web{% elif include_mcp %}mcp{% elif include_worker %}worker{% endif %}"
+# True when any runnable component is enabled — the project is a standalone
+# application (installed as a tool) rather than a library (added as a dependency).
+is_app:
+  type: bool
+  when: false
+  default: "{{ include_cli or include_gui or include_tui or include_web or include_mcp or include_worker }}"

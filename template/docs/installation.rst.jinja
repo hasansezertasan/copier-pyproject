@@ -1,43 +1,37 @@
 Installation
 ============
-
-Possible extras:
-
-{% if include_cli %}- ``cli``: Installs typer and adds ``{{github_repo_name}}`` as a command.
-{% endif %}{% if include_tui %}- ``tui``: Installs textual and adds ``{{github_repo_name}}-tui`` as a command.
-{% endif %}{% if include_web %}- ``web``: Installs {% if web_framework == "litestar" %}Litestar{% else %}FastAPI{% endif %} and adds ``{{github_repo_name}}-web`` as a command.
-{% endif %}{% if include_mcp %}- ``mcp``: Installs the MCP SDK and adds ``{{github_repo_name}}-mcp`` as a command.
-{% endif %}{% if include_worker %}- ``worker``: Installs FastStream and adds ``{{github_repo_name}}-worker`` as a command.
-{% endif %}{% if include_pydantic_settings %}- ``config``: Installs pydantic-settings.
-{% endif %}- ``all``: Installs all extras if available.
+{% if is_app %}
+``{{github_repo_name}}`` is an end-user application, not a library, so install
+it as a standalone tool rather than as a project dependency. Its primary entry
+point is the ``{{github_repo_name}}`` command.
 
 Stable release
 --------------
 
-{% if include_cli or include_tui or include_gui or include_web or include_mcp or include_worker -%}
-{% set app_command = github_repo_name if include_cli else (github_repo_name ~ "-tui" if include_tui else (github_repo_name ~ "-gui" if include_gui else (github_repo_name ~ "-web" if include_web else (github_repo_name ~ "-mcp" if include_mcp else github_repo_name ~ "-worker")))) -%}
-``{{github_repo_name}}`` is an end-user application, so install it into an
-isolated environment with your preferred tool installer (the ``all`` extra pulls
-in the runtime dependencies that live behind the component extras):
+Install ``{{github_repo_name}}`` into an isolated environment with your
+preferred tool installer:
 
 .. code-block:: sh
 
-   uv tool install '{{github_repo_name}}[all]'
+   uv tool install {{github_repo_name}}
 
 .. code-block:: sh
 
-   pipx install '{{github_repo_name}}[all]'
+   pipx install {{github_repo_name}}
 
-Or run it once without installing:
+Or run it without installing:
 
 .. code-block:: sh
 
-   {% if include_cli %}uvx '{{github_repo_name}}[all]'{% else %}uvx --from '{{github_repo_name}}[all]' {{app_command}}{% endif %}
+   uvx {{github_repo_name}}
+{% else %}
+``{{github_repo_name}}`` is a library. Add it to your project as a dependency.
 
-To add ``{{github_repo_name}}`` as a dependency of another project instead, use
-``uv add '{{github_repo_name}}[all]'`` or ``pip install '{{github_repo_name}}[all]'``.
-{% else -%}
-To install ``{{github_repo_name}}``, run this command in your terminal:
+Stable release
+--------------
+
+To add ``{{github_repo_name}}`` to your project, run this command in your
+terminal:
 
 .. code-block:: sh
 
@@ -74,4 +68,8 @@ Once you have a copy of the source, you can install it with:
 .. code-block:: sh
 
    cd {{github_repo_name}}
+{%- if is_app %}
+   uv tool install .
+{%- else %}
    uv pip install .
+{%- endif %}

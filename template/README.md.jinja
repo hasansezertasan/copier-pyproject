@@ -63,28 +63,28 @@
 <!-- TODO @{{github_user}}: Add screenshots or a demo GIF, or remove this section. -->
 
 ## Installation
-
-{% if include_cli or include_tui or include_gui or include_web or include_mcp or include_worker -%}
-{% set app_command = github_repo_name if include_cli else (github_repo_name ~ "-tui" if include_tui else (github_repo_name ~ "-gui" if include_gui else (github_repo_name ~ "-web" if include_web else (github_repo_name ~ "-mcp" if include_mcp else github_repo_name ~ "-worker")))) -%}
-`{{github_repo_name}}` is an end-user application; install it into an isolated environment (the `all` extra pulls in the runtime dependencies that live behind the component extras):
+{% if is_app %}
+`{{github_repo_name}}` is a standalone end-user tool whose primary command is `{{github_repo_name}}`. Install it into an isolated environment:
 
 ```console
-uv tool install '{{github_repo_name}}[all]'
+uv tool install {{github_repo_name}}
 ```
 
-Or run it once without installing:
+Or run it without installing with `uvx {{github_repo_name}}`. See the [installation docs](https://{{github_user}}.github.io/{{github_repo_name}}/installation.html) for pipx and from-source options.
+{% else %}
+`{{github_repo_name}}` is a library. Add it to your project as a dependency:
 
 ```console
-{% if include_cli %}uvx '{{github_repo_name}}[all]'{% else %}uvx --from '{{github_repo_name}}[all]' {{app_command}}{% endif %}
+uv add {{github_repo_name}}
 ```
 
-To add it as a dependency of another project instead, use `uv add '{{github_repo_name}}[all]'` or `pip install '{{github_repo_name}}[all]'`.
-{% else -%}
+Or with `pip`:
+
 ```console
 pip install {{github_repo_name}}
 ```
-{% endif -%}
-{% if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_profiling or include_c_extensions %}
+{% endif %}
+{%- if is_app or include_profiling or include_c_extensions %}
 ## Usage
 {%- if include_cli %}
 
@@ -100,7 +100,7 @@ pip install {{github_repo_name}}
 ### GUI
 
 ```bash
-{{github_repo_name}}-gui
+{{github_repo_name}}{% if primary_component != 'gui' %}-gui{% endif %}
 ```
 {%- endif %}
 {%- if include_tui %}
@@ -108,7 +108,7 @@ pip install {{github_repo_name}}
 ### TUI
 
 ```bash
-{{github_repo_name}}-tui
+{{github_repo_name}}{% if primary_component != 'tui' %}-tui{% endif %}
 ```
 
 An interactive terminal user interface displays project information. Press 'q' to exit.
@@ -118,7 +118,7 @@ An interactive terminal user interface displays project information. Press 'q' t
 ### Web
 
 ```bash
-{{github_repo_name}}-web
+{{github_repo_name}}{% if primary_component != 'web' %}-web{% endif %}
 ```
 
 {% if web_framework == "fastapi" %}Open <http://127.0.0.1:8000/docs> for the interactive API documentation.{% else %}Open <http://127.0.0.1:8000/schema> for the interactive API documentation.{% endif %}
@@ -130,7 +130,7 @@ An interactive terminal user interface displays project information. Press 'q' t
 Run the Model Context Protocol server:
 
 ```bash
-{{github_repo_name}}-mcp
+{{github_repo_name}}{% if primary_component != 'mcp' %}-mcp{% endif %}
 ```
 {%- endif %}
 {%- if include_worker %}
@@ -140,7 +140,7 @@ Run the Model Context Protocol server:
 Run the message queue worker:
 
 ```bash
-{{github_repo_name}}-worker
+{{github_repo_name}}{% if primary_component != 'worker' %}-worker{% endif %}
 ```
 
 The worker connects to {{worker_broker}} and processes messages from the configured queues.

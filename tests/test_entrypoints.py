@@ -1,0 +1,124 @@
+"""Console-script wiring: the primary component owns the bare command.
+
+The highest-precedence enabled component (CLI > GUI > TUI > web > MCP > worker)
+is wired to the bare ``<pkg>`` command via ``<pkg>.__main__:main``; every other
+enabled component keeps a ``<pkg>-<name>`` command. GUI, when primary, lands in
+``[project.gui-scripts]`` for a windowless launcher. A component's runtime deps
+are core (not an optional extra) because ``__main__`` imports the primary
+unconditionally.
+"""
+
+from __future__ import annotations
+
+import tomllib
+from pathlib import Path
+from typing import Any, Callable
+
+import pytest
+
+PKG = "example"
+COMPONENTS = ("cli", "gui", "tui", "web", "mcp", "worker")
+
+
+def _pyproject(root: Path) -> dict[str, Any]:
+    """Return the ``[project]`` table of the rendered pyproject.toml."""
+    with (root / "pyproject.toml").open("rb") as fh:
+        return tomllib.load(fh)["project"]
+
+
+def _only(render: Callable[..., Path], *enabled: str) -> dict[str, Any]:
+    """Render with exactly ``enabled`` components on, all others off."""
+    toggles = {f"include_{name}": (name in enabled) for name in COMPONENTS}
+    return _pyproject(render(preset="library", **toggles))
+
+
+def test_tui_only_gets_bare_command(render: Callable[..., Path]) -> None:
+    project = _only(render, "tui")
+    assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert "gui-scripts" not in project
+    # textual is a core dependency, not an optional extra.
+    assert any(dep.startswith("textual") for dep in project["dependencies"])
+    assert set(project.get("optional-dependencies", {})) == {"all"}
+
+
+def test_cli_is_primary_and_tui_keeps_suffix(render: Callable[..., Path]) -> None:
+    project = _only(render, "cli", "tui")
+    assert project["scripts"] == {
+        PKG: f"{PKG}.__main__:main",
+        f"{PKG}-tui": f"{PKG}.tui.app:main",
+    }
+
+
+def test_gui_only_uses_gui_scripts_bare(render: Callable[..., Path]) -> None:
+    project = _only(render, "gui")
+    assert "scripts" not in project
+    assert project["gui-scripts"] == {PKG: f"{PKG}.__main__:main"}
+
+
+def test_cli_gui_splits_console_and_gui_tables(render: Callable[..., Path]) -> None:
+    project = _only(render, "cli", "gui")
+    assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert project["gui-scripts"] == {f"{PKG}-gui": f"{PKG}.gui.app:main"}
+
+
+def test_library_has_no_scripts(render: Callable[..., Path]) -> None:
+    project = _only(render)
+    assert "scripts" not in project
+    assert "gui-scripts" not in project
+
+
+@pytest.mark.parametrize("component", ["web", "mcp", "worker"])
+def test_console_component_only_gets_bare_command(
+    render: Callable[..., Path], component: str
+) -> None:
+    # When a console component (not CLI/GUI/TUI, already covered) is the sole
+    # enabled one, it is the primary: bare command in [project.scripts], no
+    # gui-scripts, and its runtime dep is core rather than an optional extra.
+    project = _only(render, component)
+    assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert "gui-scripts" not in project
+    assert project["dependencies"], "primary component deps must be core"
+    assert set(project.get("optional-dependencies", {})) == {"all"}
+
+
+def test_gui_primary_with_secondaries_no_collision(
+    render: Callable[..., Path],
+) -> None:
+    # GUI primary (CLI off) + console secondaries: the bare name lands in
+    # gui-scripts while tui/web keep suffixed console commands. The bare name
+    # must still appear exactly once across both tables.
+    project = _only(render, "gui", "tui", "web")
+    assert project["gui-scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert project["scripts"] == {
+        f"{PKG}-tui": f"{PKG}.tui.app:main",
+        f"{PKG}-web": f"{PKG}.web.app:main",
+    }
+    # The bare name is in exactly one table — checked per-table, since merging
+    # with ** would collapse a duplicate key and hide a both-tables collision.
+    assert (PKG in project["gui-scripts"]) ^ (PKG in project["scripts"])
+
+
+def test_pydantic_settings_is_core_dependency(render: Callable[..., Path]) -> None:
+    # core.config imports pydantic-settings unconditionally when enabled, so it
+    # belongs in core dependencies (not an optional extra) even for a component-
+    # less library.
+    toggles = {f"include_{name}": False for name in COMPONENTS}
+    project = _pyproject(
+        render(preset="library", include_pydantic_settings=True, **toggles)
+    )
+    assert "scripts" not in project  # library: no runnable component
+    assert any(
+        dep.startswith("pydantic-settings") for dep in project["dependencies"]
+    )
+    assert set(project.get("optional-dependencies", {})) <= {"all"}
+
+
+def test_bare_command_is_unique_across_tables(render: Callable[..., Path]) -> None:
+    # Full project: every component enabled -> the bare name must appear in
+    # exactly one of the two script tables (never both, which is a packaging
+    # conflict; never neither). Count per-table rather than merging with **,
+    # which would silently collapse a duplicate key and mask a collision.
+    project = _pyproject(render(preset="full"))
+    in_scripts = PKG in project.get("scripts", {})
+    in_gui = PKG in project.get("gui-scripts", {})
+    assert in_scripts ^ in_gui
