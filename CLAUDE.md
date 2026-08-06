@@ -10,7 +10,7 @@ Key architecture:
 
 - Template files use `.jinja` extension and contain variables like `{{github_repo_name}}`, `{{author_full_name}}`, etc.
 - Template variables are defined in `copier.yml`
-- The `example/` directory is a gitignored, locally-generated rendering (see `.gitignore`); regenerate it from `.example-input.yml` to smoke-test the template. Note: `.example-input.yml` disables every optional component, so the run commands below for CLI/web/etc. apply only after enabling those options (or to any other generated project)
+- The `example/` directory is a gitignored, locally-generated rendering (see `.gitignore`); regenerate it from `.example-input.yml` to smoke-test the template. Note: `.example-input.yml` uses the `library` preset (no interface components), so the run commands below for CLI/web/etc. apply only after enabling those options (or to any other generated project)
 - Generated projects use uv for dependency management, hatchling for builds, tox for testing, and include full CI/CD automation
 
 ## Development Commands
@@ -136,14 +136,18 @@ Free-form metadata:
 
 Starting point:
 
-- `preset` - `minimal`/`standard`/`full`/`custom`. Seeds the default of every
+- `preset` - `library`/`tool`/`web`/`full`. Seeds the default of every
   `include_*` toggle via the hidden `preset_map` computed variable (`when: false`,
-  never stored). `default: custom`, whose set equals the historical defaults, so
-  `--defaults` output is byte-identical to before and existing projects are
-  unaffected on update. Toggles remain asked and stored — the preset only changes
-  defaults; it hides nothing, though dependency-gated sub-questions (the DB UIs,
-  web framework, worker broker, redis backend) still appear only when their
-  parent toggle is enabled, independent of the preset.
+  never stored) — `library` → `examples`; `tool` → `cli` + `tui` +
+  `pydantic_settings`; `web` → `web` + `pydantic_settings` + `postgres` +
+  `redis`; `full` → everything. `default: library` (the smallest surface, so an
+  unattended `--defaults` run produces a plain package). Toggles remain asked and
+  stored — the preset only changes defaults; it hides nothing, though
+  dependency-gated sub-questions (the DB UIs, web framework, worker broker, redis
+  backend) still appear only when their parent toggle is enabled, independent of
+  the preset. The `minimal`/`standard`/`custom` presets and the byte-identical
+  `--defaults` guarantee were removed in
+  [ADR-016](docs/adr/016-archetype-based-presets.md).
 
 Optional components (all boolean):
 
@@ -161,7 +165,7 @@ Optional components (all boolean):
 
   These three standalone-executable toggles are independent and combinable; each
   maps to one architectural category (launcher / compiler / freezer). See
-  [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
+  [ADR-007](docs/adr/007-standalone-executable-toggles.md).
 - `include_pydantic_settings` - pydantic-settings for config
 - `include_sourcery` - Sourcery AI-refactoring config (`.sourcery.yaml`)
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
@@ -182,7 +186,7 @@ Optional components (all boolean):
   so `persist-credentials: false` holds), so the bot/App is optional — it only
   needs the *Allow Actions to create PRs* setting release-please already requires.
   See
-  [ADR-009](../docs/adr/009-optional-external-quality-community-integrations.md).
+  [ADR-009](docs/adr/009-optional-external-quality-community-integrations.md).
 - `include_megalinter` - MegaLinter as an opt-in extra CI quality layer
   (`mega-linter.yml` + `.mega-linter.yml`), `default: false`.
 
@@ -217,7 +221,7 @@ Optional components (all boolean):
   `.shellcheckrc` is gated with the toggle; the prek-shared configs
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
-  [ADR-013](../docs/adr/013-megalinter-opt-in-lean-complement.md).
+  [ADR-013](docs/adr/013-megalinter-opt-in-lean-complement.md).
 
 Framework/broker choices (when parent option is enabled):
 
@@ -252,7 +256,7 @@ removed — it is now always rendered and validated via
 `citation-file-format/cffconvert-github-action`), and mise
 (`mise.toml` + devcontainer feature) for tool version management and task
 running. Pants and Trunk were removed entirely — the tox `style` env is the sole
-lint/build orchestrator (see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
+lint/build orchestrator (see [ADR-003](docs/adr/003-tox-as-canonical-lint-runner.md)).
 
 **import-linter** enforces the generated package's architecture: one always-on
 `layers` contract (in `[tool.importlinter]`) keeps the component group
@@ -272,7 +276,7 @@ which syncs and resolves the package. **slotscheck** (which imports `src/` to
 verify `__slots__`) is delivered the same dual-run way and for the same reason —
 whereas the redundant type checkers `ty`/`pyrefly`/`zuban` stay style-env-only so
 the fast gate carries one representative type checker (basedpyright), not five.
-See [ADR-014](../docs/adr/014-import-linter-for-architecture-contracts.md).
+See [ADR-014](docs/adr/014-import-linter-for-architecture-contracts.md).
 
 Also always included (no toggle): a `SUPPORT.md` community-health file (points to
 docs/issues/discussions and cross-references `SECURITY.md`/`CONTRIBUTING.md`), a
@@ -297,7 +301,7 @@ has no reachable tag), not a plausible-looking `0.1.0`.
 Commitizen (Conventional Commit authoring/linting) is **always included** — it
 is no longer gated behind an `include_commitizen` option. release-please still
 owns versioning/changelog; Commitizen only authors/lints messages (see
-[ADR-004](../docs/adr/004-commitizen-as-commit-helper-not-release-tool.md)).
+[ADR-004](docs/adr/004-commitizen-as-commit-helper-not-release-tool.md)).
 
 The `.gitignore` is **always** managed by
 [cobo](https://github.com/hasansezertasan/cobo) (no toggle, like mise/renovate),
@@ -323,7 +327,7 @@ sync` (re-renders the fenced region in place, preserving the author section and
 the `eol = "lf"` policy); refresh `template/cobo.lock` the same way from a scratch
 dir dumping with `--eol lf --out .gitignore --lock`. Do **not** hand-edit inside
 the fence (it breaks the sha256). See
-[ADR-012](../docs/adr/012-cobo-for-gitignore-generation.md).
+[ADR-012](docs/adr/012-cobo-for-gitignore-generation.md).
 
 Git hooks are **always included** (there is no `include_precommit`
 option). They are run via [prek](https://prek.j178.dev), a Rust-native
@@ -352,7 +356,7 @@ the uv `style` group.
 
 The tox `style` env is the *single* lint/type-check orchestrator for a generated
 project — there is no Pants or Trunk config to drift against it (both were
-removed; see [ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md)).
+removed; see [ADR-003](docs/adr/003-tox-as-canonical-lint-runner.md)).
 
 **editorconfig-checker** enforces `.editorconfig` (the source of truth) on the
 axes no other tool owns — indent style/size and charset on config/markup files.
@@ -418,7 +422,7 @@ Subpackages (each with `__init__.py` and `app.py`):
   a fresh, self-contained broker at a throwaway instance (e.g. testcontainers)
   without import-order/caching pitfalls; the module still exposes a default
   `broker = build_broker()` for the entry point. See
-  [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
+  [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 
 Other conditional files:
 
@@ -432,7 +436,7 @@ Test packages mirror source structure in `tests/`:
 - `tests/worker/` holds both the in-memory `Test<Broker>` unit tests (always run)
   and a testcontainers-backed integration test marked `integration` (excluded
   from the default run, Docker required); see
-  [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
+  [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 
 Entry points configured in `pyproject.toml` (console-script wiring): the
 highest-precedence enabled component (**CLI > GUI > TUI > web > MCP > worker**)
@@ -511,7 +515,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      preview artifact. They closely follow the `release.yml` build jobs
      (same setup + build commands), skipping the release-only rename/publish
      steps, and they gate the `check` aggregation job. See
-     [ADR-007](../docs/adr/007-standalone-executable-toggles.md).
+     [ADR-007](docs/adr/007-standalone-executable-toggles.md).
    - When `include_worker` is set, adds a single `worker-integration` job —
      **Ubuntu-only** (Docker is reliably present on GitHub's Ubuntu runners but
      not macOS/Windows) — that runs `tox run -e integration` (an on-demand tox
@@ -519,10 +523,10 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      via testcontainers. The default OS matrix stays broker-free and fast (the
      `integration` marker is deselected by default via the pytest `addopts`); this
      job is the only thing exercising the real driver, and it gates the `check`
-     aggregation job. See [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
+     aggregation job. See [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 2. **Release + CD** (`release.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
-   (see [ADR-002](../docs/adr/002-release-please-for-release-automation.md)). Jobs:
+   (see [ADR-002](docs/adr/002-release-please-for-release-automation.md)). Jobs:
    - `release-please`: opens/maintains a release PR from Conventional Commits on
      push to `main`; on merge, tags the commit and creates a **draft** GitHub
      Release (`draft: true` in `.github/release-please-config.json`). Exposes
@@ -539,7 +543,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      independent `fail-fast: false` matrices producing per-platform artifacts
      named `<repo>-executable-{launcher,freezer,compiler}-<os>`, all caught by
      `attach-github-release`'s `<repo>-executable-*` download pattern (see
-     [ADR-007](../docs/adr/007-standalone-executable-toggles.md)). Docker tags feed
+     [ADR-007](docs/adr/007-standalone-executable-toggles.md)). Docker tags feed
      `needs.release-please.outputs.tag_name` into the metadata-action `value=`
      because a push-triggered run has no tag ref.
    - `attach-github-release`: uploads artifacts to the still-draft release.
@@ -552,7 +556,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      (the same loop-prevention rule that forces the `workflow_dispatch`
      re-dispatch above). `gh-pages.yml` is kept only for manual redeploys.
      Docs are built with Sphinx + the Shibuya theme (autodoc API reference),
-     not MkDocs (see [ADR-006](../docs/adr/006-sphinx-shibuya-for-documentation.md)).
+     not MkDocs (see [ADR-006](docs/adr/006-sphinx-shibuya-for-documentation.md)).
      The `deploy-docs` publish (and the manual `gh-pages.yml`) set
      `clean-exclude: pr-preview/**` so a release never wipes the live PR previews
      `docs-preview.yml` maintains under that path (see ADR-010 below).
@@ -561,7 +565,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      (previous published tag → this tag) to the PRs that carried it, resolves each
      PR's `closingIssuesReferences`, and comments the release link on those
      issues. Inline (no committed script), best-effort. See
-     [ADR-010](../docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
+     [ADR-010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
    - Versions come from git tags via hatch-vcs, so release-please never edits a
      static version literal and `uv.lock` cannot desync.
 3. **PR title linting** (`check-pr-title.yml`): validates the **PR title** (not
@@ -692,7 +696,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    (best-effort). Previews live under `pr-preview/**`, disjoint from the root docs
    deploy, and the two `JamesIves` publishes carry `clean-exclude: pr-preview/**`
    so a release never wipes them. See
-   [ADR-010](../docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
+   [ADR-010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md).
 10. **Docs link check** (`docs-linkcheck.yml`, always included, static workflow).
    Runs Sphinx's `linkcheck` builder on a **weekly cron** + `workflow_dispatch`
    to catch dead links/moved anchors in the docs. Deliberately **not** on
@@ -703,7 +707,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    it: `sphinx-lint` (a `local` prek hook backed by the `style` group + a tox
    `style` command, linting the `.rst` sources) and the `check-case-conflict`
    prek builtin (cross-platform filename-collision guard). See
-   [ADR-011](../docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
+   [ADR-011](docs/adr/011-docs-linting-and-cross-platform-filename-safety.md).
 Downstream template updates are **not** a shipped workflow — they are handled by
 **Renovate's [`copier` manager](https://docs.renovatebot.com/modules/manager/copier/)**
 (ADR-015). Renovate (already the canonical updater, and a documented one-time
@@ -834,11 +838,14 @@ For generated projects to publish to PyPI:
      `<pkg>-<name>` command; do not spell out the precedence inline anywhere.
    - Add keywords
    - Add the component to the `[tool.importlinter]` `layers` contract (a sibling in the `il_components` list, or — like `cli` — its own orchestrator layer if it imports other components)
-6. Update `.example-input.yml` with the new option
+6. Add the new toggle to the `full` entry in `copier.yml`'s `preset_map` (and to
+   any archetype preset — `library`/`tool`/`web` — whose shape includes it).
+   `.example-input.yml` no longer lists individual toggles, so it needs no change.
 7. Update `README.md` with documentation
 8. Keep the component's coverage at the `fail_under = 99` gate (see
-   [ADR-008](../docs/adr/008-worker-broker-testing-strategy.md)). Because
-   `.example-input.yml` disables every component, a component's coverage is only
+   [ADR-008](docs/adr/008-worker-broker-testing-strategy.md)). Because
+   `.example-input.yml` uses the `library` preset (no interface components), a
+   component's coverage is only
    validated when you generate it explicitly — do that and run the suite. Unit-test
    the business logic *including reachable error handling* (metadata-failure
    paths are tested via a `_MissingDistribution` monkeypatch stub — see the
@@ -888,7 +895,7 @@ or the gate silently fails for *every* generated project:
 
 Always verify coverage via the real `tox run` path (installed package, all envs),
 never editable `pytest` — both defects are invisible otherwise. See
-[ADR-008](../docs/adr/008-worker-broker-testing-strategy.md).
+[ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 
 ### Modifying Template Variables
 

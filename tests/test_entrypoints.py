@@ -29,7 +29,7 @@ def _pyproject(root: Path) -> dict[str, Any]:
 def _only(render: Callable[..., Path], *enabled: str) -> dict[str, Any]:
     """Render with exactly ``enabled`` components on, all others off."""
     toggles = {f"include_{name}": (name in enabled) for name in COMPONENTS}
-    return _pyproject(render(preset="custom", **toggles))
+    return _pyproject(render(preset="library", **toggles))
 
 
 def test_tui_only_gets_bare_command(render: Callable[..., Path]) -> None:
@@ -103,7 +103,7 @@ def test_pydantic_settings_is_core_dependency(render: Callable[..., Path]) -> No
     # less library.
     toggles = {f"include_{name}": False for name in COMPONENTS}
     project = _pyproject(
-        render(preset="custom", include_pydantic_settings=True, **toggles)
+        render(preset="library", include_pydantic_settings=True, **toggles)
     )
     assert "scripts" not in project  # library: no runnable component
     assert any(

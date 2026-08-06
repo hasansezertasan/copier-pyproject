@@ -25,14 +25,14 @@ Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a Fas
 
 ### Preset
 
-The first component question, `preset`, seeds sensible defaults for everything
-below it:
+The first component question, `preset`, seeds sensible defaults matching your
+project's shape:
 
-- `minimal` — core only (a plain library).
-- `standard` — CLI + pydantic-settings (recommended starting point).
+- `library` — a pure importable package (seeds an `examples/` folder). **Default.**
+- `tool` — a CLI/TUI application distributed on PyPI (CLI + TUI + pydantic-settings).
+- `web` — a web app with a database and cache (web app + pydantic-settings +
+  PostgreSQL + Redis in the devcontainer).
 - `full` — every component and integration enabled.
-- `custom` — the historical defaults (CLI, web, GUI, TUI, pydantic-settings);
-  choose each toggle yourself.
 
 The preset only changes each toggle's *default* (which you can accept with
 Enter) — it never hides a question and never changes an existing project on
@@ -77,7 +77,7 @@ Copier will prompt for:
 ## Scaffold a project
 
 1. Install Copier and uv (e.g., `uvx copier`).
-2. Run `copier copy gh:hasansezertasan/copier-pyproject <destination>` (or `copier copy . <destination>` from a local clone).
+2. Run `copier copy https://github.com/hasansezertasan/copier-pyproject.git <destination>` (or `copier copy . <destination>` from a local clone). Use the `.git` HTTPS URL, **not** the `gh:hasansezertasan/copier-pyproject` shorthand — Copier records the argument verbatim as `_src_path`, and Renovate's copier manager only resolves template tags when `_src_path` is a real git URL (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 3. Optionally seed answers with `.example-input.yml` using `--data-file .example-input.yml --defaults`.
 4. Initialize git in the destination: `cd <destination> && git init` (the template intentionally defines no Copier tasks, so it does not auto-init — see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 5. Open the generated README (rendered from `template/README.md.jinja`) and clear the `TODO @...` markers in `README.md`, `pyproject.toml`, docs, and workflows.
@@ -115,7 +115,9 @@ Once the plugin is installed the skill is auto-discovered; no explicit invocatio
 - Run the web app (if included): `uv run --locked <repo-name>-web`
 - Serve docs locally: `uv run --locked tox run -e docs-server` (deploys via GitHub Pages on release)
 
-`.example-input.yml` provides default values for all template options.
+`.example-input.yml` supplies the required identity answers plus a starting
+`preset` (`library`), so the template can be rendered non-interactively (e.g.
+`mise run example`); every other toggle follows from the preset's defaults.
 
 ## Release automation
 

@@ -48,22 +48,29 @@ package_keywords:
 # ── ② Preset ────────────────────────────────────────────────────────────────
 preset:
   type: str
-  default: custom
+  default: library
   choices:
-    "Minimal — core only (library)": minimal
-    "Standard — CLI + config (recommended)": standard
+    "Library — pure importable package": library
+    "Tool — CLI/TUI app distributed on PyPI": tool
+    "Web — web app with database + cache": web
     "Full — every component & integration": full
-    "Custom — choose each toggle": custom
   help: >-
-    Pick a starting point. The preset just chooses smart defaults you can accept by pressing Enter; every toggle is still asked and saved (a few sub-questions remain conditional on their parent toggle).
+    Pick a starting point matching your project's shape. The preset just chooses smart defaults you can accept by pressing Enter; every toggle is still asked and saved (a few sub-questions remain conditional on their parent toggle).
 preset_map:
   type: yaml
   when: false
   default:
-    minimal: []
-    standard:
+    library:
+      - include_examples
+    tool:
       - include_cli
+      - include_tui
       - include_pydantic_settings
+    web:
+      - include_web
+      - include_pydantic_settings
+      - include_postgres
+      - include_redis
     full:
       - include_cli
       - include_web
@@ -88,12 +95,6 @@ preset_map:
       - include_redis
       - include_dbeaver
       - include_vpn
-    custom:
-      - include_cli
-      - include_web
-      - include_gui
-      - include_tui
-      - include_pydantic_settings
 # ── ③ Interfaces ────────────────────────────────────────────────────────────
 include_cli:
   type: bool

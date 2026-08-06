@@ -42,6 +42,20 @@ work with this template:
    Conventional Commits landing on `main` (see the *self-versioning* note in
    `CLAUDE.md`). A generated project's Renovate reads `_src_path` from
    `.copier-answers.yml`, watches that repo's tags, and bumps `_commit`.
+
+   This only works when `_src_path` is a **real git URL**. Copier records
+   `_src_path` verbatim from the `copier copy` argument, and the
+   `gh:hasansezertasan/copier-pyproject` shorthand is Copier-only — it is not a
+   valid git URL, so Renovate's `git-tags` datasource rejects it (`Attempting to
+   use non-git url for git operations` → `no-result`) and never opens an update
+   PR, even though the template has tags. Renovate accepts `_src_path` only when
+   it starts with `git+https://`, `git+ssh://`, `git@`, or `git://`, or ends with
+   `.git`. Scaffold with the `.git` HTTPS URL
+   (`https://github.com/hasansezertasan/copier-pyproject.git`); the README
+   scaffold step and the `adopt-copier-pyproject` skill both use it for this
+   reason. Existing projects that were scaffolded with the `gh:` shorthand can be
+   fixed by rewriting the `_src_path` line — `copier update` re-reads and
+   preserves it.
 2. **Define no `_tasks` in `copier.yml`.** Any task marks a template "unsafe",
    forcing `copier ... --trust`; `--trust` is gated behind Renovate's
    `allowScripts`, a **self-hosted-only** setting that the **hosted Mend Renovate
