@@ -1,7 +1,6 @@
 Installation
 ============
-{%- set _is_app = include_cli or include_gui or include_tui or include_web or include_mcp or include_worker %}
-{% if _is_app %}
+{% if is_app %}
 ``{{github_repo_name}}`` is an end-user application, not a library, so install
 it as a standalone tool rather than as a project dependency. It ships a single
 ``{{github_repo_name}}`` command.
@@ -69,4 +68,8 @@ Once you have a copy of the source, you can install it with:
 .. code-block:: sh
 
    cd {{github_repo_name}}
-   uv sync
+{%- if is_app %}
+   uv tool install .
+{%- else %}
+   uv pip install .
+{%- endif %}

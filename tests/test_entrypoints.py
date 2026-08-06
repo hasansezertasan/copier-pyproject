@@ -14,6 +14,8 @@ import tomllib
 from pathlib import Path
 from typing import Any, Callable
 
+import pytest
+
 PKG = "example"
 COMPONENTS = ("cli", "gui", "tui", "web", "mcp", "worker")
 
@@ -63,6 +65,51 @@ def test_library_has_no_scripts(render: Callable[..., Path]) -> None:
     project = _only(render)
     assert "scripts" not in project
     assert "gui-scripts" not in project
+
+
+@pytest.mark.parametrize("component", ["web", "mcp", "worker"])
+def test_console_component_only_gets_bare_command(
+    render: Callable[..., Path], component: str
+) -> None:
+    # When a console component (not CLI/GUI/TUI, already covered) is the sole
+    # enabled one, it is the primary: bare command in [project.scripts], no
+    # gui-scripts, and its runtime dep is core rather than an optional extra.
+    project = _only(render, component)
+    assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert "gui-scripts" not in project
+    assert project["dependencies"], "primary component deps must be core"
+    assert set(project.get("optional-dependencies", {})) == {"all"}
+
+
+def test_gui_primary_with_secondaries_no_collision(
+    render: Callable[..., Path],
+) -> None:
+    # GUI primary (CLI off) + console secondaries: the bare name lands in
+    # gui-scripts while tui/web keep suffixed console commands. The bare name
+    # must still appear exactly once across both tables.
+    project = _only(render, "gui", "tui", "web")
+    assert project["gui-scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert project["scripts"] == {
+        f"{PKG}-tui": f"{PKG}.tui.app:main",
+        f"{PKG}-web": f"{PKG}.web.app:main",
+    }
+    tables = {**project["scripts"], **project["gui-scripts"]}
+    assert sum(name == PKG for name in tables) == 1
+
+
+def test_pydantic_settings_is_core_dependency(render: Callable[..., Path]) -> None:
+    # core.config imports pydantic-settings unconditionally when enabled, so it
+    # belongs in core dependencies (not an optional extra) even for a component-
+    # less library.
+    toggles = {f"include_{name}": False for name in COMPONENTS}
+    project = _pyproject(
+        render(preset="custom", include_pydantic_settings=True, **toggles)
+    )
+    assert "scripts" not in project  # library: no runnable component
+    assert any(
+        dep.startswith("pydantic-settings") for dep in project["dependencies"]
+    )
+    assert set(project.get("optional-dependencies", {})) <= {"all"}
 
 
 def test_bare_command_is_unique_across_tables(render: Callable[..., Path]) -> None:
