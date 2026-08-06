@@ -96,8 +96,10 @@ most. This is a deliberate change from the previous `custom` default.
   (`examples` only). This **intentionally breaks** the byte-identical-`--defaults`
   guarantee that motivated `custom` in [#141]. That guarantee was only ever a
   migration cushion for presets' introduction; reshaping the presets is a
-  deliberate, breaking-by-design change to the *defaults*, not to any generated
-  file's contents.
+  deliberate, breaking-by-design change to the default-rendered output (a bare
+  `--defaults` run now emits the `library` tree and dependency set instead of the
+  `custom` one). It does **not** modify the template source, nor any project
+  rendered from explicit `include_*` answers.
 - **`copier update` on existing projects is safe.** A project's
   `.copier-answers.yml` stores every `include_*` value **explicitly**, and those
   stored answers — not the preset — drive rendering. A project that stored
@@ -107,13 +109,15 @@ most. This is a deliberate change from the previous `custom` default.
   low-blast-radius (presets shipped only days earlier in [#141], so few or no
   downstream projects have adopted them yet).
 - **`.example-input.yml` is shrunk to identity + preset.** The per-toggle
-  `include_*: false` lines are removed; the file now carries only the five
-  no-default identity answers (`github_user`, `github_repo_name`,
-  `author_full_name`, `author_email`, `short_description`) plus `preset: library`.
+  `include_*: false` lines are removed; the file now carries only the no-default
+  identity answers (`github_user`, `github_repo_name`, `author_full_name`,
+  `author_given_names`, `author_family_names`, `author_email`,
+  `short_description`) plus the free-form `package_keywords` and
+  `preset: library`.
   This deletes the recurring maintenance step "update `.example-input.yml` when a
   new toggle is added" (previously CLAUDE.md's Adding-New-Optional-Components step
   6) — the file becomes stable and no longer tracks the toggle list. The file is
-  **kept**, not removed: the five identity fields have no defaults, so
+  **kept**, not removed: the identity fields have no defaults, so
   non-interactive generation (`mise run example`, the `template-ci.yml` render
   job) needs a data source, and giving identity defaults would be a footgun
   (bare `--defaults` would otherwise emit a project literally named `example`

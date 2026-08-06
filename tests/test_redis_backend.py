@@ -30,6 +30,8 @@ def test_redis_broker_worker_honors_valkey(render: Callable[..., Path]) -> None:
 
 
 def test_normal_redis_stays_redis(render: Callable[..., Path]) -> None:
-    compose = _compose(render(preset="library", include_redis=True, redis_backend="redis"))
+    compose = _compose(
+        render(preset="library", include_redis=True, redis_backend="redis")
+    )
     assert "redis:7" in compose
     assert "valkey" not in compose
