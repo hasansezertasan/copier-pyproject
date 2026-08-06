@@ -1,0 +1,46 @@
+---
+# ghalint configuration. See https://github.com/suzuki-shunsuke/ghalint.
+#
+# Each entry below excludes ghalint's job_secrets policy for exactly one job
+# that deliberately exposes a secret (or a presence-flag derived from one) at
+# the *job* env level. GitHub makes neither the `secrets` context nor
+# step-level env available to a step's `if:` condition, so a job whose steps
+# gate on a secret via `env.SOME_TOKEN`/`env.SOME_TOKEN_SET` in their `if:`
+# must publish that value job-wide. ghalint's job_secrets policy cannot know
+# this is intentional, so it is excluded for exactly the jobs below. Every
+# other policy stays at ghalint's strict defaults.
+{%- if include_web %}
+#
+# docker-publish-preflight and docker-publish expose DOCKERHUB_USERNAME (not
+# sensitive; DOCKERHUB_TOKEN is never surfaced job-wide — only as a `!= ''`
+# presence flag and at the login step).
+{%- endif %}
+{%- if include_homebrew %}
+#
+# publish-homebrew exposes the HOMEBREW_TAP_TOKEN_SET presence flag so its
+# steps can gate on whether HOMEBREW_TAP_TOKEN was configured.
+{%- endif %}
+{%- if include_scoop %}
+#
+# publish-scoop exposes the SCOOP_BUCKET_TOKEN_SET presence flag so its steps
+# can gate on whether SCOOP_BUCKET_TOKEN was configured.
+{%- endif %}
+excludes:
+{%- if include_web %}
+  - policy_name: job_secrets
+    workflow_file_path: .github/workflows/release.yml
+    job_name: docker-publish-preflight
+  - policy_name: job_secrets
+    workflow_file_path: .github/workflows/release.yml
+    job_name: docker-publish
+{%- endif %}
+{%- if include_homebrew %}
+  - policy_name: job_secrets
+    workflow_file_path: .github/workflows/release.yml
+    job_name: publish-homebrew
+{%- endif %}
+{%- if include_scoop %}
+  - policy_name: job_secrets
+    workflow_file_path: .github/workflows/release.yml
+    job_name: publish-scoop
+{%- endif %}

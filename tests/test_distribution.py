@@ -144,3 +144,30 @@ def test_release_has_publish_scoop_job(render: Callable[..., Path]) -> None:
 def test_release_omits_publish_scoop_when_disabled(render: Callable[..., Path]) -> None:
     text = _read(render(preset="tool"), ".github", "workflows", "release.yml")
     assert "publish-scoop" not in text
+
+
+def test_ghalint_excludes_publish_jobs(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True, include_scoop=True)
+    ghalint = _read(root, ".github", "ghalint.yaml")
+    assert "publish-homebrew" in ghalint
+    assert "publish-scoop" in ghalint
+    parsed = yaml.safe_load(ghalint)
+    job_names = {entry["job_name"] for entry in parsed["excludes"]}
+    assert "publish-homebrew" in job_names
+    assert "publish-scoop" in job_names
+
+
+def test_ghalint_absent_without_any_secret_job(render: Callable[..., Path]) -> None:
+    root = render(preset="tool")  # no web, no brew/scoop
+    assert not (root / ".github" / "ghalint.yaml").exists()
+
+
+def test_ghalint_web_only_excludes_docker_not_publish_jobs(
+    render: Callable[..., Path],
+) -> None:
+    root = render(preset="tool", include_web=True)
+    ghalint = _read(root, ".github", "ghalint.yaml")
+    assert "docker-publish" in ghalint
+    assert "publish-homebrew" not in ghalint
+    assert "publish-scoop" not in ghalint
+    yaml.safe_load(ghalint)  # must still be valid YAML
