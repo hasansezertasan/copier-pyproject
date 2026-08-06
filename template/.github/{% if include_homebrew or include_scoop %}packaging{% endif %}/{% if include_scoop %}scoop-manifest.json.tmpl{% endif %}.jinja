@@ -1,0 +1,36 @@
+{% if primary_executable %}
+{
+  "version": "@@VERSION@@",
+  "description": "{{short_description}}",
+  "homepage": "https://github.com/{{github_user}}/{{github_repo_name}}",
+  "architecture": {
+    "64bit": {
+      "url": "@@URL_WIN@@",
+      "hash": "@@SHA256_WIN@@"
+    }
+  },
+  "bin": [["{{github_repo_name}}-{{primary_executable}}-windows.exe", "{{github_repo_name}}"]],
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/{{github_user}}/{{github_repo_name}}/releases/download/v$version/{{github_repo_name}}-{{primary_executable}}-windows.exe"
+      }
+    }
+  }
+}
+{% else %}
+{
+  "version": "@@VERSION@@",
+  "description": "{{short_description}}",
+  "homepage": "https://github.com/{{github_user}}/{{github_repo_name}}",
+  "depends": "python",
+  "installer": {
+    "script": ["python -m pip install --upgrade {{github_repo_name}}==@@VERSION@@"]
+  },
+  "uninstaller": {
+    "script": ["python -m pip uninstall -y {{github_repo_name}}"]
+  },
+  "checkver": "pypi"
+}
+{% endif %}

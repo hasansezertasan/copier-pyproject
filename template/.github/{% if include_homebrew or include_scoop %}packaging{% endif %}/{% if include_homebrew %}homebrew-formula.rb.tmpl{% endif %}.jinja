@@ -1,0 +1,44 @@
+{% set classname = github_repo_name.split('-') | map('capitalize') | join %}
+{# Rendered at release time: @@VERSION@@ etc. are substituted by publish-homebrew. #}
+class {{classname}} < Formula
+  desc "{{short_description}}"
+  homepage "https://github.com/{{github_user}}/{{github_repo_name}}"
+{% if primary_executable %}
+  version "@@VERSION@@"
+
+  on_macos do
+    # Asset: {{github_repo_name}}-{{primary_executable}}-macos (release.yml artifact naming)
+    url "@@URL_MACOS@@"
+    sha256 "@@SHA256_MACOS@@"
+  end
+
+  on_linux do
+    # Asset: {{github_repo_name}}-{{primary_executable}}-linux (release.yml artifact naming)
+    url "@@URL_LINUX@@"
+    sha256 "@@SHA256_LINUX@@"
+  end
+
+  def install
+    bin.install Dir["*"].first => "{{github_repo_name}}"
+  end
+{% else %}
+  url "@@SDIST_URL@@"
+  sha256 "@@SDIST_SHA256@@"
+  version "@@VERSION@@"
+
+  depends_on "python@3.13"
+
+  # Personal-tap style: pip-install from PyPI at build time (no pinned resource
+  # blocks — homebrew-pypi-poet is unmaintained). Not homebrew-core acceptable.
+  def install
+    venv_python = libexec/"bin/python"
+    system "python3.13", "-m", "venv", libexec
+    system venv_python, "-m", "pip", "install", "{{github_repo_name}}==#{version}"
+    bin.install_symlink Dir["#{libexec}/bin/{{github_repo_name}}*"]
+  end
+{% endif %}
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/{{github_repo_name}} --version")
+  end
+end

@@ -70,3 +70,30 @@ def test_contributing_omits_tap_setup_when_disabled(render: Callable[..., Path])
     contributing = _read(render(preset="tool"), ".github", "CONTRIBUTING.md")
     assert "HOMEBREW_TAP_TOKEN" not in contributing
     assert "SCOOP_BUCKET_TOKEN" not in contributing
+
+
+def test_homebrew_binary_formula_when_executable(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True, include_freezer=True)
+    tmpl = _read(root, ".github", "packaging", "homebrew-formula.rb.tmpl")
+    assert "@@SHA256_MACOS@@" in tmpl  # binary path
+    assert f"{PKG}-freezer-macos" in tmpl  # primary_executable asset
+    assert "virtualenv" not in tmpl.lower()
+
+
+def test_homebrew_pypi_formula_when_no_executable(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True)  # no executable toggle
+    tmpl = _read(root, ".github", "packaging", "homebrew-formula.rb.tmpl")
+    assert "@@SDIST_SHA256@@" in tmpl  # PyPI path
+    assert 'pip", "install"' in tmpl or "pip install" in tmpl
+
+
+def test_scoop_binary_manifest_when_executable(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_scoop=True, include_compiler=True)
+    tmpl = _read(root, ".github", "packaging", "scoop-manifest.json.tmpl")
+    assert "@@SHA256_WIN@@" in tmpl
+    assert f"{PKG}-compiler-windows.exe" in tmpl
+
+
+def test_packaging_absent_when_disabled(render: Callable[..., Path]) -> None:
+    root = render(preset="tool")
+    assert not (root / ".github" / "packaging").exists()
