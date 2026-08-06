@@ -7,30 +7,4 @@ author_family_names: Taşan
 author_email: hasansezertasan@gmail.com
 short_description: A Python project example.
 package_keywords: "example, demo"
-preset: custom
-include_cli: false
-include_web: false
-web_framework: fastapi
-include_tui: false
-include_gui: false
-include_mcp: false
-include_worker: false
-worker_broker: kafka
-include_c_extensions: false
-include_profiling: false
-include_examples: false
-include_launcher: false
-include_compiler: false
-include_freezer: false
-include_pydantic_settings: false
-include_sourcery: false
-include_sonarcloud: false
-include_all_contributors: false
-include_megalinter: false
-include_postgres: false
-include_redis: false
-redis_backend: redis
-include_pgadmin: false
-include_adminer: false
-include_dbeaver: false
-include_vpn: false
+preset: library

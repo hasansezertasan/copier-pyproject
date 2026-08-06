@@ -1,8 +1,8 @@
-"""Preset behavior: each preset seeds the expected component set.
+"""Preset behavior: each archetype preset seeds the expected component set.
 
-These guard the two silent-drift risks in ``copier.yml``'s ``preset_map``:
-``custom`` diverging from the historical defaults (which would break the
-byte-identical ``--defaults`` guarantee) and ``full`` not enabling everything.
+Guards the silent-drift risks in ``copier.yml``'s ``preset_map`` (ADR-016):
+the default preset changing, an archetype seeding the wrong components, or
+``full`` no longer enabling everything.
 """
 
 from __future__ import annotations
@@ -20,26 +20,48 @@ def _components(root: Path) -> set[str]:
     return {name for name in COMPONENTS if (src / name).is_dir()}
 
 
+def _pyproject(root: Path) -> str:
+    return (root / "pyproject.toml").read_text(encoding="utf-8")
+
+
 def test_core_and_utils_always_present(render: Callable[..., Path]) -> None:
-    root = render(preset="minimal")
+    root = render(preset="library")
     assert (root / "src" / PKG / "core").is_dir()
     assert (root / "src" / PKG / "utils").is_dir()
 
 
-def test_preset_minimal_has_no_components(render: Callable[..., Path]) -> None:
-    assert _components(render(preset="minimal")) == set()
+def test_preset_library_seeds_examples_only(render: Callable[..., Path]) -> None:
+    root = render(preset="library")
+    assert _components(root) == set()
+    assert (root / "examples").is_dir()
 
 
-def test_preset_custom_matches_historical_defaults(
+def test_preset_default_is_library(render: Callable[..., Path]) -> None:
+    # No preset supplied → defaults to library → no components, examples on.
+    root = render()
+    assert _components(root) == set()
+    assert (root / "examples").is_dir()
+
+
+def test_preset_tool_seeds_cli_tui_and_settings(
     render: Callable[..., Path],
 ) -> None:
-    # custom == the template's pre-preset defaults: cli/web/gui/tui on, rest off.
-    assert _components(render(preset="custom")) == {"cli", "web", "gui", "tui"}
+    root = render(preset="tool")
+    assert _components(root) == {"cli", "tui"}
+    assert not (root / "examples").exists()
+    assert "pydantic-settings" in _pyproject(root)
 
 
-def test_preset_default_is_custom(render: Callable[..., Path]) -> None:
-    # No preset supplied → defaults to custom → same component set.
-    assert _components(render()) == {"cli", "web", "gui", "tui"}
+def test_preset_web_seeds_web_settings_and_db(
+    render: Callable[..., Path],
+) -> None:
+    root = render(preset="web")
+    assert _components(root) == {"web"}
+    assert "pydantic-settings" in _pyproject(root)
+    compose = (root / ".devcontainer" / "docker-compose.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "postgres:" in compose
 
 
 def test_preset_full_enables_all_components(render: Callable[..., Path]) -> None:
