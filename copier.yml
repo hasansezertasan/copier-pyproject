@@ -200,7 +200,7 @@ repository_topics:
   default: ""
   when: "{{ include_repo_settings }}"
   help: >-
-    GitHub repository topics for the "About" sidebar (comma-separated, e.g. "python, cli, automation"). Leave empty to leave the repository's existing topics untouched. GitHub rules apply: lowercase letters/digits/hyphens, <=50 chars each, <=20 total.
+    GitHub repository topics for the "About" sidebar (comma-separated, e.g. "python, cli, automation"). Leave empty to leave the repository's existing topics untouched. The template only lower-cases and hyphenates them; keep them within GitHub's rules (letters/digits/hyphens, <=50 chars each, <=20 total), which are not enforced.
 # ── ⑦ Devcontainer services ─────────────────────────────────────────────────
 include_postgres:
   type: bool

@@ -18,10 +18,12 @@ repository:
   homepage: "https://{{ github_user }}.github.io/{{ github_repo_name }}"
 {%- set topic_list = repository_topics.split(",") | map("trim") | reject("equalto", "") | list %}
 {%- if topic_list %}
-  # Topics from the `repository_topics` answer, lower-cased and
-  # space/underscore-hyphenated. Omitted entirely when that answer is empty, so
-  # the App leaves the repository's existing topics untouched. GitHub rules:
-  # lowercase letters/digits/hyphens, <=50 chars each, <=20 total.
+  # Topics from the `repository_topics` answer, lower-cased with spaces and
+  # underscores turned into hyphens. Omitted entirely when that answer is empty,
+  # so the App leaves the repository's existing topics untouched. GitHub also
+  # requires each topic to be letters/digits/hyphens only (<=50 chars) and allows
+  # at most 20; the template does not enforce those, so keep the answer within
+  # them or the App will reject the sync.
   topics:
 {%- for topic in topic_list %}
     - "{{ topic | lower | replace(' ', '-') | replace('_', '-') }}"
