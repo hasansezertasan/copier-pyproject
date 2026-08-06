@@ -33,3 +33,25 @@ def test_app_defaults_distribution_off(render: Callable[..., Path]) -> None:
     answers = _answers(render(preset="tool"))  # cli+tui -> is_app true
     assert answers["include_homebrew"] is False
     assert answers["include_scoop"] is False
+
+
+def _read(root: Path, *parts: str) -> str:
+    return (root / Path(*parts)).read_text(encoding="utf-8")
+
+
+def test_readme_shows_brew_and_scoop_when_enabled(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True, include_scoop=True)
+    readme = _read(root, "README.md")
+    assert f"brew install {USER}/tap/{PKG}" in readme
+    assert f"scoop install {USER}/{PKG}" in readme
+
+
+def test_readme_omits_brew_and_scoop_when_disabled(render: Callable[..., Path]) -> None:
+    readme = _read(render(preset="tool"), "README.md")
+    assert "brew install" not in readme
+    assert "scoop install" not in readme
+
+
+def test_installation_rst_shows_brew_when_enabled(render: Callable[..., Path]) -> None:
+    rst = _read(render(preset="tool", include_homebrew=True), "docs", "installation.rst")
+    assert f"brew install {USER}/tap/{PKG}" in rst

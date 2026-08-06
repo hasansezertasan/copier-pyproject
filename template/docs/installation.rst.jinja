@@ -24,6 +24,21 @@ Or run it without installing:
 .. code-block:: sh
 
    uvx {{github_repo_name}}
+{% if include_homebrew %}
+Homebrew (macOS/Linux):
+
+.. code-block:: sh
+
+    brew install {{github_user}}/tap/{{github_repo_name}}
+{% endif -%}
+{% if include_scoop %}
+Scoop (Windows):
+
+.. code-block:: sh
+
+    scoop bucket add {{github_user}} https://github.com/{{github_user}}/scoop-bucket
+    scoop install {{github_user}}/{{github_repo_name}}
+{% endif -%}
 {% else %}
 ``{{github_repo_name}}`` is a library. Add it to your project as a dependency.
 
