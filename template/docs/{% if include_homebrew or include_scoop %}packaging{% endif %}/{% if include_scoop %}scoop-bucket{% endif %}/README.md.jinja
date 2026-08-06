@@ -31,7 +31,15 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
    `scripts/update_manifests.py` updater the workflow below calls — use it as
    a concrete reference for that script.
 
-2. Add the initial manifest(s) under `bucket/`:
+2. Clone the bucket locally and `cd` into it — the manifest edits below
+   operate on files inside this checkout:
+
+   ```sh
+   gh repo clone {{github_user}}/scoop-bucket
+   cd scoop-bucket
+   ```
+
+3. Add the initial manifest(s) under `bucket/`:
 
    - A **pipx manifest** for the PyPI install — `installer.script` runs
      `pipx install {{github_repo_name}}==$version`, and `checkver` polls
@@ -76,10 +84,21 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
      [`bucket/keycast.json`](https://github.com/hasansezertasan/scoop-bucket/blob/main/bucket/keycast.json)
      for a full manifest to copy and adapt.
 {% endif %}
-3. Commit the listener workflow from this folder, `update-manifest-dispatch.yml`,
+4. Provision the updater script the listener calls,
+   `scripts/update_manifests.py <package>` — the listener does **not** ship
+   this script itself, and without it a dispatched update has nothing to run.
+   Either copy
+   [`scripts/update_manifests.py`](https://github.com/hasansezertasan/scoop-bucket/blob/main/scripts/update_manifests.py)
+   (and its dependencies) from the reference bucket
+   [`hasansezertasan/scoop-bucket`](https://github.com/hasansezertasan/scoop-bucket)
+   linked above, or base the bucket on
+   [`ScoopInstaller/BucketTemplate`](https://github.com/ScoopInstaller/BucketTemplate)
+   and adapt its `bin/checkver.ps1` / `bin/auto-pr.ps1` updater flow instead.
+
+5. Commit the listener workflow from this folder, `update-manifest-dispatch.yml`,
    to the bucket's `.github/workflows/` directory. It expects the bucket to
-   provide a `scripts/update_manifests.py <package>` updater (see the
-   reference bucket above).
+   provide the `scripts/update_manifests.py <package>` updater from the
+   previous step.
 
 ## Token setup (in this project's repo)
 

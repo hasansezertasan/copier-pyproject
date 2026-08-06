@@ -28,12 +28,21 @@ jobs:
       issues: write  # open a failure issue on this tap (no PAT, GITHUB_TOKEN only)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
       - name: Validate payload
         # The dispatch payload is attacker-controllable. Read it ONLY through env
         # (never interpolate ${{ ... }} into the script source, which would let a
         # value like `example"; rm -rf / #` execute), and validate against strict
         # patterns before any downstream use. Validated values are persisted to
         # $GITHUB_ENV so later steps consume the sanitized data, not the raw event.
+        # Validate with bash's =~, which matches the WHOLE string. `grep -E`
+        # matches line-by-line, so a multiline value like $'example\nCASK=x'
+        # would pass a per-line check and then smuggle a second `CASK=` line
+        # into $GITHUB_ENV below (the second assignment wins). =~ has no record
+        # separator: an embedded CR/LF isn't in the character class and can't
+        # reach the `$` anchor, so any multiline payload is rejected here.
+        shell: bash
         env:
           RAW_CASK: ${{ github.event.client_payload.cask }}
           RAW_VERSION: ${{ github.event.client_payload.version }}
@@ -42,11 +51,11 @@ jobs:
             echo "::error::'cask' is required in client_payload"; exit 1
           fi
           # Homebrew cask token: lowercase alphanumerics and hyphens only.
-          if ! printf '%s' "$RAW_CASK" | grep -qE '^[a-z0-9][a-z0-9-]*$'; then
+          if [[ ! "$RAW_CASK" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
             echo "::error::invalid cask token (must match ^[a-z0-9][a-z0-9-]*\$)"; exit 1
           fi
           # Version is optional; if present, restrict to safe version characters.
-          if [ -n "$RAW_VERSION" ] && ! printf '%s' "$RAW_VERSION" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._+-]*$'; then
+          if [ -n "$RAW_VERSION" ] && [[ ! "$RAW_VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]]; then
             echo "::error::invalid version (must match ^[A-Za-z0-9][A-Za-z0-9._+-]*\$)"; exit 1
           fi
           if [ ! -f "Casks/${RAW_CASK}.rb" ]; then

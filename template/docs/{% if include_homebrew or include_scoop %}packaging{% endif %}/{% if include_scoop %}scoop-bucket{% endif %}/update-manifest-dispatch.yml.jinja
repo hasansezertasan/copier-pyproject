@@ -26,6 +26,8 @@ jobs:
       issues: write  # open a failure issue on this bucket (GITHUB_TOKEN only)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
       - name: Validate payload
         # The dispatch payload is attacker-controllable. Read it ONLY through env
         # (never interpolate ${{ ... }} into the script source, which would let a
@@ -70,10 +72,13 @@ jobs:
           # the validated value from $GITHUB_ENV (set by the step above).
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # A random delimiter prevents a summary line that happens to equal a
+          # fixed marker (e.g. "SUMMARY_EOF") from closing the heredoc early.
+          delimiter="SUMMARY_$(openssl rand -hex 16)"
           {
-            echo 'summary<<SUMMARY_EOF'
+            echo "summary<<${delimiter}"
             python scripts/update_manifests.py "$PACKAGE"
-            echo 'SUMMARY_EOF'
+            echo "${delimiter}"
           } >> "$GITHUB_OUTPUT"
           # A dispatch fires in response to a publish, so "nothing changed" is a
           # signal worth surfacing — the updater may have hit a misconfigured

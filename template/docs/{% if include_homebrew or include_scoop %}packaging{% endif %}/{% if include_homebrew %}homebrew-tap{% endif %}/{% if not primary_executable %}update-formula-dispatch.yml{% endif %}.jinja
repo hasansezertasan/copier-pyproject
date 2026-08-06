@@ -24,14 +24,26 @@ jobs:
     # host platform, so a macOS-only formula (depends_on :macos) must be
     # resolved on macOS or its macOS backends get swapped for Linux ones.
     runs-on: macos-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
       - name: Validate payload
         # The dispatch payload is attacker-controllable. Read it ONLY through env
         # (never interpolate ${{ ... }} into the script source, which would let a
         # value like `example"; rm -rf / #` execute), and validate against strict
         # patterns before any downstream use. Validated values are persisted to
         # $GITHUB_ENV so later steps consume the sanitized data, not the raw event.
+        # Validate with bash's =~, which matches the WHOLE string. `grep -E`
+        # matches line-by-line, so a multiline value like $'example\nFORMULA=x'
+        # would pass a per-line check and then smuggle a second `FORMULA=` line
+        # into $GITHUB_ENV below (the second assignment wins). =~ has no record
+        # separator: an embedded CR/LF isn't in the character class and can't
+        # reach the `$` anchor, so any multiline payload is rejected here.
+        shell: bash
         env:
           RAW_FORMULA: ${{ github.event.client_payload.formula }}
           RAW_VERSION: ${{ github.event.client_payload.version }}
@@ -41,11 +53,11 @@ jobs:
           fi
           # Homebrew formula token: lowercase alphanumerics plus . _ + - and @
           # (the last for versioned formulae like python@3.14).
-          if ! printf '%s' "$RAW_FORMULA" | grep -qE '^[a-z0-9][a-z0-9._+@-]*$'; then
+          if [[ ! "$RAW_FORMULA" =~ ^[a-z0-9][a-z0-9._+@-]*$ ]]; then
             echo "::error::invalid formula token (must match ^[a-z0-9][a-z0-9._+@-]*\$)"; exit 1
           fi
           # Version is optional; if present, restrict to safe version characters.
-          if [ -n "$RAW_VERSION" ] && ! printf '%s' "$RAW_VERSION" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._+-]*$'; then
+          if [ -n "$RAW_VERSION" ] && [[ ! "$RAW_VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]]; then
             echo "::error::invalid version (must match ^[A-Za-z0-9][A-Za-z0-9._+-]*\$)"; exit 1
           fi
           if [ ! -f "Formula/${RAW_FORMULA}.rb" ]; then

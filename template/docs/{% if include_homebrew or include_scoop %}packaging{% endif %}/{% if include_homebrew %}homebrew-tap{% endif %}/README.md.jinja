@@ -22,14 +22,23 @@ all inside the tap repository, using the tap's own `GITHUB_TOKEN`.
      --description "Homebrew tap for {{github_user}} packages"
    ```
 
-2. Bootstrap the initial {% if primary_executable %}cask{% else %}formula{% endif %}:
+2. Clone the tap locally and `cd` into it — the bootstrap commands below
+   operate on files inside this checkout:
+
+   ```sh
+   gh repo clone {{github_user}}/homebrew-tap
+   cd homebrew-tap
+   ```
+
+3. Bootstrap the initial {% if primary_executable %}cask{% else %}formula{% endif %}:
 {% if primary_executable %}
    ```sh
    brew create --cask <github-release-asset-url>
    ```
 
-   Then edit the generated `Casks/{{github_repo_name}}.rb` to fill in the
-   `sha256`, `url`, and `version` stanzas for your release artifact.
+   Then edit the generated `Casks/{{github_repo_name}}.rb` (written inside
+   this clone) to fill in the `sha256`, `url`, and `version` stanzas for your
+   release artifact.
 {% else %}
    ```sh
    brew tap-new {{github_user}}/tap
@@ -37,10 +46,11 @@ all inside the tap repository, using the tap's own `GITHUB_TOKEN`.
    brew update-python-resources {{github_user}}/tap/{{github_repo_name}}
    ```
 
-   `update-python-resources` fills in the Python `resource` blocks for the
-   formula's dependencies.
+   `brew create`/`update-python-resources` write into `Formula/{{github_repo_name}}.rb`
+   inside this clone; `update-python-resources` fills in the Python `resource`
+   blocks for the formula's dependencies.
 {% endif %}
-3. Commit the listener workflow from this folder,
+4. Commit the listener workflow from this folder,
    `update-{% if primary_executable %}cask{% else %}formula{% endif %}-dispatch.yml`, to the tap's
    `.github/workflows/` directory.
 
