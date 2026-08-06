@@ -436,7 +436,7 @@ misconfiguration can never produce a partial release. The image is pushed
 to `docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}`, so the namespace
 follows the Docker Hub account — it does not need to match the GitHub owner.
 {%- endif %}
-{%- if include_sourcery or include_sonarcloud or include_all_contributors %}
+{%- if include_sourcery or include_sonarcloud or include_all_contributors or include_repo_settings %}
 
 ### Optional third-party integrations
 
@@ -481,6 +481,32 @@ in `mise.toml`: `mise exec -- all-contributors add <user> <contributions>`) and
 let the workflow regenerate, or install the
 [bot](https://allcontributors.org/docs/en/bot/usage) for
 `@all-contributors please add @user for code` comments.
+{%- endif %}
+{%- if include_repo_settings %}
+
+**Repository settings ("Settings" App).** `.github/settings.yml` declares this
+repository's description, homepage, and (when the `repository_topics` template
+answer is set) topics. It is applied by the
+[Settings GitHub App](https://github.com/apps/settings) on every push to the
+default branch — install it once on this repository (or your account) from the
+[App page](https://github.com/apps/settings). Nothing syncs until it is
+installed.
+
+> [!CAUTION]
+> The Settings App **escalates anyone with push access to admin**: a merge to
+> the default branch syncs whatever is in `settings.yml`. Mitigate this with
+> CODEOWNERS — this project already makes `@{{github_user}}` the code owner of
+> every file (`.github/CODEOWNERS`), so enabling branch protection's **Require
+> review from Code Owners** on the default branch means a `settings.yml` change
+> cannot merge without your review. Note that with the shipped `* @{{github_user}}`
+> ownership this requires code-owner review for _all_ files (the whole branch);
+> to scope the requirement to just `settings.yml`, narrow `.github/CODEOWNERS`
+> to `/.github/settings.yml @{{github_user}}`.
+
+The "Include in the home page" activity toggles (Releases / Packages /
+Deployments in the About sidebar) are **not** settable through any GitHub API,
+so neither this App nor any workflow can manage them — set those in the web UI.
+Labels are managed separately by `.github/labels.yml`, not here.
 {%- endif %}
 {%- endif %}
 
