@@ -45,11 +45,6 @@ package_keywords:
   default: ""
   help: >-
     Extra PyPI keywords specific to your project (comma-separated, e.g. "data, async, etl"). Tooling and component keywords are added automatically.
-repository_topics:
-  type: str
-  default: ""
-  help: >-
-    GitHub repository topics for the "About" sidebar (comma-separated, e.g. "python, cli, automation"). Only applied when include_repo_settings is enabled. Leave empty to leave the repository's existing topics untouched. GitHub rules apply: lowercase letters/digits/hyphens, <=50 chars each, <=20 total.
 # ── ② Preset ────────────────────────────────────────────────────────────────
 preset:
   type: str
@@ -200,6 +195,12 @@ include_repo_settings:
   default: "{{ 'include_repo_settings' in preset_map[preset] }}"
   help: >-
     Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? Requires installing that App on the repository; it escalates push access to admin, so review the CONTRIBUTING note before enabling.
+repository_topics:
+  type: str
+  default: ""
+  when: "{{ include_repo_settings }}"
+  help: >-
+    GitHub repository topics for the "About" sidebar (comma-separated, e.g. "python, cli, automation"). Leave empty to leave the repository's existing topics untouched. GitHub rules apply: lowercase letters/digits/hyphens, <=50 chars each, <=20 total.
 # ── ⑦ Devcontainer services ─────────────────────────────────────────────────
 include_postgres:
   type: bool

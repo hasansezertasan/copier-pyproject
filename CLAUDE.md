@@ -134,7 +134,8 @@ Free-form metadata:
   is still auto-generated from enabled components — it carries a `TODO` marker for the
   generated project's author to fill in project-specific classifiers.)
 - `repository_topics` - comma-separated GitHub repository topics (default empty),
-  used **only** when `include_repo_settings` is enabled. Rendered into
+  asked and used **only** when `include_repo_settings` is enabled
+  (`when: "{{ include_repo_settings }}"`). Rendered into
   `.github/settings.yml` as the `topics:` list (lower-cased, space/underscore
   hyphenated). Left empty, the `topics:` key is omitted entirely so the Settings
   App leaves the repository's existing topics untouched. See
