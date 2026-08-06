@@ -648,13 +648,24 @@ jobs:
 {%- if primary_executable %}
           base="https://github.com/$REPO/releases/download/$TAG_NAME"
           workdir="$(mktemp -d)"
-          asset="{{github_repo_name}}-{{primary_executable}}-windows.exe"
-          gh release download "$TAG_NAME" --repo "$REPO" --pattern "$asset" --dir "$workdir"
-          sha_win="$(shasum -a 256 "$workdir/$asset" | cut -d' ' -f1)"
+          # The launcher (PyCrucible) may emit its Windows asset with or without
+          # a `.exe` extension (freezer/compiler always add `.exe`). Match by
+          # glob and read the real asset name back so the manifest never assumes
+          # an extension the release might not have.
+          gh release download "$TAG_NAME" --repo "$REPO" \
+            --pattern "{{github_repo_name}}-{{primary_executable}}-windows*" --dir "$workdir"
+          asset_path="$(find "$workdir" -maxdepth 1 -type f -name '{{github_repo_name}}-{{primary_executable}}-windows*' -print -quit)"
+          if [ -z "$asset_path" ]; then
+            echo "::error::no Windows asset found for {{github_repo_name}}-{{primary_executable}}" >&2
+            exit 1
+          fi
+          asset_name="$(basename "$asset_path")"
+          sha_win="$(shasum -a 256 "$asset_path" | cut -d' ' -f1)"
           sed \
             -e "s|@@VERSION@@|$VERSION|g" \
-            -e "s|@@URL_WIN@@|$base/$asset|g" \
+            -e "s|@@URL_WIN@@|$base/$asset_name|g" \
             -e "s|@@SHA256_WIN@@|$sha_win|g" \
+            -e "s|@@BIN_WIN@@|$asset_name|g" \
             "$tmpl" > "$out"
 {%- else %}
           # No executable toggle: the manifest's install script does `pip

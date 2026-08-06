@@ -91,7 +91,10 @@ def test_scoop_binary_manifest_when_executable(render: Callable[..., Path]) -> N
     root = render(preset="tool", include_scoop=True, include_compiler=True)
     tmpl = _read(root, ".github", "packaging", "scoop-manifest.json.tmpl")
     assert "@@SHA256_WIN@@" in tmpl
-    assert f"{PKG}-compiler-windows.exe" in tmpl
+    # The manifest no longer hardcodes a `.exe`; the real asset name is
+    # substituted at publish time via the @@BIN_WIN@@ placeholder.
+    assert "@@BIN_WIN@@" in tmpl
+    assert f"{PKG}-compiler-windows.exe" not in tmpl
 
 
 def test_packaging_absent_when_disabled(render: Callable[..., Path]) -> None:
@@ -139,6 +142,9 @@ def test_release_has_publish_scoop_job(render: Callable[..., Path]) -> None:
     assert "finalize-release" in job["needs"]
     text = _read(root, ".github", "workflows", "release.yml")
     assert "SCOOP_BUCKET_TOKEN_SET" in text or "SCOOP_BUCKET_TOKEN != ''" in text
+    # The Windows asset is glob-derived (no assumed `.exe` extension) so the
+    # launcher's extension-less asset is still matched.
+    assert f"{PKG}-compiler-windows*" in text
 
 
 def test_release_omits_publish_scoop_when_disabled(render: Callable[..., Path]) -> None:

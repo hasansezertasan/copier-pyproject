@@ -9,12 +9,12 @@
       "hash": "@@SHA256_WIN@@"
     }
   },
-  "bin": [["{{github_repo_name}}-{{primary_executable}}-windows.exe", "{{github_repo_name}}"]],
+  "bin": [["@@BIN_WIN@@", "{{github_repo_name}}"]],
   "checkver": "github",
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/{{github_user}}/{{github_repo_name}}/releases/download/v$version/{{github_repo_name}}-{{primary_executable}}-windows.exe"
+        "url": "https://github.com/{{github_user}}/{{github_repo_name}}/releases/download/v$version/@@BIN_WIN@@"
       }
     }
   }
