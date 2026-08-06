@@ -509,7 +509,7 @@ jobs:
             gh pr close "$pr" --delete-branch --repo "$REPO"
           fi
           gh workflow run "$WORKFLOW" --ref "$REF_NAME" --repo "$REPO"
-{% if include_homebrew %}
+{%- if include_homebrew %}
   publish-homebrew:
     name: Publish Homebrew formula
     # Runs after the release is published so the tagged assets exist. Opens a PR
@@ -557,8 +557,8 @@ jobs:
           tmpl="src/.github/packaging/homebrew-formula.rb.tmpl"
           out="tap/Formula/{{github_repo_name}}.rb"
           mkdir -p tap/Formula
+{%- if primary_executable %}
           base="https://github.com/$REPO/releases/download/$TAG_NAME"
-{% if primary_executable %}
           workdir="$(mktemp -d)"
           declare -A sha
           for label in macos linux; do
@@ -573,7 +573,7 @@ jobs:
             -e "s|@@URL_LINUX@@|$base/{{github_repo_name}}-{{primary_executable}}-linux|g" \
             -e "s|@@SHA256_LINUX@@|${sha[linux]}|g" \
             "$tmpl" > "$out"
-{% else %}
+{%- else %}
           # No executable toggle: reference the PyPI sdist. Resolve its URL and
           # sha256 from the PyPI JSON API (jq is preinstalled on ubuntu runners).
           meta="$(curl -fsSL "https://pypi.org/pypi/{{github_repo_name}}/$VERSION/json")"
@@ -584,7 +584,7 @@ jobs:
             -e "s|@@SDIST_URL@@|$sdist_url|g" \
             -e "s|@@SDIST_SHA256@@|$sdist_sha|g" \
             "$tmpl" > "$out"
-{% endif %}
+{%- endif %}
       - name: Open PR to tap
         if: {% raw %}${{ env.HOMEBREW_TAP_TOKEN_SET == 'true' }}{% endraw %}
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
@@ -596,8 +596,8 @@ jobs:
           branch: chore/{{github_repo_name}}-formula
           base: main
           delete-branch: true
-{% endif %}
-{% if include_scoop %}
+{%- endif %}
+{%- if include_scoop %}
   publish-scoop:
     name: Publish Scoop manifest
     # Runs after the release is published so the tagged assets exist. Opens a PR
@@ -645,8 +645,8 @@ jobs:
           tmpl="src/.github/packaging/scoop-manifest.json.tmpl"
           out="bucket/{{github_repo_name}}.json"
           mkdir -p bucket
+{%- if primary_executable %}
           base="https://github.com/$REPO/releases/download/$TAG_NAME"
-{% if primary_executable %}
           workdir="$(mktemp -d)"
           asset="{{github_repo_name}}-{{primary_executable}}-windows.exe"
           gh release download "$TAG_NAME" --repo "$REPO" --pattern "$asset" --dir "$workdir"
@@ -656,11 +656,11 @@ jobs:
             -e "s|@@URL_WIN@@|$base/$asset|g" \
             -e "s|@@SHA256_WIN@@|$sha_win|g" \
             "$tmpl" > "$out"
-{% else %}
+{%- else %}
           # No executable toggle: the manifest's install script does `pip
           # install` at runtime, so only the version needs substituting.
           sed -e "s|@@VERSION@@|$VERSION|g" "$tmpl" > "$out"
-{% endif %}
+{%- endif %}
       - name: Open PR to bucket
         if: {% raw %}${{ env.SCOOP_BUCKET_TOKEN_SET == 'true' }}{% endraw %}
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
@@ -672,7 +672,7 @@ jobs:
           branch: chore/{{github_repo_name}}-manifest
           base: main
           delete-branch: true
-{% endif %}
+{%- endif %}
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs

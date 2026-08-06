@@ -39,6 +39,14 @@ indent_size = 2
 [.all-contributorsrc]
 indent_size = 2
 
+# Homebrew formula (Ruby) and Scoop manifest (JSON) packaging templates ship
+# with a `.tmpl` suffix on top of their real extension (`.rb.tmpl`/`.json.tmpl`)
+# so the `*.{...,json,...}` glob above never matches them; they follow the same
+# upstream conventions as the tools that consume them (2-space Ruby, 2-space
+# JSON). Only present when `include_homebrew`/`include_scoop` is on.
+[*.{rb,json}.tmpl]
+indent_size = 2
+
 # cobo.lock is a generated TOML lockfile (2-space subtable indent, like the
 # other 2-space TOML above); the `.lock` extension is outside the TOML glob, so
 # it needs its own stanza. taplo does not lint it (its glob is `*.toml`), leaving
