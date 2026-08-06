@@ -95,6 +95,8 @@ preset_map:
       - include_redis
       - include_dbeaver
       - include_vpn
+      - include_homebrew
+      - include_scoop
 # ── ③ Interfaces ────────────────────────────────────────────────────────────
 include_cli:
   type: bool
@@ -236,9 +238,30 @@ primary_component:
   type: str
   when: false
   default: "{% if include_cli %}cli{% elif include_gui %}gui{% elif include_tui %}tui{% elif include_web %}web{% elif include_mcp %}mcp{% elif include_worker %}worker{% endif %}"
+# Single source of truth for which prebuilt binary the brew/scoop packaging
+# references when several executable toggles are enabled. Precedence
+# freezer > compiler > launcher (freezer/compiler are self-contained; launcher
+# needs network on first run). Empty ⇒ no executable toggle ⇒ PyPI fallback.
+primary_executable:
+  type: str
+  when: false
+  default: "{% if include_freezer %}freezer{% elif include_compiler %}compiler{% elif include_launcher %}launcher{% endif %}"
 # True when any runnable component is enabled — the project is a standalone
 # application (installed as a tool) rather than a library (added as a dependency).
 is_app:
   type: bool
   when: false
   default: "{{ include_cli or include_gui or include_tui or include_web or include_mcp or include_worker }}"
+# ── ⑧ Distribution (opt-in; publishes to a separate tap/bucket repo) ─────────
+include_homebrew:
+  type: bool
+  default: "{{ 'include_homebrew' in preset_map[preset] }}"
+  when: "{{ is_app }}"
+  help: >-
+    Publish a Homebrew tap formula on each release? Requires a homebrew-tap repo under your account and a HOMEBREW_TAP_TOKEN secret (one-time setup, documented in CONTRIBUTING.md).
+include_scoop:
+  type: bool
+  default: "{{ 'include_scoop' in preset_map[preset] }}"
+  when: "{{ is_app }}"
+  help: >-
+    Publish a Scoop bucket manifest on each release? Requires a scoop-bucket repo under your account and a SCOOP_BUCKET_TOKEN secret (one-time setup, documented in CONTRIBUTING.md). Best paired with an executable toggle (Scoop favors binaries).
