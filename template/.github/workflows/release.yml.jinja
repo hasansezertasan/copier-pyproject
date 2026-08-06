@@ -509,7 +509,7 @@ jobs:
             gh pr close "$pr" --delete-branch --repo "$REPO"
           fi
           gh workflow run "$WORKFLOW" --ref "$REF_NAME" --repo "$REPO"
-{% if include_homebrew %}
+{%- if include_homebrew %}
 
   bump-homebrew:
     name: Bump Homebrew {% if primary_executable %}cask{% else %}formula{% endif %}
@@ -537,8 +537,8 @@ jobs:
             -f event_type={% if primary_executable %}update-cask{% else %}update-formula{% endif %} \
             -f 'client_payload[{% if primary_executable %}cask{% else %}formula{% endif %}]={{github_repo_name}}' \
             -f "client_payload[version]=$VERSION"
-{% endif %}
-{% if include_scoop %}
+{%- endif %}
+{%- if include_scoop %}
 
   bump-scoop:
     name: Bump Scoop bucket
@@ -563,7 +563,8 @@ jobs:
             -f event_type=update-manifest \
             -f 'client_payload[package]={{github_repo_name}}' \
             -f "client_payload[version]=$VERSION"
-{% endif %}
+{%- endif %}
+
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs
