@@ -229,6 +229,30 @@ Optional components (all boolean):
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
   [ADR-013](docs/adr/013-megalinter-opt-in-lean-complement.md).
+- `include_homebrew` - Homebrew tap distribution, `default: false` and
+  `when: "{{ is_app }}"`-gated (only offered for app-like projects, not a
+  library). The generated
+  project does not build a formula/cask itself: its `release.yml` fires a
+  `repository_dispatch` (`update-formula`/`update-cask`) at the owner's own
+  `homebrew-tap` repo, which owns the manifest logic via `brew
+  bump-formula-pr`/`bump-cask-pr` + `brew update-python-resources`. A
+  reference listener workflow + setup guide ships under
+  `docs/packaging/homebrew-tap/` for copying into that tap repo. Needs a
+  `HOMEBREW_TAP_TOKEN` secret: a fine-grained PAT with **Contents: write**
+  only on the tap repo (no `Pull requests` scope — the tap opens its own PR
+  with its own `GITHUB_TOKEN`). See
+  [ADR-017](docs/adr/017-opt-in-homebrew-scoop-distribution.md).
+- `include_scoop` - Scoop bucket distribution (opt-in), the same
+  dispatch-not-generation pattern: `release.yml` fires `update-manifest` at
+  the owner's own `scoop-bucket` repo, which owns the manifest via its own
+  `checkver`/`autoupdate` (or updater script). A reference listener + setup
+  guide ships under `docs/packaging/scoop-bucket/`. Needs a
+  `SCOOP_BUCKET_TOKEN` secret with the same **Contents: write**-only PAT
+  scope. Both toggles pick a binary (Homebrew cask / Scoop binary-zip
+  manifest) vs. PyPI (Homebrew formula / Scoop pipx manifest) payload via the
+  `primary_executable` precedence (`freezer` > `compiler` > `launcher`; empty
+  ⇒ PyPI fallback). See
+  [ADR-017](docs/adr/017-opt-in-homebrew-scoop-distribution.md).
 - `include_repo_settings` - repository metadata as code: a `.github/settings.yml`
   (description/homepage/topics + squash-merge flags) synced by the "Settings"
   GitHub App, `default: false`. Opt-in like the ADR-009 integrations because the

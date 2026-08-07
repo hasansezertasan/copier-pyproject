@@ -71,6 +71,21 @@ uv tool install {{github_repo_name}}
 ```
 
 Or run it without installing with `uvx {{github_repo_name}}`. See the [installation docs](https://{{github_user}}.github.io/{{github_repo_name}}/installation.html) for pipx and from-source options.
+{% if include_homebrew %}
+Install with [Homebrew](https://brew.sh) (macOS/Linux):
+
+```sh
+brew install {% if primary_executable %}--cask {% endif %}{{github_user}}/tap/{{github_repo_name}}
+```
+{% endif -%}
+{% if include_scoop %}
+Install with [Scoop](https://scoop.sh) (Windows):
+
+```sh
+scoop bucket add {{github_user}} https://github.com/{{github_user}}/scoop-bucket
+scoop install {{github_user}}/{{github_repo_name}}
+```
+{% endif -%}
 {% else %}
 `{{github_repo_name}}` is a library. Add it to your project as a dependency:
 

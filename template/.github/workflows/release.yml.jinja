@@ -520,6 +520,58 @@ jobs:
             gh pr close "$pr" --delete-branch --repo "$REPO"
           fi
           gh workflow run "$WORKFLOW" --ref "$REF_NAME" --repo "$REPO"
+{%- if include_homebrew %}
+  bump-homebrew:
+    name: Bump Homebrew {% if primary_executable %}cask{% else %}formula{% endif %}
+    needs: [release-please, finalize-release]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: {}
+    steps:
+      - name: Dispatch the tap update
+        env:
+          # PAT with Contents: write on the tap repo (NOT the repo GITHUB_TOKEN,
+          # which cannot POST a cross-repo dispatch). Absent → skip, never fail.
+          GH_TOKEN: {% raw %}${{ secrets.HOMEBREW_TAP_TOKEN }}{% endraw %}
+          VERSION: {% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
+        run: |
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::HOMEBREW_TAP_TOKEN not set; skipping Homebrew bump"
+            exit 0
+          fi
+          echo "Dispatching {% if primary_executable %}update-cask{% else %}update-formula{% endif %} for {{github_repo_name}} $VERSION"
+          gh api repos/{{github_user}}/homebrew-tap/dispatches \
+            --method POST \
+            -f event_type={% if primary_executable %}update-cask{% else %}update-formula{% endif %} \
+            -f 'client_payload[{% if primary_executable %}cask{% else %}formula{% endif %}]={{github_repo_name}}' \
+            -f "client_payload[version]=$VERSION"
+{%- endif %}
+{%- if include_scoop %}
+  bump-scoop:
+    name: Bump Scoop bucket
+    needs: [release-please, finalize-release]
+    if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: {}
+    steps:
+      - name: Dispatch the bucket update
+        env:
+          GH_TOKEN: {% raw %}${{ secrets.SCOOP_BUCKET_TOKEN }}{% endraw %}
+          VERSION: {% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
+        run: |
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::SCOOP_BUCKET_TOKEN not set; skipping Scoop bump"
+            exit 0
+          fi
+          echo "Dispatching update-manifest for {{github_repo_name}} $VERSION"
+          gh api repos/{{github_user}}/scoop-bucket/dispatches \
+            --method POST \
+            -f event_type=update-manifest \
+            -f 'client_payload[package]={{github_repo_name}}' \
+            -f "client_payload[version]=$VERSION"
+{%- endif %}
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs

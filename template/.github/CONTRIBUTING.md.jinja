@@ -416,9 +416,11 @@ gh api -X PATCH repos/{{github_user}}/{{github_repo_name}} -F has_discussions=tr
 ```
 
 (UI: **Settings → General → Features** — tick **Discussions**.)
+{%- set ns = namespace(step=10) -%}
 {%- if include_web %}
+{%- set ns.step = ns.step + 1 %}
 
-**11. Docker Hub publishing (optional).** The release workflow always publishes
+**{{ ns.step }}. Docker Hub publishing (optional).** The release workflow always publishes
 the Docker image to GHCR (`ghcr.io/{{github_user}}/{{github_repo_name}}`) using
 the built-in `GITHUB_TOKEN` — no setup needed. To _additionally_ publish to
 Docker Hub, create an [access token](https://app.docker.com/settings/personal-access-tokens)
@@ -435,6 +437,48 @@ fails fast and blocks every publish channel (PyPI included) so a
 misconfiguration can never produce a partial release. The image is pushed
 to `docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}`, so the namespace
 follows the Docker Hub account — it does not need to match the GitHub owner.
+{%- endif %}
+{%- if include_homebrew %}
+{%- set ns.step = ns.step + 1 %}
+
+**{{ ns.step }}. Homebrew tap (optional).** The release workflow does not build a
+formula itself — it sends a `repository_dispatch` event to your
+`{{github_user}}/homebrew-tap` repo, whose own listener workflow bumps the
+{% if primary_executable %}cask{% else %}formula{% endif %} and opens a PR there. Full one-time setup (creating the tap,
+bootstrapping the initial {% if primary_executable %}cask{% else %}formula{% endif %}, and installing the listener) is documented
+in [`docs/packaging/homebrew-tap/README.md`](../docs/packaging/homebrew-tap/README.md).
+
+The only piece owned by **this** repo is the dispatch credential: create a
+fine-grained PAT with **Contents: write** on `{{github_user}}/homebrew-tap`
+(no `Pull requests` scope needed — the tap opens its own PR with its own
+`GITHUB_TOKEN`) and set it as the `HOMEBREW_TAP_TOKEN` repository secret:
+
+```sh
+gh secret set HOMEBREW_TAP_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+When unset, the `bump-homebrew` job skips with a notice (never fails the release).
+{%- endif %}
+{%- if include_scoop %}
+{%- set ns.step = ns.step + 1 %}
+
+**{{ ns.step }}. Scoop bucket (optional).** The release workflow does not build a
+manifest itself — it sends a `repository_dispatch` event to your
+`{{github_user}}/scoop-bucket` repo, whose own listener workflow bumps the
+manifest and opens a PR there. Full one-time setup (creating the bucket,
+bootstrapping the initial manifest, and installing the listener) is
+documented in [`docs/packaging/scoop-bucket/README.md`](../docs/packaging/scoop-bucket/README.md).
+
+The only piece owned by **this** repo is the dispatch credential: create a
+fine-grained PAT with **Contents: write** on `{{github_user}}/scoop-bucket`
+(no `Pull requests` scope needed — the bucket opens its own PR with its own
+`GITHUB_TOKEN`) and set it as the `SCOOP_BUCKET_TOKEN` repository secret:
+
+```sh
+gh secret set SCOOP_BUCKET_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+When unset, the `bump-scoop` job skips with a notice (never fails the release).
 {%- endif %}
 {%- if include_sourcery or include_sonarcloud or include_all_contributors or include_repo_settings %}
 
