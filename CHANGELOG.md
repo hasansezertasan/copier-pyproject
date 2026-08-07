@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.1.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.0.0...v1.1.0) (2026-08-07)
+
+
+### 🚀 Features
+
+* add always-on pylint quality gate ([#132](https://github.com/hasansezertasan/copier-pyproject/issues/132)) ([e4e0bcb](https://github.com/hasansezertasan/copier-pyproject/commit/e4e0bcb8ad93754cd4209ab13bdddf0916a0a735))
+* add copier-pyproject Claude Code plugin with adopt-copier-pyproject skill ([#140](https://github.com/hasansezertasan/copier-pyproject/issues/140)) ([ebf8f89](https://github.com/hasansezertasan/copier-pyproject/commit/ebf8f895f2595d250ce01de8a5f3b319f2250394))
+* add include_repo_settings toggle and expand label set ([#154](https://github.com/hasansezertasan/copier-pyproject/issues/154)) ([638e774](https://github.com/hasansezertasan/copier-pyproject/commit/638e7743a74b37d4d661b3ffc3454c8e14af0999))
+* add preset question and grouped ordering to copier scaffolding ([#141](https://github.com/hasansezertasan/copier-pyproject/issues/141)) ([f19b8e2](https://github.com/hasansezertasan/copier-pyproject/commit/f19b8e230d156a61d6f79c7282c7546bfeff744a))
+* make the examples/ folder optional via include_examples ([#139](https://github.com/hasansezertasan/copier-pyproject/issues/139)) ([846e09c](https://github.com/hasansezertasan/copier-pyproject/commit/846e09c0b6837b4cbb38cdae62e7f402abdb66cd))
+* opt-in Homebrew tap and Scoop bucket distribution ([#153](https://github.com/hasansezertasan/copier-pyproject/issues/153)) ([f330859](https://github.com/hasansezertasan/copier-pyproject/commit/f330859680495419dc0a254331362d5fabf5fd99))
+* replace preset ladder with library/tool/web archetypes ([#148](https://github.com/hasansezertasan/copier-pyproject/issues/148)) ([7c0987b](https://github.com/hasansezertasan/copier-pyproject/commit/7c0987bf994773f0f86887d737278ab48a084237))
+* run import-linter and slotscheck as prek hooks ([#138](https://github.com/hasansezertasan/copier-pyproject/issues/138)) ([7d3219c](https://github.com/hasansezertasan/copier-pyproject/commit/7d3219cf26b031b41b902c8226531e44ae226299))
+
+
+### 🐛 Bug Fixes
+
+* degrade to console-only logging when log dir is unavailable ([#126](https://github.com/hasansezertasan/copier-pyproject/issues/126)) ([f47e6fc](https://github.com/hasansezertasan/copier-pyproject/commit/f47e6fc4aa885851b671eb33772b472abcb24f26))
+* harden Homebrew/Scoop reference bundle and correct distribution tests ([#155](https://github.com/hasansezertasan/copier-pyproject/issues/155)) ([638b658](https://github.com/hasansezertasan/copier-pyproject/commit/638b658e4d047f4ef7abaf7b2d93d124755746d1))
+* recover tag-derived version for source-archive installs ([#125](https://github.com/hasansezertasan/copier-pyproject/issues/125)) ([5073e1c](https://github.com/hasansezertasan/copier-pyproject/commit/5073e1c4c67b189440dbd45ef4d0f1700331b7ae))
+* require enabled-component deps and harden logging at import ([#119](https://github.com/hasansezertasan/copier-pyproject/issues/119)) ([5906ff2](https://github.com/hasansezertasan/copier-pyproject/commit/5906ff28e5cf8a0f65bf70974017c962ceb6325a))
+* restore lost [#148](https://github.com/hasansezertasan/copier-pyproject/issues/148) review fixes and correct root CLAUDE.md ADR links ([#150](https://github.com/hasansezertasan/copier-pyproject/issues/150)) ([6d98efd](https://github.com/hasansezertasan/copier-pyproject/commit/6d98efdc691a613baf6874902623bf49ebb6f721))
+* wire the bare command to the primary component entrypoint ([#147](https://github.com/hasansezertasan/copier-pyproject/issues/147)) ([038ce0e](https://github.com/hasansezertasan/copier-pyproject/commit/038ce0ef5c335776f90a44ebd954dc67dc157f9b))
+
+
+### 📝 Documentation
+
+* document branch and PR naming conventions for agents ([#120](https://github.com/hasansezertasan/copier-pyproject/issues/120)) ([4e99232](https://github.com/hasansezertasan/copier-pyproject/commit/4e99232a67c8e43c65a306eaaaa68b401e41152e))
+* document macOS Icon char-class LF tradeoff ([#111](https://github.com/hasansezertasan/copier-pyproject/issues/111)) ([#129](https://github.com/hasansezertasan/copier-pyproject/issues/129)) ([c58b01e](https://github.com/hasansezertasan/copier-pyproject/commit/c58b01e36b0d2facc6220c6a050dbdac725ded53))
+* document stale untagged release-comment link as accepted limitation ([#152](https://github.com/hasansezertasan/copier-pyproject/issues/152)) ([c6a4558](https://github.com/hasansezertasan/copier-pyproject/commit/c6a455893d68c22c42b47aa60c8f62eb7e6b05d7))
+* document standalone-application install path ([#145](https://github.com/hasansezertasan/copier-pyproject/issues/145)) ([7fc30f0](https://github.com/hasansezertasan/copier-pyproject/commit/7fc30f0b2a846329c1dbed24cb6e2ac92c94ce35))
+* move template features to root README and dev docs to CONTRIBUTING ([#136](https://github.com/hasansezertasan/copier-pyproject/issues/136)) ([2e0d835](https://github.com/hasansezertasan/copier-pyproject/commit/2e0d8354b8df18249baafb85480efc132f3ed8f1))
+* recommend git URL over gh: shorthand for copier _src_path ([#151](https://github.com/hasansezertasan/copier-pyproject/issues/151)) ([9611c6d](https://github.com/hasansezertasan/copier-pyproject/commit/9611c6d0d1553db4cd98755a88dfaf63a5b260f6))
+* replace Join The Project Team stub with real content ([#128](https://github.com/hasansezertasan/copier-pyproject/issues/128)) ([7a90d73](https://github.com/hasansezertasan/copier-pyproject/commit/7a90d73913951efbb5f36f89c3d42a134bdfef7d))
+
 ## 1.0.0 (2026-08-03)
 
 
