@@ -27,6 +27,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      issues: write  # open a failure issue on this tap (no PAT, GITHUB_TOKEN only)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -72,8 +73,13 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@d3565f64e59130f1fd713440276f7d3e11079b88  # main
       - name: Check for update
         id: check
+        # OWNER/REPO come through env (never interpolated into the script source),
+        # matching the payload-validation discipline above.
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
         run: |
-          tap_name="${{ github.repository_owner }}/$(basename "${{ github.repository }}")"
+          tap_name="${OWNER}/$(basename "$REPO")"
           ref="${tap_name}/${FORMULA}"
 
           if [ -n "$VERSION" ]; then
@@ -100,8 +106,10 @@ jobs:
         if: steps.check.outputs.has_update == 'true'
         env:
           RESOLVED_VERSION: ${{ steps.check.outputs.version }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
         run: |
-          tap_name="${{ github.repository_owner }}/$(basename "${{ github.repository }}")"
+          tap_name="${OWNER}/$(basename "$REPO")"
           ref="${tap_name}/${FORMULA}"
 
           echo "Updating $FORMULA to $RESOLVED_VERSION..."
@@ -120,8 +128,8 @@ jobs:
 
           # The PR is opened with GITHUB_TOKEN and so won't trigger tests.yml.
           # Audit HERE instead so the auto-PR is verified inside the run that
-          # creates it (mirrors update-cask-dispatch.yml). A failure fails the
-          # job, so no unverified PR is opened.
+          # creates it (mirrors update-cask-dispatch.yml). A failure trips the
+          # `if: failure()` issue step below, so no unverified PR is opened.
           brew audit --strict --online "$ref"
       - name: Create Pull Request
         if: steps.check.outputs.has_update == 'true'
@@ -140,4 +148,21 @@ jobs:
             *Triggered by repository_dispatch from package repo.*
           branch: auto-update/${{ env.FORMULA }}
           delete-branch: true
+      - name: Report failure
+        # Fire-and-forget dispatch hides failures from the producer, so surface
+        # them as an issue on this tap (mirrors update-cask-dispatch.yml). The
+        # owner watches the tap, so this notifies without any cross-repo PAT
+        # (GITHUB_TOKEN + issues: write). FORMULA/VERSION are read from
+        # $GITHUB_ENV (set only if validation passed).
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create \
+            --title "Formula bump failed: ${FORMULA:-<unknown>} ${VERSION}" \
+            --label "automated,formula-bump-failure" \
+            --body "$(printf 'Automated formula bump triggered by a release dispatch failed.\n\n- Formula: %s\n- Version: %s\n- Run: %s\n\nInvestigate if it keeps failing.' "${FORMULA:-<unknown>}" "${VERSION:-<from livecheck>}" "$RUN_URL")" \
+            || echo "::warning::could not open failure issue (labels may not exist yet)"
 {% endraw %}

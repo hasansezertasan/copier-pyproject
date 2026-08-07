@@ -34,23 +34,28 @@ all inside the tap repository, using the tap's own `GITHUB_TOKEN`.
 {%- if primary_executable %}
 
    ```sh
-   brew create --cask <github-release-asset-url>
+   brew tap {{github_user}}/tap
+   brew create --cask <github-release-asset-url> --tap {{github_user}}/tap
    ```
 
-   Then edit the generated `Casks/{{github_repo_name}}.rb` (written inside
-   this clone) to fill in the `sha256`, `url`, and `version` stanzas for your
-   release artifact.
+   `brew create` writes the skeleton `Casks/{{github_repo_name}}.rb` into
+   brew's own checkout of the tap (`$(brew --repository {{github_user}}/tap)`),
+   not this clone. Fill in its `sha256`, `url`, and `version` stanzas for your
+   release artifact, then copy the file into this clone's `Casks/` directory
+   before committing.
 {%- else %}
 
    ```sh
-   brew tap-new {{github_user}}/tap
-   brew create --set-name {{github_repo_name}} <pypi-sdist-url>
+   brew tap {{github_user}}/tap
+   brew create --set-name {{github_repo_name}} <pypi-sdist-url> --tap {{github_user}}/tap
    brew update-python-resources {{github_user}}/tap/{{github_repo_name}}
    ```
 
-   `brew create`/`update-python-resources` write into `Formula/{{github_repo_name}}.rb`
-   inside this clone; `update-python-resources` fills in the Python `resource`
-   blocks for the formula's dependencies.
+   These write `Formula/{{github_repo_name}}.rb` into brew's own checkout of the
+   tap (`$(brew --repository {{github_user}}/tap)`), not this clone;
+   `update-python-resources` fills in the Python `resource` blocks for the
+   formula's dependencies. Copy the finished formula into this clone's
+   `Formula/` directory before committing.
 {%- endif %}
 
 4. Commit the listener workflow from this folder,

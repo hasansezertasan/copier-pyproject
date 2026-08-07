@@ -70,8 +70,13 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@d3565f64e59130f1fd713440276f7d3e11079b88  # main
       - name: Resolve target version
         id: check
+        # OWNER/REPO come through env (never interpolated into the script source),
+        # matching the payload-validation discipline above.
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
         run: |
-          tap="${{ github.repository_owner }}/$(basename "${{ github.repository }}")"
+          tap="${OWNER}/$(basename "$REPO")"
           ref="${tap}/${CASK}"
 
           if [ -n "$VERSION" ]; then
@@ -97,8 +102,10 @@ jobs:
         if: steps.check.outputs.has_update == 'true'
         env:
           RESOLVED_VERSION: ${{ steps.check.outputs.version }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
         run: |
-          tap="${{ github.repository_owner }}/$(basename "${{ github.repository }}")"
+          tap="${OWNER}/$(basename "$REPO")"
           ref="${tap}/${CASK}"
 
           echo "Bumping $CASK to $RESOLVED_VERSION..."

@@ -69,9 +69,13 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
      for a full manifest to copy and adapt.
 {%- if primary_executable %}
 
-   - A **binary-zip manifest** pointing at the GitHub release asset the
+   - A **binary manifest** pointing at the GitHub release asset the
      standalone-executable build attaches, with `checkver: github` and a
-     matching `autoupdate` block so future releases resolve automatically:
+     matching `autoupdate` block so future releases resolve automatically.
+     The `build-{{primary_executable}}` release job attaches the Windows binary
+     as `{{github_repo_name}}-{{primary_executable}}-windows.exe` (a raw `.exe`,
+     not a zip — install it via `bin`, no `extract_dir`), so the `url` must name
+     that exact asset:
 
      ```json
      {
@@ -81,7 +85,7 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
        "autoupdate": {
          "architecture": {
            "64bit": {
-             "url": "https://github.com/{{github_user}}/{{github_repo_name}}/releases/download/v$version/{{github_repo_name}}-windows.zip"
+             "url": "https://github.com/{{github_user}}/{{github_repo_name}}/releases/download/v$version/{{github_repo_name}}-{{primary_executable}}-windows.exe"
            }
          }
        }

@@ -151,7 +151,39 @@ def test_no_dispatch_jobs_or_packaging_when_disabled(
     text = _read(root, ".github", "workflows", "release.yml")
     assert "bump-homebrew" not in text
     assert "bump-scoop" not in text
-    assert not (root / ".github" / "packaging").exists()
+    # The reference bundle renders under docs/packaging/, so that is the path
+    # whose absence proves the toggles gated it out.
+    assert not (root / "docs" / "packaging").exists()
+
+
+def test_packaging_bundle_renders_when_enabled(render: Callable[..., Path]) -> None:
+    # Formula path (no executable toggle): homebrew ships the formula listener,
+    # scoop ships the manifest listener; the cask listener is gated out.
+    pkg = render(preset="tool", include_homebrew=True, include_scoop=True) / "docs" / "packaging"
+    assert (pkg / "homebrew-tap" / "README.md").is_file()
+    assert (pkg / "homebrew-tap" / "update-formula-dispatch.yml").is_file()
+    assert not (pkg / "homebrew-tap" / "update-cask-dispatch.yml").exists()
+    assert (pkg / "scoop-bucket" / "README.md").is_file()
+    assert (pkg / "scoop-bucket" / "update-manifest-dispatch.yml").is_file()
+
+
+def test_homebrew_ships_cask_listener_when_executable(
+    render: Callable[..., Path],
+) -> None:
+    # Executable toggle flips the homebrew bundle to the cask listener.
+    tap = (
+        render(preset="tool", include_homebrew=True, include_freezer=True)
+        / "docs"
+        / "packaging"
+        / "homebrew-tap"
+    )
+    assert (tap / "update-cask-dispatch.yml").is_file()
+    assert not (tap / "update-formula-dispatch.yml").exists()
+    # The cask/formula listeners each carry a failure-report step (issues: write).
+    cask = yaml.safe_load((tap / "update-cask-dispatch.yml").read_text(encoding="utf-8"))
+    assert cask["jobs"]["update"]["permissions"]["issues"] == "write"
+    step_names = {step.get("name") for step in cask["jobs"]["update"]["steps"]}
+    assert "Report failure" in step_names
 
 
 # --- ghalint (reverted to web-only) ------------------------------------------

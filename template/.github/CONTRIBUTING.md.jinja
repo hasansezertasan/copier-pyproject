@@ -416,6 +416,10 @@ gh api -X PATCH repos/{{github_user}}/{{github_repo_name}} -F has_discussions=tr
 ```
 
 (UI: **Settings → General → Features** — tick **Discussions**.)
+{#- Dynamic numbering for the optional setup steps below. Seed = the number of
+    the last always-present step above ("10. Enable GitHub Discussions"); bump
+    this if a fixed step is added or removed there, or the optional steps
+    misnumber. -#}
 {%- set ns = namespace(step=10) -%}
 {%- if include_web %}
 {%- set ns.step = ns.step + 1 %}
