@@ -160,9 +160,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue create \
-            --title "Formula bump failed: ${FORMULA:-<unknown>} ${VERSION}" \
-            --label "automated,formula-bump-failure" \
-            --body "$(printf 'Automated formula bump triggered by a release dispatch failed.\n\n- Formula: %s\n- Version: %s\n- Run: %s\n\nInvestigate if it keeps failing.' "${FORMULA:-<unknown>}" "${VERSION:-<from livecheck>}" "$RUN_URL")" \
-            || echo "::warning::could not open failure issue (labels may not exist yet)"
+          title="Formula bump failed: ${FORMULA:-<unknown>} ${VERSION}"
+          body="$(printf 'Automated formula bump triggered by a release dispatch failed.\n\n- Formula: %s\n- Version: %s\n- Run: %s\n\nInvestigate if it keeps failing.' "${FORMULA:-<unknown>}" "${VERSION:-<from livecheck>}" "$RUN_URL")"
+          # `gh issue create --label` fails if the label does not exist yet, so
+          # retry without labels before giving up — a labelless issue still
+          # notifies. A fresh tap has neither label until they are provisioned.
+          gh issue create --title "$title" --label "automated,formula-bump-failure" --body "$body" \
+            || gh issue create --title "$title" --body "$body" \
+            || echo "::warning::could not open failure issue"
 {% endraw %}

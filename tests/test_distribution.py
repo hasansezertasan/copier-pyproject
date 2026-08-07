@@ -64,7 +64,9 @@ def test_readme_omits_brew_and_scoop_when_disabled(render: Callable[..., Path]) 
 
 
 def test_installation_rst_shows_brew_when_enabled(render: Callable[..., Path]) -> None:
-    rst = _read(render(preset="tool", include_homebrew=True), "docs", "installation.rst")
+    rst = _read(
+        render(preset="tool", include_homebrew=True), "docs", "installation.rst"
+    )
     assert f"brew install {USER}/tap/{PKG}" in rst
 
 
@@ -91,7 +93,9 @@ def test_contributing_documents_tap_setup(render: Callable[..., Path]) -> None:
     assert "SCOOP_BUCKET_TOKEN" in contributing
 
 
-def test_contributing_omits_tap_setup_when_disabled(render: Callable[..., Path]) -> None:
+def test_contributing_omits_tap_setup_when_disabled(
+    render: Callable[..., Path],
+) -> None:
     contributing = _read(render(preset="tool"), ".github", "CONTRIBUTING.md")
     assert "HOMEBREW_TAP_TOKEN" not in contributing
     assert "SCOOP_BUCKET_TOKEN" not in contributing
@@ -156,34 +160,45 @@ def test_no_dispatch_jobs_or_packaging_when_disabled(
     assert not (root / "docs" / "packaging").exists()
 
 
+def _assert_reports_failure(listener: Path) -> None:
+    """A dispatch listener grants ``issues: write`` and has a Report failure step."""
+    job = yaml.safe_load(listener.read_text(encoding="utf-8"))["jobs"]["update"]
+    assert job["permissions"]["issues"] == "write"
+    step_names = {step.get("name") for step in job["steps"]}
+    assert "Report failure" in step_names
+    # The failure step must retry without --label, or a fresh tap/bucket (which
+    # has neither label yet) reports nothing — the labeled call would just fail.
+    report = next(s for s in job["steps"] if s.get("name") == "Report failure")
+    assert report["run"].count("gh issue create") >= 2
+
+
 def test_packaging_bundle_renders_when_enabled(render: Callable[..., Path]) -> None:
     # Formula path (no executable toggle): homebrew ships the formula listener,
     # scoop ships the manifest listener; the cask listener is gated out.
-    pkg = render(preset="tool", include_homebrew=True, include_scoop=True) / "docs" / "packaging"
+    root = render(preset="tool", include_homebrew=True, include_scoop=True)
+    pkg = root / "docs" / "packaging"
     assert (pkg / "homebrew-tap" / "README.md").is_file()
-    assert (pkg / "homebrew-tap" / "update-formula-dispatch.yml").is_file()
+    formula = pkg / "homebrew-tap" / "update-formula-dispatch.yml"
+    assert formula.is_file()
     assert not (pkg / "homebrew-tap" / "update-cask-dispatch.yml").exists()
     assert (pkg / "scoop-bucket" / "README.md").is_file()
-    assert (pkg / "scoop-bucket" / "update-manifest-dispatch.yml").is_file()
+    manifest = pkg / "scoop-bucket" / "update-manifest-dispatch.yml"
+    assert manifest.is_file()
+    # Both non-cask listeners surface dispatch failures as issues.
+    _assert_reports_failure(formula)
+    _assert_reports_failure(manifest)
 
 
 def test_homebrew_ships_cask_listener_when_executable(
     render: Callable[..., Path],
 ) -> None:
     # Executable toggle flips the homebrew bundle to the cask listener.
-    tap = (
-        render(preset="tool", include_homebrew=True, include_freezer=True)
-        / "docs"
-        / "packaging"
-        / "homebrew-tap"
-    )
-    assert (tap / "update-cask-dispatch.yml").is_file()
+    root = render(preset="tool", include_homebrew=True, include_freezer=True)
+    tap = root / "docs" / "packaging" / "homebrew-tap"
+    cask = tap / "update-cask-dispatch.yml"
+    assert cask.is_file()
     assert not (tap / "update-formula-dispatch.yml").exists()
-    # The cask/formula listeners each carry a failure-report step (issues: write).
-    cask = yaml.safe_load((tap / "update-cask-dispatch.yml").read_text(encoding="utf-8"))
-    assert cask["jobs"]["update"]["permissions"]["issues"] == "write"
-    step_names = {step.get("name") for step in cask["jobs"]["update"]["steps"]}
-    assert "Report failure" in step_names
+    _assert_reports_failure(cask)
 
 
 # --- ghalint (reverted to web-only) ------------------------------------------

@@ -119,9 +119,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue create \
-            --title "Manifest bump failed: ${PACKAGE:-<unknown>} ${VERSION}" \
-            --label "automated,dependencies" \
-            --body "$(printf 'Automated manifest bump triggered by a release dispatch failed.\n\n- Package: %s\n- Version: %s\n- Run: %s\n\nThe weekly update-manifests.yml cron will retry; investigate if it keeps failing.' "${PACKAGE:-<unknown>}" "${VERSION:-<from checkver>}" "$RUN_URL")" \
-            || echo "::warning::could not open failure issue (labels may not exist yet)"
+          title="Manifest bump failed: ${PACKAGE:-<unknown>} ${VERSION}"
+          body="$(printf 'Automated manifest bump triggered by a release dispatch failed.\n\n- Package: %s\n- Version: %s\n- Run: %s\n\nThe weekly update-manifests.yml cron will retry; investigate if it keeps failing.' "${PACKAGE:-<unknown>}" "${VERSION:-<from checkver>}" "$RUN_URL")"
+          # `gh issue create --label` fails if the label does not exist yet, so
+          # retry without labels before giving up — a labelless issue still
+          # notifies. A fresh bucket has neither label until they are provisioned.
+          gh issue create --title "$title" --label "automated,dependencies" --body "$body" \
+            || gh issue create --title "$title" --body "$body" \
+            || echo "::warning::could not open failure issue"
 {% endraw %}

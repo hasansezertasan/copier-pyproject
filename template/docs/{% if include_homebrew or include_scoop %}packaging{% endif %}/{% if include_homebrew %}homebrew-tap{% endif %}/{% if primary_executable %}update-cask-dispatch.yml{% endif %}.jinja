@@ -149,9 +149,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue create \
-            --title "Cask bump failed: ${CASK:-<unknown>} ${VERSION}" \
-            --label "automated,cask-bump-failure" \
-            --body "$(printf 'Automated cask bump triggered by a release dispatch failed.\n\n- Cask: %s\n- Version: %s\n- Run: %s\n\nInvestigate if it keeps failing.' "${CASK:-<unknown>}" "${VERSION:-<from livecheck>}" "$RUN_URL")" \
-            || echo "::warning::could not open failure issue (labels may not exist yet)"
+          title="Cask bump failed: ${CASK:-<unknown>} ${VERSION}"
+          body="$(printf 'Automated cask bump triggered by a release dispatch failed.\n\n- Cask: %s\n- Version: %s\n- Run: %s\n\nInvestigate if it keeps failing.' "${CASK:-<unknown>}" "${VERSION:-<from livecheck>}" "$RUN_URL")"
+          # `gh issue create --label` fails if the label does not exist yet, so
+          # retry without labels before giving up — a labelless issue still
+          # notifies. A fresh tap has neither label until they are provisioned.
+          gh issue create --title "$title" --label "automated,cask-bump-failure" --body "$body" \
+            || gh issue create --title "$title" --body "$body" \
+            || echo "::warning::could not open failure issue"
 {% endraw %}
