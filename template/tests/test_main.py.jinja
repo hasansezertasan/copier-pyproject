@@ -21,8 +21,9 @@ def test_main_is_callable() -> None:
     main_module = importlib.import_module("{{github_repo_name}}.__main__")
 
     assert callable(main_module.main)
-{%- if include_cli %}
-    # CLI dispatch wires the Typer ``app`` into __main__; assert it resolved.
+{%- if include_console_root %}
+    # The Typer root (CLI or shared launcher) wires ``app`` into __main__; assert
+    # it resolved.
     assert hasattr(main_module, "app")
 {%- elif include_gui or include_tui or include_web or include_mcp or include_worker %}
     # Every non-CLI component is dispatched through an imported ``_entry``

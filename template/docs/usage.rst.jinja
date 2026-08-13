@@ -30,7 +30,7 @@ To run the {{web_framework}} web application:
 
 .. code-block:: sh
 
-   {{github_repo_name}}{% if primary_component != 'web' %}-web{% endif %}
+   {{github_repo_name}}{% if primary_component != 'web' %} web{% endif %}
 {%- endif %}
 {%- if include_gui %}
 
@@ -41,7 +41,7 @@ To launch the GUI application:
 
 .. code-block:: sh
 
-   {{github_repo_name}}{% if primary_component != 'gui' %}-gui{% endif %}
+   {{github_repo_name}}{% if primary_component != 'gui' %} gui{% endif %}
 {%- endif %}
 {%- if include_tui %}
 
@@ -52,7 +52,7 @@ To launch the terminal user interface:
 
 .. code-block:: sh
 
-   {{github_repo_name}}{% if primary_component != 'tui' %}-tui{% endif %}
+   {{github_repo_name}}{% if primary_component != 'tui' %} interactive{% endif %}
 {%- endif %}
 {%- if include_mcp %}
 
@@ -63,7 +63,7 @@ To run the Model Context Protocol server:
 
 .. code-block:: sh
 
-   {{github_repo_name}}{% if primary_component != 'mcp' %}-mcp{% endif %}
+   {{github_repo_name}}{% if primary_component != 'mcp' %} mcp{% endif %}
 {%- endif %}
 {%- if include_worker %}
 
@@ -74,5 +74,5 @@ To run the {{worker_broker}} worker:
 
 .. code-block:: sh
 
-   {{github_repo_name}}{% if primary_component != 'worker' %}-worker{% endif %}
+   {{github_repo_name}}{% if primary_component != 'worker' %} worker{% endif %}
 {%- endif %}

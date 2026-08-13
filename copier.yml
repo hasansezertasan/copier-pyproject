@@ -241,15 +241,28 @@ include_vpn:
 # ── Computed helpers (never asked or stored) ─────────────────────────────────
 # Single source of truth for the console-script wiring rule. The highest-
 # precedence enabled runnable component (CLI > GUI > TUI > web > MCP > worker) is
-# the "primary": it owns the bare ``{{github_repo_name}}`` command; every other
-# enabled component keeps a ``{{github_repo_name}}-<name>`` command. Templates
-# (pyproject, docs, launch.json, tox) derive both the primary and each command's
-# suffix from these, so the precedence order lives here and nowhere else — a
-# component X is suffixed exactly when ``primary_component != "X"``.
+# the "primary": it owns the bare ``{{github_repo_name}}`` command. Every other
+# enabled component is exposed as a *subcommand* of the ``{{github_repo_name}}``
+# Typer root (``{{github_repo_name}} <name>``), not a separate ``-<name>``
+# console script (see ADR-019). Templates (pyproject, docs, launch.json, tox)
+# derive both the primary and each subcommand from these, so the precedence order
+# lives here and nowhere else — a component X is a subcommand exactly when
+# ``primary_component != "X"``.
 primary_component:
   type: str
   when: false
   default: "{% if include_cli %}cli{% elif include_gui %}gui{% elif include_tui %}tui{% elif include_web %}web{% elif include_mcp %}mcp{% elif include_worker %}worker{% endif %}"
+# True when the project has a ``{{github_repo_name}}`` Typer root that hosts the
+# component subcommands: whenever the CLI is enabled (CLI is always the primary),
+# or — with no CLI — whenever ≥2 runnable components need a shared launcher. A
+# single-component non-CLI app has no root (bare ``{{github_repo_name}}`` launches
+# that component directly) and never pulls in ``typer``. Consumed by the ``cli``
+# package/test guards, the ``typer`` dependency, the import-linter ``cli`` layer,
+# and ``__main__.py``. See ADR-019.
+include_console_root:
+  type: bool
+  when: false
+  default: "{{ include_cli or ([include_gui, include_tui, include_web, include_mcp, include_worker] | select | list | length >= 2) }}"
 # Single source of truth for which prebuilt binary the brew/scoop packaging
 # references when several executable toggles are enabled. Precedence
 # freezer > compiler > launcher (freezer/compiler are self-contained; launcher

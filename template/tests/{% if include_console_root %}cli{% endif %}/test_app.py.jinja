@@ -1,9 +1,11 @@
-"""Test cases for the Typer CLI application commands."""
+"""Test cases for the {{github_repo_name}} Typer root."""
 
 from __future__ import annotations
 
+{% if include_cli -%}
 import importlib
 from importlib.metadata import Distribution, PackageNotFoundError
+{% endif -%}
 from typing import TYPE_CHECKING
 
 import pytest
@@ -13,6 +15,8 @@ from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
     from typer.testing import Result
+{%- if include_cli %}
+
 
 # The cli ``__init__`` re-exports the Typer ``app`` object, which shadows the
 # ``app`` submodule on any attribute-based import (``from ... import app``,
@@ -27,6 +31,7 @@ class _MissingDistribution:
     @staticmethod
     def from_name(name: str) -> Distribution:
         raise PackageNotFoundError(name)
+{%- endif %}
 
 
 @pytest.fixture
@@ -35,60 +40,55 @@ def runner() -> CliRunner:
     return CliRunner()
 
 
+{% set subcommands = [] -%}
+{%- if include_tui and primary_component != 'tui' %}{% set _ = subcommands.append("interactive") %}{% endif -%}
+{%- if include_gui and primary_component != 'gui' %}{% set _ = subcommands.append("gui") %}{% endif -%}
+{%- if include_web and primary_component != 'web' %}{% set _ = subcommands.append("web") %}{% endif -%}
+{%- if include_mcp and primary_component != 'mcp' %}{% set _ = subcommands.append("mcp") %}{% endif -%}
+{%- if include_worker and primary_component != 'worker' %}{% set _ = subcommands.append("worker") %}{% endif -%}
+def test_help_exits_cleanly(runner: CliRunner) -> None:
+    """``--help`` renders the root usage and exits 0.
+
+    Given:
+        - The {{github_repo_name}} Typer root.
+    When:
+        - ``--help`` is requested.
+    Then:
+        - The command exits 0{% if subcommands %} and every enabled component
+          subcommand is advertised in the help output{% endif %}.
+    """
+    result: Result = runner.invoke(app, ["--help"])
+
+    assert result.exit_code == 0, result.output
+{%- for name in subcommands %}
+    assert "{{ name }}" in result.output
+{%- endfor %}
+{%- if include_cli %}
+
+
 def test_version(runner: CliRunner) -> None:
-    """Test the `version` command of the CLI application.
+    """The `version` command runs successfully and prints the version.
 
-    This test checks if the `version` command runs without any errors.
-
-    Scenario:
-        - Run the `version` command of the CLI application.
-
-    Expected Result:
-        - The command should execute successfully and return the application version.
     Given:
         - The application is set up with a `version` command.
     When:
         - The `version` command is invoked using the CLI runner.
     Then:
-        - The command should exit with code 0, indicating success.
-        - The output should contain the application version information.
-    And:
-        - If the command fails, the test should fail with the output message.
-
-    Note:
-        - This test does not check the actual version number,
-        only that the command runs successfully.
-
+        - The command exits 0 and the output contains the version.
     """
     result: Result = runner.invoke(app, ["version"])
     assert result.exit_code == 0, result.output
 
 
 def test_info(runner: CliRunner) -> None:
-    """Test the `info` command of the CLI application.
+    """The `info` command runs successfully and prints application information.
 
-    This test checks if the `info` command runs without any errors.
-
-    Scenario:
-        - Run the `info` command of the CLI application.
-
-    Expected Result:
-        - The command should execute successfully and return the application
-        information.
     Given:
         - The application is set up with an `info` command.
     When:
         - The `info` command is invoked using the CLI runner.
     Then:
-        - The command should exit with code 0, indicating success.
-        - The output should contain the application information.
-    And:
-        - If the command fails, the test should fail with the output message.
-
-    Note:
-        - This test does not check the actual information content,
-        only that the command runs successfully.
-
+        - The command exits 0 and the output contains the application info.
     """
     result: Result = runner.invoke(app, ["info"])
     assert result.exit_code == 0, result.output
@@ -113,3 +113,4 @@ def test_command_fails_loudly_when_metadata_missing(
     result: Result = runner.invoke(app, [command])
 
     assert result.exit_code == 1
+{%- endif %}
