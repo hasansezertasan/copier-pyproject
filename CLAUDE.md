@@ -65,8 +65,9 @@ uv run --locked tox run -e integration
 uv run --locked example version
 uv run --locked example info
 
-# Run the FastAPI/Litestar web app in dev mode (if include_web=true)
-uv run --locked fastapi dev example.web.app:app
+# Run the web app in dev mode (if include_web=true). Framework-specific:
+uv run --locked fastapi dev example.web.app:app                 # web_framework=fastapi
+uv run --locked litestar --app=example.web.app:app run          # web_framework=litestar
 
 # Non-primary components are subcommands of the `example` root (ADR-019); the
 # *primary* component is launched by bare `example`. The forms below assume each
@@ -450,7 +451,10 @@ Subpackages (each with `__init__.py` and `app.py`):
   - `logging_setup.py` - Centralized logging
   - `config.py` - Configuration (uses pydantic-settings if enabled)
 - `utils/` - Utility functions (always included)
-- `cli/` - Typer CLI with `version` and `info` commands (conditional)
+- `cli/` - the `pkg` Typer root (present when `include_console_root`). With
+  `include_cli` it is the full CLI (`version`/`info` commands + component
+  subcommands); without `include_cli` it is a minimal launcher (component
+  subcommands + a default callback, no `version`/`info`)
 - `web/` - FastAPI/Litestar with `/version` and `/info` endpoints (conditional)
 - `gui/` - Tkinter GUI launcher (conditional)
 - `tui/` - Textual TUI (conditional)
@@ -504,11 +508,13 @@ package/test-dir guards, the `typer` core dependency, the import-linter `cli`
 layer, and the `__main__.py` branch.
 
 - `project.scripts`: bare `pkg = "pkg.__main__:main"` when the primary is a
-  console component (i.e. not GUI). No `pkg-<name>` entries are emitted.
+  console component **or** when a GUI primary shares a console root with other
+  components (so the `pkg <name>` subcommands keep a real terminal on Windows).
+  No `pkg-<name>` entries are emitted.
 - `project.gui-scripts`: `pkg = "pkg.__main__:main"` **only when GUI is the
-  primary** (windowless launcher, no console window on Windows); there is never a
-  bare-name collision across the two tables. A non-primary GUI is reached via the
-  `pkg gui` subcommand, not a `pkg-gui` gui-script.
+  sole runnable component** (windowless launcher, no console window on Windows);
+  there is never a bare-name collision across the two tables. A non-primary GUI
+  is reached via the `pkg gui` subcommand, not a `pkg-gui` gui-script.
 
 ### Devcontainer Structure
 

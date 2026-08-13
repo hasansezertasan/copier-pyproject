@@ -36,8 +36,11 @@ lazily-imported subcommand — `<pkg> interactive` (TUI), `<pkg> gui`, `<pkg> we
 `<pkg> mcp`, `<pkg> worker` — and **no** `<pkg>-<name>` console script is
 emitted. The primary keeps the bare `<pkg>` command (wired to `__main__:main`,
 the entry point standalone builds also target). The windowless `<pkg>-gui`
-gui-script is dropped; GUI uses `[project.gui-scripts]` only when it is itself
-the primary.
+gui-script is dropped; GUI uses `[project.gui-scripts]` only when it is the
+**sole** runnable component. When a GUI primary shares a Typer root with other
+components (`include_console_root`), the root is a normal `[project.scripts]`
+console entry instead — otherwise the windowless launcher would swallow the
+console I/O and `--help` of the `<pkg> <name>` subcommands on Windows.
 
 ### A root exists only where it buys something (`include_console_root`)
 
@@ -45,7 +48,7 @@ The Typer root lives in the `cli/` package. A root is generated whenever — and
 only whenever — it is useful, captured by one hidden computed variable in
 `copier.yml` (`when: false`):
 
-```
+```text
 include_console_root = include_cli or (≥2 of gui/tui/web/mcp/worker enabled)
 ```
 

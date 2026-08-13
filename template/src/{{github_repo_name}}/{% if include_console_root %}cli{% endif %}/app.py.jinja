@@ -50,12 +50,17 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
 
     Runs when ``{{github_repo_name}}`` is invoked with no subcommand; a named
     subcommand always takes precedence.
+{%- if primary_component in ["gui", "tui"] %}
+
+    Raises:
+        typer.Exit: Propagating the primary component's exit code.
+{%- endif %}
     """
     if ctx.invoked_subcommand is not None:
         return
     from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
-    {{ "_ = main()" if primary_component in ["gui", "tui"] else "main()" }}
+    {{ "raise typer.Exit(code=main())" if primary_component in ["gui", "tui"] else "main()" }}
 {%- endif %}
 {%- if include_cli %}
 
@@ -128,10 +133,13 @@ def interactive() -> None:  # pragma: no cover
 
     Launch the terminal user interface:
         {{github_repo_name}} interactive
+
+    Raises:
+        typer.Exit: Propagating the TUI's exit code.
     """
     from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
-    _ = main()
+    raise typer.Exit(code=main())
 {%- endif %}
 {%- if include_gui and primary_component != 'gui' %}
 
@@ -142,10 +150,13 @@ def gui() -> None:  # pragma: no cover
 
     Launch the GUI:
         {{github_repo_name}} gui
+
+    Raises:
+        typer.Exit: Propagating the GUI's exit code.
     """
     from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
-    _ = main()
+    raise typer.Exit(code=main())
 {%- endif %}
 {%- if include_web and primary_component != 'web' %}
 

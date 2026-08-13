@@ -100,16 +100,17 @@ def test_console_component_only_gets_bare_command(
     assert set(project.get("optional-dependencies", {})) == {"all"}
 
 
-def test_gui_primary_with_secondaries_no_collision(
+def test_gui_primary_with_secondaries_uses_console_root(
     render: Callable[..., Path],
 ) -> None:
-    # GUI primary (CLI off) + secondaries: the bare name lands in gui-scripts
-    # (windowless launcher) and tui/web are subcommands of the shared console
-    # root, so no `<pkg>-<name>` scripts are emitted at all.
+    # GUI primary (CLI off) sharing a Typer root with tui/web secondaries: the
+    # bare name must land in [project.scripts] (a CONSOLE launcher), NOT the
+    # windowless gui-scripts table, so the `<pkg> interactive`/`<pkg> web`
+    # subcommands keep a real terminal on Windows.
     root = _render_only(render, "gui", "tui", "web")
     project = _pyproject(root)
-    assert project["gui-scripts"] == {PKG: f"{PKG}.__main__:main"}
-    assert "scripts" not in project
+    assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert "gui-scripts" not in project
     src = _cli_source(root)
     assert "def interactive()" in src
     assert "def web()" in src

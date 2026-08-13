@@ -158,14 +158,18 @@ source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
     entrypoint that standalone builds also target). Every *other* enabled
     component is reached as a subcommand of the ``{{github_repo_name}}`` Typer
     root (``{{github_repo_name}} <name>`` — see ADR-019 and ``cli/app.py``), so
-    no ``{{github_repo_name}}-<name>`` scripts are emitted. GUI uses
-    ``[project.gui-scripts]`` so, when it is the primary, it starts without a
-    console window on Windows. The precedence order itself lives in
-    ``copier.yml``'s ``primary_component`` (empty for a library). #}
+    no ``{{github_repo_name}}-<name>`` scripts are emitted. A GUI that is the
+    *sole* runnable component uses ``[project.gui-scripts]`` so it starts without
+    a console window on Windows; but once GUI shares a Typer root with other
+    components (``include_console_root``), the root is a **console** script so the
+    ``{{github_repo_name}} <name>`` subcommands (and ``--help``) keep a real
+    terminal — a windowless launcher would swallow their I/O on Windows. The
+    precedence order itself lives in ``copier.yml``'s ``primary_component``
+    (empty for a library). #}
 {%- set _primary = primary_component or none %}
 {%- set _console = [] %}
 {%- set _gui = [] %}
-{%- if _primary == "gui" %}{% set _ = _gui.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}
+{%- if _primary == "gui" and not include_console_root %}{% set _ = _gui.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}
 {%- elif _primary %}{% set _ = _console.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}{% endif %}
 {% if _console %}
 [project.scripts]
