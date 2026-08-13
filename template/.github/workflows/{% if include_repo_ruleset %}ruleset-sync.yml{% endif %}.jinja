@@ -51,8 +51,8 @@ jobs:
           for file in .github/rulesets/*.json; do
             name="$(jq -r '.name' "$file")"
             echo "Syncing ruleset '$name' from $file"
-            id="$(gh api --paginate "repos/$REPO/rulesets" \
-              --jq ".[] | select(.name == \"$name\") | .id" | head -n1)"
+            id="$(NAME="$name" gh api --paginate "repos/$REPO/rulesets" \
+              --jq '.[] | select(.name == env.NAME) | .id' | head -n1)"
             if [ -n "$id" ]; then
               echo "Updating existing ruleset #$id"
               gh api --method PUT "repos/$REPO/rulesets/$id" --input "$file" > /dev/null
