@@ -86,7 +86,13 @@ Copier will prompt for:
 
 The `copier copy` flow above is for **new** projects. Adopting this template into an **existing or already-published** package is a different job: `copier copy` overwrites source, config, docs, and CI, so it must be run as a migrate-and-reconcile rather than a scaffold.
 
-This repository therefore doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) **plugin** that ships an `adopt-copier-pyproject` skill capturing that procedure — the source-skeleton collision, ruff auto-fix source corruption, the release-please/hatch-vcs version clash, the `copier update` 3-way-merge flow, and the placeholder prose the template plants in issue templates and docs. Plugin metadata lives in [`.claude-plugin/`](.claude-plugin) and the skill in [`skills/adopt-copier-pyproject/SKILL.md`](skills/adopt-copier-pyproject/SKILL.md).
+This repository therefore doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) **plugin** (`copier-pyproject`) that ships three skills covering the template's lifecycle:
+
+- [`copier-pyproject:adopt`](skills/adopt/SKILL.md) — **first-time adoption** into an existing package: the source-skeleton collision, ruff auto-fix source corruption, the release-please/hatch-vcs version clash, and the placeholder prose the template plants in issue templates and docs.
+- [`copier-pyproject:update`](skills/update/SKILL.md) — **pulling later template changes**: the `copier update` 3-way-merge flow, reviewing Renovate copier-update PRs, and approving newly-added template questions with a human in the loop.
+- [`copier-pyproject:setup`](skills/setup/SKILL.md) — **one-time repository wiring**: trusted publishing, branch protection, required checks, secrets, and App installs.
+
+Plugin metadata lives in [`.claude-plugin/`](.claude-plugin).
 
 ### For humans
 
@@ -101,7 +107,7 @@ Then, in a Claude Code session opened **inside the package you are adopting the 
 
 ### For agents
 
-Once the plugin is installed the skill is auto-discovered; no explicit invocation is needed. It triggers on its own whenever a task matches its description: adopting `hasansezertasan/copier-pyproject` into an existing package, or reconciling a `copier update` that overwrote source/config. Working directly from a clone (without installing the plugin), an agent can read [`skills/adopt-copier-pyproject/SKILL.md`](skills/adopt-copier-pyproject/SKILL.md) and follow it as a checklist.
+Once the plugin is installed the skills are auto-discovered; no explicit invocation is needed. Each triggers on its own whenever a task matches its description: adopting `hasansezertasan/copier-pyproject` into an existing package (`adopt`), reconciling a `copier update` or a Renovate copier-update PR (`update`), or wiring up releases and repository settings (`setup`). Working directly from a clone (without installing the plugin), an agent can read the relevant `SKILL.md` under [`skills/`](skills) and follow it as a checklist.
 
 > [!NOTE]
 > For a brand-new project, ignore the plugin and use [Scaffold a project](#scaffold-a-project) above — the skill is only for adopting the template into code that already exists.

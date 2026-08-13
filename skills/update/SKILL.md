@@ -100,12 +100,18 @@ TODOs: **do not batch-accept.** For each new or changed answer:
      workflow). Planted TODOs sit on the *after* side — drop them, keep your content.
    Then `git add -A`; `git grep -nE '^(<<<<<<<|>>>>>>>) '` must be empty.
 
-2. **Restore project-owned files the update reset:**
+2. **Restore project-owned files the update reset — from the BASE branch, not the
+   index.** Restore the source matters here: in **Mode A** (Renovate PR) the
+   checked-out branch already has the deletion/reset *committed*, so a plain
+   `git checkout -- CHANGELOG.md` restores the **deleted** state from the index (or
+   fails with a pathspec error) — it cannot bring the file back. Restore from the
+   base branch (`origin/main`), which carries the real values in **both** modes:
    ```bash
-   git checkout -- CHANGELOG.md
-   # set the manifest to your ACTUAL current released version, not 0.0.0
-   $EDITOR .github/release-please-manifest.json
+   git checkout origin/main -- CHANGELOG.md
+   git checkout origin/main -- .github/release-please-manifest.json
    ```
+   Then confirm the manifest holds your **actual current released version** (not
+   `0.0.0`) — if `origin/main` itself is stale, set it by hand.
 
 3. **Re-run the gates the update can trip:**
    - **ruff** — the template ships `fix=true`+`unsafe-fixes`+`select=ALL`; run
@@ -140,7 +146,7 @@ a fresh, usually-tiny merge, committed separately.
 |---|--------|-----|
 | 1 | Renovate copier PR looks mergeable but carries `<<<<<<<` / `.rej` (renovate#31600) | Scan on checkout; reconcile before merging |
 | 2 | New template question silently takes its default under `--defaults` → enables a dependency | Diff `.copier-answers.yml`; approve each new answer with the maintainer; defend zero-dep invariants |
-| 3 | `copier update` deletes `CHANGELOG.md` and resets the release-please manifest to `0.0.0` | `git checkout -- CHANGELOG.md`; set manifest to real released version |
+| 3 | `copier update` deletes `CHANGELOG.md` and resets the release-please manifest to `0.0.0` | Restore from the **base** branch (`git checkout origin/main -- CHANGELOG.md` / manifest) — in Renovate-PR mode `git checkout -- <file>` restores the *deleted* index state or errors; set manifest to real released version |
 | 4 | ruff `fix=true`+`unsafe-fixes`+`select=ALL` rewrites `src/**` on first contact | `ruff check --diff` / `per-file-ignores` before any fix |
 | 5 | `prek.toml`/`pyproject.toml` arrive un-taplo-formatted → `style` env fails, cascading into every matrix job | `taplo format prek.toml pyproject.toml`; re-run `tox -e style` |
 | 6 | A dropped `exclude_patterns` in `docs/conf.py` publishes internal specs to Pages | Re-add custom `exclude_patterns`; diff `docs/conf.py` |
