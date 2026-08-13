@@ -40,7 +40,7 @@ a new tag. The PR looks routine but has a specific hazard:
    PR can look green/mergeable while carrying `<<<<<<<` markers or `.rej` files.
    ```bash
    gh pr checkout <N>
-   git grep -nE '^(<<<<<<<|=======|>>>>>>>) ' ; find . -name '*.rej' -not -path './.git/*'
+   git grep -nE '^(<<<<<<<|>>>>>>>)' ; find . -name '*.rej' -not -path './.git/*'
    ```
    If either is non-empty, the PR is **not** mergeable as-is — reconcile below.
 
@@ -98,7 +98,9 @@ TODOs: **do not batch-accept.** For each new or changed answer:
      content, issue-template examples) → keep **before**, but **graft in genuinely
      new template capabilities** (a new managed-`.gitignore`/cobo bullet, a new
      workflow). Planted TODOs sit on the *after* side — drop them, keep your content.
-   Then `git add -A`; `git grep -nE '^(<<<<<<<|>>>>>>>) '` must be empty.
+   Then `git add -A`; `git grep -nE '^(<<<<<<<|>>>>>>>)'` must be empty (the two
+   7-char markers are unambiguous; `=======` is omitted — it false-matches markdown/
+   RST heading underlines).
 
 2. **Restore project-owned files the update reset — from the BASE branch, not the
    index.** Restore the source matters here: in **Mode A** (Renovate PR) the
