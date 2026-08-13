@@ -259,6 +259,19 @@ Optional components (all boolean):
   here — they stay App-free in `labels.yml`/`label-sync.yml`. The "Include in the
   home page" sidebar toggles are not settable via any API (UI-only). See
   [ADR-018](docs/adr/018-repository-settings-as-code.md).
+- `include_repo_ruleset` - repository branch protection as code: a
+  `.github/rulesets/main.json` (squash-only, linear history, required CI checks —
+  the actual job names this template ships, Trivy gated on `include_web`) applied
+  by an App-free, idempotent `ruleset-sync.yml` workflow (list → find by name →
+  PUT/POST), `default: false` and `full`-preset only. Opt-in and independent of
+  `include_repo_settings` (the "Settings" App cannot manage rulesets). The
+  workflow needs a `REPO_ADMIN_TOKEN` fine-grained PAT (Administration: read &
+  write) — the Actions `GITHUB_TOKEN` has no `administration` scope — and
+  warn-and-skips when the secret is absent (ADR-017 posture).
+  `required_approving_review_count` is 0 (checks strictly enforced, no
+  human-approval requirement, no `bypass_actors`) so solo maintainers and
+  release-please/Renovate are not blocked. See
+  [ADR-021](docs/adr/021-repository-ruleset-as-code.md).
 
 Framework/broker choices (when parent option is enabled):
 
