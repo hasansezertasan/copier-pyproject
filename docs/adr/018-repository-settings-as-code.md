@@ -47,7 +47,10 @@ does not install the App. Labels stay with the existing App-free actions.
 
 **Branch protection and collaborators are excluded**: branch protection would
 duplicate/conflict with the required-status-checks setup CONTRIBUTING already
-documents, and collaborators are per-project.
+documents, and collaborators are per-project. Branch protection is now available
+opt-in as a Rulesets sync workflow — see
+[ADR-021](021-repository-ruleset-as-code.md) — which supersedes this exclusion;
+collaborators remain out of scope.
 
 ## Consequences
 
