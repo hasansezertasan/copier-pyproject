@@ -102,7 +102,16 @@ preset_map:
 include_cli:
   type: bool
   default: "{{ 'include_cli' in preset_map[preset] }}"
-  help: "Include CLI (Command Line Interface) using Typer?"
+  help: "Include CLI (Command Line Interface)?"
+cli_framework:
+  type: str
+  default: typer
+  choices:
+    - typer
+    - argparse
+  when: "{{ include_cli }}"
+  help: >-
+    Choose the CLI framework. ``typer`` adds a runtime dependency and rich ergonomics; ``argparse`` is standard-library only (no extra dependency) for a lean command root that still exposes the same ``version``/``info`` commands and component subcommands.
 include_web:
   type: bool
   default: "{{ 'include_web' in preset_map[preset] }}"
