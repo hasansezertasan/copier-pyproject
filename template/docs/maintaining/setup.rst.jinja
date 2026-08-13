@@ -43,8 +43,8 @@ reads. Also delete head branches on merge to keep the branch list clean.
 .. code-block:: sh
 
    gh repo view {{github_user}}/{{github_repo_name}} \
-     --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed,deleteBranchOnMerge,squashMergeCommitMessage \
-     --jq '.squashMergeAllowed and (.mergeCommitAllowed | not) and (.rebaseMergeAllowed | not) and .deleteBranchOnMerge and (.squashMergeCommitMessage == "PR_TITLE")' | grep -qx true
+     --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed,autoMergeAllowed,deleteBranchOnMerge,squashMergeCommitMessage \
+     --jq '.squashMergeAllowed and (.mergeCommitAllowed | not) and (.rebaseMergeAllowed | not) and (.autoMergeAllowed | not) and .deleteBranchOnMerge and (.squashMergeCommitMessage == "PR_TITLE")' | grep -qx true
 
 UI equivalent: **Settings → General → Pull Requests** — enable **Allow squash
 merging**, disable merge commits and rebase merging, set the squash **"Default
@@ -77,16 +77,18 @@ or run it directly):
 
    gh workflow run ruleset-sync.yml --repo {{github_user}}/{{github_repo_name}}
 
-**[CHECK]** The ``REPO_ADMIN_TOKEN`` secret is present (minting it is the only
-non-scriptable part; the ``ruleset-sync.yml`` workflow applies the ruleset once
-it exists):
+**[CHECK]** The ``Protect main`` ruleset is applied and active — verifying the
+end state (not just that the ``REPO_ADMIN_TOKEN`` secret exists), so a repo where
+``ruleset-sync.yml`` has not yet run, failed, or had its ruleset deleted is
+correctly reported as not-done:
 
 .. code-block:: sh
 
-   gh secret list --repo {{github_user}}/{{github_repo_name}} | grep -q '^REPO_ADMIN_TOKEN'
+   gh api repos/{{github_user}}/{{github_repo_name}}/rulesets \
+     --jq 'any(.[]; .name == "Protect main" and .enforcement == "active")' | grep -qx true
 
-Until the secret is set the workflow logs a notice and exits without error, so
-the repository is never blocked.
+Until the ``REPO_ADMIN_TOKEN`` secret is set the workflow logs a notice and exits
+without error, so the repository is never blocked.
 {% else %}
 Protect ``main`` so a PR can only merge once its checks pass. Mark these check
 contexts as required (the names are the **check runs**, not the workflow files):
@@ -123,7 +125,7 @@ contexts as required (the names are the **check runs**, not the workflow files):
 .. code-block:: sh
 
    gh api repos/{{github_user}}/{{github_repo_name}}/branches/main/protection \
-     --jq '(["Validate PR title","Validate branch name","Verify linked issue","Task Completed Checker"] - [.required_status_checks.contexts[]]) == []' | grep -qx true
+     --jq '(.required_status_checks.strict == true) and ((["Validate PR title","Validate branch name","Verify linked issue","Task Completed Checker"] - (.required_status_checks.contexts // [])) == [])' | grep -qx true
 
 UI equivalent: **Settings → Branches → Add branch ruleset** (or **Add rule** for
 ``main``) — enable **Require status checks to pass before merging**, then search
@@ -148,7 +150,8 @@ request, so the repo must allow Actions to create and approve pull requests.
 
 .. code-block:: sh
 
-   [ "$(gh api repos/{{github_user}}/{{github_repo_name}}/actions/permissions/workflow --jq '.can_approve_pull_request_reviews')" = "true" ]
+   gh api repos/{{github_user}}/{{github_repo_name}}/actions/permissions/workflow \
+     --jq '.can_approve_pull_request_reviews == true and .default_workflow_permissions == "read"' | grep -qx true
 
 UI equivalent: **Settings → Actions → General → Workflow permissions** — enable
 **Allow GitHub Actions to create and approve pull requests**.
@@ -208,8 +211,10 @@ dashboard.
 
 .. code-block:: sh
 
-   [ "$(gh repo view {{github_user}}/{{github_repo_name}} --json isPrivate --jq '.isPrivate')" = "false" ] \
-     || gh secret list --repo {{github_user}}/{{github_repo_name}} | grep -q '^CODECOV_TOKEN'
+   priv="$(gh repo view {{github_user}}/{{github_repo_name}} --json isPrivate --jq '.isPrivate')" || exit 1
+   [ -n "$priv" ] || exit 1
+   [ "$priv" = "false" ] \
+     || gh secret list --repo {{github_user}}/{{github_repo_name}} --json name --jq '.[].name' | grep -qx CODECOV_TOKEN
 
 The upload is best-effort either way: on a private repo with no token CI records
 a ``::notice::`` and skips the upload — the build still passes — rather than
@@ -234,10 +239,13 @@ by the first release that runs ``deploy-docs``, so enable Pages once after that.
 
 .. code-block:: sh
 
-   gh api repos/{{github_user}}/{{github_repo_name}}/pages --jq '.html_url' >/dev/null 2>&1
+   gh api repos/{{github_user}}/{{github_repo_name}}/pages \
+     --jq '.source.branch == "gh-pages" and .source.path == "/"' | grep -qx true
 
 This check stays red until the first release runs ``deploy-docs`` and creates the
-``gh-pages`` branch; run it after that first release.
+``gh-pages`` branch; run it after that first release. It asserts Pages serves
+``gh-pages:/`` specifically, so a site already enabled from another source (e.g.
+``main``) is correctly reported as not-yet-serving the release docs.
 
 UI equivalent: **Settings → Pages → Build and deployment** — set **Source** to
 **Deploy from a branch**, then pick the ``gh-pages`` branch and the ``/ (root)``
@@ -348,8 +356,8 @@ follows the Docker Hub account — it does not need to match the GitHub owner.
 
 .. code-block:: sh
 
-   gh secret list --repo {{github_user}}/{{github_repo_name}} | grep -q '^DOCKERHUB_USERNAME' \
-     && gh secret list --repo {{github_user}}/{{github_repo_name}} | grep -q '^DOCKERHUB_TOKEN'
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq '(["DOCKERHUB_USERNAME","DOCKERHUB_TOKEN"] - [.[].name]) == []' | grep -qx true
 {%- endif %}
 {%- if include_homebrew %}
 Homebrew tap
@@ -383,7 +391,8 @@ opens its own PR with its own ``GITHUB_TOKEN``).
 
 .. code-block:: sh
 
-   gh secret list --repo {{github_user}}/{{github_repo_name}} | grep -q '^HOMEBREW_TAP_TOKEN'
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq 'any(.[]; .name == "HOMEBREW_TAP_TOKEN")' | grep -qx true
 
 When unset, the ``bump-homebrew`` job skips with a notice (never fails the
 release).
@@ -419,7 +428,8 @@ opens its own PR with its own ``GITHUB_TOKEN``).
 
 .. code-block:: sh
 
-   gh secret list --repo {{github_user}}/{{github_repo_name}} | grep -q '^SCOOP_BUCKET_TOKEN'
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq 'any(.[]; .name == "SCOOP_BUCKET_TOKEN")' | grep -qx true
 
 When unset, the ``bump-scoop`` job skips with a notice (never fails the release).
 {%- endif %}
@@ -444,7 +454,8 @@ value in ``sonar-project.properties``), then generate a token.
 
 .. code-block:: sh
 
-   gh secret list --repo {{github_user}}/{{github_repo_name}} | grep -q '^SONAR_TOKEN'
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq 'any(.[]; .name == "SONAR_TOKEN")' | grep -qx true
 
 Like the Codecov upload, the scan is opt-in and non-blocking: with the secret
 unset, CI records a ``::notice::`` and skips it, and fork PRs are skipped

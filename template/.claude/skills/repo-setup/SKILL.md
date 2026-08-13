@@ -29,41 +29,62 @@ The commands there are already interpolated with this project's owner and repo
 and gated to this project's Copier answers, so read and run exactly what ships —
 never reconstruct commands from memory.
 
+## Step classes
+
+Before walking, classify each step by where it sits in the doc — this decides
+what a red `[CHECK]` means. **Never stop the walk before reaching the end;**
+collect blockers and report them together.
+
+- **Required** — everything above the `Optional integrations` heading, *except*
+  the two deferred steps below. A red check here must be resolved for the project
+  to work.
+- **Deferred** — **GitHub Pages** and the PR doc previews. They depend on the
+  `gh-pages` branch, which the first release's `deploy-docs` job creates, so
+  their `[CHECK]` is expected red on a fresh repo. **Never** run their `[AGENT]`
+  command or stop on them before the first release — record them as "deferred"
+  and continue.
+- **Optional** — everything under the `Optional integrations` heading. A red
+  check means "not configured", which is a fine end state.
+
 ## Resume protocol
-
-Read `docs/maintaining/setup.rst` top to bottom (its order is the dependency
-order). For each step:
-
-1. Run its `[CHECK]` (the shell block under `**[CHECK]**`).
-2. **Exit 0** → the step is done. Say so briefly and move on.
-3. **Nonzero, and the step is `[AGENT]`** → run the step's `[AGENT]` command,
-   then re-run the `[CHECK]`. Green → continue. Still red → stop and report the
-   command's output.
-4. **Nonzero, and the step is `[HUMAN]`** (or the `[CHECK]` says "no scriptable
-   check") → **stop**. Emit a handoff block: the exact browser instruction from
-   the doc, verbatim, in a copy-pasteable form. Wait for the user to confirm
-   they have done it, then re-run the `[CHECK]` (or, if there is none, take their
-   confirmation).
 
 Prerequisites: an authenticated `gh` CLI (`gh auth status`). If `gh` is missing
 or unauthenticated, stop and ask the user to run `gh auth login` first.
 
+Read `docs/maintaining/setup.rst` top to bottom (its order is the dependency
+order). For each step, run its `[CHECK]` (the shell block under `**[CHECK]**`);
+exit 0 means done. On a red check, branch on the step's class:
+
+1. **Green** → done. Say so briefly, continue.
+2. **Deferred + red** → record "deferred until after the first release" and
+   **continue** to the next step. Do not run its `[AGENT]` command.
+3. **Required `[AGENT]` + red** → run the `[AGENT]` command, re-run the
+   `[CHECK]`. Green → continue. Still red → record it as a **blocker** (with the
+   command output) and continue; do not abort the rest of the walk.
+4. **Required `[HUMAN]` + red** (or a "no scriptable check" step) → emit a
+   handoff block — the exact browser instruction from the doc, verbatim and
+   copy-pasteable — then either wait for the user to confirm and re-run the
+   `[CHECK]`, or, if you are batching, record it as a **pending handoff** and
+   continue. Prefer batching handoffs so one walk surfaces every human step at
+   once.
+5. **Optional + red** → **ask** whether to configure or skip it. If skip, record
+   the choice and continue. If configure, treat it as its `[AGENT]`/`[HUMAN]`
+   tags say. Never drive an optional step unprompted.
+
+End of walk: report the green steps, the deferred steps, any blockers, the
+pending human handoffs, and the optional steps left unconfigured.
+
 ## Rules
 
-- **Two steps are deferred until after the first release** — GitHub Pages and
-  the PR doc previews depend on the `gh-pages` branch, which the first release's
-  `deploy-docs` job creates. Their `[CHECK]` stays red until then; note this and
-  move on rather than treating it as a failure.
-- **Steps under "Optional integrations" are opt-in.** A red `[CHECK]` there
-  means "not configured", which is a fine state to leave. Present each as a
-  choice ("configure Docker Hub publishing? it needs a token you mint") rather
-  than driving it unprompted — every one needs a human-minted credential anyway.
 - **Register the PyPI publisher before the first release**, and do the
   merge-policy step first — several later steps depend on it.
 - **Do not transcribe commands from memory.** Run what `setup.rst` ships on the
   template version this project is on.
 - Cross-check `.copier-answers.yml` to confirm which optional integrations are
-  even relevant — the doc already renders only the applicable ones.
+  even relevant — the doc already renders only the applicable ones. Optional
+  steps vary: some need a credential you mint (Docker Hub, Homebrew, Scoop,
+  SonarCloud), others are just a GitHub App install with no token (Sourcery,
+  Settings) — the doc's `[HUMAN]`/`[CHECK]` tags for each say which.
 
 ## When everything is green
 

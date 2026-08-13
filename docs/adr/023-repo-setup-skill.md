@@ -61,13 +61,20 @@ guarantee is worth more than a tidier schema.
 
 Three flavors of `[CHECK]`:
 
-- **`[AGENT]` steps** get a real idempotent check (e.g. merge policy via
-  `gh repo view … --json squashMergeAllowed,… --jq`, workflow permissions via
-  `gh api …/actions/permissions/workflow --jq`, branch-protection contexts,
-  `gh api …/pages`).
-- **`[HUMAN]` steps that store a secret** (`REPO_ADMIN_TOKEN`, `DOCKERHUB_*`,
-  `SONAR_TOKEN`, `CODECOV_TOKEN`) check the *artifact* — `gh secret list … |
-  grep -q NAME`. Minting the credential is human; its presence is scriptable.
+- **`[AGENT]` steps** get a real idempotent check that verifies the *end state*
+  the step establishes, not a weaker proxy (e.g. merge policy via `gh repo view
+  … --json squashMergeAllowed,… --jq`; workflow permissions asserting **both**
+  `can_approve_pull_request_reviews` and the least-privilege
+  `default_workflow_permissions == "read"`; the classic branch protection
+  asserting `strict` plus its contexts; the ruleset variant querying the applied
+  `Protect main` ruleset is `enforcement: active`, not merely that its admin
+  token exists; Pages asserting `source.branch`/`source.path`, not merely that a
+  site exists).
+- **`[HUMAN]` steps that store a secret** (any of `REPO_ADMIN_TOKEN`,
+  `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN`, `HOMEBREW_TAP_TOKEN`,
+  `SCOOP_BUCKET_TOKEN`, `SONAR_TOKEN`, `CODECOV_TOKEN` — i.e. every setup secret)
+  check the *artifact* by exact name — `gh secret list … --json name --jq` for a
+  precise match. Minting the credential is human; its presence is scriptable.
 - **`[HUMAN]` steps with no API-visible artifact** (PyPI publisher registration,
   the release-immutability toggle, the Settings/Sourcery/Renovate App installs)
   carry an explicit `# no scriptable check — confirm in browser`, so the skill
@@ -79,26 +86,37 @@ source.
 
 ### 2. A skill shipped *into* generated projects
 
-`template/.claude/skills/repo-setup/SKILL.md.jinja` renders to
-`.claude/skills/repo-setup/SKILL.md` in every generated project (copier renders
-everything under `template/`; `.claude/skills/` is a Claude Code auto-discovery
-path, so any agent opening the repo finds it without the plugin). It is a lean
-**resume-driver**, not a prose duplicate of the doc:
+`template/.claude/skills/repo-setup/SKILL.md` becomes
+`.claude/skills/repo-setup/SKILL.md` in every generated project. It carries no
+`{{ }}` substitutions (it reads the already-interpolated setup doc), so it ships
+as plain Markdown with no `.jinja` suffix — copier copies everything under
+`template/` and renders only `.jinja`-suffixed files, so this file is copied
+verbatim. `.claude/skills/` is a Claude Code auto-discovery path, so any agent
+opening the repo finds it without the plugin. It is a lean **resume-driver**, not
+a prose duplicate of the doc:
 
 - Walk `docs/maintaining/setup.rst` top-to-bottom (its order already *is* the
-  dependency order — ADR-022 sections are sequenced deliberately).
-- For each rendered step, run its `[CHECK]`. Green → skip ("already set up").
-- Red + `[AGENT]` → run the `[AGENT]` command, re-run the `[CHECK]`, continue on
-  green.
-- Red + `[HUMAN]` → **stop**, emit a copy-pasteable handoff block quoting the
-  doc's browser instruction verbatim, wait for the user to confirm done, then
-  re-run the `[CHECK]`.
+  dependency order — ADR-022 sections are sequenced deliberately) and **never
+  abort the walk before the end** — collect outcomes and report them together.
+- Classify each step by where it sits in the doc, because the class decides what
+  a red `[CHECK]` means:
+  - **Required** (above `Optional integrations`, minus the deferred two): red
+    `[AGENT]` → run the command and re-check; red `[HUMAN]` → emit a handoff
+    (batched across the walk, not a hard stop); a still-red required step is
+    recorded as a blocker and the walk continues.
+  - **Deferred** (GitHub Pages and the PR doc previews): their `[CHECK]` is
+    expected red on a fresh repo because the `gh-pages` branch does not exist
+    until the first release's `deploy-docs` runs. The skill records them as
+    "deferred" and continues — it never runs their `[AGENT]` command or stops on
+    them pre-release. This is the fix for a naïve walk deadlocking at Pages before
+    reaching Renovate/Discussions/optional.
+  - **Optional** (under `Optional integrations`): a red check means "not
+    configured", a fine end state; the skill **asks** configure-or-skip and
+    records the choice rather than driving it unprompted. These are not uniformly
+    credential-minting — some are just a GitHub App install (Sourcery, Settings).
 - A copier-gated section that did not render is absent from the doc, so its steps
   are simply not walked — the gating is inherited from the doc for free.
 - Re-running is safe and idempotent; an all-green walk reports "nothing to do".
-  The two post-first-release steps (GitHub Pages, and the previews that depend on
-  the `gh-pages` branch) sort last and stay red-until-ready with a "run after the
-  first release" note rather than erroring.
 
 ### 3. A symmetric skill for the template repo's own setup
 
@@ -125,8 +143,8 @@ and it gains one line noting that newly generated projects now carry an in-repo
 ## Consequences
 
 - Any agent opening a generated repo can run setup to completion with no plugin
-  install, and re-run it safely — the skill reports what is already done and
-  resumes at the first gap.
+  install, and re-run it safely — one walk reports what is already done, what is
+  deferred, what still blocks, and which optional steps are left unconfigured.
 - The setup doc gains a `[CHECK]` contract: **every future setup step must carry
   a `[CHECK]` block** (real, secret-presence, or the explicit no-scriptable-check
   marker) to stay machine-drivable, just as ADR-022 made `[AGENT]`/`[HUMAN]`
@@ -136,10 +154,10 @@ and it gains one line noting that newly generated projects now carry an in-repo
 - The template repo's own bootstrap is now scriptable-and-resumable too, and the
   `write`-vs-`read` workflow-permission gotcha is encoded where an agent will act
   on it, not only in prose.
-- The shipped `SKILL.md` renders as Markdown in generated projects and is subject
-  to their markdownlint gate; its Jinja must respect the whitespace rules that
-  keep guarded sections at one blank line (see the template's markdown/Jinja
-  conventions).
+- The shipped `SKILL.md` is a generated project's own Markdown and is subject to
+  its markdownlint gate; being plain Markdown (no Jinja) it sidesteps the
+  whitespace rules that guarded-section conditionals would otherwise have to
+  respect.
 - This does not touch `copier.yml` `_tasks` (there are none — ADR-015): the skill
   is a rendered file, not a post-copy task, so it does not jeopardize Renovate's
   hosted copier manager (which disallows `--trust`).
