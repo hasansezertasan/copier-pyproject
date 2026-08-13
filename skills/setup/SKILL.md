@@ -18,29 +18,34 @@ This is distinct from adopting the template into an existing package (that is th
 `adopt` skill, which reconciles source/config collisions). This skill assumes the
 project files are already correct and only wires up the repo + external services.
 
-**Design: the shipped `CONTRIBUTING.md` is the source of truth for the exact
-commands.** The generated project's `.github/CONTRIBUTING.md` carries a
-**"Repository setup (one-time)"** section with every `gh` command already
-interpolated with the real owner/repo, plus the optional steps gated on this
-project's Copier answers. Do **not** hand-transcribe commands from memory — read
-that section and run what it ships, so you never drift from the template version
-the project is actually on. This skill owns what prose can't: the **order**, the
-**dependencies between steps**, the **timing traps**, and the **failure symptom**
-each step prevents.
+**Design: the shipped `docs/maintaining/setup.rst` is the source of truth for the
+exact commands.** The generated project's `docs/maintaining/setup.rst`
+("Repository setup", published under **Maintainer guide** on the docs site)
+carries every `gh` command already interpolated with the real owner/repo, plus
+the optional steps gated on this project's Copier answers. Each step is tagged
+**`[AGENT]`** (a shell command you can run unattended) or **`[HUMAN]`**
+(browser-only — sign up, mint a credential, install an App, or a UI-only toggle),
+so the tags tell you directly which steps you execute and which you must hand to
+a human. Do **not** hand-transcribe commands from memory — read that doc and run
+what it ships, so you never drift from the template version the project is
+actually on. (The contributor-facing `.github/CONTRIBUTING.md` only *points* to
+this doc; it no longer carries the commands.) This skill owns what prose can't:
+the **order**, the **dependencies between steps**, the **timing traps**, and the
+**failure symptom** each step prevents.
 
 ## First: read what this project actually needs
 
 Two files tell you the exact scope before you touch anything:
 
-1. **`.github/CONTRIBUTING.md` → "Repository setup (one-time)"** — the ready-to-run
-   `gh` commands (already interpolated) and the numbered steps. Optional steps
-   (Docker Hub, Homebrew, Scoop, SonarCloud, Sourcery, all-contributors, Settings
-   App) are rendered in only when the matching Copier answer is enabled — so the
-   section already lists *exactly* the steps that apply.
+1. **`docs/maintaining/setup.rst` → "Repository setup"** — the ready-to-run
+   `gh` commands (already interpolated), each tagged `[AGENT]`/`[HUMAN]`. Optional
+   steps (Docker Hub, Homebrew, Scoop, SonarCloud, Sourcery, all-contributors,
+   Settings App) are rendered in only when the matching Copier answer is enabled —
+   so the doc already lists *exactly* the steps that apply.
 2. **`.copier-answers.yml`** — confirms which optional components/integrations are
    on (`include_web`, `include_homebrew`, `include_scoop`, `include_sonarcloud`,
    `include_sourcery`, `include_all_contributors`, `include_repo_settings`), so you
-   can cross-check the CONTRIBUTING steps and know which secrets/Apps are needed.
+   can cross-check the setup-doc steps and know which secrets/Apps are needed.
 
 Then work the dependency order below.
 
@@ -71,7 +76,7 @@ a later event has happened:
    published tags/assets.
 6. **Renovate App install** — inert config until installed; unblocks both routine
    dependency PRs **and** the copier-update manager (next).
-7. **Optional secrets / Apps** — only those the CONTRIBUTING section lists for this
+7. **Optional secrets / Apps** — only those the setup doc lists for this
    project (see the conditional table below).
 
 Two steps are **deferred until after the first release**, because they depend on an
@@ -88,7 +93,7 @@ event that has not happened yet on a brand-new repo:
 ## Conditional steps — apply only what this project enabled
 
 Check `.copier-answers.yml`; run the step only when its answer is true. The
-CONTRIBUTING section already renders exactly these, but this is the trigger→need map:
+setup doc already renders exactly these, but this is the trigger→need map:
 
 | Copier answer | One-time setup | Secret / App | Failure if skipped |
 |---|---|---|---|
@@ -136,12 +141,13 @@ None of this can be proven from a branch or a green CI run. Confirm each out of 
 
 - **Assuming a green CI means setup is done.** All of this is invisible to CI — it
   only fails at merge/release time, off to the side. Verify externally.
-- **Transcribing commands from memory instead of the shipped `CONTRIBUTING.md`.**
-  The exact `gh` commands (with owner/repo already interpolated) and the precise set
-  of optional steps ship in the project on the template version it's actually on —
-  read them rather than reconstructing, or you'll drift.
+- **Transcribing commands from memory instead of the shipped
+  `docs/maintaining/setup.rst`.** The exact `gh` commands (with owner/repo already
+  interpolated) and the precise set of optional steps ship in the project on the
+  template version it's actually on — read them rather than reconstructing, or
+  you'll drift.
 - **Running optional steps the project didn't enable.** Gate every optional secret/
-  App on `.copier-answers.yml`; the CONTRIBUTING section already omits the ones that
+  App on `.copier-answers.yml`; the setup doc already omits the ones that
   don't apply.
 - **Enabling Pages (or expecting doc previews) before the first release.** The
   `gh-pages` branch doesn't exist yet.
