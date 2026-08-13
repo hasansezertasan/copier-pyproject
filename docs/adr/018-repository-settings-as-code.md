@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed (2026-08).
+Proposed (2026-08). Superseded in part by
+[ADR-021](021-repository-ruleset-as-code.md) (2026-08): branch protection,
+excluded below, is now available opt-in via a Rulesets sync workflow.
 
 ## Context
 
@@ -47,10 +49,7 @@ does not install the App. Labels stay with the existing App-free actions.
 
 **Branch protection and collaborators are excluded**: branch protection would
 duplicate/conflict with the required-status-checks setup CONTRIBUTING already
-documents, and collaborators are per-project. Branch protection is now available
-opt-in as a Rulesets sync workflow — see
-[ADR-021](021-repository-ruleset-as-code.md) — which supersedes this exclusion;
-collaborators remain out of scope.
+documents, and collaborators are per-project.
 
 ## Consequences
 

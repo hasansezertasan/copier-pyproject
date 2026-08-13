@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed (2026-08)
+Proposed (2026-08). Supersedes in part
+[ADR-018](018-repository-settings-as-code.md): branch protection, excluded
+there, is now available opt-in.
 
 ## Context
 
