@@ -1,6 +1,6 @@
 {
   "name": "copier-pyproject",
-  "description": "Companion plugin for the hasansezertasan/copier-pyproject Copier template. Ships the adopt-copier-pyproject skill, which guides adopting the template into an existing/published Python package and reconciling later `copier update` runs.",
+  "description": "Companion plugin for the hasansezertasan/copier-pyproject Copier template. Ships three skills: `adopt` (first-time adoption of the template into an existing/published Python package), `update` (pulling later template changes via `copier update` and reviewing Renovate copier-update PRs), and `setup` (one-time repository + release-automation wiring — trusted publishing, branch protection, secrets, App installs).",
   "version": "0.1.0",
   "author": {
     "name": "Hasan Sezer Taşan",
