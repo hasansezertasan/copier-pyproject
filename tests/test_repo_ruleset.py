@@ -105,20 +105,22 @@ def test_sync_workflow_present_when_enabled(render: Callable[..., Path]) -> None
     assert "permissions: {}" in text
 
 
-def _contributing(root: Path) -> str:
-    return (root / ".github" / "CONTRIBUTING.md").read_text(encoding="utf-8")
+def _setup_doc(root: Path) -> str:
+    # Maintainer branch-protection setup lives in docs/maintaining/setup.rst
+    # (not the contributor-facing CONTRIBUTING.md); see ADR-022.
+    return (root / "docs" / "maintaining" / "setup.rst").read_text(encoding="utf-8")
 
 
-def test_contributing_documents_pat_when_enabled(render: Callable[..., Path]) -> None:
-    text = _contributing(render(include_repo_ruleset=True))
+def test_setup_doc_documents_pat_when_enabled(render: Callable[..., Path]) -> None:
+    text = _setup_doc(render(include_repo_ruleset=True))
     assert "REPO_ADMIN_TOKEN" in text
     assert "ruleset-sync.yml" in text
 
 
-def test_contributing_manual_protection_when_disabled(
+def test_setup_doc_manual_protection_when_disabled(
     render: Callable[..., Path],
 ) -> None:
-    text = _contributing(render(include_repo_ruleset=False))
+    text = _setup_doc(render(include_repo_ruleset=False))
     # Falls back to the manual branch-protection instructions.
     assert "branches/main/protection" in text
     assert "REPO_ADMIN_TOKEN" not in text

@@ -84,21 +84,23 @@ def test_installation_rst_shows_brew_cask_when_executable(
     assert f"brew install --cask {USER}/tap/{PKG}" in rst
 
 
-def test_contributing_documents_tap_setup(render: Callable[..., Path]) -> None:
+def test_setup_doc_documents_tap_setup(render: Callable[..., Path]) -> None:
+    # Maintainer repository setup lives in docs/maintaining/setup.rst (not the
+    # contributor-facing CONTRIBUTING.md); see ADR-022.
     root = render(preset="tool", include_homebrew=True, include_scoop=True)
-    contributing = _read(root, ".github", "CONTRIBUTING.md")
-    assert "homebrew-tap" in contributing
-    assert "HOMEBREW_TAP_TOKEN" in contributing
-    assert "scoop-bucket" in contributing
-    assert "SCOOP_BUCKET_TOKEN" in contributing
+    setup = _read(root, "docs", "maintaining", "setup.rst")
+    assert "homebrew-tap" in setup
+    assert "HOMEBREW_TAP_TOKEN" in setup
+    assert "scoop-bucket" in setup
+    assert "SCOOP_BUCKET_TOKEN" in setup
 
 
-def test_contributing_omits_tap_setup_when_disabled(
+def test_setup_doc_omits_tap_setup_when_disabled(
     render: Callable[..., Path],
 ) -> None:
-    contributing = _read(render(preset="tool"), ".github", "CONTRIBUTING.md")
-    assert "HOMEBREW_TAP_TOKEN" not in contributing
-    assert "SCOOP_BUCKET_TOKEN" not in contributing
+    setup = _read(render(preset="tool"), "docs", "maintaining", "setup.rst")
+    assert "HOMEBREW_TAP_TOKEN" not in setup
+    assert "SCOOP_BUCKET_TOKEN" not in setup
 
 
 # --- producer: cross-repo dispatch jobs --------------------------------------

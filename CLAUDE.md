@@ -577,7 +577,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `::notice::` visible skip instead of failing the run — coverage reporting is
      best-effort (the upload step's `fail_ci_if_error` defaults to false), not
      load-bearing for a green build. Setup is documented in the generated
-     `CONTRIBUTING.md` repository-setup section.
+     project's `docs/maintaining/setup.rst` "Repository setup" guide.
    - When `include_launcher`/`include_freezer`/`include_compiler` are set, adds
      matching `build-{launcher,freezer,compiler}-check` jobs (per-OS, `fail-fast:
      false`) that build the standalone executable on every PR/push — a build-only
@@ -801,7 +801,8 @@ scaffold instructions now tell the user to `git init`). Caveat: Renovate does no
 fail its artifacts check on `copier update` merge conflicts
 ([renovate#31600](https://github.com/renovatebot/renovate/issues/31600)), so a
 copier PR can look mergeable while carrying `<<<<<<<` markers — the generated
-`CONTRIBUTING.md` "Template updates" note says to review for them.
+project's `docs/maintaining/setup.rst` "Template updates" note says to review
+for them.
 
 **Shipped pins under `template/**` are frozen from this repo's Renovate** (a
 disabled `packageRules` entry in `.github/renovate.json` matching
@@ -874,11 +875,15 @@ Configure each generated repo (Settings → General → Pull Requests):
 release-please also needs **Settings → Actions → General → Workflow permissions
 → Allow GitHub Actions to create and approve pull requests** enabled, or it
 cannot open/maintain the release PR. Generated repos should additionally enable
-**release immutability** (Settings → General). The generated
-`CONTRIBUTING.md` documents all of these as a one-time "Repository setup"
-section, including ready-to-run `gh repo edit` / `gh api` commands and the PyPI
-trusted-publishing registration — keep that section in sync when these
-requirements change.
+**release immutability** (Settings → General). The generated project's
+`docs/maintaining/setup.rst` documents all of these as a one-time "Repository
+setup" guide (published under **Maintainer guide** in the docs site, and
+pointed to from the slimmed contributor-facing `CONTRIBUTING.md`), including
+ready-to-run `gh repo edit` / `gh api` commands and the PyPI trusted-publishing
+registration, each step tagged `[AGENT]` (scriptable) or `[HUMAN]`
+(browser-only) so it doubles as a setup-skill manifest — keep that guide in
+sync when these requirements change. See
+[ADR-022](docs/adr/022-maintainer-setup-as-single-doc-home.md).
 
 Bump rules follow `.github/release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`

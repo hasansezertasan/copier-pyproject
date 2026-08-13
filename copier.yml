@@ -11,7 +11,7 @@ _subdirectory: template
 _message_before_copy: >-
   Pick a preset, then press Enter through the toggles to accept its defaults, or tune any of them. The preset only sets defaults — every toggle is still asked and saved (a few sub-questions stay conditional on their parent toggle).
 _message_after_copy: >-
-  Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync (3) complete the one-time repository setup documented in CONTRIBUTING.md (squash-merge policy, workflow permissions, PyPI trusted publishing).
+  Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync (3) complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions, PyPI trusted publishing).
 # ── ① Identity ──────────────────────────────────────────────────────────────
 github_user:
   type: str
@@ -206,12 +206,12 @@ include_repo_settings:
   type: bool
   default: "{{ 'include_repo_settings' in preset_map[preset] }}"
   help: >-
-    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? Requires installing that App on the repository; it escalates push access to admin, so review the CONTRIBUTING note before enabling.
+    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? Requires installing that App on the repository; it escalates push access to admin, so review the repository-setup note (docs/maintaining/setup.rst) before enabling.
 include_repo_ruleset:
   type: bool
   default: "{{ 'include_repo_ruleset' in preset_map[preset] }}"
   help: >-
-    Include a repository ruleset (.github/rulesets/main.json) plus an App-free ruleset-sync.yml workflow that enforces branch protection on the default branch as code (squash-only, linear history, required CI checks)? Requires a one-time REPO_ADMIN_TOKEN secret — a fine-grained PAT with Administration read & write (the Actions GITHUB_TOKEN cannot manage rulesets). Manual edits in the web UI are reverted on the next default-branch push. See the CONTRIBUTING setup note before enabling.
+    Include a repository ruleset (.github/rulesets/main.json) plus an App-free ruleset-sync.yml workflow that enforces branch protection on the default branch as code (squash-only, linear history, required CI checks)? Requires a one-time REPO_ADMIN_TOKEN secret — a fine-grained PAT with Administration read & write (the Actions GITHUB_TOKEN cannot manage rulesets). Manual edits in the web UI are reverted on the next default-branch push. See the repository-setup guide (docs/maintaining/setup.rst) before enabling.
 repository_topics:
   type: str
   default: ""
@@ -298,10 +298,10 @@ include_homebrew:
   default: "{{ 'include_homebrew' in preset_map[preset] }}"
   when: "{{ is_app }}"
   help: >-
-    Publish a Homebrew tap formula on each release? Requires a homebrew-tap repo under your account and a HOMEBREW_TAP_TOKEN secret (one-time setup, documented in CONTRIBUTING.md).
+    Publish a Homebrew tap formula on each release? Requires a homebrew-tap repo under your account and a HOMEBREW_TAP_TOKEN secret (one-time setup, documented in docs/maintaining/setup.rst).
 include_scoop:
   type: bool
   default: "{{ 'include_scoop' in preset_map[preset] }}"
   when: "{{ is_app }}"
   help: >-
-    Publish a Scoop bucket manifest on each release? Requires a scoop-bucket repo under your account and a SCOOP_BUCKET_TOKEN secret (one-time setup, documented in CONTRIBUTING.md). Best paired with an executable toggle (Scoop favors binaries).
+    Publish a Scoop bucket manifest on each release? Requires a scoop-bucket repo under your account and a SCOOP_BUCKET_TOKEN secret (one-time setup, documented in docs/maintaining/setup.rst). Best paired with an executable toggle (Scoop favors binaries).
