@@ -790,6 +790,28 @@ fail its artifacts check on `copier update` merge conflicts
 copier PR can look mergeable while carrying `<<<<<<<` markers — the generated
 `CONTRIBUTING.md` "Template updates" note says to review for them.
 
+**Shipped pins under `template/**` are frozen from this repo's Renovate** (a
+disabled `packageRules` entry in `.github/renovate.json` matching
+`template/**`). This is load-bearing for keeping `copier update` conflict-free —
+do **not** re-enable it. The shipped literals — the confirmed conflict source is
+the **plain** `template/.github/workflows/*.yml` action SHAs (the `.jinja`-suffixed
+files are not matched by Renovate's stock managers), plus any `mise.toml.jinja`
+tool versions, `prek.toml.jinja` `rev` pins, or deps a `customManager` reaches —
+are *seed values only*: every generated project
+ships its own Renovate config and owns those bumps thereafter. If this repo also
+bumped them, `copier update`'s 3-way merge would see both the new template render
+(*theirs*) and the downstream file (*ours*) having moved the same literal to
+different values → a conflict on nearly every release. Freezing keeps
+*theirs == base*, so the downstream's Renovate value always wins the merge
+cleanly. This repo's OWN root workflows/`prek.toml`/`mise.toml` stay
+Renovate-managed (template CI stays current); newly-generated projects start with
+slightly-stale-but-valid pins that their own Renovate catches up on the first
+run. To ship less-stale seeds, refresh the `template/**` pins deliberately (by
+hand or a one-off scoped run) right before cutting a template release — accepting
+that a deliberate bump reintroduces conflicts only for projects that had not yet
+caught up. See
+[ADR-020](docs/adr/020-freeze-shipped-template-pins-from-renovate.md).
+
 ### Template self-versioning (this repo, ADR-015)
 
 The template repository **versions itself** with release-please so its changes

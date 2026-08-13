@@ -1,4 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>hasansezertasan/renovate-config:python"]
+  "extends": ["github>hasansezertasan/renovate-config:python"],
+  "packageRules": [
+    {
+      "description": "Freeze the shipped template pins under template/** (e.g. action SHAs in the plain template/*.yml workflows — the confirmed conflict source; also any mise tool versions, prek revs, or deps, whether managed today or by a future customManager). They are seed values only: each generated project ships its own Renovate config and owns those bumps thereafter. Managing them here too is what makes `copier update` conflict — copier's 3-way merge sees both the template render (theirs) and the downstream file (ours) having moved the same literal to different values. Disabling updates under template/** keeps theirs == base, so the downstream's Renovate value always wins the merge cleanly. This repo's OWN workflows/prek.toml/mise.toml (root paths) stay Renovate-managed, so template CI stays current; new projects start with slightly-stale-but-valid pins that their own Renovate catches up immediately.",
+      "matchFileNames": ["template/**"],
+      "enabled": false
+    }
+  ]
 }
