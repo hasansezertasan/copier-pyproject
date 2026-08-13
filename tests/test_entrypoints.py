@@ -113,8 +113,46 @@ def test_gui_primary_with_secondaries_no_collision(
     src = _cli_source(root)
     assert "def interactive()" in src
     assert "def web()" in src
+    # The launcher's default callback launches the primary (gui), which is
+    # therefore NOT also a named subcommand.
+    assert "@app.callback(invoke_without_command=True)" in src
+    assert f"from {PKG}.gui.app import main" in src
+    assert "def gui()" not in src
     # The bare name is in exactly one table.
     assert (PKG in project.get("gui-scripts", {})) ^ (PKG in project.get("scripts", {}))
+
+
+def test_no_cli_launcher_wires_default_and_subcommands(
+    render: Callable[..., Path],
+) -> None:
+    # No CLI + >=2 components -> a minimal launcher root: bare `<pkg>` launches
+    # the primary (web) via the default callback, the secondary (mcp) is a
+    # subcommand, no version/info commands exist, and typer is a core dep even
+    # though include_cli is off.
+    root = _render_only(render, "web", "mcp")
+    project = _pyproject(root)
+    assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert "gui-scripts" not in project
+    assert any(dep.startswith("typer") for dep in project["dependencies"])
+    src = _cli_source(root)
+    assert "@app.callback(invoke_without_command=True)" in src
+    assert f"from {PKG}.web.app import main" in src  # default launches primary
+    assert "def web()" not in src  # primary is not a named subcommand
+    assert "def mcp()" in src  # secondary is
+    assert "def show_version()" not in src  # minimal launcher: no CLI commands
+    assert "def info()" not in src
+
+
+def test_single_component_non_cli_has_no_console_root(
+    render: Callable[..., Path],
+) -> None:
+    # A single non-CLI component has no shared launcher: no `cli/` package, no
+    # `typer` dependency, and `__main__` launches it directly.
+    root = _render_only(render, "web")
+    project = _pyproject(root)
+    assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert not (root / "src" / PKG / "cli").exists()
+    assert not any(dep.startswith("typer") for dep in project["dependencies"])
 
 
 def test_pydantic_settings_is_core_dependency(render: Callable[..., Path]) -> None:
