@@ -276,6 +276,25 @@ disable merge commits and rebase merging, set the squash **"Default commit
 message"** to **"Pull request title"**, and enable **Automatically delete head
 branches**.)
 
+{% if include_repo_ruleset -%}
+**2. Branch protection (managed as code).** This project ships its branch
+protection as a repository ruleset (`.github/rulesets/main.json`) applied by the
+`ruleset-sync.yml` workflow on every push to `main`. It enforces squash-only
+merges, linear history, and the required CI checks; manual edits in the web UI
+are reverted on the next push.
+
+To activate it, add a `REPO_ADMIN_TOKEN` secret — a fine-grained PAT with
+**Administration: read and write** on this repository (the Actions
+`GITHUB_TOKEN` cannot manage rulesets):
+
+```sh
+gh secret set REPO_ADMIN_TOKEN --repo {{github_user}}/{{github_repo_name}}
+```
+
+Then trigger the workflow once (push a change under `.github/rulesets/` or run
+`gh workflow run ruleset-sync.yml`). Until the secret is set the workflow logs a
+notice and exits without error, so the repository is never blocked.
+{%- else -%}
 **2. Required status checks.** Protect `main` so a PR can only merge once its
 checks pass. Mark these check contexts as required (the names are the **check
 runs**, not the workflow files):
@@ -309,6 +328,7 @@ JSON
 enable **Require status checks to pass before merging**, then search for and add
 the four contexts above. The contexts only appear in the picker after each check
 has run at least once.)
+{%- endif %}
 
 **3. Let Actions open the release PR.** release-please runs as a GitHub Action
 and opens/maintains the release pull request, so the repo must allow Actions to
