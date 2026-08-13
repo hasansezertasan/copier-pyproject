@@ -109,7 +109,7 @@ requires-python = ">=3.10"
 # unconditionally when enabled.
 {% endif -%}
 dependencies = [
-{%- if include_cli %}
+{%- if include_console_root %}
     "typer>=0.20.0",
 {%- endif %}
 {%- if include_tui %}
@@ -155,22 +155,18 @@ source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
 {#- Console-script wiring. The highest-precedence enabled component (CLI > GUI >
     TUI > web > MCP > worker) is the "primary": it owns the bare
     ``{{github_repo_name}}`` command, wired to ``__main__:main`` (the single
-    entrypoint that standalone builds also target). Every other enabled component
-    keeps a ``{{github_repo_name}}-<name>`` command pointing at its own ``app``
-    entrypoint, so a multi-component project can still launch each one. GUI uses
-    ``[project.gui-scripts]`` so it starts without a console window on Windows;
-    it is only ever the primary when CLI is absent. The precedence order itself
-    lives in ``copier.yml``'s ``primary_component`` (empty for a library). #}
+    entrypoint that standalone builds also target). Every *other* enabled
+    component is reached as a subcommand of the ``{{github_repo_name}}`` Typer
+    root (``{{github_repo_name}} <name>`` — see ADR-019 and ``cli/app.py``), so
+    no ``{{github_repo_name}}-<name>`` scripts are emitted. GUI uses
+    ``[project.gui-scripts]`` so, when it is the primary, it starts without a
+    console window on Windows. The precedence order itself lives in
+    ``copier.yml``'s ``primary_component`` (empty for a library). #}
 {%- set _primary = primary_component or none %}
 {%- set _console = [] %}
 {%- set _gui = [] %}
 {%- if _primary == "gui" %}{% set _ = _gui.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}
 {%- elif _primary %}{% set _ = _console.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}{% endif %}
-{%- if include_gui and _primary != "gui" %}{% set _ = _gui.append((github_repo_name ~ "-gui", github_repo_name ~ ".gui.app:main")) %}{% endif %}
-{%- if include_tui and _primary != "tui" %}{% set _ = _console.append((github_repo_name ~ "-tui", github_repo_name ~ ".tui.app:main")) %}{% endif %}
-{%- if include_web and _primary != "web" %}{% set _ = _console.append((github_repo_name ~ "-web", github_repo_name ~ ".web.app:main")) %}{% endif %}
-{%- if include_mcp and _primary != "mcp" %}{% set _ = _console.append((github_repo_name ~ "-mcp", github_repo_name ~ ".mcp.app:main")) %}{% endif %}
-{%- if include_worker and _primary != "worker" %}{% set _ = _console.append((github_repo_name ~ "-worker", github_repo_name ~ ".worker.app:main")) %}{% endif %}
 {% if _console %}
 [project.scripts]
 {% for name, target in _console %}{{ name }} = "{{ target }}"
@@ -451,13 +447,14 @@ name = "Layered architecture with independent components"
 type = "layers"
 # Layers are listed high -> low: a layer may import lower layers but never a
 # higher one. Modules joined by ` | ` on one line are independent SIBLINGS that
-# may not import each other. `cli` is the orchestrator layer — its subcommands
-# launch the other components (web/gui/tui) via lazy imports — so it sits ABOVE
-# the independent component group, which sits above `core`, which sits above the
-# leaf `utils`. `__metadata__` is left outside the contract as an unconstrained
+# may not import each other. `cli` is the orchestrator layer — the
+# `{{github_repo_name}}` Typer root, whose subcommands launch the other
+# components (web/gui/tui/mcp/worker) via lazy imports — so it sits ABOVE the
+# independent component group, which sits above `core`, which sits above the leaf
+# `utils`. `__metadata__` is left outside the contract as an unconstrained
 # foundation.
 layers = [
-{%- if include_cli %}
+{%- if include_console_root %}
   "{{github_repo_name}}.cli",
 {%- endif %}
 {%- set il_components = [] -%}
@@ -872,7 +869,7 @@ runner = "uv-venv-runner"
 # On-demand only (not in env_list): starts a broker-bound worker, so run it with
 # ``tox -e worker`` when a broker is reachable. CI relies on the pytest suite.
 [tool.tox.env.worker]
-commands = [["{{github_repo_name}}{% if primary_component != 'worker' %}-worker{% endif %}", { replace = "posargs", extend = true }]]
+commands = [["{{github_repo_name}}"{% if primary_component != 'worker' %}, "worker"{% endif %}, { replace = "posargs", extend = true }]]
 description = "Run the message queue worker application."
 runner = "uv-venv-runner"
 

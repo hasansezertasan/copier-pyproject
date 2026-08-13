@@ -115,7 +115,7 @@ pip install {{github_repo_name}}
 ### GUI
 
 ```bash
-{{github_repo_name}}{% if primary_component != 'gui' %}-gui{% endif %}
+{{github_repo_name}}{% if primary_component != 'gui' %} gui{% endif %}
 ```
 {%- endif %}
 {%- if include_tui %}
@@ -123,7 +123,7 @@ pip install {{github_repo_name}}
 ### TUI
 
 ```bash
-{{github_repo_name}}{% if primary_component != 'tui' %}-tui{% endif %}
+{{github_repo_name}}{% if primary_component != 'tui' %} interactive{% endif %}
 ```
 
 An interactive terminal user interface displays project information. Press 'q' to exit.
@@ -133,7 +133,7 @@ An interactive terminal user interface displays project information. Press 'q' t
 ### Web
 
 ```bash
-{{github_repo_name}}{% if primary_component != 'web' %}-web{% endif %}
+{{github_repo_name}}{% if primary_component != 'web' %} web{% endif %}
 ```
 
 {% if web_framework == "fastapi" %}Open <http://127.0.0.1:8000/docs> for the interactive API documentation.{% else %}Open <http://127.0.0.1:8000/schema> for the interactive API documentation.{% endif %}
@@ -145,7 +145,7 @@ An interactive terminal user interface displays project information. Press 'q' t
 Run the Model Context Protocol server:
 
 ```bash
-{{github_repo_name}}{% if primary_component != 'mcp' %}-mcp{% endif %}
+{{github_repo_name}}{% if primary_component != 'mcp' %} mcp{% endif %}
 ```
 {%- endif %}
 {%- if include_worker %}
@@ -155,7 +155,7 @@ Run the Model Context Protocol server:
 Run the message queue worker:
 
 ```bash
-{{github_repo_name}}{% if primary_component != 'worker' %}-worker{% endif %}
+{{github_repo_name}}{% if primary_component != 'worker' %} worker{% endif %}
 ```
 
 The worker connects to {{worker_broker}} and processes messages from the configured queues.

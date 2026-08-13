@@ -65,20 +65,17 @@ uv run --locked tox run -e integration
 uv run --locked example version
 uv run --locked example info
 
-# Run the FastAPI/Litestar web app (if include_web=true)
+# Run the FastAPI/Litestar web app in dev mode (if include_web=true)
 uv run --locked fastapi dev example.web.app:app
 
-# Run the TUI (if include_tui=true)
-uv run --locked example-tui
-
-# Run the GUI (if include_gui=true)
-uv run --locked example-gui
-
-# Run the MCP server (if include_mcp=true)
-uv run --locked example-mcp
-
-# Run the worker (if include_worker=true)
-uv run --locked example-worker
+# Non-primary components are subcommands of the `example` root (ADR-019); the
+# *primary* component is launched by bare `example`. The forms below assume each
+# is non-primary (e.g. alongside include_cli=true):
+uv run --locked example interactive   # TUI  (if include_tui=true)
+uv run --locked example gui           # GUI  (if include_gui=true)
+uv run --locked example web           # web  (if include_web=true)
+uv run --locked example mcp           # MCP  (if include_mcp=true)
+uv run --locked example worker        # worker (if include_worker=true)
 
 # Run prek hooks
 uv run --locked tox run -e prek
@@ -300,10 +297,13 @@ lint/build orchestrator (see [ADR-003](docs/adr/003-tox-as-canonical-lint-runner
 **import-linter** enforces the generated package's architecture: one always-on
 `layers` contract (in `[tool.importlinter]`) keeps the component group
 (`web`/`gui`/`tui`/`mcp`/`worker`) mutually independent, with `cli` as an
-orchestrator layer above them (its `web`/`gui`/`tui` subcommands lazy-import those
-components to launch them), all layered above `core` above `utils`. The component
-layers are Jinja-conditional on the enabled toggles (omitted when none are
-enabled, leaving a `core > utils` contract), so no `ignore_imports` is needed.
+orchestrator layer above them (the `{{pkg}}` Typer root, whose subcommands
+lazy-import those components to launch them — see ADR-019), all layered above
+`core` above `utils`. The `cli` layer is present whenever `include_console_root`
+is true (see the entry-points section below), not only when `include_cli` is set.
+The component layers are Jinja-conditional on the enabled toggles (omitted when
+none are enabled, leaving a `core > utils` contract), so no `ignore_imports` is
+needed.
 Delivered via the `style` group + a `lint-imports` command run from **both** the
 tox `style` env and a prek `local` `system` hook (`uv run --locked --group style
 lint-imports`) — the same dual-run, single-version-source pattern as
@@ -477,23 +477,38 @@ Test packages mirror source structure in `tests/`:
   from the default run, Docker required); see
   [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
 
-Entry points configured in `pyproject.toml` (console-script wiring): the
+Entry points configured in `pyproject.toml` (console-script wiring — see
+**[ADR-019](docs/adr/019-components-as-cli-subcommands.md)**): the
 highest-precedence enabled component (**CLI > GUI > TUI > web > MCP > worker**)
 is the *primary* and owns the bare `pkg` command, wired to `pkg.__main__:main`
 (the single entrypoint standalone builds also target). Every *other* enabled
-component keeps a suffixed `pkg-<name>` command pointing at its own
-`pkg.<name>.app:main`. The precedence lives in **one** place — the
+component is exposed as a **subcommand of the `pkg` Typer root**
+(`pkg <name>` — `interactive` for the TUI, else the component name), **not** a
+separate `pkg-<name>` console script. The precedence lives in **one** place — the
 `primary_component` computed variable in `copier.yml` (empty for a library) —
 and every template (`pyproject`, `README`, `docs/usage`, `docs/installation`,
-`.vscode/launch.json`, tox) derives the primary and each command's suffix from
-it: a component `X` is suffixed exactly when `primary_component != "X"`. Do
+`.vscode/launch.json`, tox) derives the primary and each subcommand from it: a
+component `X` is a subcommand exactly when `primary_component != "X"`. Do
 **not** re-spell the precedence as inline `include_x or include_y …` conditions.
 
+The `pkg` Typer root lives in the `cli/` package. It exists whenever
+`include_console_root` (a hidden `when: false` computed var) is true —
+`include_cli or (≥2 of gui/tui/web/mcp/worker enabled)`. When `include_cli` is
+off but ≥2 components are enabled, `cli/` is a *minimal launcher* (no
+`version`/`info`; bare `pkg` launches the primary via an
+`@app.callback(invoke_without_command=True)` default, secondaries are
+subcommands). A single-component non-CLI app has **no** root and does **not**
+pull in `typer` — bare `pkg` launches that component directly via `__main__`.
+`include_console_root` is the single source of truth for the `cli/`
+package/test-dir guards, the `typer` core dependency, the import-linter `cli`
+layer, and the `__main__.py` branch.
+
 - `project.scripts`: bare `pkg = "pkg.__main__:main"` when the primary is a
-  console component, plus a `pkg-<name>` entry per non-primary console component.
-- `project.gui-scripts`: `pkg-gui = "pkg.gui.app:main"` (windowless launcher);
-  when GUI is the primary it instead takes the bare `pkg = "pkg.__main__:main"`
-  here, so there is never a bare-name collision across the two tables.
+  console component (i.e. not GUI). No `pkg-<name>` entries are emitted.
+- `project.gui-scripts`: `pkg = "pkg.__main__:main"` **only when GUI is the
+  primary** (windowless launcher, no console window on Windows); there is never a
+  bare-name collision across the two tables. A non-primary GUI is reached via the
+  `pkg gui` subcommand, not a `pkg-gui` gui-script.
 
 ### Devcontainer Structure
 
@@ -872,9 +887,13 @@ For generated projects to publish to PyPI:
      <pkg>` must pull it. (`all` stays empty; it exists only so the `dev`
      group's `<pkg>[all]` resolves.)
    - Add the entry point if applicable. If the component is runnable, fold it
-     into the console-script precedence in `primary_component` (`copier.yml`)
-     and the `_console`/`_gui` wiring block — a non-primary component gets a
-     `<pkg>-<name>` command; do not spell out the precedence inline anywhere.
+     into the console-script precedence in `primary_component` (`copier.yml`); a
+     non-primary component gets a `<pkg> <name>` **subcommand** (add a lazy
+     `@app.command()` in `cli/app.py.jinja`, guarded on
+     `include_xxx and primary_component != 'xxx'`), **not** a `<pkg>-<name>`
+     script (see ADR-019). If it is a *new kind* of runnable component, also
+     extend `include_console_root` in `copier.yml`. Do not spell out the
+     precedence inline anywhere.
    - Add keywords
    - Add the component to the `[tool.importlinter]` `layers` contract (a sibling in the `il_components` list, or — like `cli` — its own orchestrator layer if it imports other components)
 6. Add the new toggle to the `full` entry in `copier.yml`'s `preset_map` (and to
