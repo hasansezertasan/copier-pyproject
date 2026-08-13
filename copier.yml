@@ -90,6 +90,7 @@ preset_map:
       - include_all_contributors
       - include_megalinter
       - include_repo_settings
+      - include_repo_ruleset
       - include_postgres
       - include_pgadmin
       - include_adminer
@@ -206,6 +207,11 @@ include_repo_settings:
   default: "{{ 'include_repo_settings' in preset_map[preset] }}"
   help: >-
     Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? Requires installing that App on the repository; it escalates push access to admin, so review the CONTRIBUTING note before enabling.
+include_repo_ruleset:
+  type: bool
+  default: "{{ 'include_repo_ruleset' in preset_map[preset] }}"
+  help: >-
+    Include a repository ruleset (.github/rulesets/main.json) plus an App-free ruleset-sync.yml workflow that enforces branch protection on the default branch as code (squash-only, linear history, required CI checks)? Requires a one-time REPO_ADMIN_TOKEN secret — a fine-grained PAT with Administration read & write (the Actions GITHUB_TOKEN cannot manage rulesets). Manual edits in the web UI are reverted on the next default-branch push. See the CONTRIBUTING setup note before enabling.
 repository_topics:
   type: str
   default: ""
