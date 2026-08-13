@@ -71,7 +71,7 @@ def test_ruleset_status_contexts_non_web(render: Callable[..., Path]) -> None:
         "Validate branch name",
         "Validate PR title",
         "Verify linked issue",
-        "Task Completed Checker",
+        "Check PR task list",
         "Dependency audit (pip-audit)",
         "Secret scan (gitleaks)",
     ]

@@ -279,7 +279,7 @@ branches**.)
 {% if include_repo_ruleset -%}
 **2. Branch protection (managed as code).** This project ships its branch
 protection as a repository ruleset (`.github/rulesets/main.json`) applied by the
-`ruleset-sync.yml` workflow on every push to `main`. It enforces squash-only
+`ruleset-sync.yml` workflow on every push to the default branch. It enforces squash-only
 merges, linear history, and the required CI checks; manual edits in the web UI
 are reverted on the next push.
 
