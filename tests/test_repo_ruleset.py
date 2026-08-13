@@ -84,3 +84,22 @@ def test_ruleset_status_contexts_web_adds_trivy(render: Callable[..., Path]) -> 
     contexts = _status_contexts(ruleset)
     assert contexts[-1] == "Container image scan (Trivy)"
     assert contexts.count("Container image scan (Trivy)") == 1
+
+
+def test_sync_workflow_absent_by_default(render: Callable[..., Path]) -> None:
+    assert not _workflow(render()).exists()
+
+
+def test_sync_workflow_present_when_enabled(render: Callable[..., Path]) -> None:
+    root = render(include_repo_ruleset=True)
+    text = _workflow(root).read_text(encoding="utf-8")
+    # Raw-wrapped GitHub Actions syntax must survive rendering verbatim
+    # (``${{ ... }}`` legitimately contains ``{{``, so only block tags and the
+    # raw wrapper itself are checked for leftover Jinja).
+    assert "${{ secrets.REPO_ADMIN_TOKEN }}" in text
+    assert "${{ github.repository }}" in text
+    assert "{%" not in text
+    assert "raw" not in text.split("run:", 1)[0]  # no leftover {%- raw -%} wrapper
+    # Hardening markers.
+    assert "persist-credentials: false" in text
+    assert "permissions: {}" in text
