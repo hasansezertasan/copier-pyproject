@@ -1,6 +1,6 @@
 ---
-name: adopt-copier-pyproject
-description: Use when adopting the hasansezertasan/copier-pyproject Copier template into an EXISTING or already-published Python package (not a fresh scaffold), or when a `copier update` from that template overwrites source/config and needs reconciling. Covers the source-skeleton collision, ruff auto-fix source corruption, the release-please/hatch-vcs version clash, and the TODO/placeholder content the template plants in issue templates and docs.
+name: adopt
+description: Use for the FIRST-TIME adoption of the hasansezertasan/copier-pyproject Copier template into an EXISTING or already-published Python package (not a fresh scaffold) — running `copier copy --overwrite` and reconciling from git. Covers the source-skeleton collision, ruff auto-fix source corruption, the release-please/hatch-vcs version clash, and the TODO/placeholder content the template plants in issue templates and docs. For pulling LATER template changes into an already-adopted project (`copier update`, Renovate copier-update PRs), use the `update` skill instead; for wiring up releases/secrets/branch protection, use the `setup` skill.
 ---
 
 # Adopt copier-pyproject into an existing package
@@ -83,53 +83,15 @@ entire job.** Run copier, let it overwrite everything, then restore your side fr
 
 The Procedure above is the **first adoption** (`copier copy --overwrite` → blow away,
 restore from git). Once the project carries a `.copier-answers.yml` with a `_commit:`
-anchor, pulling later template changes is a **different, cleaner flow.** `copier
-update` does a **3-way git merge** against your recorded answers, so it preserves the
-reconciliations you already committed and only emits conflicts where the template and
-your edits touch the same lines. **Do NOT `copier copy --overwrite` an already-adopted
-project** — it discards every prior reconciliation and forces the full manual restore
-again.
+anchor, pulling later template changes is a **different, cleaner flow** (a 3-way git
+merge, per-hunk conflict reconciliation, restoring the files the update resets, and
+the anchor convergence gate) — and reviewing a Renovate-opened copier-update PR is a
+recurring case of its own.
 
-1. **Invoke** (the `mise` shim is often unresolvable — `No version is set for shim:
-   copier`; `uvx` is reliable):
-   ```bash
-   uvx copier@latest update --defaults
-   ```
-   No `--trust` needed (the template defines no `_tasks`/migrations). `--defaults`
-   accepts stored answers; a genuinely new template question takes its default —
-   check the answers diff so a new answer does not silently enable a dependency.
-
-2. **Resolve conflicts, not a full restore.** Conflicts surface as `UU` files with
-   `<<<<<<< before updating` / `=======` / `>>>>>>> after updating` markers (`before`
-   = your committed version, `after` = template). Resolve per hunk:
-   - **Machine config / CI logic / SHA-pin bumps** → take `after` (template).
-   - **Project identity + prose** (README features, real CONTRIBUTING content, issue-
-     template examples) → keep `before`, but **graft in genuinely new template
-     capabilities** (e.g. a new managed-`.gitignore` / cobo feature bullet).
-   - Planted TODOs appear on the `after` side of prose conflicts — drop them, keep your
-     real content (see Manual adjustments).
-   Then `git add -A` to clear the merge state; `git grep -nE '^(<<<<<<<|>>>>>>>) '` must
-   be empty.
-
-3. **Still restore project-owned files the merge deletes/resets** (same as first
-   adoption): `copier update` deletes `CHANGELOG.md` and resets
-   `.github/release-please-manifest.json` to `0.0.0` — `git checkout --` both (manifest
-   → your real released version, gotcha #3). Re-run the ruff + taplo gates
-   (gotchas #1, #10) and confirm `docs/conf.py` kept your custom `exclude_patterns`
-   (gotcha #9).
-
-4. **Anchor gate — pin to YOUR anchor when template HEAD has moved.** A plain
-   `copier update --pretend` targets the template's current HEAD; if HEAD advanced
-   since your update (common — it can move mid-session) it reports wanting to move to
-   the *newer* commit, which is **not** reconciliation divergence. Test convergence
-   against the commit you actually reconciled to:
-   ```bash
-   uvx copier@latest update --vcs-ref=<your _commit> --pretend --defaults
-   ```
-   Must print **`Keeping template version …<your _commit>`** (nothing to re-apply) — the
-   real proof your reconciliation converged. If a newer commit exists and you want it,
-   just run `update` again: it is a fresh, usually-tiny merge, committed separately.
-   (`--pretend` refuses on a dirty tree, so run it after committing the baseline.)
+**That entire ongoing-update workflow lives in the `update` skill — use it for any
+`copier update` or Renovate copier-update PR.** The one rule to remember here:
+**never `copier copy --overwrite` an already-adopted project** — it discards every
+prior reconciliation and forces the full manual restore again.
 
 ## Manual adjustments the template plants (CI will NOT catch these)
 
@@ -205,9 +167,8 @@ patterns need them back:
 - **Running any tool before gating ruff.** Auto-fix corrupts source first.
 - **Skipping the `copier update --pretend` gate.** A wrong update-anchor makes every
   future update a merge conflict. Pin it with `--vcs-ref=<your _commit>` — a plain
-  `--pretend` after the template HEAD moved reports a false "diverged".
-- **`copier copy --overwrite` on an already-adopted project.** Use `copier update` —
-  overwrite throws away every committed reconciliation and forces the full restore again.
+  `--pretend` after the template HEAD moved reports a false "diverged". (The ongoing
+  update flow itself is the `update` skill.)
 - **Treating coverage `fail_under=99` as met.** A package with no prior tests won't
   pass; scope a real test suite separately.
 - **Treating a fully-green CI/style sweep as "done".** The planted prose (see Manual

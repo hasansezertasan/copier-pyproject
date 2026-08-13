@@ -52,7 +52,7 @@ work with this template:
    it starts with `git+https://`, `git+ssh://`, `git@`, or `git://`, or ends with
    `.git`. Scaffold with the `.git` HTTPS URL
    (`https://github.com/hasansezertasan/copier-pyproject.git`); the README
-   scaffold step and the `adopt-copier-pyproject` skill both use it for this
+   scaffold step and the `copier-pyproject:adopt` skill both use it for this
    reason. Existing projects that were scaffolded with the `gh:` shorthand can be
    fixed by rewriting the `_src_path` line — `copier update` re-reads and
    preserves it.
@@ -83,7 +83,7 @@ copier-update PR can appear mergeable while carrying `<<<<<<<` markers. This is
 inherent to `copier update` (any runner surfaces the same conflicts), not unique
 to Renovate. The generated `CONTRIBUTING.md` "Template updates" note tells
 maintainers to review these PRs for conflict markers before merging, and to lean
-on the `adopt-copier-pyproject` reconciliation workflow.
+on the `copier-pyproject:update` reconciliation workflow.
 
 ## Considered and rejected
 
