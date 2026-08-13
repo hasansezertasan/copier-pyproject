@@ -65,8 +65,17 @@ instead of replaced, and so the rule composes cleanly with the shared preset's
 `customManagers`/`pinGitHubActionDigests` policy.
 
 This repo's **own** root workflows (`.github/workflows/*.yml`), `prek.toml`, and
-`mise.toml` stay Renovate-managed, so the template's own CI and its `example/`
-smoke-test keep current tool versions.
+`mise.toml` stay Renovate-managed, so the template's own CI keeps current tool
+versions. (The gitignored `example/` renders *from* `template/`, so it inherits
+the frozen seed pins — valid, just not necessarily latest.)
+
+In practice the confirmed conflict source was the **plain** `template/*.yml`
+workflow files (e.g. PR #196 bumped `setup-uv` in both this repo's own workflows
+and the shipped `template/.github/workflows/docs-*.yml`). The `.jinja`-suffixed
+files (`prek.toml.jinja`, `*.yml.jinja`) are not matched by Renovate's stock
+`github-actions`/regex managers, so freezing them is a safe no-op unless the
+shared preset's `customManagers` are extended to reach them; the `template/**`
+match covers every case either way.
 
 ## Consequences
 
