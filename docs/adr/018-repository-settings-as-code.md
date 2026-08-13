@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed (2026-08).
+Proposed (2026-08). Superseded in part by
+[ADR-021](021-repository-ruleset-as-code.md) (2026-08): branch protection,
+excluded below, is now available opt-in via a Rulesets sync workflow.
 
 ## Context
 
