@@ -29,7 +29,7 @@ Shared helper functions.
 CLI (``{{github_repo_name}}.cli``)
 {{ '-' * (github_repo_name | length + 24) }}
 
-Typer command-line interface exposing ``version`` and ``info`` commands.
+{% if cli_framework == "typer" %}Typer{% else %}argparse{% endif %} command-line interface exposing ``version`` and ``info`` commands.
 
 .. automodule:: {{github_repo_name}}.cli.app
 {% endif %}{% if include_web %}

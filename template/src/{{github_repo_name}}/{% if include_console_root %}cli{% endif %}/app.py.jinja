@@ -1,3 +1,235 @@
+{% if include_cli and cli_framework == "argparse" -%}
+"""CLI application for the project.
+
+A dependency-free ``argparse`` root for the ``{{github_repo_name}}`` command. It
+exposes the same ``version`` / ``info`` commands as the Typer variant and hangs
+every enabled non-primary component off the root as a lazily-imported subcommand
+— ``{{github_repo_name}} interactive`` (TUI), ``{{github_repo_name}} web``, ... —
+rather than a separate ``{{github_repo_name}}-<name>`` console script (see
+ADR-019 and ADR-020). Selected via ``cli_framework``.
+"""
+
+from __future__ import annotations
+
+import argparse
+import platform
+import sys
+from importlib.metadata import Distribution, PackageNotFoundError
+from typing import TYPE_CHECKING, cast
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.logging_setup import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+{% set cli_all = ["app", "show_version", "info"] -%}
+{%- if include_tui and primary_component != 'tui' %}{% set _ = cli_all.append("interactive") %}{% endif -%}
+{%- if include_gui and primary_component != 'gui' %}{% set _ = cli_all.append("gui") %}{% endif -%}
+{%- if include_web and primary_component != 'web' %}{% set _ = cli_all.append("web") %}{% endif -%}
+{%- if include_mcp and primary_component != 'mcp' %}{% set _ = cli_all.append("mcp") %}{% endif -%}
+{%- if include_worker and primary_component != 'worker' %}{% set _ = cli_all.append("worker") %}{% endif -%}
+{%- set _ = cli_all.sort() -%}
+__all__ = [{% for n in cli_all %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+
+logger = get_logger()
+
+_METADATA_MISSING = f"Error: Package '{PROJECT_NAME}' metadata not found. Is the package installed correctly?"  # noqa: E501
+
+
+def show_version() -> None:
+    """Show the current version number of {{github_repo_name}}.
+
+    Show the version number:
+        {{github_repo_name}} version
+
+    Example output:
+        0.1.0
+
+    Raises:
+        SystemExit: With code 1 if the package metadata cannot be found.
+    """
+    try:
+        distribution = Distribution.from_name(PROJECT_NAME)
+    except PackageNotFoundError:
+        logger.exception("Package metadata not found for %s", PROJECT_NAME)
+        _ = sys.stderr.write(_METADATA_MISSING + "\n")
+        raise SystemExit(1) from None
+    logger.info("Command `version` called.")
+    _ = sys.stdout.write(f"{distribution.version}\n")
+    logger.info("Version displayed successfully.")
+
+
+def info() -> None:
+    """Display information about the {{github_repo_name}} application.
+
+    Show application information:
+        {{github_repo_name}} info
+
+    Example output:
+        Application Version: 0.1.0
+        Python Version: 3.12.0 (CPython)
+        Platform: Darwin
+
+    Raises:
+        SystemExit: With code 1 if the package metadata cannot be found.
+    """
+    try:
+        distribution = Distribution.from_name(PROJECT_NAME)
+    except PackageNotFoundError:
+        logger.exception("Package metadata not found for %s", PROJECT_NAME)
+        _ = sys.stderr.write(_METADATA_MISSING + "\n")
+        raise SystemExit(1) from None
+    logger.info("Command `info` called.")
+    python_version = platform.python_version()
+    python_implementation = platform.python_implementation()
+    lines = [
+        f"Application Version: {distribution.version}",
+        f"Python Version: {python_version} ({python_implementation})",
+        f"Platform: {platform.system()}",
+    ]
+    _ = sys.stdout.write("\n".join(lines) + "\n")
+    logger.info("Application information displayed successfully.")
+{%- if include_tui and primary_component != 'tui' %}
+
+
+def interactive() -> None:  # pragma: no cover
+    """Start interactive mode (TUI) for {{github_repo_name}}.
+
+    Launch the terminal user interface:
+        {{github_repo_name}} interactive
+
+    Raises:
+        SystemExit: Propagating the TUI's exit code.
+    """
+    from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
+
+    raise SystemExit(main())
+{%- endif %}
+{%- if include_gui and primary_component != 'gui' %}
+
+
+def gui() -> None:  # pragma: no cover
+    """Start the graphical user interface for {{github_repo_name}}.
+
+    Launch the GUI:
+        {{github_repo_name}} gui
+
+    Raises:
+        SystemExit: Propagating the GUI's exit code.
+    """
+    from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
+
+    raise SystemExit(main())
+{%- endif %}
+{%- if include_web and primary_component != 'web' %}
+
+
+def web() -> None:  # pragma: no cover
+    """Start the web interface for {{github_repo_name}}.
+
+    Launch the web server:
+        {{github_repo_name}} web
+    """
+    from {{github_repo_name}}.web.app import main  # noqa: PLC0415
+
+    main()
+{%- endif %}
+{%- if include_mcp and primary_component != 'mcp' %}
+
+
+def mcp() -> None:  # pragma: no cover
+    """Start the MCP server for {{github_repo_name}}.
+
+    Launch the MCP server:
+        {{github_repo_name}} mcp
+    """
+    from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
+
+    main()
+{%- endif %}
+{%- if include_worker and primary_component != 'worker' %}
+
+
+def worker() -> None:  # pragma: no cover
+    """Start the message queue worker for {{github_repo_name}}.
+
+    Launch the worker:
+        {{github_repo_name}} worker
+    """
+    from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
+
+    main()
+{%- endif %}
+
+
+# Command name -> handler. ``version``/``info`` mirror the Typer root; a
+# dispatcher is added for each enabled non-primary component.
+_COMMANDS: dict[str, Callable[[], None]] = {"version": show_version, "info": info}
+{%- if include_tui and primary_component != 'tui' %}
+_COMMANDS["interactive"] = interactive
+{%- endif %}
+{%- if include_gui and primary_component != 'gui' %}
+_COMMANDS["gui"] = gui
+{%- endif %}
+{%- if include_web and primary_component != 'web' %}
+_COMMANDS["web"] = web
+{%- endif %}
+{%- if include_mcp and primary_component != 'mcp' %}
+_COMMANDS["mcp"] = mcp
+{%- endif %}
+{%- if include_worker and primary_component != 'worker' %}
+_COMMANDS["worker"] = worker
+{%- endif %}
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the top-level argument parser for the {{github_repo_name}} CLI.
+
+    Returns:
+        The configured parser with the ``version``/``info`` commands and one
+        subcommand per enabled non-primary component.
+    """
+    parser = argparse.ArgumentParser(prog="{{github_repo_name}}")
+    subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
+    _ = subparsers.add_parser("version", help="Show the version number.")
+    _ = subparsers.add_parser("info", help="Show application and environment info.")
+{%- if include_tui and primary_component != 'tui' %}
+    _ = subparsers.add_parser("interactive", help="Start interactive (TUI) mode.")
+{%- endif %}
+{%- if include_gui and primary_component != 'gui' %}
+    _ = subparsers.add_parser("gui", help="Start the graphical interface.")
+{%- endif %}
+{%- if include_web and primary_component != 'web' %}
+    _ = subparsers.add_parser("web", help="Start the web interface.")
+{%- endif %}
+{%- if include_mcp and primary_component != 'mcp' %}
+    _ = subparsers.add_parser("mcp", help="Start the MCP server.")
+{%- endif %}
+{%- if include_worker and primary_component != 'worker' %}
+    _ = subparsers.add_parser("worker", help="Start the message queue worker.")
+{%- endif %}
+    return parser
+
+
+def app(argv: list[str] | None = None) -> None:
+    """Run the {{github_repo_name}} CLI application.
+
+    Args:
+        argv: Optional argument vector; defaults to ``sys.argv[1:]`` when ``None``.
+    """
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    # ``argparse.Namespace`` attributes are ``Any``; narrow the dispatch key.
+    command = cast("str | None", args.command)
+    handler = _COMMANDS.get(command) if command is not None else None
+    if handler is None:
+        # Parity with Typer's ``no_args_is_help``: show help when no command is
+        # given rather than exiting silently.
+        parser.print_help()
+        return
+    handler()
+{%- else -%}
 """CLI application for the project.
 
 The ``{{github_repo_name}}`` command is the single Typer root. Every enabled
@@ -199,4 +431,5 @@ def worker() -> None:  # pragma: no cover
     from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
+{%- endif %}
 {%- endif %}

@@ -20,7 +20,7 @@ keywords = [
     "type-hints", "typed", "modern-python",
     "ci-cd", "github-actions", "automation", "sphinx",
     "prek", "linting", "testing", "coverage", "release-automation",
-{%- if include_cli %}
+{%- if include_cli and cli_framework == "typer" %}
     "typer",
 {%- endif %}
 {%- if include_web %}
@@ -109,7 +109,7 @@ requires-python = ">=3.10"
 # unconditionally when enabled.
 {% endif -%}
 dependencies = [
-{%- if include_console_root %}
+{%- if include_console_root and cli_framework == "typer" %}
     "typer>=0.20.0",
 {%- endif %}
 {%- if include_tui %}

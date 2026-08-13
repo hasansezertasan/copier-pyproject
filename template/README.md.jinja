@@ -228,7 +228,7 @@ If you have any questions or need help, feel free to open an issue on the [GitHu
 {% if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_c_extensions or include_pydantic_settings %}
 ## Features
 
-{% if include_cli %}- **CLI Application**: Command-line interface built with Typer
+{% if include_cli %}- **CLI Application**: Command-line interface built with {% if cli_framework == "typer" %}Typer{% else %}argparse (standard library){% endif %}
 {% endif %}{% if include_web %}- **Web API**: {% if web_framework == "fastapi" %}FastAPI{% else %}Litestar{% endif %}-based web application with automatic API documentation
 {% endif %}{% if include_gui %}- **GUI Application**: Desktop interface built with Tkinter
 {% endif %}{% if include_tui %}- **TUI Application**: Terminal user interface built with Textual
