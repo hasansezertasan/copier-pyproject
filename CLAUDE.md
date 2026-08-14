@@ -885,6 +885,21 @@ registration, each step tagged `[AGENT]` (scriptable) or `[HUMAN]`
 sync when these requirements change. See
 [ADR-022](docs/adr/022-maintainer-setup-as-single-doc-home.md).
 
+Generated projects also ship a **`repo-setup` skill**
+(`template/.claude/skills/repo-setup/SKILL.md` → `.claude/skills/repo-setup/` in
+the generated project) — a resume-driver that reads `docs/maintaining/setup.rst`,
+runs each step's idempotent **`[CHECK]`** block (exit 0 = already done), auto-runs
+red `[AGENT]` steps, and hands off `[HUMAN]` steps — classifying each step as
+required / deferred (Pages, pre-first-release) / optional so the walk never
+deadlocks and reports every gap at once. The
+`[CHECK]` tag is single-sourced in the setup doc alongside `[AGENT]`/`[HUMAN]`
+(no separate `steps.yaml`) — **every new setup step must carry one** (a real
+idempotent check, a secret-presence check, or an explicit `No scriptable check`
+marker). This repo carries a symmetric repo-local `.claude/skills/repo-setup/`
+for its own bootstrap (squash-merge policy + the deliberately-divergent
+`default_workflow_permissions=write`, not the generated projects' `read`). See
+[ADR-023](docs/adr/023-repo-setup-skill.md).
+
 Bump rules follow `.github/release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`
 keeps breaking changes at a minor bump while pre-1.0.

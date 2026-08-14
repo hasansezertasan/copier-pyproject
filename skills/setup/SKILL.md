@@ -112,15 +112,13 @@ private repo is non-fatal — CI records a `::notice::` and the build still pass
 
 ## Verify (externally — CI won't)
 
-None of this can be proven from a branch or a green CI run. Confirm each out of band:
-
-- **Merge policy:** `gh repo view <owner>/<repo> --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed,deleteBranchOnMerge` → squash true, others false.
-- **Workflow PR permission:** `gh api repos/<owner>/<repo>/actions/permissions/workflow` → `can_approve_pull_request_reviews: true`.
-- **Branch protection:** `gh api repos/<owner>/<repo>/branches/main/protection --jq '.required_status_checks.contexts'` → the four contexts.
-- **PyPI:** the pending publisher appears at <https://pypi.org/manage/account/publishing/>.
-- **Renovate:** an onboarding PR appears after install; merge it.
-- **Secrets:** `gh secret list --repo <owner>/<repo>`.
-- **Pages (post-first-release):** `gh api repos/<owner>/<repo>/pages --jq '.html_url'` resolves.
+None of this can be proven from a branch or a green CI run — confirm each out of
+band. Every **actionable** step in `docs/maintaining/setup.rst` now ships a
+`[CHECK]` block (a shell snippet where exit 0 means "already done"); run a step's `[CHECK]` to
+verify it rather than reconstructing the command here. A project generated on a
+recent template also carries an in-repo `repo-setup` skill that walks those
+checks and resumes at the first gap — prefer it when working inside the project;
+this skill is the cross-project guide (dependency order, timing traps, gotchas).
 
 ## Gotchas (each is a silent, off-to-the-side failure)
 

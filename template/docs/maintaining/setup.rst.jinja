@@ -38,6 +38,13 @@ reads. Also delete head branches on merge to keep the branch list clean.
      --delete-branch-on-merge \
      --squash-merge-commit-message=pr-title
 
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh api repos/{{github_user}}/{{github_repo_name}} \
+     --jq '.allow_squash_merge and (.allow_merge_commit | not) and (.allow_rebase_merge | not) and (.allow_auto_merge | not) and .delete_branch_on_merge and (.squash_merge_commit_title == "PR_TITLE")' | grep -qx true
+
 UI equivalent: **Settings → General → Pull Requests** — enable **Allow squash
 merging**, disable merge commits and rebase merging, set the squash **"Default
 commit message"** to **"Pull request title"**, and enable **Automatically delete
@@ -69,8 +76,18 @@ or run it directly):
 
    gh workflow run ruleset-sync.yml --repo {{github_user}}/{{github_repo_name}}
 
-Until the secret is set the workflow logs a notice and exits without error, so
-the repository is never blocked.
+**[CHECK]** The ``Protect main`` ruleset is applied and active — verifying the
+end state (not just that the ``REPO_ADMIN_TOKEN`` secret exists), so a repo where
+``ruleset-sync.yml`` has not yet run, failed, or had its ruleset deleted is
+correctly reported as not-done:
+
+.. code-block:: sh
+
+   gh api --paginate repos/{{github_user}}/{{github_repo_name}}/rulesets \
+     --jq 'any(.[]; .name == "Protect main" and .enforcement == "active")' | grep -qx true
+
+Until the ``REPO_ADMIN_TOKEN`` secret is set the workflow logs a notice and exits
+without error, so the repository is never blocked.
 {% else %}
 Protect ``main`` so a PR can only merge once its checks pass. Mark these check
 contexts as required (the names are the **check runs**, not the workflow files):
@@ -102,6 +119,13 @@ contexts as required (the names are the **check runs**, not the workflow files):
    }
    JSON
 
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh api repos/{{github_user}}/{{github_repo_name}}/branches/main/protection \
+     --jq '(.required_status_checks.strict == true) and ((["Validate PR title","Validate branch name","Verify linked issue","Task Completed Checker"] - (.required_status_checks.contexts // [])) == [])' | grep -qx true
+
 UI equivalent: **Settings → Branches → Add branch ruleset** (or **Add rule** for
 ``main``) — enable **Require status checks to pass before merging**, then search
 for and add the four contexts above. The contexts only appear in the picker
@@ -121,6 +145,13 @@ request, so the repo must allow Actions to create and approve pull requests.
      -F default_workflow_permissions=read \
      -F can_approve_pull_request_reviews=true
 
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh api repos/{{github_user}}/{{github_repo_name}}/actions/permissions/workflow \
+     --jq '.can_approve_pull_request_reviews == true and .default_workflow_permissions == "read"' | grep -qx true
+
 UI equivalent: **Settings → Actions → General → Workflow permissions** — enable
 **Allow GitHub Actions to create and approve pull requests**.
 
@@ -132,6 +163,9 @@ overwritten, which protects the integrity of what gets distributed.
 
 **[HUMAN]** Enable it under **Settings → General → ... → Enable release
 immutability** (currently a UI-only toggle).
+
+**[CHECK]** No scriptable check — confirm under **Settings → General** that
+release immutability is enabled.
 
 PyPI trusted publishing
 -----------------------
@@ -151,6 +185,9 @@ tokens or secrets to manage).
   workflow, so this is the filename PyPI's OIDC check matches.
 - **Environment name:** ``publish``
 
+**[CHECK]** No scriptable check — confirm the pending publisher is listed at
+`PyPI → Publishing <https://pypi.org/manage/account/publishing/>`_.
+
 Coverage reporting (Codecov)
 ----------------------------
 
@@ -169,9 +206,56 @@ dashboard.
 
    gh secret set CODECOV_TOKEN --repo {{github_user}}/{{github_repo_name}}
 
+**[CHECK]** A public repo needs no token; a private repo needs the secret:
+
+.. code-block:: sh
+
+   priv="$(gh repo view {{github_user}}/{{github_repo_name}} --json isPrivate --jq '.isPrivate' 2>/dev/null)"
+   if [ "$priv" = "false" ]; then true
+   elif [ "$priv" = "true" ]; then
+     gh secret list --repo {{github_user}}/{{github_repo_name}} --json name --jq '.[].name' | grep -qx CODECOV_TOKEN
+   else false; fi
+
 The upload is best-effort either way: on a private repo with no token CI records
 a ``::notice::`` and skips the upload — the build still passes — rather than
 failing every run.
+
+Secret scanning (gitleaks)
+--------------------------
+
+The ``gitleaks`` job in ``check-security.yml`` scans the full git history for
+committed secrets.
+`gitleaks-action <https://github.com/gitleaks/gitleaks-action>`_ is **free for
+personal accounts and public repositories** with no setup. Only if this
+repository lives under a GitHub **organization** does it require a
+``GITLEAKS_LICENSE`` — the secret is already wired into the workflow and stays
+empty (and unused) otherwise.
+
+**[HUMAN]** (organization-owned repos only) Obtain a license key from
+`gitleaks.io <https://gitleaks.io>`_.
+
+**[AGENT]** (organization-owned repos only) Store it as a repository secret:
+
+.. code-block:: sh
+
+   gh secret set GITLEAKS_LICENSE --repo {{github_user}}/{{github_repo_name}}
+
+**[CHECK]** A user-owned repo needs no license; an organization-owned repo needs
+the secret:
+
+.. code-block:: sh
+
+   owner="$(gh api repos/{{github_user}}/{{github_repo_name}} --jq '.owner.type' 2>/dev/null)"
+   if [ "$owner" = "User" ]; then true
+   elif [ "$owner" = "Organization" ]; then
+     gh secret list --repo {{github_user}}/{{github_repo_name}} --json name --jq '.[].name' | grep -qx GITLEAKS_LICENSE
+   else false; fi
+
+For a personal/public repo this needs no setup and the check passes with no
+secret. On an organization repo the ``gitleaks`` job fails until the license
+secret is set; ``check-security.yml`` is a standalone security workflow (not part
+of the required ``check`` gate), so this does not block merges, but the scan will
+not run until it is provided.
 
 Documentation site (GitHub Pages)
 ---------------------------------
@@ -187,6 +271,18 @@ by the first release that runs ``deploy-docs``, so enable Pages once after that.
 
    gh api -X POST repos/{{github_user}}/{{github_repo_name}}/pages \
      -f 'source[branch]=gh-pages' -f 'source[path]=/'
+
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh api repos/{{github_user}}/{{github_repo_name}}/pages \
+     --jq '.source.branch == "gh-pages" and .source.path == "/"' | grep -qx true
+
+This check stays red until the first release runs ``deploy-docs`` and creates the
+``gh-pages`` branch; run it after that first release. It asserts Pages serves
+``gh-pages:/`` specifically, so a site already enabled from another source (e.g.
+``main``) is correctly reported as not-yet-serving the release docs.
 
 UI equivalent: **Settings → Pages → Build and deployment** — set **Source** to
 **Deploy from a branch**, then pick the ``gh-pages`` branch and the ``/ (root)``
@@ -210,6 +306,9 @@ hosted Renovate GitHub App. The config is inert until the app is installed.
 `github.com/apps/renovate <https://github.com/apps/renovate>`_ and grant it
 access to this repository. Renovate then opens an onboarding PR; merge it to
 start receiving update PRs.
+
+**[CHECK]** No scriptable check — confirm the Renovate app is installed and its
+onboarding PR merged (`github.com/apps/renovate <https://github.com/apps/renovate>`_).
 
 Template updates (Renovate copier manager)
 ------------------------------------------
@@ -249,13 +348,20 @@ turned on.
 
    gh api -X PATCH repos/{{github_user}}/{{github_repo_name}} -F has_discussions=true
 
+**[CHECK]**
+
+.. code-block:: sh
+
+   [ "$(gh repo view {{github_user}}/{{github_repo_name}} --json hasDiscussionsEnabled --jq '.hasDiscussionsEnabled')" = "true" ]
+
 UI equivalent: **Settings → General → Features** — tick **Discussions**.
 {% if include_web or include_homebrew or include_scoop or include_sourcery or include_sonarcloud or include_all_contributors or include_repo_settings %}
 Optional integrations
 ---------------------
 
 These are enabled in this project's Copier answers and each needs a one-time
-external setup. Until set up, they are inert — CI stays green.
+external setup. Until set up, they are inert — CI stays green. They are opt-in: a
+red ``[CHECK]`` here means "not configured", which is a fine state to leave.
 {% endif %}
 {%- if include_web %}
 Docker Hub publishing
@@ -275,6 +381,13 @@ The release workflow always publishes the Docker image to GHCR
 
    gh secret set DOCKERHUB_USERNAME --repo {{github_user}}/{{github_repo_name}}
    gh secret set DOCKERHUB_TOKEN --repo {{github_user}}/{{github_repo_name}}
+
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq '(["DOCKERHUB_USERNAME","DOCKERHUB_TOKEN"] - [.[].name]) == []' | grep -qx true
 
 The pair is all-or-nothing: with neither set, the workflow skips Docker Hub with
 a notice and publishes to GHCR only; with only one set, a preflight job fails
@@ -311,6 +424,13 @@ opens its own PR with its own ``GITHUB_TOKEN``).
 
    gh secret set HOMEBREW_TAP_TOKEN --repo {{github_user}}/{{github_repo_name}}
 
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq 'any(.[]; .name == "HOMEBREW_TAP_TOKEN")' | grep -qx true
+
 When unset, the ``bump-homebrew`` job skips with a notice (never fails the
 release).
 {%- endif %}
@@ -341,6 +461,13 @@ opens its own PR with its own ``GITHUB_TOKEN``).
 
    gh secret set SCOOP_BUCKET_TOKEN --repo {{github_user}}/{{github_repo_name}}
 
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq 'any(.[]; .name == "SCOOP_BUCKET_TOKEN")' | grep -qx true
+
 When unset, the ``bump-scoop`` job skips with a notice (never fails the release).
 {%- endif %}
 {%- if include_sonarcloud %}
@@ -360,6 +487,13 @@ value in ``sonar-project.properties``), then generate a token.
 
    gh secret set SONAR_TOKEN --repo {{github_user}}/{{github_repo_name}}
 
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq 'any(.[]; .name == "SONAR_TOKEN")' | grep -qx true
+
 Like the Codecov upload, the scan is opt-in and non-blocking: with the secret
 unset, CI records a ``::notice::`` and skips it, and fork PRs are skipped
 entirely (they never receive secrets).
@@ -375,6 +509,8 @@ installed.
 **[HUMAN]** Install it once from
 `sourcery.ai <https://sourcery.ai/>`_ (or the GitHub Marketplace) and grant it
 access to this repository; it then reviews pull requests.
+
+**[CHECK]** No scriptable check — confirm the Sourcery GitHub App is installed.
 {%- endif %}
 {%- if include_all_contributors %}
 all-contributors
@@ -395,6 +531,8 @@ To add people, either edit ``.all-contributorsrc`` (or run the
 let the workflow regenerate, or install the
 `bot <https://allcontributors.org/docs/en/bot/usage>`_ for
 ``@all-contributors please add @user for code`` comments.
+
+**[CHECK]** No extra check — covered by "Let Actions open the release PR" above.
 {%- endif %}
 {%- if include_repo_settings %}
 Repository settings ("Settings" App)
@@ -407,6 +545,8 @@ the default branch. Nothing syncs until it is installed.
 
 **[HUMAN]** Install it once on this repository (or your account) from the
 `App page <https://github.com/apps/settings>`_.
+
+**[CHECK]** No scriptable check — confirm the Settings GitHub App is installed.
 
 .. caution::
 
