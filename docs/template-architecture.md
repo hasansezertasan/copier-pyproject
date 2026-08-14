@@ -50,7 +50,9 @@ Starting point:
 
 Optional components (all boolean):
 
-- `include_cli` - Typer CLI
+- `include_cli` - CLI (`cli_framework`: Typer, or standard-library `argparse` for
+  a dependency-free command root exposing the same `version`/`info` commands and
+  component subcommands — see [ADR-020](adr/020-cli-framework-choice.md))
 - `include_web` - Web app + Dockerfile (framework choice: FastAPI or Litestar)
 - `include_gui` - Tkinter GUI
 - `include_tui` - Textual TUI
@@ -65,6 +67,8 @@ Optional components (all boolean):
   These three standalone-executable toggles are independent and combinable; each
   maps to one architectural category (launcher / compiler / freezer). See
   [ADR-007](adr/007-standalone-executable-toggles.md).
+- `include_examples` - an `examples/` folder with simple and advanced usage stubs
+  (enabled by the `library` preset default)
 - `include_pydantic_settings` - pydantic-settings for config
 - `include_sourcery` - Sourcery AI-refactoring config (`.sourcery.yaml`)
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)

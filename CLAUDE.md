@@ -146,7 +146,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 
 | Toggle | One-line | ADR |
 | --- | --- | --- |
-| `include_cli` | Typer CLI — the `pkg` console root | [019](docs/adr/019-components-as-cli-subcommands.md), [020](docs/adr/020-cli-framework-choice.md) |
+| `include_cli` | CLI — the `pkg` console root (`cli_framework` = typer or stdlib argparse) | [019](docs/adr/019-components-as-cli-subcommands.md), [020](docs/adr/020-cli-framework-choice.md) |
 | `include_web` | Web app (FastAPI/Litestar, `web_framework`) + Dockerfile | — |
 | `include_gui` | Tkinter GUI | — |
 | `include_tui` | Textual TUI | — |
@@ -154,6 +154,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_worker` | FastStream worker (`worker_broker` = kafka/nats/rabbitmq/redis) | [008](docs/adr/008-worker-broker-testing-strategy.md) |
 | `include_c_extensions` | Cython + multi-platform wheels | — |
 | `include_profiling` | py-spy / scalene / cProfile | — |
+| `include_examples` | `examples/` folder with usage stubs (`library`-preset default) | — |
 | `include_launcher` | PyCrucible online-first-run launcher | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_compiler` | Nuitka native-compiled executable | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_freezer` | PyInstaller offline bundle | [007](docs/adr/007-standalone-executable-toggles.md) |
