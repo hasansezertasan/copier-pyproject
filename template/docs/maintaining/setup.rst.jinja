@@ -42,9 +42,8 @@ reads. Also delete head branches on merge to keep the branch list clean.
 
 .. code-block:: sh
 
-   gh repo view {{github_user}}/{{github_repo_name}} \
-     --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed,autoMergeAllowed,deleteBranchOnMerge,squashMergeCommitMessage \
-     --jq '.squashMergeAllowed and (.mergeCommitAllowed | not) and (.rebaseMergeAllowed | not) and (.autoMergeAllowed | not) and .deleteBranchOnMerge and (.squashMergeCommitMessage == "PR_TITLE")' | grep -qx true
+   gh api repos/{{github_user}}/{{github_repo_name}} \
+     --jq '.allow_squash_merge and (.allow_merge_commit | not) and (.allow_rebase_merge | not) and (.allow_auto_merge | not) and .delete_branch_on_merge and (.squash_merge_commit_title == "PR_TITLE")' | grep -qx true
 
 UI equivalent: **Settings → General → Pull Requests** — enable **Allow squash
 merging**, disable merge commits and rebase merging, set the squash **"Default
@@ -84,7 +83,7 @@ correctly reported as not-done:
 
 .. code-block:: sh
 
-   gh api repos/{{github_user}}/{{github_repo_name}}/rulesets \
+   gh api --paginate repos/{{github_user}}/{{github_repo_name}}/rulesets \
      --jq 'any(.[]; .name == "Protect main" and .enforcement == "active")' | grep -qx true
 
 Until the ``REPO_ADMIN_TOKEN`` secret is set the workflow logs a notice and exits
@@ -211,10 +210,11 @@ dashboard.
 
 .. code-block:: sh
 
-   priv="$(gh repo view {{github_user}}/{{github_repo_name}} --json isPrivate --jq '.isPrivate')" || exit 1
-   [ -n "$priv" ] || exit 1
-   [ "$priv" = "false" ] \
-     || gh secret list --repo {{github_user}}/{{github_repo_name}} --json name --jq '.[].name' | grep -qx CODECOV_TOKEN
+   priv="$(gh repo view {{github_user}}/{{github_repo_name}} --json isPrivate --jq '.isPrivate' 2>/dev/null)"
+   if [ "$priv" = "false" ]; then true
+   elif [ "$priv" = "true" ]; then
+     gh secret list --repo {{github_user}}/{{github_repo_name}} --json name --jq '.[].name' | grep -qx CODECOV_TOKEN
+   else false; fi
 
 The upload is best-effort either way: on a private repo with no token CI records
 a ``::notice::`` and skips the upload — the build still passes — rather than
@@ -345,19 +345,19 @@ The release workflow always publishes the Docker image to GHCR
    gh secret set DOCKERHUB_USERNAME --repo {{github_user}}/{{github_repo_name}}
    gh secret set DOCKERHUB_TOKEN --repo {{github_user}}/{{github_repo_name}}
 
-The pair is all-or-nothing: with neither set, the workflow skips Docker Hub with
-a notice and publishes to GHCR only; with only one set, a preflight job fails
-fast and blocks every publish channel (PyPI included) so a misconfiguration can
-never produce a partial release. The image is pushed to
-``docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}``, so the namespace
-follows the Docker Hub account — it does not need to match the GitHub owner.
-
 **[CHECK]**
 
 .. code-block:: sh
 
    gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
      --jq '(["DOCKERHUB_USERNAME","DOCKERHUB_TOKEN"] - [.[].name]) == []' | grep -qx true
+
+The pair is all-or-nothing: with neither set, the workflow skips Docker Hub with
+a notice and publishes to GHCR only; with only one set, a preflight job fails
+fast and blocks every publish channel (PyPI included) so a misconfiguration can
+never produce a partial release. The image is pushed to
+``docker.io/<DOCKERHUB_USERNAME>/{{github_repo_name}}``, so the namespace
+follows the Docker Hub account — it does not need to match the GitHub owner.
 {%- endif %}
 {%- if include_homebrew %}
 Homebrew tap

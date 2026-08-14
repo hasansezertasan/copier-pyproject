@@ -59,26 +59,34 @@ machine format, but the skill's consumer is an LLM-driven router reading prose,
 not a parser, so the doc's readability is sufficient and the single-source
 guarantee is worth more than a tidier schema.
 
-Three flavors of `[CHECK]`:
+Flavors of `[CHECK]`:
 
-- **`[AGENT]` steps** get a real idempotent check that verifies the *end state*
-  the step establishes, not a weaker proxy (e.g. merge policy via `gh repo view
-  … --json squashMergeAllowed,… --jq`; workflow permissions asserting **both**
-  `can_approve_pull_request_reviews` and the least-privilege
-  `default_workflow_permissions == "read"`; the classic branch protection
-  asserting `strict` plus its contexts; the ruleset variant querying the applied
-  `Protect main` ruleset is `enforcement: active`, not merely that its admin
-  token exists; Pages asserting `source.branch`/`source.path`, not merely that a
-  site exists).
-- **`[HUMAN]` steps that store a secret** (any of `REPO_ADMIN_TOKEN`,
+- **End-state checks** (the `[AGENT]` steps, plus the ruleset variant) verify the
+  *state the step establishes*, not a weaker proxy: merge policy via `gh api
+  repos/{owner}/{repo} --jq` asserting the `allow_*`/`squash_merge_commit_title`
+  fields (the `gh repo view --json` projection does **not** expose the
+  squash-message or auto-merge fields, so the REST endpoint is used); workflow
+  permissions asserting **both** `can_approve_pull_request_reviews` and the
+  least-privilege `default_workflow_permissions == "read"`; classic branch
+  protection asserting `strict` plus its contexts; the ruleset variant querying
+  the applied `Protect main` ruleset is `enforcement: active`, not merely that its
+  admin token exists; Pages asserting `source.branch`/`source.path`, not merely
+  that a site exists.
+- **Secret-presence checks** (the `[HUMAN]` steps that store a credential —
   `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN`, `HOMEBREW_TAP_TOKEN`,
-  `SCOOP_BUCKET_TOKEN`, `SONAR_TOKEN`, `CODECOV_TOKEN` — i.e. every setup secret)
-  check the *artifact* by exact name — `gh secret list … --json name --jq` for a
-  precise match. Minting the credential is human; its presence is scriptable.
-- **`[HUMAN]` steps with no API-visible artifact** (PyPI publisher registration,
-  the release-immutability toggle, the Settings/Sourcery/Renovate App installs)
-  carry an explicit `# no scriptable check — confirm in browser`, so the skill
-  treats them as a manual confirm gate rather than silently passing them.
+  `SCOOP_BUCKET_TOKEN`, `SONAR_TOKEN`) check the *artifact* by exact name —
+  `gh secret list … --json name --jq`. Minting the credential is human; its
+  presence is scriptable. `CODECOV_TOKEN` is a conditional variant: on a public
+  repo the check passes with no token (tokenless upload), and only a private repo
+  requires the secret.
+- **No-scriptable-check markers** (`[HUMAN]` steps with no API-visible artifact —
+  PyPI publisher registration, the release-immutability toggle, the
+  Settings/Sourcery/Renovate App installs) carry an explicit prose marker,
+  `No scriptable check — confirm …`, so the skill treats them as a manual confirm
+  gate rather than silently passing them.
+- **Covered-by-another-step markers** (e.g. all-contributors, whose only setup is
+  the "Let Actions open the release PR" permission) point at the step whose
+  `[CHECK]` already covers them, so nothing is double-checked.
 
 The checks the plugin `setup` skill kept in its "Verify (externally)" section
 move **into** the doc as these `[CHECK]` blocks, so both skills consume one
@@ -128,7 +136,7 @@ shipped under `template/` and **not** part of the plugin's `./skills/`) drives
 **inline** in its `SKILL.md` rather than in a doc — there is no doc home to
 justify, and inlining a two-step manifest is not the drift surface a fifteen-step
 one would be. It loudly flags the deliberate **`write`-not-`read`** divergence
-from generated projects (CLAUDE.md gotcha #1) and points at CLAUDE.md's "Template
+from generated projects (the `setup` skill's gotcha #1) and points at CLAUDE.md's "Template
 self-versioning (this repo, ADR-015)" for the rationale rather than restating it.
 
 ### 4. The plugin `setup` skill stays, with one cross-reference

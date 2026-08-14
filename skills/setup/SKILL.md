@@ -113,8 +113,8 @@ private repo is non-fatal — CI records a `::notice::` and the build still pass
 ## Verify (externally — CI won't)
 
 None of this can be proven from a branch or a green CI run — confirm each out of
-band. Every step in `docs/maintaining/setup.rst` now ships a `[CHECK]` block (a
-shell snippet where exit 0 means "already done"); run a step's `[CHECK]` to
+band. Every **actionable** step in `docs/maintaining/setup.rst` now ships a
+`[CHECK]` block (a shell snippet where exit 0 means "already done"); run a step's `[CHECK]` to
 verify it rather than reconstructing the command here. A project generated on a
 recent template also carries an in-repo `repo-setup` skill that walks those
 checks and resumes at the first gap — prefer it when working inside the project;

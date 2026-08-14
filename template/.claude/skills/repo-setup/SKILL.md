@@ -38,11 +38,11 @@ collect blockers and report them together.
 - **Required** — everything above the `Optional integrations` heading, *except*
   the two deferred steps below. A red check here must be resolved for the project
   to work.
-- **Deferred** — **GitHub Pages** and the PR doc previews. They depend on the
-  `gh-pages` branch, which the first release's `deploy-docs` job creates, so
-  their `[CHECK]` is expected red on a fresh repo. **Never** run their `[AGENT]`
-  command or stop on them before the first release — record them as "deferred"
-  and continue.
+- **Deferred** — the **GitHub Pages** step (the PR doc previews ride on the same
+  `gh-pages` branch and need no separate step). It depends on that branch, which
+  the first release's `deploy-docs` job creates, so its `[CHECK]` is expected red
+  on a fresh repo. **Never** run its `[AGENT]` command or stop on it before the
+  first release — record it as "deferred" and continue.
 - **Optional** — everything under the `Optional integrations` heading. A red
   check means "not configured", which is a fine end state.
 

@@ -28,9 +28,8 @@ that release-please parses.
 `[CHECK]`
 
 ```sh
-gh repo view hasansezertasan/copier-pyproject \
-  --json squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed,squashMergeCommitMessage \
-  --jq '.squashMergeAllowed and (.mergeCommitAllowed | not) and (.rebaseMergeAllowed | not) and (.squashMergeCommitMessage == "PR_TITLE")' | grep -qx true
+gh api repos/hasansezertasan/copier-pyproject \
+  --jq '.allow_squash_merge and (.allow_merge_commit | not) and (.allow_rebase_merge | not) and (.squash_merge_commit_title == "PR_TITLE")' | grep -qx true
 ```
 
 `[AGENT]` (run if the check is red)
@@ -49,7 +48,7 @@ release-please opens its release PR as a GitHub Action, so the repo must allow
 Actions to create and approve pull requests. **Note the deliberate divergence
 from generated projects:** this repo uses `default_workflow_permissions=write`
 (generated projects use least-privilege `read` — do not copy `write` into a
-generated project; that is CLAUDE.md gotcha #1).
+generated project; that divergence is the `setup` skill's gotcha #1).
 
 `[CHECK]`
 
