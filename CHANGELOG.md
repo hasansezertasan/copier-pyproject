@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.2.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.1.0...v1.2.0) (2026-08-14)
+
+
+### 🚀 Features
+
+* add setup and update skills, package as copier-pyproject plugin ([#212](https://github.com/hasansezertasan/copier-pyproject/issues/212)) ([7819f01](https://github.com/hasansezertasan/copier-pyproject/commit/7819f01c738165a8ebd052b74a21a406e7f3ea05))
+* expose secondary components as CLI subcommands, not separate console scripts ([#206](https://github.com/hasansezertasan/copier-pyproject/issues/206)) ([f59084c](https://github.com/hasansezertasan/copier-pyproject/commit/f59084c9bb9bdeb9a0fb0da00b4c81225692f26d))
+* make the CLI framework a choice (cli_framework) ([#207](https://github.com/hasansezertasan/copier-pyproject/issues/207)) ([d1d1952](https://github.com/hasansezertasan/copier-pyproject/commit/d1d195282b1b593463f956c30379e5038c8f4347))
+* opt-in repository ruleset as code (include_repo_ruleset) ([#211](https://github.com/hasansezertasan/copier-pyproject/issues/211)) ([a3953c1](https://github.com/hasansezertasan/copier-pyproject/commit/a3953c16135b34bc2eb6eab35edc3819b8c02c0a))
+* ship a resume-driven repo-setup skill single-sourced from the setup doc ([#218](https://github.com/hasansezertasan/copier-pyproject/issues/218)) ([d51afff](https://github.com/hasansezertasan/copier-pyproject/commit/d51affff148805f38863cb09aac3bbc21714a1c0))
+
+
+### 🐛 Bug Fixes
+
+* all-contributors generate rewrites the README badge to a #contributors- anchor the MD051 gate rejects ([#210](https://github.com/hasansezertasan/copier-pyproject/issues/210)) ([521d1c4](https://github.com/hasansezertasan/copier-pyproject/commit/521d1c40b5ef05142d66206ec47f0ca023a8c4ed))
+* freeze shipped template pins from Renovate to prevent copier-update conflicts ([#209](https://github.com/hasansezertasan/copier-pyproject/issues/209)) ([55f7acc](https://github.com/hasansezertasan/copier-pyproject/commit/55f7acc5a1e46fb6089083ea8f4ac887503693b5))
+
+
+### 📝 Documentation
+
+* consolidate maintainer repository setup into one actor-tagged docs home ([#217](https://github.com/hasansezertasan/copier-pyproject/issues/217)) ([920dbbc](https://github.com/hasansezertasan/copier-pyproject/commit/920dbbca2e4ca7c6b30663ff81111bbeaa2dede1))
+* de-bloat CLAUDE.md into a lean router over copier.yml help + ADRs ([#219](https://github.com/hasansezertasan/copier-pyproject/issues/219)) ([81147cb](https://github.com/hasansezertasan/copier-pyproject/commit/81147cb653c9e5d5a4c49fcde91695c8f73f56c3))
+
 ## [1.1.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.0.0...v1.1.0) (2026-08-07)
 
 
