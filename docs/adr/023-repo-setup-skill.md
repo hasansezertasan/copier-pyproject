@@ -76,9 +76,10 @@ Flavors of `[CHECK]`:
   `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN`, `HOMEBREW_TAP_TOKEN`,
   `SCOOP_BUCKET_TOKEN`, `SONAR_TOKEN`) check the *artifact* by exact name —
   `gh secret list … --json name --jq`. Minting the credential is human; its
-  presence is scriptable. `CODECOV_TOKEN` is a conditional variant: on a public
-  repo the check passes with no token (tokenless upload), and only a private repo
-  requires the secret.
+  presence is scriptable. `CODECOV_TOKEN` and `GITLEAKS_LICENSE` are conditional
+  variants gated on a repo attribute: the Codecov check passes with no token on a
+  public repo (only a private repo needs it), and the gitleaks check passes with
+  no license on a user-owned repo (only an organization-owned repo needs it).
 - **No-scriptable-check markers** (`[HUMAN]` steps with no API-visible artifact —
   PyPI publisher registration, the release-immutability toggle, the
   Settings/Sourcery/Renovate App installs) carry an explicit prose marker,

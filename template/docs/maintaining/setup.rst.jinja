@@ -220,6 +220,43 @@ The upload is best-effort either way: on a private repo with no token CI records
 a ``::notice::`` and skips the upload — the build still passes — rather than
 failing every run.
 
+Secret scanning (gitleaks)
+--------------------------
+
+The ``gitleaks`` job in ``check-security.yml`` scans the full git history for
+committed secrets.
+`gitleaks-action <https://github.com/gitleaks/gitleaks-action>`_ is **free for
+personal accounts and public repositories** with no setup. Only if this
+repository lives under a GitHub **organization** does it require a
+``GITLEAKS_LICENSE`` — the secret is already wired into the workflow and stays
+empty (and unused) otherwise.
+
+**[HUMAN]** (organization-owned repos only) Obtain a license key from
+`gitleaks.io <https://gitleaks.io>`_.
+
+**[AGENT]** (organization-owned repos only) Store it as a repository secret:
+
+.. code-block:: sh
+
+   gh secret set GITLEAKS_LICENSE --repo {{github_user}}/{{github_repo_name}}
+
+**[CHECK]** A user-owned repo needs no license; an organization-owned repo needs
+the secret:
+
+.. code-block:: sh
+
+   owner="$(gh api repos/{{github_user}}/{{github_repo_name}} --jq '.owner.type' 2>/dev/null)"
+   if [ "$owner" = "User" ]; then true
+   elif [ "$owner" = "Organization" ]; then
+     gh secret list --repo {{github_user}}/{{github_repo_name}} --json name --jq '.[].name' | grep -qx GITLEAKS_LICENSE
+   else false; fi
+
+For a personal/public repo this needs no setup and the check passes with no
+secret. On an organization repo the ``gitleaks`` job fails until the license
+secret is set; ``check-security.yml`` is a standalone security workflow (not part
+of the required ``check`` gate), so this does not block merges, but the scan will
+not run until it is provided.
+
 Documentation site (GitHub Pages)
 ---------------------------------
 
