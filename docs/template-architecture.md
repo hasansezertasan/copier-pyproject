@@ -302,6 +302,22 @@ job. NOTE: verify zizmor changes with the **prek hook** (`prek run zizmor
 whose default-persona `dangerous-triggers` behavior differs, and the prek hook is
 what actually gates generated projects.
 
+**detect-secrets** is a local, pre-commit-stage secret scanner (`local` `system`
+hook via `uv run --locked --group style detect-secrets-hook --baseline
+.secrets.baseline`) that catches a secret at `git commit` time, before it ever
+enters history. It checks changed files against the committed
+`.secrets.baseline` (generated with `detect-secrets scan`), so only *new*
+potential secrets are flagged — not the already-triaged false positives already
+recorded in the baseline. It layers with, and does not replace, the
+history-spanning `gitleaks` scan in `check-security.yml` (see Supply-chain
+security below): local prevention at the commit stage vs. CI detection across
+full git history. A secret that slips a contributor's local hook is still
+caught in CI, since `prek run --all-files` runs this hook there too. Baseline
+maintenance (triaging a hit, or regenerating the baseline when the tree
+legitimately changes shape) is documented for contributors in
+`CONTRIBUTING.md`'s "Secret Scanning" section; Renovate tracks the tool version
+(the `style` group pin) but cannot manage the baseline's content.
+
 The tox `style` env (backed by the uv-managed `style` dependency group) is the
 canonical lint/type-check runner for the full suite; the prek-run `prek.toml` is
 the fast local/CI gate. Its hook `rev` pins are kept current by Renovate (a

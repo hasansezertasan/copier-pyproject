@@ -176,7 +176,8 @@ release-please-managed `CHANGELOG.md` (no seed file), Codecov upload, Renovate
 ([ADR-014](docs/adr/014-import-linter-for-architecture-contracts.md)), Commitizen
 ([ADR-004](docs/adr/004-commitizen-as-commit-helper-not-release-tool.md)),
 cobo-managed `.gitignore` ([ADR-012](docs/adr/012-cobo-for-gitignore-generation.md)),
-prek hooks (incl. blocking `zizmor`), the tox `style` env as the sole lint/build
+prek hooks (incl. blocking `zizmor` and `detect-secrets` with a committed
+`.secrets.baseline`), the tox `style` env as the sole lint/build
 orchestrator ([ADR-003](docs/adr/003-tox-as-canonical-lint-runner.md)),
 editorconfig-checker, ghalint, `SUPPORT.md`, `.gitattributes`, `.git_archival.txt`,
 and `AGENTS.md`/`CLAUDE.md` onboarding files.

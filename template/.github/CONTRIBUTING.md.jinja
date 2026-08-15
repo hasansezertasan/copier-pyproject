@@ -22,6 +22,7 @@ All types of contributions are encouraged and valued. See the [Table of Contents
   - [Reporting Bugs](#reporting-bugs)
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Your First Code Contribution](#your-first-code-contribution)
+  - [Secret Scanning](#secret-scanning)
   - [Improving The Documentation](#improving-the-documentation)
 - [Styleguides](#styleguides)
   - [Commit Messages](#commit-messages)
@@ -193,6 +194,46 @@ Debug in VS Code using the launch configurations shipped in `.vscode/launch.json
 {%- endif %}
 
 Select a configuration from the Run and Debug panel in VS Code.
+
+### Secret Scanning
+
+The `prek` hooks include [`detect-secrets`](https://github.com/Yelp/detect-secrets),
+a local, pre-commit-stage secret scanner. It checks changed files against the
+committed `.secrets.baseline`, so it only flags **new** potential secrets — not
+the already-triaged false positives recorded in the baseline. This complements
+(and does not replace) the history-spanning [gitleaks](https://github.com/gitleaks/gitleaks)
+scan in `check-security.yml`, which runs on every PR/push and weekly: gitleaks
+catches a secret that already reached history, while `detect-secrets` stops it
+at `git commit` time, before it is ever committed.
+
+If the hook flags something:
+
+- **It's a real secret** — remove it from the change and rotate the credential
+  if it was ever committed or pushed.
+- **It's a false positive** (e.g. a test fixture, an example token, a template
+  placeholder) — triage it into the baseline instead of skipping the hook. The
+  hook does not add the new finding to the baseline itself, so scan it in first,
+  then audit:
+
+  ```bash
+  uv run --locked --group style detect-secrets scan --baseline .secrets.baseline
+  uv run --locked --group style detect-secrets audit .secrets.baseline
+  ```
+
+  The scan records the new finding into `.secrets.baseline` (unaudited); the
+  audit then walks you through each unlabeled entry interactively so you can
+  mark it as a true or false positive. Commit the updated `.secrets.baseline`
+  alongside your change.
+
+- **The tree legitimately changed shape** (new files, moved code) and the
+  baseline needs new entries scanned in — regenerate it:
+
+  ```bash
+  uv run --locked --group style detect-secrets scan --baseline .secrets.baseline
+  ```
+
+  Then re-run `detect-secrets audit .secrets.baseline` to triage any newly
+  discovered entries before committing.
 
 ### Improving The Documentation
 
