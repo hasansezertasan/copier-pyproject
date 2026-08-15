@@ -359,6 +359,11 @@ __marimo__/
 # Cython-generated C source (regenerated from _c_extension.pyx at build time)
 /src/{{github_repo_name}}/_c_extension.c
 {%- endif %}
+{%- if include_worker %}
+# Worker AsyncAPI schema emitted from docs/conf.py on every docs build (see the
+# "Worker message interface" page); regenerated, never committed.
+docs/_generated/
+{%- endif %}
 # MegaLinter local report output (REPORT_OUTPUT_FOLDER in .mega-linter.yml)
 megalinter-reports/
 src/**/_version.py

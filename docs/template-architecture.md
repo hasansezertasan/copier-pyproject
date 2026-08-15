@@ -399,7 +399,13 @@ Subpackages (each with `__init__.py` and `app.py`):
   a fresh, self-contained broker at a throwaway instance (e.g. testcontainers)
   without import-order/caching pitfalls; the module still exposes a default
   `broker = build_broker()` for the entry point. See
-  [ADR-008](adr/008-worker-broker-testing-strategy.md).
+  [ADR-008](adr/008-worker-broker-testing-strategy.md). The docs build emits the
+  worker's [AsyncAPI](https://www.asyncapi.com/) schema straight from the live
+  `app` object (`docs/conf.py` shells `faststream docs gen` into the gitignored
+  `docs/_generated/asyncapi.yaml`), and the conditional `docs/worker-interface.rst`
+  page `literalinclude`s it — a versioned, machine-readable request/response
+  contract that stays in lockstep with the code. The docs dependency group gains
+  `faststream[cli]` + `pyyaml` under the `include_worker` guard.
 - `scripts/worker_probe.py` (conditional on `include_worker`) - a dev-only
   helper that publishes one `VersionRequest` via `build_broker()` and prints
   the `VersionResponse`, importing `REQUESTS_DESTINATION`/`RESPONSES_DESTINATION`

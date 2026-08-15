@@ -1,0 +1,31 @@
+.. A title underline exactly as long as "Worker message interface" would be
+   read as a merge-conflict separator by ``git diff --check``; keep it longer.
+
+Worker message interface
+==========================
+
+The FastStream worker exposes a message interface that downstream services
+integrate against: it consumes :class:`~{{github_repo_name}}.worker.app.VersionRequest`
+on the ``version-requests`` destination and publishes
+:class:`~{{github_repo_name}}.worker.app.VersionResponse` on ``version-responses``,
+over {{worker_broker}}.
+
+The `AsyncAPI <https://www.asyncapi.com/>`_ specification below is the
+machine-readable contract for that interface — the channels, payload schemas,
+and broker binding. It is generated on every docs build directly from the live
+``{{github_repo_name}}.worker.app:app`` object (via ``faststream docs gen``), so
+it stays in lockstep with the code and the ``description=`` strings on the
+subscriber and publisher.
+
+.. literalinclude:: _generated/asyncapi.yaml
+   :language: yaml
+   :caption: asyncapi.yaml
+
+.. note::
+
+   To regenerate the schema locally outside a docs build:
+
+   .. code-block:: console
+
+      $ uv run --group docs faststream docs gen --yaml \
+          {{github_repo_name}}.worker.app:app --out docs/_generated/asyncapi.yaml
