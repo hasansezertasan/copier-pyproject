@@ -27,6 +27,7 @@ from {{github_repo_name}}.worker.app import (
     VersionResponse,
     broker,
     build_broker,
+    build_client_broker,
 )
 
 if TYPE_CHECKING:
@@ -156,6 +157,32 @@ async def test_handle_version_request() -> None:
     assert "version" in published
     assert "python_version" in published
     assert "platform" in published
+
+
+@pytest.mark.asyncio
+async def test_client_broker_does_not_answer_requests() -> None:
+    """``build_client_broker`` registers no request handler, so it never self-replies.
+
+    This is the property the probe depends on: a client broker may publish to
+    ``version-requests`` and subscribe to ``version-responses``, but it must not
+    consume its own request and publish a response — otherwise a probe would
+    report success with no real worker running. Publishing a request and
+    asserting nothing lands on ``version-responses`` pins that.
+    """
+    client_broker = build_client_broker()
+    responses: list[dict[str, object]] = []
+
+    @client_broker.subscriber(RESPONSES_DESTINATION)
+    async def collect(msg: dict[str, object]) -> None:  # noqa: RUF029
+        """Tripwire: runs only if the client broker erroneously self-replies."""
+        responses.append(msg)  # pragma: no cover
+
+    async with TestBroker(client_broker):
+        await client_broker.publish(
+            VersionRequest(request_id="client-001"), REQUESTS_DESTINATION
+        )
+
+    assert responses == []
 
 
 @pytest.mark.asyncio

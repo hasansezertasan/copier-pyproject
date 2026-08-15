@@ -32,6 +32,7 @@ __all__ = [
     "app",
     "broker",
     "build_broker",
+    "build_client_broker",
     "main",
     "on_shutdown",
     "on_startup",
@@ -74,6 +75,40 @@ class VersionResponse(BaseModel):
     platform: str = Field(..., description="Platform information")
 
 
+def build_client_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}:
+    """Build a bare broker with no request handler or response publisher.
+
+    This is a pure *client* broker: it can publish to ``version-requests`` and
+    subscribe to ``version-responses``, but it does **not** register the
+    request-handling subscriber that ``build_broker`` does. A process using it
+    therefore never answers its own request — the property a probe needs so a
+    successful round-trip proves a *separate* worker replied, not itself.
+
+    Connection is resolved at *call* time (not import time) for the same reasons
+    as ``build_broker`` (see ADR-008).
+
+    Args:
+        url: Broker connection URL. When ``None``, falls back to the
+            broker-specific environment variable and then a local default.
+
+    Returns:
+        A bare broker of the same class the worker uses, with no handlers.
+    """
+{%- if worker_broker == "kafka" %}
+    default_url = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    return KafkaBroker(url if url is not None else default_url)
+{%- elif worker_broker == "nats" %}
+    default_url = os.getenv("NATS_URL", "nats://localhost:4222")
+    return NatsBroker(url if url is not None else default_url)
+{%- elif worker_broker == "rabbitmq" %}
+    default_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+    return RabbitBroker(url if url is not None else default_url)
+{%- elif worker_broker == "redis" %}
+    default_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    return RedisBroker(url if url is not None else default_url)
+{%- endif %}
+
+
 def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}:
     """Build the worker broker with its handler and response publisher wired up.
 
@@ -90,19 +125,7 @@ def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}Kaf
         A configured broker with the ``version-requests`` subscriber and the
         ``version-responses`` publisher registered on it.
     """
-{%- if worker_broker == "kafka" %}
-    default_url = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    broker_ = KafkaBroker(url if url is not None else default_url)
-{%- elif worker_broker == "nats" %}
-    default_url = os.getenv("NATS_URL", "nats://localhost:4222")
-    broker_ = NatsBroker(url if url is not None else default_url)
-{%- elif worker_broker == "rabbitmq" %}
-    default_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-    broker_ = RabbitBroker(url if url is not None else default_url)
-{%- elif worker_broker == "redis" %}
-    default_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-    broker_ = RedisBroker(url if url is not None else default_url)
-{%- endif %}
+    broker_ = build_client_broker(url)
 
     publisher = broker_.publisher(
         RESPONSES_DESTINATION, description="Publishes version response messages"
