@@ -831,9 +831,9 @@ runner = "uv-venv-runner"
 # Reproducible build: pin Sphinx's "today"/copyright to SOURCE_DATE_EPOCH and
 # keep build log output unbuffered/ordered. CI steps (docs-preview.yml,
 # release.yml) export SOURCE_DATE_EPOCH from the last commit date before tox
-# runs; `0` is the deterministic fallback for local invocations that don't set
-# it.
-set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:0}" }
+# runs; local invocations that don't set it pass empty, so conf.py falls back to
+# the current year rather than stamping 1970.
+set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:}" }
 
 
 [tool.tox.env.docs-server]
@@ -842,7 +842,7 @@ extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
 runner = "uv-venv-runner"
-set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:0}" }
+set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:}" }
 
 
 [tool.tox.env.docs-linkcheck]
@@ -853,7 +853,7 @@ extras = ["all"]
 dependency_groups = ["docs"]
 description = "Check documentation for broken links"
 runner = "uv-venv-runner"
-set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:0}" }
+set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:}" }
 
 {%- if include_profiling %}
 
