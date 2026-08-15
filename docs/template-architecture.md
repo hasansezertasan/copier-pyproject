@@ -229,7 +229,14 @@ whereas the redundant type checkers `ty`/`pyrefly`/`zuban` stay style-env-only s
 the fast gate carries one representative type checker (basedpyright), not five.
 See [ADR-014](adr/014-import-linter-for-architecture-contracts.md).
 
-Also always included (no toggle): a `SUPPORT.md` community-health file (points to
+Also always included (no toggle): structured GitHub issue forms
+(`.github/ISSUE_TEMPLATE/bug_report.yml` + `feature_request.yml` + `config.yml`,
+the latter disabling blank issues) whose `component` dropdown is Jinja-gated to
+only list enabled runnable components (`include_console_root`/`include_cli`/
+`include_gui`/`include_tui`/`include_web`/`include_mcp`/`include_worker`), a
+`pull_request_template.md` with a real task-list checklist (feeding
+`task-completed-check.yml`) and a fillable `Closes #` line (feeding
+`check-linked-issues.yml`), a `SUPPORT.md` community-health file (points to
 docs/issues/discussions and cross-references `SECURITY.md`/`CONTRIBUTING.md`), a
 `.gitattributes` (LF normalization matching the ruff/EditorConfig policy, Linguist
 overrides marking `_version.py`/`CHANGELOG.md`/`uv.lock`/`cobo.lock` as generated

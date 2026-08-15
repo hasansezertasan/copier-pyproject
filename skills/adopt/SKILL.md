@@ -121,8 +121,9 @@ read catches it.** Do this pass before opening the PR.
   Typical locations: `CITATION.cff` (verify author given/family-name split),
   `CONTRIBUTING.md` (project-specific setup, docs workflow, "Join The Project Team"),
   and issue templates.
-- **Review the GitHub issue templates** (`.github/ISSUE_TEMPLATE/*.md`) and
-  `CONTRIBUTING.md`/`SECURITY.md`/`SUPPORT.md`. `bug_report.md`, `usage.md`,
+- **Review the GitHub issue templates** (`.github/ISSUE_TEMPLATE/*.yml` **and**
+  `*.md`) and `CONTRIBUTING.md`/`SECURITY.md`/`SUPPORT.md`. The structured
+  `bug_report.yml`/`feature_request.yml` forms plus `usage.md`,
   `installation.md`, `compatibility.md`, `performance.md` ship example blocks
   referencing **FastAPI / uvicorn / ReDoc**, non-existent CLI subcommands
   (`<pkg> version`, `<pkg> info`), a **stale `<pkg>==0.1.0`** pin, and
