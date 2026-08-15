@@ -1,0 +1,126 @@
+---
+name: Bug report
+description: Report a defect in {{github_repo_name}}
+title: 'Bug: '
+labels: ['bug']
+assignees:
+  - '{{github_user}}'
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        This tracker is for bugs in `{{github_repo_name}}` itself. Please use
+        [Discussions](https://github.com/{{github_user}}/{{github_repo_name}}/discussions)
+        for questions about your own code.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+{%- if include_cli %}
+      description: Output of `{{github_repo_name}} version` or the installed package version.
+{%- else %}
+      description: The installed `{{github_repo_name}}` package version.
+{%- endif %}
+      placeholder: '0.1.0'
+    validations:
+      required: true
+{%- if include_console_root %}
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the project does this bug affect?
+      options:
+        - core
+{%- if include_cli %}
+        - cli
+{%- endif %}
+{%- if include_gui %}
+        - gui
+{%- endif %}
+{%- if include_tui %}
+        - tui
+{%- endif %}
+{%- if include_web %}
+        - web
+{%- endif %}
+{%- if include_mcp %}
+        - mcp
+{%- endif %}
+{%- if include_worker %}
+        - worker
+{%- endif %}
+        - other
+    validations:
+      required: true
+{%- endif %}
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: >-
+        Minimal, complete steps that let a maintainer reproduce the bug. See
+        https://stackoverflow.com/help/minimal-reproducible-example for guidance.
+{%- if include_cli %}
+      placeholder: |
+        1. Run `{{github_repo_name}} --help`
+        2. ...
+{%- endif %}
+    validations:
+      required: true
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: Expected vs. actual behavior
+      description: What did you expect to happen, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Traceback or logs
+      description: Paste the full traceback if an exception was raised.
+      render: text
+    validations:
+      required: false
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: '3.12'
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: 'Windows 11, macOS 14, Ubuntu 24.04'
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation method
+      options:
+        - pip
+        - uv
+        - uvx
+        - pipx
+        - from source
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+    validations:
+      required: false
