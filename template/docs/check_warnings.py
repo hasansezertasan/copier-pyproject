@@ -27,7 +27,10 @@ def normalize(text: str) -> set[str]:
     """Split a warning stream into machine-independent, comparable lines.
 
     Absolute path prefixes are stripped back to the ``docs/`` segment so the
-    allowlist is portable across machines and CI checkouts. Blank lines and
+    allowlist is portable across machines and CI checkouts. The ``/docs/``
+    marker (with a leading separator) is used so an ancestor directory whose
+    name merely contains ``docs`` (e.g. a repo cloned into ``some-docs/`` or
+    under ``~/docs/``) is not mistaken for the source segment. Blank lines and
     ``#`` comment lines (allowlist header only — Sphinx never emits them) are
     ignored.
 
@@ -39,8 +42,12 @@ def normalize(text: str) -> set[str]:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        idx = line.find("docs/")
-        lines.add(line[idx:] if idx != -1 else line)
+        # Strip to the last "docs/" source segment. Anchoring on "/docs/"
+        # ignores ancestor dirs that merely contain "docs"; the leading
+        # separator is dropped so already-relative "docs/..." lines pass
+        # through unchanged.
+        idx = line.rfind("/docs/")
+        lines.add(line[idx + 1 :] if idx != -1 else line)
     return lines
 
 

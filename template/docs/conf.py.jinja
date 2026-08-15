@@ -13,7 +13,8 @@ project = "{{github_repo_name}}"
 author = "{{ author_full_name }}"
 # Reproducible builds: honor SOURCE_DATE_EPOCH (https://reproducible-builds.org/)
 # so the stamped copyright year is a function of the source (e.g. the last
-# commit date, as wired in the docs tox envs and CI) rather than the clock.
+# commit date, as exported by the CI docs steps) rather than the clock. Local
+# `tox` runs leave it unset and fall back to the current year below.
 _source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
 _build_date = (
     datetime.fromtimestamp(int(_source_date_epoch), tz=timezone.utc)
