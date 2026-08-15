@@ -855,7 +855,10 @@ set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:
 
 
 [tool.tox.env.docs-server]
-commands = [["sphinx-autobuild", "docs", "docs/_build/html"]]
+# ``--ignore`` the machine-generated ``docs/_generated/`` tree: ``conf.py``
+# rewrites it on every Sphinx build, so watching it would make each rebuild
+# trigger the next in an endless live-reload loop.
+commands = [["sphinx-autobuild", "--ignore", "*/_generated/*", "docs", "docs/_build/html"]]
 extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
