@@ -57,8 +57,12 @@ Specifics:
   so the API reference tracks the source instead of being hand-maintained.
 - **Extensions:** `sphinx-design`, `sphinx-copybutton`, `sphinx-togglebutton`,
   `sphinx-paramlinks`, `auto-pytabs` (the Python-version code tabs Litestar uses),
-  `intersphinx`, `autosectionlabel`, `viewcode`, and `sphinx-click` **only when
-  `include_cli`**.
+  `intersphinx`, `autosectionlabel`, and `viewcode`. With a Typer CLI
+  (`include_cli` and `cli_framework == "typer"`), the CLI reference page is not
+  produced by a Sphinx extension but generated at build time from the live app
+  (`conf.py` shells `typer ... utils docs` into the gitignored
+  `docs/_generated/cli.md`, which a MyST `{include}` page renders) — `sphinx-click`
+  is unusable because current Typer vendors its own Click.
 - **tox:** `docs-build` runs `sphinx-build -b html docs docs/_build/html`;
   `docs-server` runs `sphinx-autobuild`. Both set `extras = ["all"]` (see
   Consequences — autodoc must import the package and its optional dependencies).
