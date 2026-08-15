@@ -205,6 +205,12 @@ removed — it is now always rendered and validated via
 (`mise.toml` + devcontainer feature) for tool version management and task
 running. Pants and Trunk were removed entirely — the tox `style` env is the sole
 lint/build orchestrator (see [ADR-003](adr/003-tox-as-canonical-lint-runner.md)).
+Project-level editor configuration is always rendered too: `.vscode/` (VS Code
+settings/launch configs) alongside `.zed/settings.json` for Zed — ruff wired as
+the Python formatter and language server, format-on-save, and
+`file_scan_exclusions` for the same build/venv/tox dirs `.gitignore` excludes.
+Both are a convenience layer on top of `.editorconfig`/ruff, which remain the
+source of truth, not a new authority.
 
 **import-linter** enforces the generated package's architecture: one always-on
 `layers` contract (in `[tool.importlinter]`) keeps the component group
