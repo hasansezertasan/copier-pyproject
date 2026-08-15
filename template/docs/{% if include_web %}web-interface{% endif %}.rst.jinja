@@ -1,0 +1,40 @@
+.. A title underline exactly as long as "Web API interface" would be
+   read as a merge-conflict separator by ``git diff --check``; keep it longer.
+
+Web API interface
+===================
+
+The web app exposes an HTTP interface that downstream clients integrate
+against: ``GET /version`` returns the project version as plain text and
+``GET /info`` returns a JSON object with the version and runtime environment,
+both served by the {{ "FastAPI" if web_framework == "fastapi" else "Litestar" }}
+application at ``{{github_repo_name}}.web.app:app``.
+
+The `OpenAPI <https://www.openapis.org/>`_ specification below is the
+machine-readable contract for that interface — the routes, response schemas,
+and status codes (including the ``503`` returned when the package metadata is
+unavailable). It is generated on every docs build directly from the live
+``app`` object, so it stays in lockstep with the code.
+
+.. literalinclude:: _generated/openapi.yaml
+   :language: yaml
+   :caption: openapi.yaml
+
+.. note::
+
+   To regenerate the schema locally outside a docs build:
+
+   .. code-block:: console
+
+{%- if web_framework == "litestar" %}
+
+      $ uv run --group docs litestar --app {{github_repo_name}}.web.app:app \
+          schema openapi --output docs/_generated/openapi.yaml
+{%- else %}
+
+      $ uv run --group docs sphinx-build -b html docs docs/_build/html
+
+   (FastAPI has no first-party file exporter; ``docs/conf.py`` dumps
+   ``app.openapi()`` to ``docs/_generated/openapi.{json,yaml}`` as part of the
+   Sphinx build.)
+{%- endif %}

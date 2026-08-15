@@ -10,6 +10,9 @@ Welcome to {{github_repo_name}}'s documentation!
    installation
    usage
    modules
+{%- if include_web %}
+   web-interface
+{%- endif %}
 {%- if include_worker %}
    worker-interface
 {%- endif %}
