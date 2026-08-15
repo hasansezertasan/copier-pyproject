@@ -254,6 +254,29 @@ include_vpn:
   default: "{{ 'include_vpn' in preset_map[preset] }}"
   help: "Include OpenVPN client in devcontainer?"
 # ── Computed helpers (never asked or stored) ─────────────────────────────────
+# Single source of truth for the per-broker facts derived from `worker_broker`:
+# the import module, the broker/test-broker class names, and the env var +
+# default URL for the local (non-container) connection default. The mapping is
+# not mechanical (e.g. `rabbitmq` -> `RabbitBroker` / `faststream.rabbit`, not a
+# naive `capitalize`), so it is resolved exactly once here; templates read
+# fields off `worker_broker_spec` instead of re-spelling a per-broker
+# `{% if worker_broker == ... %}` chain (see ADR note in issue #166). Empty when
+# the worker is not enabled. Must not be named with a leading underscore — a
+# `when: false` question whose name starts with `_` renders empty in Copier.
+worker_broker_spec:
+  type: json
+  when: false
+  default: >-
+    {{
+      (
+        {
+          "kafka": {"module": "faststream.kafka", "cls": "KafkaBroker", "test_cls": "TestKafkaBroker", "env": "KAFKA_BOOTSTRAP_SERVERS", "default_url": "localhost:9092"},
+          "nats": {"module": "faststream.nats", "cls": "NatsBroker", "test_cls": "TestNatsBroker", "env": "NATS_URL", "default_url": "nats://localhost:4222"},
+          "rabbitmq": {"module": "faststream.rabbit", "cls": "RabbitBroker", "test_cls": "TestRabbitBroker", "env": "RABBITMQ_URL", "default_url": "amqp://guest:guest@localhost:5672/"},
+          "redis": {"module": "faststream.redis", "cls": "RedisBroker", "test_cls": "TestRedisBroker", "env": "REDIS_URL", "default_url": "redis://localhost:6379"}
+        }[worker_broker] if include_worker else {}
+      ) | tojson
+    }}
 # Single source of truth for the console-script wiring rule. The highest-
 # precedence enabled runnable component (CLI > GUI > TUI > web > MCP > worker) is
 # the "primary": it owns the bare ``{{github_repo_name}}`` command. Every other

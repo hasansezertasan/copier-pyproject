@@ -39,15 +39,7 @@ from {{github_repo_name}}.worker.app import (
 )
 
 if TYPE_CHECKING:
-{%- if worker_broker == "kafka" %}
-    from faststream.kafka import KafkaBroker
-{%- elif worker_broker == "nats" %}
-    from faststream.nats import NatsBroker
-{%- elif worker_broker == "rabbitmq" %}
-    from faststream.rabbit import RabbitBroker
-{%- elif worker_broker == "redis" %}
-    from faststream.redis import RedisBroker
-{%- endif %}
+    from {{ worker_broker_spec.module }} import {{ worker_broker_spec.cls }}
 
 # Republish-while-polling bound. A one-shot publish can be dropped while a cold
 # consumer becomes live (kafka resolves offsets to "latest"; redis pub/sub and
@@ -64,7 +56,7 @@ _POLL_INTERVAL_SECONDS = 0.2
 
 
 async def _publish_until_answered(
-    broker: {% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}, request_id: str, got_response: anyio.Event
+    broker: {{ worker_broker_spec.cls }}, request_id: str, got_response: anyio.Event
 ) -> None:  # pragma: no cover
     """Republish the request each poll until the matching response arrives.
 
