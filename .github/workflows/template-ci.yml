@@ -163,5 +163,4 @@ jobs:
         # regressions provides the file_regression fixture; yaml is pulled in
         # transitively by copier.
         run: >-
-          uv run --with pytest --with pytest-regressions --with copier
-          pytest tests/ -v
+          uv run --with pytest --with pytest-regressions --with copier pytest tests/ -v
