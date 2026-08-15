@@ -211,15 +211,19 @@ If the hook flags something:
 - **It's a real secret** — remove it from the change and rotate the credential
   if it was ever committed or pushed.
 - **It's a false positive** (e.g. a test fixture, an example token, a template
-  placeholder) — triage it into the baseline instead of skipping the hook:
+  placeholder) — triage it into the baseline instead of skipping the hook. The
+  hook does not add the new finding to the baseline itself, so scan it in first,
+  then audit:
 
   ```bash
+  uv run --locked --group style detect-secrets scan --baseline .secrets.baseline
   uv run --locked --group style detect-secrets audit .secrets.baseline
   ```
 
-  This walks you through each unlabeled entry interactively so you can mark it
-  as a true or false positive. Commit the updated `.secrets.baseline` alongside
-  your change.
+  The scan records the new finding into `.secrets.baseline` (unaudited); the
+  audit then walks you through each unlabeled entry interactively so you can
+  mark it as a true or false positive. Commit the updated `.secrets.baseline`
+  alongside your change.
 
 - **The tree legitimately changed shape** (new files, moved code) and the
   baseline needs new entries scanned in — regenerate it:
