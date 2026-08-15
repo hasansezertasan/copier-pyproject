@@ -47,6 +47,19 @@ copier copy --data-file .example-input.yml --defaults . example/ --force
 copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=kafka --defaults --trust . /tmp/test-worker --force
 ```
 
+#### Render-and-inspect harness (`tests/`, [ADR-024](docs/adr/024-render-and-inspect-template-test-suite.md))
+
+Always-on repo tests: `copier.run_copy` renders the template into temp dirs (the
+`render` fixture, `tests/conftest.py`) and asserts on the output — preset shape,
+YAML/TOML validity across presets/brokers/frameworks, and golden-file snapshots
+of key artifacts. Runs in `template-ci.yml`'s `render-tests` job. No root Python
+project, so deps come from an ephemeral uv env:
+
+```bash
+mise run test                # or: uv run --with pytest --with pytest-regressions --with copier pytest tests/
+mise run test-golden-update  # regenerate golden files (review the diff), then commit
+```
+
 ### Working with Generated Projects
 
 Commands for the `example/` directory (or any generated project):
