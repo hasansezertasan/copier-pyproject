@@ -388,7 +388,16 @@ Subpackages (each with `__init__.py` and `app.py`):
 - `cli/` - the `pkg` Typer root (present when `include_console_root`). With
   `include_cli` it is the full CLI (`version`/`info` commands + component
   subcommands); without `include_cli` it is a minimal launcher (component
-  subcommands + a default callback, no `version`/`info`)
+  subcommands + a default callback, no `version`/`info`). With `include_cli` and
+  `cli_framework == "typer"`, the docs build generates a CLI reference straight
+  from the live app: `docs/conf.py` shells `typer {{pkg}}.cli.app utils docs`
+  into the gitignored `docs/_generated/cli.md`, and the conditional
+  `docs/cli-reference.md` page `{include}`s it (heading-demoted) so the
+  documented commands/options — including the enabled component subcommands —
+  never drift from `--help`. The `sphinx-click` route is unusable here because
+  current Typer vendors its own Click (`typer._click`), so `TyperGroup` fails
+  `sphinx-click`'s `isinstance(..., click.Command)` check; the `argparse` variant
+  has no generated reference
 - `web/` - FastAPI/Litestar with `/version` and `/info` endpoints (conditional).
   The docs build emits the web app's [OpenAPI](https://www.openapis.org/) schema
   straight from the live `{{github_repo_name}}.web.app:app` object into the
