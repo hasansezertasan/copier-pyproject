@@ -638,23 +638,20 @@ disable = [
   "missing-class-docstring",    # C0115
   "missing-function-docstring", # C0116
   "too-few-public-methods",     # R0903 — trips dataclasses / config / Protocol classes
-  "import-outside-toplevel",    # C0415 — components (cli->tui/gui/web, and each
-                                 # component's own optional-dependency probe) are
-                                 # deliberately lazy-imported so import-linter's
-                                 # layering contract holds and optional extras
-                                 # aren't required at import time.
-  "try-except-raise",           # W0706 — the generated TUI entry point
-                                 # explicitly re-raises KeyboardInterrupt/SystemExit
-                                 # ahead of a broad `except Exception` to make the
-                                 # "let these propagate" intent obvious to readers,
-                                 # even though BaseException subclasses wouldn't be
-                                 # caught by the Exception clause anyway.
-  "duplicate-code",             # R0801 — the component skeletons (gui/tui/mcp/
-                                 # worker) are deliberately parallel: each fetches
-                                 # package metadata and formats the same info block
-                                 # the same way. That structural symmetry is a
-                                 # feature of the scaffold, not copy-paste debt, and
-                                 # R0801 cannot be suppressed inline at the call site.
+  # C0415 — components (cli->tui/gui/web, and each component's own
+  # optional-dependency probe) are deliberately lazy-imported so import-linter's
+  # layering contract holds and optional extras aren't required at import time.
+  "import-outside-toplevel",
+  # W0706 — the generated TUI entry point explicitly re-raises
+  # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the
+  # "let these propagate" intent obvious to readers, even though BaseException
+  # subclasses wouldn't be caught by the Exception clause anyway.
+  "try-except-raise",
+  # R0801 — the component skeletons (gui/tui/mcp/worker) are deliberately
+  # parallel: each fetches package metadata and formats the same info block the
+  # same way. That structural symmetry is a feature of the scaffold, not
+  # copy-paste debt, and R0801 cannot be suppressed inline at the call site.
+  "duplicate-code",
 ]
 
 [tool.pylint.design]
