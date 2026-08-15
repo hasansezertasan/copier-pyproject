@@ -27,7 +27,9 @@ def normalize(text: str) -> set[str]:
     """Split a warning stream into machine-independent, comparable lines.
 
     Absolute path prefixes are stripped back to the ``docs/`` segment so the
-    allowlist is portable across machines and CI checkouts. The ``/docs/``
+    allowlist is portable across machines and CI checkouts. Backslash separators
+    are folded to ``/`` first so a warning located on Windows normalizes to the
+    same line an allowlist entry recorded on Linux/CI does. The ``/docs/``
     marker (with a leading separator) is used so an ancestor directory whose
     name merely contains ``docs`` (e.g. a repo cloned into ``some-docs/`` or
     under ``~/docs/``) is not mistaken for the source segment. Blank lines and
@@ -42,6 +44,9 @@ def normalize(text: str) -> set[str]:
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
+        # Fold Windows backslash separators to "/" so a warning located on
+        # Windows matches an allowlist entry recorded on Linux/CI.
+        line = line.replace("\\", "/")
         # Strip to the last "docs/" source segment. Anchoring on "/docs/"
         # ignores ancestor dirs that merely contain "docs"; the leading
         # separator is dropped so already-relative "docs/..." lines pass
