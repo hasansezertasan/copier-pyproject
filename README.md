@@ -55,7 +55,7 @@ Copier will prompt for:
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)
 - `include_mcp` (include MCP server support)
-- `include_worker` (include message queue worker using FastStream)
+- `include_worker` (include message queue worker using FastStream; its AsyncAPI message-interface schema is generated into the docs)
 - `worker_broker` (kafka/nats/rabbitmq/redis - when `include_worker` is enabled)
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
