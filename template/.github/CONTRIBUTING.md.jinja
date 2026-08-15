@@ -225,7 +225,7 @@ If the hook flags something:
   baseline needs new entries scanned in — regenerate it:
 
   ```bash
-  uv run --locked --group style detect-secrets scan --baseline .secrets.baseline --update .secrets.baseline
+  uv run --locked --group style detect-secrets scan --baseline .secrets.baseline
   ```
 
   Then re-run `detect-secrets audit .secrets.baseline` to triage any newly
