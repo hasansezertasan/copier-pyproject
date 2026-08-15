@@ -12,7 +12,7 @@
     "ruff": {
       "initialization_options": {
         "settings": {
-          "lineLength": 88
+          "line-length": 88
         }
       }
     }
