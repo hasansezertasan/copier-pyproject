@@ -13,9 +13,12 @@ datas = "datas"
 
 # `alls-green` is the `re-actors/alls-green` GitHub Action (used as the CI
 # aggregation gate); typos splits it on the hyphen and misreads the `alls`
-# word as `all`/`falls`. Allowlist the word so the hook does not rewrite it.
+# word as `all`/`falls`. `copie` is the `pytest-copie` package name (named in
+# ADR-024 as the rejected alternative to Copier's Python API); typos reads it as
+# `copy`/`copier`. Allowlist both so the hook does not rewrite them.
 [default.extend-words]
 alls = "alls"
+copie = "copie"
 
 # Excluded paths:
 # - `skills/` holds vendored Claude Code plugin skill documentation (SKILL.md)

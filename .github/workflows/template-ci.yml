@@ -156,7 +156,11 @@ jobs:
         with:
           enable-cache: true
       - name: Run render harness
-        # No root Python project (tooling is mise-managed), so pytest + copier
-        # come from an ephemeral uv env. The harness renders the template into
-        # tmp dirs and asserts preset behavior and the redis_backend fix.
-        run: uv run --with pytest --with copier pytest tests/ -v
+        # No root Python project (tooling is mise-managed), so the harness deps
+        # come from an ephemeral uv env. It renders the template into tmp dirs
+        # and asserts preset behavior, YAML/TOML validity across presets, and
+        # golden-file snapshots of key rendered artifacts (ADR-024). pytest-
+        # regressions provides the file_regression fixture; yaml is pulled in
+        # transitively by copier.
+        run: >-
+          uv run --with pytest --with pytest-regressions --with copier pytest tests/ -v

@@ -20,3 +20,11 @@ yamllint = "latest"
 [tasks.example]
 description = "Generate an example project from the template"
 run = "copier copy --trust --force --defaults --vcs-ref=HEAD --data-file=.example-input.yml . example"
+
+[tasks.test]
+description = "Run the render-and-inspect harness (ADR-024)"
+run = "uv run --with pytest --with pytest-regressions --with copier pytest tests/"
+
+[tasks.test-golden-update]
+description = "Regenerate the golden-file snapshots (review the diff before committing)"
+run = "uv run --with pytest --with pytest-regressions --with copier pytest tests/test_golden_files.py --force-regen"
