@@ -25,6 +25,8 @@ from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 __all__ = [
+    "REQUESTS_DESTINATION",
+    "RESPONSES_DESTINATION",
     "VersionRequest",
     "VersionResponse",
     "app",
@@ -34,6 +36,13 @@ __all__ = [
     "on_shutdown",
     "on_startup",
 ]
+
+#: Wire destinations for the worker's request/response contract. These are the
+#: subject/topic/queue/channel names the broker binds to; keep them as the
+#: single source of truth so the subscriber, publisher, and tests can never
+#: drift.
+REQUESTS_DESTINATION = "version-requests"
+RESPONSES_DESTINATION = "version-responses"
 
 app_logger = get_logger()
 
@@ -96,11 +105,11 @@ def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}Kaf
 {%- endif %}
 
     publisher = broker_.publisher(
-        "version-responses", description="Publishes version response messages"
+        RESPONSES_DESTINATION, description="Publishes version response messages"
     )
 
     @broker_.subscriber(
-        "version-requests", description="Handles version request messages"
+        REQUESTS_DESTINATION, description="Handles version request messages"
     )
     # The decorator registers the handler as a side effect; basedpyright cannot
     # see that use, hence the targeted ignore (vulture is covered by the

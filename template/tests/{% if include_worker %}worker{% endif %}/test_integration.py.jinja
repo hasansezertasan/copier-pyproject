@@ -21,7 +21,12 @@ from testcontainers.community.rabbitmq import RabbitMqContainer
 from testcontainers.community.redis import RedisContainer
 {%- endif %}
 
-from {{github_repo_name}}.worker.app import VersionRequest, build_broker
+from {{github_repo_name}}.worker.app import (
+    REQUESTS_DESTINATION,
+    RESPONSES_DESTINATION,
+    VersionRequest,
+    build_broker,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -70,7 +75,7 @@ async def test_worker_roundtrip_against_real_broker() -> None:
         worker_broker = build_broker(url)
         responses: list[dict[str, object]] = []
 
-        @worker_broker.subscriber("version-responses")
+        @worker_broker.subscriber(RESPONSES_DESTINATION)
         async def collect(msg: dict[str, object]) -> None:  # noqa: RUF029
             """Capture published version responses."""
             responses.append(msg)
@@ -87,7 +92,7 @@ async def test_worker_roundtrip_against_real_broker() -> None:
                 if responses:
                     break
                 await worker_broker.publish(
-                    VersionRequest(request_id="integration-001"), "version-requests"
+                    VersionRequest(request_id="integration-001"), REQUESTS_DESTINATION
                 )
                 await asyncio.sleep(_POLL_INTERVAL_SECONDS)
         finally:
