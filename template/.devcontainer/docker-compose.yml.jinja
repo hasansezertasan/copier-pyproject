@@ -79,6 +79,8 @@ services:
   postgres:
     image: postgres:17
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     env_file:
       - path: ../.env
         required: false
@@ -108,6 +110,8 @@ services:
   redis:
     image: {{ redis_image }}
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     env_file:
       - path: ../.env
         required: false
@@ -131,6 +135,8 @@ services:
   rabbitmq:
     image: rabbitmq:4-management
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     env_file:
       - path: ../.env
         required: false
@@ -155,6 +161,8 @@ services:
   kafka:
     image: bitnami/kafka:3.9
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     environment:
       KAFKA_CFG_NODE_ID: 0
       KAFKA_CFG_PROCESS_ROLES: controller,broker
@@ -185,6 +193,8 @@ services:
   nats:
     image: nats:2.10
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     command: ["-js", "-m", "8222"]
     ports:
       # Loopback-only; reachable from sibling services by DNS name.
@@ -202,6 +212,8 @@ services:
       - tools
     image: dpage/pgadmin4:8
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     env_file:
       - path: ../.env
         required: false
@@ -219,6 +231,8 @@ services:
       - tools
     image: adminer:4
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     ports:
       - "8081:8080"
     depends_on:
@@ -230,6 +244,8 @@ services:
       - tools
     image: dbeaver/cloudbeaver:24
     restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     ports:
       - "8978:8978"
 {%- endif -%}
