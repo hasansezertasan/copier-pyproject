@@ -389,7 +389,17 @@ Subpackages (each with `__init__.py` and `app.py`):
   `include_cli` it is the full CLI (`version`/`info` commands + component
   subcommands); without `include_cli` it is a minimal launcher (component
   subcommands + a default callback, no `version`/`info`)
-- `web/` - FastAPI/Litestar with `/version` and `/info` endpoints (conditional)
+- `web/` - FastAPI/Litestar with `/version` and `/info` endpoints (conditional).
+  The docs build emits the web app's [OpenAPI](https://www.openapis.org/) schema
+  straight from the live `{{github_repo_name}}.web.app:app` object into the
+  gitignored `docs/_generated/openapi.yaml`, and the conditional
+  `docs/web-interface.rst` page `literalinclude`s it — a versioned,
+  machine-readable HTTP contract (routes, response schemas, status codes) that
+  stays in lockstep with the code. Generation is framework-specific: **Litestar**
+  uses its first-party CLI (`litestar ... schema openapi --output`), while
+  **FastAPI** has no file exporter, so `docs/conf.py` dumps `app.openapi()` to
+  `openapi.{json,yaml}` (JSON via the stdlib, YAML via `pyyaml`, added to the
+  docs group under the `include_web`+FastAPI guard).
 - `gui/` - Tkinter GUI launcher (conditional)
 - `tui/` - Textual TUI (conditional)
 - `mcp/` - MCP server with `version` and `info` tools (conditional)

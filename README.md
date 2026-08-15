@@ -50,7 +50,7 @@ Copier will prompt for:
 - `short_description`
 - `package_keywords` (extra comma-separated PyPI keywords; tooling/component keywords are added automatically)
 - `include_cli` (include Typer CLI)
-- `include_web` (include web API)
+- `include_web` (include web API; its OpenAPI schema is generated into the docs)
 - `web_framework` (fastapi/litestar - when `include_web` is enabled)
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)

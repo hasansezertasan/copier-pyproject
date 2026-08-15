@@ -79,23 +79,29 @@ html_theme_options = {
     "accent_color": "amber",
     "github_url": "https://github.com/{{github_user}}/{{github_repo_name}}",
 }
-{%- if include_worker %}
+{%- if include_worker or include_web %}
 
-# -- Worker AsyncAPI schema --------------------------------------------------
-# Emit the FastStream worker's AsyncAPI spec straight from the live ``app``
-# object so the "Worker message interface" page can ``literalinclude`` a
-# machine-readable, always-in-sync description of the request/response channels,
-# payload schemas, and the {{worker_broker}} binding. The spec is derived from
-# the source of truth (the ``description=`` strings and Pydantic payload models
-# already on the subscriber/publisher), regenerated on every docs build, and is
-# not committed (``docs/_generated/`` is gitignored). ``docs-build`` runs Sphinx
-# under ``-W``, so a broken app import or a failed generation fails the build.
+# -- Generated interface schemas ---------------------------------------------
+# Emit the project's machine-readable interface contracts straight from the live
+# ``app`` objects so the "* interface" pages can ``literalinclude`` an
+# always-in-sync description of channels/routes, payload/response schemas, and
+# status codes. Each spec is derived from the source of truth (the
+# ``description=`` strings and the Pydantic/response models already on the code),
+# regenerated on every docs build, and is not committed (``docs/_generated/`` is
+# gitignored). ``docs-build`` runs Sphinx under ``-W``, so a broken app import or
+# a failed generation fails the build.
+{%- if include_worker or (include_web and web_framework == "litestar") %}
 import subprocess  # noqa: E402, S404
 import sys  # noqa: E402
+{%- endif %}
 from pathlib import Path  # noqa: E402
 
-_asyncapi_dir = Path(__file__).parent / "_generated"
-_asyncapi_dir.mkdir(exist_ok=True)
+_generated_dir = Path(__file__).parent / "_generated"
+_generated_dir.mkdir(exist_ok=True)
+{%- if include_worker %}
+
+# Worker AsyncAPI: FastStream emits the request/response channels, payload
+# schemas, and the {{worker_broker}} binding directly from the worker ``app``.
 subprocess.run(  # noqa: S603
     [
         sys.executable,
@@ -106,8 +112,48 @@ subprocess.run(  # noqa: S603
         "--yaml",
         "{{github_repo_name}}.worker.app:app",
         "--out",
-        str(_asyncapi_dir / "asyncapi.yaml"),
+        str(_generated_dir / "asyncapi.yaml"),
     ],
     check=True,
 )
+{%- endif %}
+{%- if include_web and web_framework == "litestar" %}
+
+# Web OpenAPI: Litestar ships a first-party CLI exporter; ``--output`` infers the
+# serialization format from the file extension (``.yaml`` here).
+subprocess.run(  # noqa: S603
+    [
+        sys.executable,
+        "-m",
+        "litestar",
+        "--app",
+        "{{github_repo_name}}.web.app:app",
+        "schema",
+        "openapi",
+        "--output",
+        str(_generated_dir / "openapi.yaml"),
+    ],
+    check=True,
+)
+{%- endif %}
+{%- if include_web and web_framework == "fastapi" %}
+
+# Web OpenAPI: FastAPI has no first-party file exporter, so dump ``app.openapi()``
+# ourselves — JSON via the stdlib, YAML via PyYAML (added to the docs group).
+# ``sort_keys`` keeps both files byte-for-byte deterministic across builds.
+import json  # noqa: E402
+
+import yaml  # noqa: E402
+
+from {{github_repo_name}}.web.app import app as _web_app  # noqa: E402
+
+_openapi_schema = _web_app.openapi()
+(_generated_dir / "openapi.json").write_text(
+    json.dumps(_openapi_schema, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+)
+(_generated_dir / "openapi.yaml").write_text(
+    yaml.safe_dump(_openapi_schema, sort_keys=True, allow_unicode=True),
+    encoding="utf-8",
+)
+{%- endif %}
 {%- endif %}
