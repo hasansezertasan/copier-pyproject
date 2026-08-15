@@ -5,8 +5,8 @@ and by every standalone-executable build (PyCrucible launcher, PyInstaller
 freezer, Nuitka compiler — see ADR-007). The build tools all target this file,
 so the component-selection logic lives here and nowhere else.
 
-When a ``{{github_repo_name}}`` Typer root exists (``include_console_root`` — the
-CLI, or ≥2 components sharing a launcher; see ADR-019), ``main()`` runs that root,
+When a ``{{github_repo_name}}`` console root exists (``include_console_root`` —
+the CLI, or ≥2 components sharing a launcher; see ADR-019), ``main()`` runs it,
 which dispatches to the primary component by default and to each secondary via a
 subcommand. Otherwise the single enabled component with the highest precedence —
 CLI > GUI > TUI > web > MCP > worker — is wired to ``main()`` directly at
@@ -24,7 +24,7 @@ from {{github_repo_name}}.cli import app
 # blocking component (CLI loop, GUI mainloop, server, ...), which cannot run
 # under headless CI. tests/test_main.py pins the import wiring and callability.
 def main() -> None:  # pragma: no cover
-    """Run the {{github_repo_name}} Typer root (primary + component subcommands)."""
+    """Run the {{github_repo_name}} console root (primary + component subcommands)."""
     app()
 {%- elif include_gui %}
 

@@ -26,7 +26,7 @@ extensions = [
     "sphinx_paramlinks",
     "auto_pytabs.sphinx_ext",
     "myst_parser",
-{% if include_cli %}    "sphinx_click",
+{% if include_cli and cli_framework == "typer" %}    "sphinx_click",
 {% endif %}]
 
 # Both reStructuredText and (via MyST) Markdown source files are supported.
