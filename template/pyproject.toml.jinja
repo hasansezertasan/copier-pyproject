@@ -804,9 +804,9 @@ commands = [
     "sphinx-lint",
     "docs",
   ],
-  # Collects (does not run) the suite and flags fixtures that are unused or
-  # byte-identical duplicates -- cheap, deterministic, and a natural fit next
-  # to the other whole-program analyzers above (lint-imports, slotscheck).
+  # Collects (does not run) the suite and flags fixtures that are never used --
+  # cheap, deterministic, and a natural fit next to the other whole-program
+  # analyzers above (lint-imports, slotscheck).
   [
     "pytest",
     "--dead-fixtures",
