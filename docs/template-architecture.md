@@ -400,6 +400,14 @@ Subpackages (each with `__init__.py` and `app.py`):
   without import-order/caching pitfalls; the module still exposes a default
   `broker = build_broker()` for the entry point. See
   [ADR-008](adr/008-worker-broker-testing-strategy.md).
+- `scripts/worker_probe.py` (conditional on `include_worker`) - a dev-only
+  helper that publishes one `VersionRequest` via `build_broker()` and prints
+  the `VersionResponse`, importing `REQUESTS_DESTINATION`/`RESPONSES_DESTINATION`
+  from `worker/app.py` rather than re-literalizing them. Lives under
+  `scripts/` (outside `src/`) so it ships in neither the sdist nor the wheel
+  and stays outside coverage/import-linter's reach. Run via the `worker-probe`
+  mise task (`mise run worker-probe`) against a broker started by the
+  devcontainer or `docker compose`.
 
 Other conditional files:
 

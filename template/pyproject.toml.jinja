@@ -482,7 +482,7 @@ fix = true
 output-format = "full"
 preview = true
 show-fixes = true
-src = ["src", "tests"{% if include_examples %}, "examples"{% endif %}]
+src = ["src", "tests"{% if include_examples %}, "examples"{% endif %}{% if include_worker %}, "scripts"{% endif %}]
 target-version = "py310"
 unsafe-fixes = true
 
@@ -556,6 +556,11 @@ convention = "pep257"
 {%- endif %}
 # The Sphinx config is a standalone module, not part of an importable package.
 "docs/conf.py" = ["INP001"]
+{%- if include_worker %}
+# The worker probe is a standalone dev script, not part of an importable
+# package, and its blocking main() cannot run in headless CI.
+"scripts/worker_probe.py" = ["INP001"]
+{%- endif %}
 {%- if include_c_extensions %}
 # The top-level package __init__ deliberately warns at import time when the
 # compiled C extension is unavailable. That import-failure handling is logic, not

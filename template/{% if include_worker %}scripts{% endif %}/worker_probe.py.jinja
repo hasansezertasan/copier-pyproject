@@ -1,0 +1,60 @@
+"""Send one version request to the running worker and print its response.
+
+A hand dev-loop affordance: start the broker (devcontainer or ``docker
+compose``), run this script, and confirm the worker consumes the request and
+publishes a response. Not part of the package's public surface: it lives under
+``scripts/`` rather than ``src/``, so it ships in neither the sdist nor the
+wheel, and it deliberately sits outside coverage and import-linter's reach
+(see ADR-008 for why the worker itself is tested this way).
+
+Usage::
+
+    uv run python scripts/worker_probe.py
+
+or, via the ``worker-probe`` mise task::
+
+    mise run worker-probe
+"""
+
+from __future__ import annotations
+
+import anyio
+
+from {{github_repo_name}}.worker.app import (
+    REQUESTS_DESTINATION,
+    RESPONSES_DESTINATION,
+    VersionRequest,
+    VersionResponse,
+    build_broker,
+)
+
+
+async def main() -> None:  # pragma: no cover
+    """Publish a sample version request and print the worker's response.
+
+    Excluded from coverage: it blocks on a real broker connection and a
+    running worker to reply, neither of which is available in headless CI.
+    """
+    broker = build_broker()
+    received: list[VersionResponse] = []
+    got_response = anyio.Event()
+
+    @broker.subscriber(RESPONSES_DESTINATION)
+    async def _collect(msg: VersionResponse) -> None:  # noqa: RUF029
+        received.append(msg)
+        got_response.set()
+
+    async with broker:
+        await broker.start()
+        await broker.publish(VersionRequest(request_id="probe-1"), REQUESTS_DESTINATION)
+        with anyio.move_on_after(5):
+            await got_response.wait()
+
+    if received:
+        print(received[0])  # noqa: T201
+    else:
+        print("no response within 5s")  # noqa: T201
+
+
+if __name__ == "__main__":  # pragma: no cover
+    anyio.run(main)

@@ -104,3 +104,9 @@ run = "uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clea
 description = "Build a compiled native executable with Nuitka"
 run = "uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --output-dir=dist src/{{github_repo_name}}/__main__.py"
 {%- endif %}
+{%- if include_worker %}
+
+[tasks.worker-probe]
+description = "Send a sample request to the running worker and print the response"
+run = "uv run python scripts/worker_probe.py"
+{%- endif %}
