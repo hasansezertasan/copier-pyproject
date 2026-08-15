@@ -607,7 +607,7 @@ jobs:
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
       - name: Build docs
-        run: uv run --no-default-groups --extra all --group docs sphinx-build -b html docs docs/_build/html
+        run: uv run --no-default-groups --extra all --group docs sphinx-build -W --keep-going -b html docs docs/_build/html
       - name: Deploy to GitHub Pages
         # Publishes the built HTML to the gh-pages branch. The action does its own
         # git auth from the token input (default github.token) without writing it
