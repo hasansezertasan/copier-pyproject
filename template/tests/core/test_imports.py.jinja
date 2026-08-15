@@ -1,0 +1,68 @@
+"""Tests for the optional-import guard."""
+
+from __future__ import annotations
+
+import pytest
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core._imports import require
+
+
+def test_require_returns_the_module_when_installed() -> None:
+    """An installed module is imported and returned as-is."""
+    module = require("json", feature="example")
+
+    assert module.__name__ == "json"
+
+
+def test_require_reports_the_missing_module_without_an_extra() -> None:
+    """Without an ``extra``, the hint falls back to installing the module."""
+    with pytest.raises(ModuleNotFoundError) as excinfo:
+        require("{{github_repo_name}}._does_not_exist", feature="example")
+
+    message = str(excinfo.value)
+    assert "example" in message
+    assert "not installed" in message
+    assert "pip install {{github_repo_name}}._does_not_exist" in message
+
+
+def test_require_reports_the_extra_when_given() -> None:
+    """With an ``extra``, the hint names the project's install extra."""
+    with pytest.raises(ModuleNotFoundError) as excinfo:
+        require("{{github_repo_name}}._does_not_exist", feature="example", extra="web")
+
+    assert f"pip install {PROJECT_NAME}[web]" in str(excinfo.value)
+
+
+def test_require_names_the_actually_missing_transitive_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failure inside the imported module names the real missing dependency.
+
+    Given:
+        - A module import that fails because *one of its own imports* is
+          missing (e.g. an internal component module whose third-party
+          runtime dependency isn't installed), not because the requested
+          module name itself is wrong.
+    When:
+        - ``require`` is called with the outer module name.
+    Then:
+        - The raised error names the transitively-missing module (from the
+          original exception's ``name`` attribute), not the outer module
+          that was requested.
+    """
+
+    def _fake_import_module(_name: str) -> None:
+        msg = "No module named 'faststream'"
+        raise ModuleNotFoundError(msg, name="faststream")
+
+    monkeypatch.setattr(
+        "{{github_repo_name}}.core._imports.importlib.import_module", _fake_import_module
+    )
+
+    with pytest.raises(ModuleNotFoundError) as excinfo:
+        require("{{github_repo_name}}.worker.app", feature="worker")
+
+    message = str(excinfo.value)
+    assert "'faststream'" in message
+    assert "pip install faststream" in message
