@@ -15,54 +15,101 @@ def test_require_returns_the_module_when_installed() -> None:
     assert module.__name__ == "json"
 
 
-def test_require_reports_the_missing_module_without_an_extra() -> None:
-    """Without an ``extra``, the hint falls back to installing the module."""
+def test_require_falls_back_to_reinstalling_the_project() -> None:
+    """Without an explicit ``install``, the hint reinstalls the project.
+
+    Reinstalling the project is what pulls every enabled component's
+    dependencies, so it is the sensible target when the caller cannot name a
+    single distribution.
+    """
     with pytest.raises(ModuleNotFoundError) as excinfo:
         require("{{github_repo_name}}._does_not_exist", feature="example")
 
     message = str(excinfo.value)
     assert "example" in message
     assert "not installed" in message
-    assert "pip install {{github_repo_name}}._does_not_exist" in message
+    assert f"pip install {PROJECT_NAME}" in message
 
 
-def test_require_reports_the_extra_when_given() -> None:
-    """With an ``extra``, the hint names the project's install extra."""
+def test_require_uses_the_caller_supplied_install_target() -> None:
+    """The hint names exactly what the caller passed as ``install``."""
     with pytest.raises(ModuleNotFoundError) as excinfo:
-        require("{{github_repo_name}}._does_not_exist", feature="example", extra="web")
+        require("{{github_repo_name}}._does_not_exist", feature="worker", install="faststream[nats]")
 
-    assert f"pip install {PROJECT_NAME}[web]" in str(excinfo.value)
+    assert "pip install faststream[nats]" in str(excinfo.value)
 
 
-def test_require_names_the_actually_missing_transitive_module(
+def test_require_never_derives_the_install_target_from_the_missing_module(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A failure inside the imported module names the real missing dependency.
+    """The install command comes from the caller, never from the module name.
 
     Given:
         - A module import that fails because *one of its own imports* is
-          missing (e.g. an internal component module whose third-party
-          runtime dependency isn't installed), not because the requested
-          module name itself is wrong.
+          missing under a name that differs from its distribution name (e.g.
+          importing ``faststream.nats`` fails on a module named ``nats``, but
+          the thing to install is ``faststream[nats]``).
     When:
-        - ``require`` is called with the outer module name.
+        - ``require`` is called with the caller-supplied ``install`` target.
     Then:
-        - The raised error names the transitively-missing module (from the
-          original exception's ``name`` attribute), not the outer module
-          that was requested.
+        - The message *reports* the transitively-missing module (``'nats'``)
+          for diagnosis, but the ``pip install`` line names the caller's
+          target (``faststream[nats]``) and never the bare missing module
+          (``pip install nats``, which would not work).
     """
 
     def _fake_import_module(_name: str) -> None:
-        msg = "No module named 'faststream'"
-        raise ModuleNotFoundError(msg, name="faststream")
+        msg = "No module named 'nats'"
+        raise ModuleNotFoundError(msg, name="nats")
 
     monkeypatch.setattr(
         "{{github_repo_name}}.core._imports.importlib.import_module", _fake_import_module
     )
 
     with pytest.raises(ModuleNotFoundError) as excinfo:
-        require("{{github_repo_name}}.worker.app", feature="worker")
+        require("{{github_repo_name}}.worker.app", feature="worker", install="faststream[nats]")
 
     message = str(excinfo.value)
-    assert "'faststream'" in message
-    assert "pip install faststream" in message
+    assert "'nats'" in message  # the missing module is reported for diagnosis
+    assert "pip install faststream[nats]" in message
+    assert "pip install nats" not in message  # never the bare module name
+
+
+def test_require_guards_a_deferred_launch_time_dependency() -> None:
+    """A launch-time dependency imported lazily is guarded like a component.
+
+    The web ``main()`` and TUI ``_display_tui`` guard their deferred
+    ``uvicorn`` / ``textual`` imports through ``require``; those entrypoints
+    are blocking and excluded from coverage, so exercise the same guard logic
+    here against a real, importable module to prove the present-dependency path
+    returns the module unchanged.
+    """
+    module = require("importlib", feature="web")
+
+    assert module.__name__ == "importlib"
+
+
+def test_require_translates_a_missing_launch_time_dependency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A missing launch-time dependency yields the actionable hint.
+
+    Simulates the ``fastapi`` installed without ``[all]`` case: ``uvicorn`` is
+    absent at launch, so ``require`` must name it and fall back to reinstalling
+    the project.
+    """
+
+    def _fake_import_module(_name: str) -> None:
+        msg = "No module named 'uvicorn'"
+        raise ModuleNotFoundError(msg, name="uvicorn")
+
+    monkeypatch.setattr(
+        "{{github_repo_name}}.core._imports.importlib.import_module", _fake_import_module
+    )
+
+    with pytest.raises(ModuleNotFoundError) as excinfo:
+        require("uvicorn", feature="web")
+
+    message = str(excinfo.value)
+    assert "'uvicorn'" in message
+    assert f"pip install {PROJECT_NAME}" in message

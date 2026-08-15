@@ -167,7 +167,7 @@ def worker() -> None:  # pragma: no cover
     Launch the worker:
         {{github_repo_name}} worker
     """
-    _ = require("{{github_repo_name}}.worker.app", feature="worker")
+    _ = require("{{github_repo_name}}.worker.app", feature="worker", install="faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]")
     from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
@@ -305,7 +305,7 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
     if ctx.invoked_subcommand is not None:
         return
 {%- if primary_component != 'gui' %}
-    _ = require("{{github_repo_name}}.{{primary_component}}.app", feature="{{primary_component}}")
+    _ = require("{{github_repo_name}}.{{primary_component}}.app", feature="{{primary_component}}"{% if primary_component == 'worker' %}, install="faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]"{% endif %})
 {%- endif %}
     from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
@@ -452,7 +452,7 @@ def worker() -> None:  # pragma: no cover
     Launch the worker:
         {{github_repo_name}} worker
     """
-    _ = require("{{github_repo_name}}.worker.app", feature="worker")
+    _ = require("{{github_repo_name}}.worker.app", feature="worker", install="faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]")
     from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
