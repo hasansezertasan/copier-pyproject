@@ -7,18 +7,7 @@ import platform
 from importlib.metadata import Distribution, PackageNotFoundError
 
 from faststream import FastStream, Logger
-{%- if worker_broker == "kafka" %}
-from faststream.kafka import KafkaBroker
-{%- endif %}
-{%- if worker_broker == "nats" %}
-from faststream.nats import NatsBroker
-{%- endif %}
-{%- if worker_broker == "rabbitmq" %}
-from faststream.rabbit import RabbitBroker
-{%- endif %}
-{%- if worker_broker == "redis" %}
-from faststream.redis import RedisBroker
-{%- endif %}
+from {{ worker_broker_spec.module }} import {{ worker_broker_spec.cls }}
 from pydantic import BaseModel, Field
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
@@ -75,7 +64,7 @@ class VersionResponse(BaseModel):
     platform: str = Field(..., description="Platform information")
 
 
-def build_client_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}:
+def build_client_broker(url: str | None = None) -> {{ worker_broker_spec.cls }}:
     """Build a bare broker with no request handler or response publisher.
 
     This is a pure *client* broker: it can publish to ``version-requests`` and
@@ -94,22 +83,11 @@ def build_client_broker(url: str | None = None) -> {% if worker_broker == "kafka
     Returns:
         A bare broker of the same class the worker uses, with no handlers.
     """
-{%- if worker_broker == "kafka" %}
-    default_url = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    return KafkaBroker(url if url is not None else default_url)
-{%- elif worker_broker == "nats" %}
-    default_url = os.getenv("NATS_URL", "nats://localhost:4222")
-    return NatsBroker(url if url is not None else default_url)
-{%- elif worker_broker == "rabbitmq" %}
-    default_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-    return RabbitBroker(url if url is not None else default_url)
-{%- elif worker_broker == "redis" %}
-    default_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-    return RedisBroker(url if url is not None else default_url)
-{%- endif %}
+    default_url = os.getenv("{{ worker_broker_spec.env }}", "{{ worker_broker_spec.default_url }}")
+    return {{ worker_broker_spec.cls }}(url if url is not None else default_url)
 
 
-def build_broker(url: str | None = None) -> {% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}:
+def build_broker(url: str | None = None) -> {{ worker_broker_spec.cls }}:
     """Build the worker broker with its handler and response publisher wired up.
 
     Connection is resolved at *call* time (not import time) so tests can point a

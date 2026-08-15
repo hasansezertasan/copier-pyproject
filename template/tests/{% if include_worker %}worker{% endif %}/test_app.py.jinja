@@ -6,18 +6,7 @@ import importlib
 from typing import TYPE_CHECKING
 
 import pytest
-{%- if worker_broker == "kafka" %}
-from faststream.kafka import TestKafkaBroker
-{%- endif %}
-{%- if worker_broker == "nats" %}
-from faststream.nats import TestNatsBroker
-{%- endif %}
-{%- if worker_broker == "rabbitmq" %}
-from faststream.rabbit import TestRabbitBroker
-{%- endif %}
-{%- if worker_broker == "redis" %}
-from faststream.redis import TestRedisBroker
-{%- endif %}
+from {{ worker_broker_spec.module }} import {{ worker_broker_spec.test_cls }}
 from pydantic import ValidationError
 
 from {{github_repo_name}}.worker.app import (
@@ -70,7 +59,7 @@ def test_build_broker_forwards_url(mocker: MockerFixture) -> None:
     pass if the parameter were silently dropped, and that regression would only
     surface in the Docker-only integration job.
     """
-    spy = mocker.spy(worker_app, "{% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}")
+    spy = mocker.spy(worker_app, "{{ worker_broker_spec.cls }}")
 {%- if worker_broker == "kafka" %}
     url = "broker:9092"
 {%- elif worker_broker == "nats" %}
@@ -96,20 +85,17 @@ def test_build_broker_env_var_fallback(
     The env var is the primary production configuration path; a typo in its
     name would otherwise ship silently and only surface on a real deployment.
     """
-    spy = mocker.spy(worker_app, "{% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}")
+    spy = mocker.spy(worker_app, "{{ worker_broker_spec.cls }}")
 {%- if worker_broker == "kafka" %}
     url = "env-host:9092"
-    monkeypatch.setenv("KAFKA_BOOTSTRAP_SERVERS", url)
 {%- elif worker_broker == "nats" %}
     url = "nats://env-host:4222"
-    monkeypatch.setenv("NATS_URL", url)
 {%- elif worker_broker == "rabbitmq" %}
     url = "amqp://guest:guest@env-host:5672/"
-    monkeypatch.setenv("RABBITMQ_URL", url)
 {%- elif worker_broker == "redis" %}
     url = "redis://env-host:6379"
-    monkeypatch.setenv("REDIS_URL", url)
 {%- endif %}
+    monkeypatch.setenv("{{ worker_broker_spec.env }}", url)
 
     _ = build_broker()
 
@@ -117,18 +103,8 @@ def test_build_broker_env_var_fallback(
     assert spy.call_args.args == (url,)
 
 
-{% if worker_broker == "kafka" -%}
-TestBroker = TestKafkaBroker
-{% endif -%}
-{% if worker_broker == "nats" -%}
-TestBroker = TestNatsBroker
-{% endif -%}
-{% if worker_broker == "rabbitmq" -%}
-TestBroker = TestRabbitBroker
-{% endif -%}
-{% if worker_broker == "redis" -%}
-TestBroker = TestRedisBroker
-{% endif %}
+TestBroker = {{ worker_broker_spec.test_cls }}
+
 
 @pytest.mark.asyncio
 async def test_handle_version_request() -> None:
