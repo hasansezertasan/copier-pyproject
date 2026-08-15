@@ -7,6 +7,12 @@ publishes a response. Not part of the package's public surface: it lives under
 wheel, and it deliberately sits outside coverage and import-linter's reach
 (see ADR-008 for why the worker itself is tested this way).
 
+The probe is a pure *client*: it uses ``build_client_broker`` (no request
+handler registered), so a green result proves a *separate* worker replied and
+not the probe answering its own request. Each run carries a fresh
+``request_id`` and only accepts the response correlated to it, so an unrelated
+reply on a shared broker can't be mistaken for success.
+
 Usage::
 
     uv run python scripts/worker_probe.py
@@ -18,6 +24,10 @@ or, via the ``worker-probe`` mise task::
 
 from __future__ import annotations
 
+import sys
+import uuid
+from typing import TYPE_CHECKING
+
 import anyio
 
 from {{github_repo_name}}.worker.app import (
@@ -25,36 +35,88 @@ from {{github_repo_name}}.worker.app import (
     RESPONSES_DESTINATION,
     VersionRequest,
     VersionResponse,
-    build_broker,
+    build_client_broker,
 )
 
+if TYPE_CHECKING:
+{%- if worker_broker == "kafka" %}
+    from faststream.kafka import KafkaBroker
+{%- elif worker_broker == "nats" %}
+    from faststream.nats import NatsBroker
+{%- elif worker_broker == "rabbitmq" %}
+    from faststream.rabbit import RabbitBroker
+{%- elif worker_broker == "redis" %}
+    from faststream.redis import RedisBroker
+{%- endif %}
 
-async def main() -> None:  # pragma: no cover
-    """Publish a sample version request and print the worker's response.
+# Republish-while-polling bound. A one-shot publish can be dropped while a cold
+# consumer becomes live (kafka resolves offsets to "latest"; redis pub/sub and
+# core NATS do not replay), so mirror the integration test and re-send the same
+# request_id each poll until the matching response arrives or the window closes.
+{%- if worker_broker == "kafka" %}
+# Kafka gets a larger window: consumer-group join and topic auto-creation can
+# take well over the ~10s that suffices for the other brokers.
+_RESPONSE_POLLS = 150
+{%- else %}
+_RESPONSE_POLLS = 50
+{%- endif %}
+_POLL_INTERVAL_SECONDS = 0.2
 
-    Excluded from coverage: it blocks on a real broker connection and a
-    running worker to reply, neither of which is available in headless CI.
+
+async def _publish_until_answered(
+    broker: {% if worker_broker == "kafka" %}KafkaBroker{% elif worker_broker == "nats" %}NatsBroker{% elif worker_broker == "rabbitmq" %}RabbitBroker{% elif worker_broker == "redis" %}RedisBroker{% endif %}, request_id: str, got_response: anyio.Event
+) -> None:  # pragma: no cover
+    """Republish the request each poll until the matching response arrives.
+
+    Args:
+        broker: A started client broker to publish requests on.
+        request_id: The correlation id carried by this probe's request.
+        got_response: Event set by the response subscriber on a match.
     """
-    broker = build_broker()
+    for _ in range(_RESPONSE_POLLS):
+        if got_response.is_set():
+            break
+        await broker.publish(
+            VersionRequest(request_id=request_id), REQUESTS_DESTINATION
+        )
+        with anyio.move_on_after(_POLL_INTERVAL_SECONDS):
+            await got_response.wait()
+
+
+async def main() -> int:  # pragma: no cover
+    """Probe the running worker and print its response; return an exit code.
+
+    Excluded from coverage: it blocks on a real broker connection and a running
+    worker to reply, neither of which is available in headless CI.
+
+    Returns:
+        ``0`` when a response correlated to this run arrives, ``1`` on timeout.
+    """
+    request_id = str(uuid.uuid4())
+    broker = build_client_broker()
     received: list[VersionResponse] = []
     got_response = anyio.Event()
 
     @broker.subscriber(RESPONSES_DESTINATION)
     async def _collect(msg: VersionResponse) -> None:  # noqa: RUF029
-        received.append(msg)
-        got_response.set()
+        # Ignore replies correlated to a different request: a shared broker may
+        # carry responses meant for other clients, and matching on request_id
+        # keeps one of those from being mistaken for our round-trip.
+        if msg.request_id == request_id:
+            received.append(msg)
+            got_response.set()
 
     async with broker:
         await broker.start()
-        await broker.publish(VersionRequest(request_id="probe-1"), REQUESTS_DESTINATION)
-        with anyio.move_on_after(5):
-            await got_response.wait()
+        await _publish_until_answered(broker, request_id, got_response)
 
     if received:
         print(received[0])  # noqa: T201
-    else:
-        print("no response within 5s")  # noqa: T201
+        return 0
+    timeout = _RESPONSE_POLLS * _POLL_INTERVAL_SECONDS
+    print(f"no matching response within {timeout:.0f}s")  # noqa: T201
+    return 1
 
 
 if __name__ == "__main__":  # pragma: no cover
-    anyio.run(main)
+    sys.exit(anyio.run(main))
