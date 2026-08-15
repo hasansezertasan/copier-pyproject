@@ -705,6 +705,21 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    prek builtin (cross-platform filename-collision guard). See
    [ADR-011](adr/011-docs-linting-and-cross-platform-filename-safety.md).
 
+   The **HTML build itself carries a warning-allowlist gate**: the `docs-build`
+   tox env builds with `sphinx-build -w docs/_build/warnings.txt` (write the
+   warning stream to a file rather than `-W` failing on the first one), then runs
+   `docs/check_warnings.py`, which normalizes the emitted warnings (path prefixes
+   stripped back to `docs/`) and diffs them against the committed
+   `docs/expected_warnings.txt` allowlist. It fails on **both** unexpected new
+   warnings *and* expected ones that stopped being emitted, so the list can't rot.
+   The allowlist ships effectively empty (comment header only — zero tolerated
+   warnings); a genuinely-unavoidable upstream warning is added as an explicit,
+   reviewable line in the same PR rather than suppressed wholesale. This runs in
+   the local loop (`tox run -e docs-build`) and in both CI docs builds
+   (`docs-preview.yml`, `release.yml`'s `deploy-docs`), complementing
+   `sphinx-lint`'s `.rst`-source checks with build-time semantic warnings (missing
+   xrefs, autodoc import failures).
+
 Downstream template updates are **not** a shipped workflow — they are handled by
 **Renovate's [`copier` manager](https://docs.renovatebot.com/modules/manager/copier/)**
 (ADR-015). Renovate (already the canonical updater, and a documented one-time

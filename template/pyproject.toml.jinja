@@ -563,6 +563,9 @@ convention = "pep257"
 {%- endif %}
 # The Sphinx config is a standalone module, not part of an importable package.
 "docs/conf.py" = ["INP001"]
+# The docs warning-allowlist gate is a standalone script (not an importable
+# package) whose whole job is to print GitHub `::error::` annotations to stdout.
+"docs/check_warnings.py" = ["INP001", "T201"]
 {%- if include_worker %}
 # The worker probe is a standalone dev script, not part of an importable
 # package, and its blocking main() cannot run in headless CI.
@@ -841,17 +844,26 @@ runner = "uv-venv-runner"
 
 
 [tool.tox.env.docs-build]
-commands = [["sphinx-build", "-W", "--keep-going", "-b", "html", "docs", "docs/_build/html"]]
+# Write the warning stream to a file (`-w`) instead of `-W` turning the first
+# warning into a hard error, then let docs/check_warnings.py own the pass/fail:
+# it diffs the emitted warnings against the docs/expected_warnings.txt allowlist,
+# failing on both unexpected new warnings and expected ones that vanished.
+commands = [
+    ["sphinx-build", "-w", "docs/_build/warnings.txt", "-b", "html", "docs", "docs/_build/html"],
+    ["python", "docs/check_warnings.py"],
+]
 extras = ["all"]
 dependency_groups = ["docs"]
 description = "Build Docs"
 runner = "uv-venv-runner"
-# Reproducible build: pin Sphinx's "today"/copyright to SOURCE_DATE_EPOCH and
-# keep build log output unbuffered/ordered. CI steps (docs-preview.yml,
-# release.yml) export SOURCE_DATE_EPOCH from the last commit date before tox
-# runs; local invocations that don't set it pass empty, so conf.py falls back to
-# the current year rather than stamping 1970.
-set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:}" }
+# Keep build log output unbuffered/ordered. Reproducible builds pin Sphinx's
+# "today"/copyright to SOURCE_DATE_EPOCH, which the CI docs steps
+# (docs-preview.yml, release.yml) export from the last commit date before
+# invoking sphinx-build directly. Local `tox` runs deliberately do NOT export
+# it: an empty value ("{env:SOURCE_DATE_EPOCH:}") is *present but blank*, which
+# breaks hatchling's get_reproducible_timestamp (`int("")`), so we leave it
+# unset locally and conf.py falls back to the current year.
+set_env = { PYTHONUNBUFFERED = "1" }
 
 
 [tool.tox.env.docs-server]
@@ -863,7 +875,7 @@ extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
 runner = "uv-venv-runner"
-set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:}" }
+set_env = { PYTHONUNBUFFERED = "1" }
 
 
 [tool.tox.env.docs-linkcheck]
@@ -874,7 +886,7 @@ extras = ["all"]
 dependency_groups = ["docs"]
 description = "Check documentation for broken links"
 runner = "uv-venv-runner"
-set_env = { PYTHONUNBUFFERED = "1", SOURCE_DATE_EPOCH = "{env:SOURCE_DATE_EPOCH:}" }
+set_env = { PYTHONUNBUFFERED = "1" }
 
 {%- if include_profiling %}
 
