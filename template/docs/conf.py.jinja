@@ -5,12 +5,22 @@ See https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 
 # -- Project information -----------------------------------------------------
 project = "{{github_repo_name}}"
 author = "{{ author_full_name }}"
-copyright = f"{datetime.now(tz=timezone.utc):%Y}, {{ author_full_name }}"  # noqa: A001
+# Reproducible builds: honor SOURCE_DATE_EPOCH (https://reproducible-builds.org/)
+# so the stamped copyright year is a function of the source (e.g. the last
+# commit date, as wired in the docs tox envs and CI) rather than the clock.
+_source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
+_build_date = (
+    datetime.fromtimestamp(int(_source_date_epoch), tz=timezone.utc)
+    if _source_date_epoch
+    else datetime.now(tz=timezone.utc)
+)
+copyright = f"{_build_date:%Y}, {{ author_full_name }}"  # noqa: A001
 
 # -- General configuration ---------------------------------------------------
 extensions = [
