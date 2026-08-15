@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.2.0...v1.2.1) (2026-08-15)
+
+
+### 🐛 Bug Fixes
+
+* don't log a traceback for the expected missing-metadata CLI error ([#225](https://github.com/hasansezertasan/copier-pyproject/issues/225)) ([8422ef0](https://github.com/hasansezertasan/copier-pyproject/commit/8422ef0401db6d730f1ae6611ddd950c49f5b0c8))
+* stop rendering Typer-only docs wiring and wording for argparse CLIs ([#222](https://github.com/hasansezertasan/copier-pyproject/issues/222)) ([45bbe21](https://github.com/hasansezertasan/copier-pyproject/commit/45bbe210750fdc7477275a6ad6f9b1afa3b1fd22))
+
 ## [1.2.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.1.0...v1.2.0) (2026-08-14)
 
 
