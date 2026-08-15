@@ -268,10 +268,10 @@ import typer
 
 {% if include_cli -%}
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-{%- endif %}
-{%- if (not include_cli and primary_component != 'gui') or (include_tui and primary_component != 'tui') or (include_web and primary_component != 'web') or (include_mcp and primary_component != 'mcp') or (include_worker and primary_component != 'worker') %}
+{% endif -%}
+{% if (not include_cli and primary_component != 'gui') or (include_tui and primary_component != 'tui') or (include_web and primary_component != 'web') or (include_mcp and primary_component != 'mcp') or (include_worker and primary_component != 'worker') -%}
 from {{github_repo_name}}.core._imports import require
-{%- endif %}
+{% endif -%}
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 {% set cli_all = ["app"] -%}
