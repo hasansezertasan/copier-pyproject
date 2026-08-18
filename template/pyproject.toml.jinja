@@ -146,7 +146,9 @@ all = []
 
 [project.urls]
 changelog = "https://github.com/{{github_user}}/{{github_repo_name}}/blob/main/CHANGELOG.md"
+{%- if include_docs %}
 documentation = "https://{{github_user}}.github.io/{{github_repo_name}}"
+{%- endif %}
 homepage = "https://github.com/{{github_user}}/{{github_repo_name}}"
 issues = "https://github.com/{{github_user}}/{{github_repo_name}}/issues"
 releasenotes = "https://github.com/{{github_user}}/{{github_repo_name}}/releases"

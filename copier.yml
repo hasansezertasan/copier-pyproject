@@ -185,7 +185,7 @@ include_docs:
   type: bool
   default: "{{ 'include_docs' in preset_map[preset] }}"
   help: >-
-    Generate a Sphinx documentation site (docs/ tree, docs-build/docs-server/docs-linkcheck tox envs, the docs-preview + weekly docs-linkcheck workflows, and the release Pages deploy)? Off drops the whole docs subsystem — keep a README-only project lean.
+    Generate a Sphinx documentation site (docs/ tree, docs-build/docs-server/docs-linkcheck tox envs, the docs-preview + weekly docs-linkcheck workflows, and the release Pages deploy)? Off disables the Sphinx site for a README-only project; the maintainer setup guide (docs/maintaining/setup.rst) still ships.
 # ── ⑤ Config ────────────────────────────────────────────────────────────────
 include_pydantic_settings:
   type: bool

@@ -117,6 +117,11 @@ def test_docs_off_drops_sphinx_subsystem_but_keeps_setup_guide(
     tox_envs = pyproject["tool"]["tox"]["env"]
     assert not [name for name in tox_envs if name.startswith("docs-")]
 
+    # No published-metadata reference to the (absent) Pages docs site.
+    assert "documentation" not in pyproject["project"]["urls"]
+    contributing = (root / ".github" / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "Improving The Documentation" not in contributing
+
     # The maintainer setup guide always ships; only its Pages step is gated.
     setup = root / "docs" / "maintaining" / "setup.rst"
     assert setup.is_file()
@@ -130,3 +135,4 @@ def test_docs_on_keeps_sphinx_subsystem(render: Callable[..., Path]) -> None:
     assert (root / ".github" / "workflows" / "docs-preview.yml").is_file()
     pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     assert "docs" in pyproject["dependency-groups"]
+    assert "github.io" in pyproject["project"]["urls"]["documentation"]
