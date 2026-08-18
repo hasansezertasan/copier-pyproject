@@ -1,0 +1,68 @@
+"""Optional-import guard with an actionable install hint.
+
+Component runtime dependencies are placed in the core ``dependencies`` list
+under Jinja guards at scaffold time, so ``pip install {{github_repo_name}}``
+pulls whatever components were enabled. Two situations still produce a bare,
+unfriendly ``ModuleNotFoundError`` though: a library user importing a
+component in an environment where an optional accelerator wasn't installed,
+and a downstream project that toggled a component on via ``copier update``
+but hasn't re-synced its environment yet. :func:`require` turns that failure
+into a message naming the exact install command.
+
+The install command is always supplied by the *caller* (the ``install``
+argument), never derived from the name of the missing module: an import name
+frequently differs from its distribution name (importing ``faststream.nats``
+fails on a module named ``nats``, but the thing to install is
+``faststream[nats]``), so trusting the missing module's name would print a
+``pip install`` line that does not work. When the caller does not name a
+specific distribution the hint falls back to reinstalling the project itself,
+which is what pulls every enabled component's dependencies.
+"""
+
+from __future__ import annotations
+
+import importlib
+from typing import TYPE_CHECKING
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+
+if TYPE_CHECKING:
+    from types import ModuleType
+
+__all__ = ["require"]
+
+
+def require(module: str, *, feature: str, install: str | None = None) -> ModuleType:
+    """Import ``module`` or raise an actionable error naming how to install it.
+
+    Args:
+        module: The importable module name (e.g. ``"faststream"``).
+        feature: Human name of the component needing it (e.g. ``"worker"``).
+        install: The exact ``pip install`` target to suggest — the concrete
+            distribution and extra where one exists (e.g.
+            ``"faststream[nats]"``). When ``None``, the hint falls back to
+            reinstalling the project (``pip install <project-name>``), which is
+            what pulls every enabled component's dependencies. This is never
+            derived from the missing module's name, which can differ from its
+            distribution name.
+
+    Returns:
+        ModuleType: The imported module.
+
+    Raises:
+        ModuleNotFoundError: If ``module``, or a module it imports, is not
+            installed. The message reports which module is actually missing
+            (which may differ from ``module`` itself when the failure comes
+            from one of its own imports, e.g. a missing optional extra) and the
+            caller-supplied command to install it.
+    """
+    try:
+        return importlib.import_module(module)
+    except ModuleNotFoundError as exc:
+        missing = exc.name or module
+        target = install or PROJECT_NAME
+        msg = (
+            f"The {feature} component requires {missing!r}, which is not "
+            f"installed. Install it with: pip install {target}"
+        )
+        raise ModuleNotFoundError(msg, name=missing) from exc

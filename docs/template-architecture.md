@@ -384,6 +384,12 @@ Subpackages (each with `__init__.py` and `app.py`):
   - `dirs.py` - Project directory locations (`~/.<package>`)
   - `logging_setup.py` - Centralized logging
   - `config.py` - Configuration (uses pydantic-settings if enabled)
+  - `_imports.py` - `require(module, *, feature, extra=None)`: imports an
+    optional/lazy dependency or raises a `ModuleNotFoundError` naming the
+    actually-missing module and the exact `pip install` hint, instead of a bare
+    traceback. Used by the `cli` root's lazy-imported, non-primary component
+    subcommands (`interactive`/`web`/`mcp`/`worker`; the GUI's `tkinter` is
+    stdlib and needs no guard) and by the minimal launcher's default callback
 - `utils/` - Utility functions (always included)
 - `cli/` - the `pkg` Typer root (present when `include_console_root`). With
   `include_cli` it is the full CLI (`version`/`info` commands + component

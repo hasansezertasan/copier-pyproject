@@ -18,6 +18,9 @@ from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING, cast
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+{%- if (include_tui and primary_component != 'tui') or (include_web and primary_component != 'web') or (include_mcp and primary_component != 'mcp') or (include_worker and primary_component != 'worker') %}
+from {{github_repo_name}}.core._imports import require
+{%- endif %}
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
@@ -106,6 +109,7 @@ def interactive() -> None:  # pragma: no cover
     Raises:
         SystemExit: Propagating the TUI's exit code.
     """
+    _ = require("{{github_repo_name}}.tui.app", feature="interactive (TUI)")
     from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -135,6 +139,7 @@ def web() -> None:  # pragma: no cover
     Launch the web server:
         {{github_repo_name}} web
     """
+    _ = require("{{github_repo_name}}.web.app", feature="web")
     from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
@@ -148,6 +153,7 @@ def mcp() -> None:  # pragma: no cover
     Launch the MCP server:
         {{github_repo_name}} mcp
     """
+    _ = require("{{github_repo_name}}.mcp.app", feature="mcp")
     from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
@@ -161,6 +167,7 @@ def worker() -> None:  # pragma: no cover
     Launch the worker:
         {{github_repo_name}} worker
     """
+    _ = require("{{github_repo_name}}.worker.app", feature="worker", install="faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]")
     from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
@@ -262,6 +269,9 @@ import typer
 {% if include_cli -%}
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 {% endif -%}
+{% if (not include_cli and primary_component != 'gui') or (include_tui and primary_component != 'tui') or (include_web and primary_component != 'web') or (include_mcp and primary_component != 'mcp') or (include_worker and primary_component != 'worker') -%}
+from {{github_repo_name}}.core._imports import require
+{% endif -%}
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 {% set cli_all = ["app"] -%}
@@ -294,6 +304,9 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
     """
     if ctx.invoked_subcommand is not None:
         return
+{%- if primary_component != 'gui' %}
+    _ = require("{{github_repo_name}}.{{primary_component}}.app", feature="{{primary_component}}"{% if primary_component == 'worker' %}, install="faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]"{% endif %})
+{%- endif %}
     from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
     {{ "raise typer.Exit(code=main())" if primary_component in ["gui", "tui"] else "main()" }}
@@ -377,6 +390,7 @@ def interactive() -> None:  # pragma: no cover
     Raises:
         typer.Exit: Propagating the TUI's exit code.
     """
+    _ = require("{{github_repo_name}}.tui.app", feature="interactive (TUI)")
     from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
@@ -408,6 +422,7 @@ def web() -> None:  # pragma: no cover
     Launch the web server:
         {{github_repo_name}} web
     """
+    _ = require("{{github_repo_name}}.web.app", feature="web")
     from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
@@ -422,6 +437,7 @@ def mcp() -> None:  # pragma: no cover
     Launch the MCP server:
         {{github_repo_name}} mcp
     """
+    _ = require("{{github_repo_name}}.mcp.app", feature="mcp")
     from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
@@ -436,6 +452,7 @@ def worker() -> None:  # pragma: no cover
     Launch the worker:
         {{github_repo_name}} worker
     """
+    _ = require("{{github_repo_name}}.worker.app", feature="worker", install="faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]")
     from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()

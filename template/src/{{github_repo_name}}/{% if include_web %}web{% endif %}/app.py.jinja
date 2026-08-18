@@ -16,6 +16,7 @@ from litestar.openapi.datastructures import ResponseSpec
 {%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core._imports import require
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 logger = get_logger()
@@ -187,8 +188,14 @@ def main() -> None:  # pragma: no cover
     """Entry point for the web application.
 
     Excluded from coverage: it blocks on the uvicorn server loop. The bind
-    resolution it relies on (``resolve_bind``) is unit-tested separately.
+    resolution it relies on (``resolve_bind``) is unit-tested separately, and
+    the ``uvicorn`` guard delegates to the unit-tested :func:`require` helper.
     """
+    # ``uvicorn`` ships as part of ``fastapi[all]`` / ``litestar[standard]`` but
+    # is imported only here at launch, so guard it too: a project pinned to a
+    # bare ``fastapi``/``litestar`` still gets the actionable install hint rather
+    # than a raw ModuleNotFoundError. Guard first, then do the real typed import.
+    _ = require("uvicorn", feature="web")
     import uvicorn  # noqa: PLC0415
 
     host, port = resolve_bind()

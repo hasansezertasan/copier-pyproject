@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, ClassVar, final
 from typing_extensions import override
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core._imports import require
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
@@ -56,12 +57,16 @@ def _display_tui(message: str) -> None:  # noqa: C901  # pragma: no cover
         SystemExit: If the application requests interpreter exit.
     """
     try:
+        # ``textual`` is a hard dependency of the TUI but is imported only here
+        # at launch, so guard it via ``require`` for the same actionable install
+        # hint as the other components, then translate to TuiDisplayError so the
+        # caller's stdout fallback still applies.
+        _ = require("textual", feature="interactive (TUI)")
         from textual.app import App, ComposeResult  # noqa: PLC0415
         from textual.containers import ScrollableContainer  # noqa: PLC0415
         from textual.widgets import Static  # noqa: PLC0415
     except ImportError as exc:
-        msg = "Textual is not available."
-        raise TuiDisplayError(msg) from exc
+        raise TuiDisplayError(str(exc)) from exc
 
     @final
     class InfoApp(App[None]):
