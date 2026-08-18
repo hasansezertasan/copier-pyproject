@@ -19,6 +19,8 @@ from typing import Callable
 
 CONF = "docs/conf.py"
 CONFIG_RST = "docs/configuration.rst"
+INDEX_RST = "docs/index.rst"
+PYPROJECT = "pyproject.toml"
 SETTINGS_MODEL = "src/example/core/config.py"
 
 # The example settings fields autodoc-pydantic lists in the field summary; the
@@ -58,6 +60,15 @@ def test_pydantic_settings_wires_config_reference(
     for field in SETTINGS_FIELDS:
         assert f"{field}:" in model, f"settings field {field!r} missing"
 
+    # autodoc-pydantic must be a docs dependency, or the extension import (and so
+    # the whole docs build) fails.
+    pyproject = (root / PYPROJECT).read_text(encoding="utf-8")
+    assert '"autodoc-pydantic==2.2.0",' in pyproject
+
+    # The page is only reachable if it is wired into the docs toctree.
+    index = (root / INDEX_RST).read_text(encoding="utf-8")
+    assert "\n   configuration\n" in index
+
 
 def test_library_preset_has_no_config_reference(
     render: Callable[..., Path],
@@ -69,6 +80,13 @@ def test_library_preset_has_no_config_reference(
     conf = (root / CONF).read_text(encoding="utf-8")
     assert "autodoc_pydantic" not in conf
     assert "sphinxcontrib.autodoc_pydantic" not in conf
+
+    # No stray autodoc-pydantic dependency and no dangling toctree entry pointing
+    # at the page that was not rendered.
+    pyproject = (root / PYPROJECT).read_text(encoding="utf-8")
+    assert "autodoc-pydantic" not in pyproject
+    index = (root / INDEX_RST).read_text(encoding="utf-8")
+    assert "\n   configuration\n" not in index
     # The guarded autodoc-pydantic block trims cleanly when the toggle is off:
     # exactly one blank line survives where the conditional was elided, between
     # the Napoleon and auto-pytabs sections (CodeRabbit/Copilot whitespace nit).

@@ -11,11 +11,11 @@ The reference below is generated on every docs build directly from the live
 :class:`~{{github_repo_name}}.core.config.Settings` model (via
 `autodoc-pydantic <https://autodoc-pydantic.readthedocs.io/>`_), so the
 documented fields, types, defaults, and constraints stay in lockstep with the
-code and each field's ``description=``. The rendered config summary shows the
-model's ``env_prefix`` (``{{ github_repo_name | upper | replace('-', '_') }}_``)
-next to every field name; compose a field's environment variable by joining that
-prefix with the uppercased field name as shown above (autodoc-pydantic does not
-render the fully-qualified per-field names itself).
+code and each field's ``description=``. The rendered config summary reports the
+model's ``env_prefix`` (``{{ github_repo_name | upper | replace('-', '_') }}_``);
+compose a field's environment variable by joining that prefix with the uppercased
+field name as shown above (autodoc-pydantic does not render the fully-qualified
+per-field names itself).
 
 .. The ``core.config`` module is also autodoc'd on the Modules page, which owns
    the canonical index anchor for ``Settings``; ``:noindex:`` here renders the
