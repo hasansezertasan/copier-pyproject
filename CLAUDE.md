@@ -15,6 +15,35 @@ When you add or change a toggle, update `copier.yml` help + its ADR + the detail
 in `docs/template-architecture.md` + `README.md`, and add **one** index-line here
 — never a multi-line block. See **Adding New Optional Components** below.
 
+## A small glossary
+
+We need to be on the same page with terminology. When communicating, use this
+language:
+
+- **you** — the agent reading this file and changing **copier-pyproject** (this
+  template repo).
+- **we, us, maintainers** — the people building copier-pyproject. These are who
+  you are talking to now.
+- **user, adopter** — the person who runs `copier copy` to scaffold a new Python
+  project from this template. Not the maintainers; not you.
+- **template** — the Jinja-templated `template/` tree this repo renders
+  (`_subdirectory: template`).
+- **generated project, rendered project** — the output of a `copier copy` /
+  `copier update` run; the thing the adopter actually works in.
+- **toggle** — a boolean `include_*` question in `copier.yml` (e.g. `include_cli`,
+  `include_web`).
+- **preset** — the `library`/`tool`/`web`/`full` starting point that seeds every
+  toggle's default via `preset_map`.
+- **component** — an optional generated-project feature or integration a toggle
+  enables. The **runnable** components (CLI, web, GUI, TUI, MCP, worker) share a
+  launch precedence: the highest-precedence enabled one is the *primary* and owns
+  the bare `pkg` command (a console script — or `[project.gui-scripts]` when a
+  sole GUI needs a windowless Windows launcher); every other runnable component
+  becomes a `pkg <name>` subcommand. The order lives in `copier.yml`'s
+  `primary_component` — see ADR-019.
+- **`example/`** — the gitignored, locally-generated rendering used to smoke-test
+  the template.
+
 ## Project Overview
 
 This is a **Copier template** for generating modern Python packages with comprehensive tooling. The `template/` directory contains Jinja2-templated files that are rendered when users run `copier copy` to scaffold new Python projects.
@@ -168,6 +197,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_c_extensions` | Cython + multi-platform wheels | — |
 | `include_profiling` | py-spy / scalene / cProfile | — |
 | `include_examples` | `examples/` folder with usage stubs (`library`-preset default) | — |
+| `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + Pages deploy); **default-on** every preset, off keeps a README-only project. `docs/maintaining/` always ships | [025](docs/adr/025-optional-docs-subsystem.md) |
 | `include_launcher` | PyCrucible online-first-run launcher | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_compiler` | Nuitka native-compiled executable | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_freezer` | PyInstaller offline bundle | [007](docs/adr/007-standalone-executable-toggles.md) |

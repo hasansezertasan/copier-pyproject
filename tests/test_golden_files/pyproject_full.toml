@@ -165,7 +165,6 @@ docs = [
     "sphinx-paramlinks==0.6.0",
     "auto-pytabs[sphinx]==0.5.0",
     "myst-parser==4.0.1",
-    "sphinx-click==6.2.0",
     # Renders the Configuration reference (docs/configuration.rst) directly from
     # the live ``core.config`` Settings model so documented fields/types/
     # defaults/env-var names never drift from the source.

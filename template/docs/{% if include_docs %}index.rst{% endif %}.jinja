@@ -9,6 +9,9 @@ Welcome to {{github_repo_name}}'s documentation!
 
    installation
    usage
+{%- if include_cli and cli_framework == "typer" %}
+   cli-reference
+{%- endif %}
    modules
 {%- if include_pydantic_settings %}
    configuration

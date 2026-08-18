@@ -18,7 +18,7 @@ keywords = [
     "template", "copier", "scaffold", "boilerplate", "uv", "hatch",
     "tox", "pytest", "ruff", "mypy", "basedpyright",
     "type-hints", "typed", "modern-python",
-    "ci-cd", "github-actions", "automation", "sphinx",
+    "ci-cd", "github-actions", "automation",{% if include_docs %} "sphinx",{% endif %}
     "prek", "linting", "testing", "coverage", "release-automation",
 {%- if include_cli and cli_framework == "typer" %}
     "typer",
@@ -146,7 +146,9 @@ all = []
 
 [project.urls]
 changelog = "https://github.com/{{github_user}}/{{github_repo_name}}/blob/main/CHANGELOG.md"
+{%- if include_docs %}
 documentation = "https://{{github_user}}.github.io/{{github_repo_name}}"
+{%- endif %}
 homepage = "https://github.com/{{github_user}}/{{github_repo_name}}"
 issues = "https://github.com/{{github_user}}/{{github_repo_name}}/issues"
 releasenotes = "https://github.com/{{github_user}}/{{github_repo_name}}/releases"
@@ -200,7 +202,9 @@ style = [
   "pyrefly==1.2.0",
   "ruff==0.16.1",
   "slotscheck==0.20.1",
+{%- if include_docs %}
   "sphinx-lint==1.0.2",
+{%- endif %}
   "taplo==0.9.3",
   "ty==0.0.66",
   "typos==1.49.0",
@@ -229,6 +233,7 @@ test = [
   "pytest-timeout>=2.3",
 {%- endif %}
 ]
+{%- if include_docs %}
 docs = [
     "sphinx==8.1.3",
     "shibuya==2026.7.12",
@@ -239,9 +244,6 @@ docs = [
     "sphinx-paramlinks==0.6.0",
     "auto-pytabs[sphinx]==0.5.0",
     "myst-parser==4.0.1",
-{%- if include_cli and cli_framework == "typer" %}
-    "sphinx-click==6.2.0",
-{%- endif %}
 {%- if include_pydantic_settings %}
     # Renders the Configuration reference (docs/configuration.rst) directly from
     # the live ``core.config`` Settings model so documented fields/types/
@@ -263,6 +265,7 @@ docs = [
     "pyyaml>=6.0",
 {%- endif %}
 ]
+{%- endif %}
 tool = [
   "commitizen==4.17.0",
 {%- if include_c_extensions %}
@@ -574,11 +577,13 @@ convention = "pep257"
 {%- if include_examples %}
 "examples/**/*.py" = ["INP001"]
 {%- endif %}
+{%- if include_docs %}
 # The Sphinx config is a standalone module, not part of an importable package.
 "docs/conf.py" = ["INP001"]
 # The docs warning-allowlist gate is a standalone script (not an importable
 # package) whose whole job is to print GitHub `::error::` annotations to stdout.
 "docs/check_warnings.py" = ["INP001", "T201"]
+{%- endif %}
 {%- if include_worker %}
 # The worker probe is a standalone dev script, not part of an importable
 # package, and its blocking main() cannot run in headless CI.
@@ -826,10 +831,12 @@ commands = [
   [
     "ec",
   ],
+{%- if include_docs %}
   [
     "sphinx-lint",
     "docs",
   ],
+{%- endif %}
   # Collects (does not run) the suite and flags fixtures that are never used --
   # cheap, deterministic, and a natural fit next to the other whole-program
   # analyzers above (lint-imports, slotscheck).
@@ -855,7 +862,7 @@ dependency_groups = ["prek"]
 description = "Run prek hooks"
 runner = "uv-venv-runner"
 
-
+{% if include_docs %}
 [tool.tox.env.docs-build]
 # Write the warning stream to a file (`-w`) instead of `-W` turning the first
 # warning into a hard error, then let docs/check_warnings.py own the pass/fail:
@@ -900,6 +907,7 @@ dependency_groups = ["docs"]
 description = "Check documentation for broken links"
 runner = "uv-venv-runner"
 set_env = { PYTHONUNBUFFERED = "1" }
+{%- endif %}
 
 {%- if include_profiling %}
 
