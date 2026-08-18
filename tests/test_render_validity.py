@@ -142,11 +142,17 @@ def test_docs_off_omits_component_interface_pages(
     assert (root / "src" / PKG / "worker").is_dir()
 
 
-def test_docs_on_keeps_sphinx_subsystem(render: Callable[..., Path]) -> None:
-    """The default (docs on) still renders the Sphinx site and docs workflows."""
-    root = render(include_docs=True)
+def test_docs_on_by_default_keeps_sphinx_subsystem(
+    render: Callable[..., Path],
+) -> None:
+    """Docs are on by default (no override), rendering the Sphinx site, workflows,
+    and the full Pages documentation URL — a regression guard if the default flips."""
+    root = render()  # default preset (library) → include_docs defaults to true
     assert (root / "docs" / "conf.py").is_file()
     assert (root / ".github" / "workflows" / "docs-preview.yml").is_file()
     pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     assert "docs" in pyproject["dependency-groups"]
-    assert "github.io" in pyproject["project"]["urls"]["documentation"]
+    assert (
+        pyproject["project"]["urls"]["documentation"]
+        == "https://octocat.github.io/example"
+    )
