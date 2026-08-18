@@ -92,6 +92,7 @@ preset_map:
       - include_sourcery
       - include_sonarcloud
       - include_all_contributors
+      - include_smokeshow
       - include_megalinter
       - include_repo_settings
       - include_repo_ruleset
@@ -206,6 +207,11 @@ include_all_contributors:
   default: "{{ 'include_all_contributors' in preset_map[preset] }}"
   help: >-
     Include an all-contributors config (.all-contributorsrc) and a README section? Requires the all-contributors bot/CLI to maintain the list.
+include_smokeshow:
+  type: bool
+  default: "{{ 'include_smokeshow' in preset_map[preset] }}"
+  help: >-
+    Publish the combined coverage HTML report to a tokenless ephemeral URL via smokeshow (public repos only), in the coverage-combine CI job? No account or secret required. Off by default to preserve the self-contained default; Codecov remains the primary coverage host.
 include_megalinter:
   type: bool
   default: "{{ 'include_megalinter' in preset_map[preset] }}"

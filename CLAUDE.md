@@ -205,6 +205,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_sourcery` | Sourcery config (`.sourcery.yaml`) | [009](docs/adr/009-optional-external-quality-community-integrations.md) |
 | `include_sonarcloud` | SonarCloud + `sonar` CI job | [009](docs/adr/009-optional-external-quality-community-integrations.md) |
 | `include_all_contributors` | all-contributors config + workflow + README section | [009](docs/adr/009-optional-external-quality-community-integrations.md) |
+| `include_smokeshow` | tokenless coverage-HTML host (smokeshow step in the `coverage-combine` job; public repos only) | [026](docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md) |
 | `include_megalinter` | MegaLinter lean-complement CI layer | [013](docs/adr/013-megalinter-opt-in-lean-complement.md) |
 | `include_homebrew` | Homebrew tap dispatch (`is_app`-gated) | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
 | `include_scoop` | Scoop bucket dispatch | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |

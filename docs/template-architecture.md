@@ -92,10 +92,14 @@ Optional components (all boolean):
 - `include_sourcery` - Sourcery AI-refactoring config (`.sourcery.yaml`)
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
 - `include_all_contributors` - all-contributors config (`.all-contributorsrc`) + README section
+- `include_smokeshow` - publish the combined coverage HTML report to a tokenless ephemeral URL via `smokeshow` (a step in the `coverage-combine` CI job; public repos only, `default: false`; see [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md))
 
-  These three are opt-in integrations, all `default: false`, kept as toggles (not
+  These are opt-in integrations, all `default: false`, kept as toggles (not
   always-on) precisely to preserve the self-contained "green on first push, zero
-  external accounts" default. `include_sourcery` (config-only, external App) and
+  external accounts" default. `include_smokeshow` needs no account at all (a
+  tokenless public-repo-only coverage-HTML mirror in the `coverage-combine` job —
+  [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md));
+  `include_sourcery` (config-only, external App) and
   `include_sonarcloud` (needs a SonarCloud org + `SONAR_TOKEN` secret) require
   out-of-band setup; the `sonar` job mirrors the Codecov opt-in/non-blocking
   pattern (gated on the `SONAR_TOKEN` presence flag, skips fork PRs, visible
@@ -552,18 +556,34 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ## CI/CD Workflows
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
-   - Codecov coverage upload runs whenever the repo is public **or** a
-     `CODECOV_TOKEN` secret is set — two job-level presence flags gate it because
-     the `secrets` context is unavailable in `if:`: `CODECOV_TOKEN_SET`
+   - **Cross-matrix coverage** ([ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):
+     each matrix cell `coverage combine`s its per-interpreter data, keeps a
+     non-gating `coverage report --fail-under=0` for fast per-OS feedback, and
+     uploads its raw `.coverage.<os>` as a per-OS artifact
+     (`include-hidden-files: true`). A dedicated `coverage-combine` job
+     (`needs: ci`, in the `check` gate) downloads every cell, merges once, and is
+     the **single** place the `fail_under = 99` gate runs — over the **union** of
+     every OS × interpreter cell, not each cell independently. `relative_files =
+     true` (pyproject `[tool.coverage.run]`) lets cross-runner paths merge,
+     complementing the `[tool.coverage.paths]` remap. The combined `coverage.xml`
+     is the single Codecov upload and, when `include_sonarcloud`, the `coverage-xml`
+     artifact the `sonar` job consumes (`sonar` now `needs: coverage-combine`).
+   - Codecov upload (from `coverage-combine`) runs whenever the repo is public
+     **or** a `CODECOV_TOKEN` secret is set — two job-level presence flags gate it
+     because the `secrets` context is unavailable in `if:`: `CODECOV_TOKEN_SET`
      (`secrets.CODECOV_TOKEN != ''`) and `REPO_IS_PUBLIC`
      (`!github.event.repository.private`). On a **public** repo the codecov-action
      uploads tokenless, so owner pushes and fork PRs both report coverage with no
      secret; the token is only needed for a **private** repo (or to dodge
-     tokenless rate-limits). Only a private repo with no token hits the Ubuntu-only
+     tokenless rate-limits). Only a private repo with no token hits the
      `::notice::` visible skip instead of failing the run — coverage reporting is
      best-effort (the upload step's `fail_ci_if_error` defaults to false), not
      load-bearing for a green build. Setup is documented in the generated
      project's `docs/maintaining/setup.rst` "Repository setup" guide.
+   - When `include_smokeshow` is set, `coverage-combine` additionally publishes the
+     combined `htmlcov/` to a tokenless ephemeral public URL via
+     `smokeshow upload htmlcov` (public repos only) — an account-free browsable
+     coverage report alongside Codecov. See ADR-026.
    - When `include_launcher`/`include_freezer`/`include_compiler` are set, adds
      matching `build-{launcher,freezer,compiler}-check` jobs (per-OS, `fail-fast:
      false`) that build the standalone executable on every PR/push — a build-only

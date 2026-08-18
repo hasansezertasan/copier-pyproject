@@ -20,7 +20,7 @@ Always included in every generated project:
 
 On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
 
-Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), and repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App).
+Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, smokeshow (a tokenless, account-free coverage-HTML mirror for public repos), MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), and repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App).
 
 ## Inputs
 
@@ -67,6 +67,7 @@ Copier will prompt for:
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
 - `include_pydantic_settings` (use pydantic-settings for configuration; the docs build auto-generates a Configuration reference from the live settings model via autodoc-pydantic)
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
+- `include_smokeshow` (opt-in tokenless coverage-HTML host; publishes the combined report to an ephemeral public URL from the `coverage-combine` CI job — public repos only, no account or secret)
 - `include_repo_ruleset` (opt-in branch protection as code — a ruleset + App-free sync workflow enforcing squash-only merges, linear history, and the required CI checks; needs a `REPO_ADMIN_TOKEN` PAT)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
@@ -173,6 +174,13 @@ tokenless rate-limits):
 The upload is best-effort either way: on a private repo with no token, CI records
 a notice and skips the upload rather than failing the run. The generated
 `CONTRIBUTING.md` documents the same setup for contributors to your project.
+
+Coverage is combined across the whole CI matrix: each OS uploads its raw
+`.coverage` data and a dedicated `coverage-combine` job merges every OS ×
+interpreter cell into the single authoritative report — the one place the
+`fail_under` gate runs (over the union) and the single Codecov upload. Enabling
+`include_smokeshow` additionally publishes the combined HTML report to a tokenless
+ephemeral URL (public repos only) — a browsable coverage report with no account.
 
 ### Documentation site and dependency updates
 
