@@ -125,6 +125,35 @@ while still gaining real-broker coverage on Linux.
 - It composes with the existing `.devcontainer` services rather than duplicating
   their definitions into workflow YAML.
 
+> **Amendment (2026-08, issue #169) — services: as the CI mechanism for
+> redis/nats.** The reasoning above stands for the *local* run and for
+> kafka/rabbitmq, but it over-generalized. For fast-starting, trivially
+> health-checked brokers, a runner-provided `services:` container is lighter in
+> CI: the runner starts it, health-gates it (redis via `redis-cli ping`), and
+> injects the connection *before* the job — no in-test Docker orchestration and
+> no readiness logic owned by the test. So CI now uses `services:` for **redis**
+> and **nats**, and keeps **testcontainers** for **kafka** (KRaft
+> advertised-listeners) and **rabbitmq** (fiddly readiness), where `services:`
+> readiness is not worth the trouble. This is a *per-broker CI mechanism*, not a
+> new question: the split is derived from `worker_broker`, and what the
+> integration test asserts is unchanged.
+>
+> The seam is the env-injectable factory (item 1). The integration test's
+> container startup moved into a `broker_url` fixture: if the broker's env var
+> (`REDIS_URL` / `NATS_URL` / …) is already set — the `services:` path, where the
+> runner points the job at a live broker — the fixture connects to it directly;
+> otherwise it starts a throwaway testcontainer. So a local `pytest -m
+> integration` is unchanged (self-contained, Docker-owned-from-the-test), while
+> CI for redis/nats skips the in-test container entirely.
+>
+> **NATS runs without a container health-check.** Its `/healthz` monitoring
+> endpoint needs a container command (`-m 8222`), and GitHub Actions service
+> containers cannot override the image command (only image/env/ports/options).
+> NATS boots in well under a second and the checkout/Python/uv setup steps
+> precede the first test line, so the service is long ready; the fixture's own
+> connect-retry (`asyncio.wait_for(start(), 120s)` + the publish poll loop)
+> covers readiness. redis keeps a real `--health-cmd` gate.
+
 ## Consequences
 
 - `worker/app.py` exposes `build_broker(url=None)` and keeps a module-level

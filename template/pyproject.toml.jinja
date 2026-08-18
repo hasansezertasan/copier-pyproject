@@ -978,6 +978,12 @@ description = "Run worker broker integration tests against a real broker."
 extras = ["all"]
 dependency_groups = ["test"]
 runner = "uv-venv-runner"
+# tox passes only an allowlisted set of environment variables into the test
+# subprocess. Forward {{ worker_broker_spec.env }} so the CI `services:` path
+# (which sets it at the job level — see ADR-008 / issue #169) actually reaches
+# the `broker_url` fixture; without this it would be dropped and every run would
+# fall back to testcontainers, silently defeating the services path.
+pass_env = ["{{ worker_broker_spec.env }}"]
 {%- endif %}
 {%- if include_launcher %}
 

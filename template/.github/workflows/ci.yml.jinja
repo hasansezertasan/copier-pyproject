@@ -378,15 +378,56 @@ jobs:
 {%- if include_worker %}
   worker-integration:
     name: Worker integration tests ({{worker_broker}})
-    # Ubuntu-only: testcontainers needs a Docker daemon, which GitHub provides on
-    # Linux runners but not macOS/Windows. Runs only the `integration`-marked
-    # tests (deselected from the default matrix in the `ci` job) against a real
-    # {{worker_broker}} started in a container — the one thing that exercises the
+    # Ubuntu-only: the real {{worker_broker}} runs in a Linux container — a
+    # GitHub Actions service for redis/nats (below), an in-test testcontainer for
+    # kafka/rabbitmq — and container support is Linux-runner-only. Runs only the
+    # `integration`-marked tests (deselected from the default matrix in the `ci`
+    # job) against a real {{worker_broker}} — the one thing that exercises the
     # real driver and serialization the in-memory unit tests stub out. See ADR-008.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
+{%- if worker_broker == "redis" %}
+{%- set svc_redis_image = 'valkey/valkey:8' if redis_backend == 'valkey' else 'redis:7' %}
+{%- set svc_redis_cli = 'valkey-cli' if redis_backend == 'valkey' else 'redis-cli' %}
+    # {{worker_broker}} starts fast and health-checks trivially, so CI uses a
+    # GitHub Actions service container — started and health-gated by the runner
+    # before the job — instead of an in-test testcontainer. Setting REDIS_URL
+    # makes the integration fixture connect to it directly and skip container
+    # startup; a local `pytest -m integration` (no env var) still uses
+    # testcontainers. See ADR-008 / issue #169.
+    services:
+      redis:
+        image: {{ svc_redis_image }}
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "{{ svc_redis_cli }} ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    env:
+      REDIS_URL: redis://localhost:6379
+{%- elif worker_broker == "nats" %}
+    # NATS starts in well under a second and the checkout/Python/uv setup steps
+    # precede the first test line, so the service is long ready by then. It runs
+    # without a container health-check: the image ships no shell tooling for one,
+    # and enabling the /healthz monitoring endpoint needs a container command
+    # (`-m 8222`) that GitHub Actions service containers cannot override (only
+    # image/env/ports/options). The fixture's own connect-retry
+    # (asyncio.wait_for(start(), 120s) + the publish poll loop) covers readiness.
+    # Setting NATS_URL makes the integration fixture connect directly and skip
+    # the testcontainer; a local `pytest -m integration` still uses one. See
+    # ADR-008 / issue #169.
+    services:
+      nats:
+        image: nats:2.10
+        ports:
+          - 4222:4222
+    env:
+      NATS_URL: nats://localhost:4222
+{%- endif %}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7

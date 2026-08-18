@@ -87,6 +87,32 @@ def test_worker_broker_render_is_structurally_valid(
     _assert_pyproject_is_toml(root)
 
 
+@pytest.mark.parametrize(
+    ("broker", "expect_service"),
+    [("redis", True), ("nats", True), ("kafka", False), ("rabbitmq", False)],
+)
+def test_worker_integration_uses_services_only_for_light_brokers(
+    render: Callable[..., Path], broker: str, expect_service: bool
+) -> None:
+    """redis/nats get a GitHub Actions ``services:`` CI path; kafka/rabbitmq
+    stay on testcontainers (issue #169). The env var the services path sets is
+    the seam the integration fixture reads."""
+    root = render(include_worker=True, worker_broker=broker)
+    ci = yaml.safe_load(
+        (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    )
+    job = ci["jobs"]["worker-integration"]
+    env_var = {
+        "redis": "REDIS_URL",
+        "nats": "NATS_URL",
+    }.get(broker)
+    if expect_service:
+        assert "services" in job, f"{broker} should use a services: container"
+        assert env_var in job.get("env", {})
+    else:
+        assert "services" not in job, f"{broker} should stay on testcontainers"
+
+
 @pytest.mark.parametrize("framework", WEB_FRAMEWORKS)
 def test_web_framework_render_is_structurally_valid(
     render: Callable[..., Path], framework: str
