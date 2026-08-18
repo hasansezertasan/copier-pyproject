@@ -244,6 +244,9 @@ docs = [
     "sphinx-paramlinks==0.6.0",
     "auto-pytabs[sphinx]==0.5.0",
     "myst-parser==4.0.1",
+    # Per-page "last updated" footer sourced from git commit dates (ADR-027);
+    # offline, no network. Works from full history (docs CI checks out depth 0).
+    "sphinx-last-updated-by-git==0.3.8",
 {%- if include_pydantic_settings %}
     # Renders the Configuration reference (docs/configuration.rst) directly from
     # the live ``core.config`` Settings model so documented fields/types/
