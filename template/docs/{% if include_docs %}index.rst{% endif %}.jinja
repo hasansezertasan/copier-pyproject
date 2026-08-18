@@ -13,6 +13,9 @@ Welcome to {{github_repo_name}}'s documentation!
    cli-reference
 {%- endif %}
    modules
+{%- if include_pydantic_settings %}
+   configuration
+{%- endif %}
 {%- if include_web %}
    web-interface
 {%- endif %}

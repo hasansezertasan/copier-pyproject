@@ -402,7 +402,14 @@ Subpackages (each with `__init__.py` and `app.py`):
 - `core/` - Core infrastructure (always included):
   - `dirs.py` - Project directory locations (`~/.<package>`)
   - `logging_setup.py` - Centralized logging
-  - `config.py` - Configuration (uses pydantic-settings if enabled)
+  - `config.py` - Configuration (uses pydantic-settings if enabled). When
+    `include_pydantic_settings` is on, the docs build renders a Configuration
+    reference straight from the live `Settings` model: `docs/conf.py` loads the
+    `sphinxcontrib.autodoc_pydantic` extension and the conditional
+    `docs/configuration.rst` page carries an `autopydantic_settings` directive, so
+    the documented fields, types, defaults, constraints, and env-var names never
+    drift from the model. The docs dependency group gains `autodoc-pydantic` under
+    the `include_pydantic_settings` guard.
 - `utils/` - Utility functions (always included)
 - `cli/` - the `pkg` Typer root (present when `include_console_root`). With
   `include_cli` it is the full CLI (`version`/`info` commands + component

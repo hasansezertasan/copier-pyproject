@@ -65,7 +65,7 @@ Copier will prompt for:
 - `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
-- `include_pydantic_settings` (use pydantic-settings for configuration)
+- `include_pydantic_settings` (use pydantic-settings for configuration; the docs build auto-generates a Configuration reference from the live settings model via autodoc-pydantic)
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_repo_ruleset` (opt-in branch protection as code — a ruleset + App-free sync workflow enforcing squash-only merges, linear history, and the required CI checks; needs a `REPO_ADMIN_TOKEN` PAT)
 - `include_postgres` (include PostgreSQL service in devcontainer)
