@@ -141,13 +141,14 @@ jobs:
         # The single place the `fail_under = 99` gate is enforced — over the union
         # of every OS × interpreter cell, not each cell independently.
         # `relative_files` (pyproject `[tool.coverage.run]`) lets paths from
-        # different runners merge. `--no-project` runs coverage in an isolated env
-        # (reading data + config needs no project install).
+        # different runners merge. `--locked --only-group test` pins the SAME
+        # coverage version that produced the `.coverage.*` data files (rather than
+        # an unpinned resolve that could drift), without building the project.
         run: |
-          uv run --no-project --with 'coverage[toml]' coverage combine
-          uv run --no-project --with 'coverage[toml]' coverage report --show-missing --fail-under=99
-          uv run --no-project --with 'coverage[toml]' coverage html
-          uv run --no-project --with 'coverage[toml]' coverage xml
+          uv run --locked --only-group test coverage combine
+          uv run --locked --only-group test coverage report --show-missing --fail-under=99
+          uv run --locked --only-group test coverage html
+          uv run --locked --only-group test coverage xml
       - name: Upload combined HTML report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:

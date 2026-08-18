@@ -94,9 +94,10 @@ Optional components (all boolean):
 - `include_all_contributors` - all-contributors config (`.all-contributorsrc`) + README section
 - `include_smokeshow` - publish the combined coverage HTML report to a tokenless ephemeral URL via `smokeshow` (a step in the `coverage-combine` CI job; public repos only, `default: false`; see [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md))
 
-  These are opt-in integrations, all `default: false`, kept as toggles (not
-  always-on) precisely to preserve the self-contained "green on first push, zero
-  external accounts" default. `include_smokeshow` needs no account at all (a
+  These are opt-in integrations kept as toggles (not always-on) precisely to
+  preserve the self-contained "green on first push, zero external accounts"
+  default: each is off in the base `library`/`tool`/`web` presets (only the `full`
+  preset seeds them on), so a plain project never pays for them unasked. `include_smokeshow` needs no account at all (a
   tokenless public-repo-only coverage-HTML mirror in the `coverage-combine` job —
   [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md));
   `include_sourcery` (config-only, external App) and

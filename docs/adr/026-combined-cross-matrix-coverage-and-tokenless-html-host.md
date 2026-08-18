@@ -119,8 +119,10 @@ same non-blocking guarantee the Codecov step gets from `fail_ci_if_error: false`
   per-cell) and published (single Codecov upload, optional smokeshow HTML). What
   *when* a regression fails shifts from per-cell to the union, which is more
   correct: the gate should measure the union.
-- `coverage` in the combine job runs via `uv run --no-project --with
-  'coverage[toml]'` — reading data + config needs no project install, keeping the
-  job light.
+- `coverage` in the combine job runs via `uv run --locked --only-group test
+  coverage` — this pins the **same** coverage version that produced the
+  `.coverage.*` data files (via the locked `test` group) so it never drifts from
+  an unpinned resolve, while `--only-group` skips building the project (reading
+  data + config needs no project install).
 - `CLAUDE.md`, `README.md`, and `docs/template-architecture.md` document the
   toggle and the new job.
