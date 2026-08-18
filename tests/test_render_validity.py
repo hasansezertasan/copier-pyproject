@@ -127,6 +127,13 @@ def test_docs_off_drops_sphinx_subsystem_but_keeps_setup_guide(
     assert setup.is_file()
     assert "GitHub Pages" not in setup.read_text(encoding="utf-8")
 
+    # The repo-setup skill drops its docs-only Pages/deploy-docs guidance.
+    skill = (root / ".claude" / "skills" / "repo-setup" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    assert "deploy-docs" not in skill
+    assert "gh-pages" not in skill
+
 
 def test_docs_off_omits_component_interface_pages(
     render: Callable[..., Path],
