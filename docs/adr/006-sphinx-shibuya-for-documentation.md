@@ -62,7 +62,11 @@ Specifics:
   produced by a Sphinx extension but generated at build time from the live app
   (`conf.py` shells `typer ... utils docs` into the gitignored
   `docs/_generated/cli.md`, which a MyST `{include}` page renders) — `sphinx-click`
-  is unusable because current Typer vendors its own Click.
+  is unusable because current Typer vendors its own Click. We also evaluated
+  [`sphinxcontrib-typer`](https://github.com/sphinx-contrib/typer) (a native
+  `.. typer::` directive); it works, but the build-time `typer ... utils docs`
+  approach keeps the CLI reference uniform with the worker/web generators (all
+  shell the live app into `docs/_generated/`) and adds no extra extension.
 - **tox:** `docs-build` runs `sphinx-build -b html docs docs/_build/html`;
   `docs-server` runs `sphinx-autobuild`. Both set `extras = ["all"]` (see
   Consequences — autodoc must import the package and its optional dependencies).

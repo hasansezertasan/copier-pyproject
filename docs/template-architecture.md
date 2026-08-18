@@ -414,8 +414,11 @@ Subpackages (each with `__init__.py` and `app.py`):
   documented commands/options — including the enabled component subcommands —
   never drift from `--help`. The `sphinx-click` route is unusable here because
   current Typer vendors its own Click (`typer._click`), so `TyperGroup` fails
-  `sphinx-click`'s `isinstance(..., click.Command)` check; the `argparse` variant
-  has no generated reference
+  `sphinx-click`'s `isinstance(..., click.Command)` check.
+  [`sphinxcontrib-typer`](https://github.com/sphinx-contrib/typer) was also
+  evaluated — it works, but the build-time generation keeps the CLI reference
+  uniform with the worker/web generators and pulls in no extra extension. The
+  `argparse` variant has no generated reference
 - `web/` - FastAPI/Litestar with `/version` and `/info` endpoints (conditional).
   The docs build emits the web app's [OpenAPI](https://www.openapis.org/) schema
   straight from the live `{{github_repo_name}}.web.app:app` object into the
