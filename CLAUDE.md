@@ -30,13 +30,17 @@ language:
   (`_subdirectory: template`).
 - **generated project, rendered project** — the output of a `copier copy` /
   `copier update` run; the thing the adopter actually works in.
-- **toggle** — a boolean `include_*` question in `copier.yml` (e.g. `include_web`,
-  `include_docs`).
+- **toggle** — a boolean `include_*` question in `copier.yml` (e.g. `include_cli`,
+  `include_web`).
 - **preset** — the `library`/`tool`/`web`/`full` starting point that seeds every
   toggle's default via `preset_map`.
-- **component** — a runnable interface a generated project can expose: CLI, web,
-  GUI, TUI, MCP, or worker (the primary one owns the bare console script; the
-  rest are subcommands — see ADR-019).
+- **component** — an optional generated-project feature or integration a toggle
+  enables. The **runnable** components (CLI, web, GUI, TUI, MCP, worker) share a
+  launch precedence: the highest-precedence enabled one is the *primary* and owns
+  the bare `pkg` command (a console script — or `[project.gui-scripts]` when a
+  sole GUI needs a windowless Windows launcher); every other runnable component
+  becomes a `pkg <name>` subcommand. The order lives in `copier.yml`'s
+  `primary_component` — see ADR-019.
 - **`example/`** — the gitignored, locally-generated rendering used to smoke-test
   the template.
 
