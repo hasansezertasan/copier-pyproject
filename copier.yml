@@ -180,7 +180,6 @@ include_examples:
   type: bool
   default: "{{ 'include_examples' in preset_map[preset] }}"
   help: "Include an examples/ folder with simple and advanced usage stubs?"
-# ── Documentation ────────────────────────────────────────────────────────────
 include_docs:
   type: bool
   default: "{{ 'include_docs' in preset_map[preset] }}"

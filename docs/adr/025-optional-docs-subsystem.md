@@ -59,7 +59,7 @@ those. So `docs/maintaining/` stays present regardless of `include_docs` — it
 remains a readable `.rst` at a stable path with no Sphinx needed — and only its
 GitHub Pages step is conditionalized. A project with `include_docs=false`
 therefore keeps a `docs/` directory containing just the maintainer guide; this is
-intentional and non-breaking, and preferable to relocating a path eight other
+intentional and non-breaking, and preferable to relocating a path six other
 files depend on.
 
 ## Consequences

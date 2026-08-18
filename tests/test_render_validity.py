@@ -128,6 +128,20 @@ def test_docs_off_drops_sphinx_subsystem_but_keeps_setup_guide(
     assert "GitHub Pages" not in setup.read_text(encoding="utf-8")
 
 
+def test_docs_off_omits_component_interface_pages(
+    render: Callable[..., Path],
+) -> None:
+    """Docs-off drops the web/worker Sphinx interface pages (the compound
+    ``include_docs and include_*`` filename branch) while the components render."""
+    root = render(include_docs=False, include_web=True, include_worker=True)
+    _assert_pyproject_is_toml(root)
+    assert not (root / "docs" / "web-interface.rst").exists()
+    assert not (root / "docs" / "worker-interface.rst").exists()
+    # The components themselves are unaffected by include_docs.
+    assert (root / "src" / PKG / "web").is_dir()
+    assert (root / "src" / PKG / "worker").is_dir()
+
+
 def test_docs_on_keeps_sphinx_subsystem(render: Callable[..., Path]) -> None:
     """The default (docs on) still renders the Sphinx site and docs workflows."""
     root = render(include_docs=True)

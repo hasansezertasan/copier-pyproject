@@ -61,7 +61,7 @@ Copier will prompt for:
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
 - `include_examples` (include an `examples/` folder with simple and advanced usage stubs)
-- `include_docs` (generate the Sphinx docs site — `docs/` tree, `docs-*` tox envs, docs CI + Pages deploy; on by default, off keeps a README-only project)
+- `include_docs` (Sphinx docs site — `docs/` tree, `docs-*` tox envs, docs CI + Pages deploy; on by default)
 - `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)

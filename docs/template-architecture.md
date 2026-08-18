@@ -708,8 +708,8 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    rendered form is audited by the generated project's own hook, and end-to-end by
    rendering a project and running `prek run zizmor --all-files` in it).
 9. **PR documentation previews** (`docs-preview.yml`, rendered only when
-   `include_docs`, static workflow). On `pull_request` (`opened`/`synchronize`/`reopened`/`closed`) it
-   builds the Sphinx docs and hands the lifecycle to `rossjrw/pr-preview-action`
+   `include_docs`, static workflow). On `pull_request`
+   (`opened`/`synchronize`/`reopened`/`closed`) it builds the Sphinx docs and hands the lifecycle to `rossjrw/pr-preview-action`
    (`action: auto`): deploy to `pr-preview/pr-<N>/` on `gh-pages` on
    open/update, remove on close, with a sticky preview-URL PR comment throughout.
    Guarded by `if: github.event.pull_request.head.repo.full_name ==
