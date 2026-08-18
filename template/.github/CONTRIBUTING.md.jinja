@@ -23,7 +23,9 @@ All types of contributions are encouraged and valued. See the [Table of Contents
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Your First Code Contribution](#your-first-code-contribution)
   - [Secret Scanning](#secret-scanning)
+{%- if include_docs %}
   - [Improving The Documentation](#improving-the-documentation)
+{%- endif %}
 - [Styleguides](#styleguides)
   - [Commit Messages](#commit-messages)
 - [Join The Project Team](#join-the-project-team)
@@ -234,7 +236,7 @@ If the hook flags something:
 
   Then re-run `detect-secrets audit .secrets.baseline` to triage any newly
   discovered entries before committing.
-
+{% if include_docs %}
 ### Improving The Documentation
 
 The documentation is built with [Sphinx](https://www.sphinx-doc.org/). Common
@@ -245,7 +247,7 @@ documentation tasks:
 - `uv run --locked tox run -e docs-linkcheck` — check for broken links (also runs weekly in CI).
 
 <!-- TODO @{{github_user}}: Updating, improving and correcting the documentation -->
-
+{% endif %}
 ## Styleguides
 
 ### Commit Messages

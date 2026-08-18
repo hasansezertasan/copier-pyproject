@@ -50,6 +50,8 @@ run = "uv run --locked ruff check"
 description = "Format the code with ruff"
 alias = "f"
 run = "uv run --locked ruff format"
+{%- endraw %}
+{%- if include_docs %}
 
 [tasks.docs-build]
 description = "Build documentation"
@@ -58,6 +60,8 @@ run = "uv run --locked tox run -e docs-build"
 [tasks.docs-serve]
 description = "Serve documentation locally"
 run = "uv run --locked tox run -e docs-server"
+{%- endif %}
+{% raw %}
 
 [tasks.prek]
 description = "Run prek hooks"

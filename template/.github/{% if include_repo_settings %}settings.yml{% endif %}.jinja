@@ -13,9 +13,14 @@
 # `labels:` block — it would create a second, conflicting source of truth.
 repository:
   description: "{{ short_description }}"
+{%- if include_docs %}
   # The generated project's docs site (GitHub Pages). Change if you host docs
   # elsewhere.
   homepage: "https://{{ github_user }}.github.io/{{ github_repo_name }}"
+{%- else %}
+  # No docs site is generated (include_docs is off); point at the repository.
+  homepage: "https://github.com/{{ github_user }}/{{ github_repo_name }}"
+{%- endif %}
 {%- set topic_list = repository_topics.split(",") | map("trim") | reject("equalto", "") | list %}
 {%- if topic_list %}
   # Topics from the `repository_topics` answer, lower-cased with spaces and

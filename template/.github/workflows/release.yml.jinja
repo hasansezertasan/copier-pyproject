@@ -572,6 +572,7 @@ jobs:
             -f 'client_payload[package]={{github_repo_name}}' \
             -f "client_payload[version]=$VERSION"
 {%- endif %}
+{%- if include_docs %}
   deploy-docs:
     runs-on: ubuntu-latest
     name: Deploy Docs
@@ -633,6 +634,7 @@ jobs:
           # clobbered (the action merges instead of overwriting). See ADR-010.
           clean-exclude: pr-preview/**
           force: false
+{%- endif %}
   notify-released-issues:
     runs-on: ubuntu-latest
     name: Notify released issues
