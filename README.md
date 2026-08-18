@@ -6,11 +6,10 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 
 Always included in every generated project:
 
-- **Packaging & workflow** — uv-first with dependency groups (dev, style, test, docs, tool, prek) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions derived from Git tags.
+- **Packaging & workflow** — uv-first with dependency groups (dev, style, test, tool, prek — plus `docs` when `include_docs` is on) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions derived from Git tags.
 - **Type safety** — full type hints and a `py.typed` marker, checked by mypy, basedpyright, ty, pyrefly, and zuban.
 - **Code quality** — ruff linting/formatting and an always-on pylint gate, plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement.
 - **Testing** — pytest with coverage/xdist/reruns (and `.github/codecov.yml`) and parallel execution.
-- **Documentation** — a Sphinx scaffold (`docs/index.rst` + `conf.py`) with the Shibuya theme and autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`) that fails the build on new or vanished warnings. With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`.
 - **CI/CD & release** — matrix tests on macOS/Linux/Windows, trusted-publishing to PyPI, and release automation via release-please, with PR title linting, linked-issue enforcement, and a PR task-list completion check.
 - **Security** — CodeQL, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks high-severity vulnerabilities, active scanning (gitleaks, pip-audit, and Trivy for web images), a local pre-commit `detect-secrets` gate with a committed `.secrets.baseline` (complementing gitleaks' history-spanning scan), GitHub Actions static analysis (zizmor + ghalint) enforcing least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, and full-length action SHA pins — a blocking prek/CI gate plus a zizmor Security-tab dashboard — and a CycloneDX SBOM attached to every release.
 - **Repo hygiene** — issue/PR templates, `SECURITY.md`, `SUPPORT.md`, `CODEOWNERS`, `FUNDING`, `LICENSE`, `.gitattributes`, `.dockerignore`, a badge-rich README, and VS Code launch configs (current file, tests, attach, entry points); always-on Commitizen and git hooks (run via prek) and an always-on `CITATION.cff` with a validation workflow.
@@ -18,6 +17,8 @@ Always included in every generated project:
 - **Dependency & template updates** — Renovate manages dependencies and, via its copier manager, opens a `copier update` PR whenever this template publishes a new tag (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 - **AI-agent onboarding** — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
 - **Modern Python** — uv for dependency management, hatch for building, and a devcontainer for reproducible environments.
+
+On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
 
 Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), and repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App).
 
@@ -60,6 +61,7 @@ Copier will prompt for:
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
 - `include_examples` (include an `examples/` folder with simple and advanced usage stubs)
+- `include_docs` (Sphinx docs site — `docs/` tree, `docs-*` tox envs, docs CI + Pages deploy; on by default)
 - `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)

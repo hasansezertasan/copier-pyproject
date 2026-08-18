@@ -37,10 +37,11 @@ Starting point:
 
 - `preset` - `library`/`tool`/`web`/`full`. Seeds the default of every
   `include_*` toggle via the hidden `preset_map` computed variable (`when: false`,
-  never stored) — `library` → `examples`; `tool` → `cli` + `tui` +
-  `pydantic_settings`; `web` → `web` + `pydantic_settings` + `postgres` +
-  `redis`; `full` → everything. `default: library` (the smallest surface, so an
-  unattended `--defaults` run produces a plain package). Toggles remain asked and
+  never stored) — every preset includes `docs`; `library` → `docs` + `examples`;
+  `tool` → `docs` + `cli` + `tui` + `pydantic_settings`; `web` → `docs` + `web` +
+  `pydantic_settings` + `postgres` + `redis`; `full` → everything. `default:
+  library` (the smallest surface, so an unattended `--defaults` run produces a
+  plain package with docs). Toggles remain asked and
   stored — the preset only changes defaults; it hides nothing, though
   dependency-gated sub-questions (the DB UIs, web framework, worker broker, redis
   backend) still appear only when their parent toggle is enabled, independent of
@@ -69,6 +70,23 @@ Optional components (all boolean):
   [ADR-007](adr/007-standalone-executable-toggles.md).
 - `include_examples` - an `examples/` folder with simple and advanced usage stubs
   (enabled by the `library` preset default)
+- `include_docs` - the Sphinx documentation subsystem, **`default: true` in every
+  preset** (docs-by-default; off is a deliberate opt-out for a README-only
+  project). Guards the nine Sphinx-site files under `docs/` (`conf.py`,
+  `check_warnings.py`, `expected_warnings.txt`, `index.rst`, `installation.rst`,
+  `usage.rst`, `modules.rst`, and the `web-interface.rst`/`worker-interface.rst`
+  component pages — those two also on their component toggles), the `docs`
+  dependency group, the `docs-build`/`docs-server`/`docs-linkcheck` tox envs, the
+  `sphinx-lint` entry in the `style` tox env and prek hook, the `sphinx` keyword,
+  the `docs-preview.yml`/`docs-linkcheck.yml`/`gh-pages.yml` workflows and the
+  `release.yml` `deploy-docs` job, plus the README docs badge/link, `SUPPORT.md`
+  link, `CONTRIBUTING.md` docs section, and `mise` `docs-*` tasks. **Exception:**
+  `docs/maintaining/setup.rst` (the maintainer repository-setup guide the
+  `repo-setup` skill reads, hard-referenced by README/CONTRIBUTING/`ci.yml`/
+  `settings.yml`/`.sourcery.yaml`/`sonar-project.properties`) always ships — only
+  its GitHub Pages step is `include_docs`-gated — and with docs off the
+  `settings.yml` `homepage` falls back to the repository URL. See
+  [ADR-025](adr/025-optional-docs-subsystem.md).
 - `include_pydantic_settings` - pydantic-settings for config
 - `include_sourcery` - Sourcery AI-refactoring config (`.sourcery.yaml`)
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
@@ -698,9 +716,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    `.yml` workflows too but skips the un-renderable `*.jinja` templates (whose
    rendered form is audited by the generated project's own hook, and end-to-end by
    rendering a project and running `prek run zizmor --all-files` in it).
-9. **PR documentation previews** (`docs-preview.yml`, always included, static
-   workflow). On `pull_request` (`opened`/`synchronize`/`reopened`/`closed`) it
-   builds the Sphinx docs and hands the lifecycle to `rossjrw/pr-preview-action`
+9. **PR documentation previews** (`docs-preview.yml`, rendered only when
+   `include_docs`, static workflow). On `pull_request`
+   (`opened`/`synchronize`/`reopened`/`closed`) it builds the Sphinx docs and hands the lifecycle to `rossjrw/pr-preview-action`
    (`action: auto`): deploy to `pr-preview/pr-<N>/` on `gh-pages` on
    open/update, remove on close, with a sticky preview-URL PR comment throughout.
    Guarded by `if: github.event.pull_request.head.repo.full_name ==
@@ -712,7 +730,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    deploy, and the two `JamesIves` publishes carry `clean-exclude: pr-preview/**`
    so a release never wipes them. See
    [ADR-010](adr/010-pr-docs-previews-and-released-issue-notifications.md).
-10. **Docs link check** (`docs-linkcheck.yml`, always included, static workflow).
+10. **Docs link check** (`docs-linkcheck.yml`, rendered only when `include_docs`, static workflow).
    Runs Sphinx's `linkcheck` builder on a **weekly cron** + `workflow_dispatch`
    to catch dead links/moved anchors in the docs. Deliberately **not** on
    `pull_request` and **not** in the `check` gate — link checking hits the
