@@ -235,6 +235,7 @@ If the hook flags something:
   Then re-run `detect-secrets audit .secrets.baseline` to triage any newly
   discovered entries before committing.
 
+{%- if include_docs %}
 ### Improving The Documentation
 
 The documentation is built with [Sphinx](https://www.sphinx-doc.org/). Common
@@ -245,6 +246,7 @@ documentation tasks:
 - `uv run --locked tox run -e docs-linkcheck` — check for broken links (also runs weekly in CI).
 
 <!-- TODO @{{github_user}}: Updating, improving and correcting the documentation -->
+{%- endif %}
 
 ## Styleguides
 

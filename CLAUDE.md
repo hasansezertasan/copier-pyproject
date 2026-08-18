@@ -168,6 +168,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_c_extensions` | Cython + multi-platform wheels | — |
 | `include_profiling` | py-spy / scalene / cProfile | — |
 | `include_examples` | `examples/` folder with usage stubs (`library`-preset default) | — |
+| `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + Pages deploy); **default-on** every preset, off keeps a README-only project. `docs/maintaining/` always ships | [025](docs/adr/025-optional-docs-subsystem.md) |
 | `include_launcher` | PyCrucible online-first-run launcher | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_compiler` | Nuitka native-compiled executable | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_freezer` | PyInstaller offline bundle | [007](docs/adr/007-standalone-executable-toggles.md) |

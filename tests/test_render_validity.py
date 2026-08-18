@@ -94,3 +94,39 @@ def test_web_framework_render_is_structurally_valid(
     root = render(include_web=True, web_framework=framework)
     _assert_all_yaml_parses(root)
     _assert_pyproject_is_toml(root)
+
+
+def test_docs_off_drops_sphinx_subsystem_but_keeps_setup_guide(
+    render: Callable[..., Path],
+) -> None:
+    """``include_docs=false`` removes the Sphinx site + docs CI/deps but leaves
+    the maintainer setup guide and a structurally valid project (ADR-025)."""
+    root = render(include_docs=False)
+    _assert_all_yaml_parses(root)
+    _assert_pyproject_is_toml(root)
+
+    # Sphinx-site files, docs workflows, and the docs dependency group are gone.
+    assert not (root / "docs" / "conf.py").exists()
+    assert not (root / "docs" / "index.rst").exists()
+    wf = root / ".github" / "workflows"
+    assert not (wf / "docs-preview.yml").exists()
+    assert not (wf / "docs-linkcheck.yml").exists()
+    assert not (wf / "gh-pages.yml").exists()
+    pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    assert "docs" not in pyproject["dependency-groups"]
+    tox_envs = pyproject["tool"]["tox"]["env"]
+    assert not [name for name in tox_envs if name.startswith("docs-")]
+
+    # The maintainer setup guide always ships; only its Pages step is gated.
+    setup = root / "docs" / "maintaining" / "setup.rst"
+    assert setup.is_file()
+    assert "GitHub Pages" not in setup.read_text(encoding="utf-8")
+
+
+def test_docs_on_keeps_sphinx_subsystem(render: Callable[..., Path]) -> None:
+    """The default (docs on) still renders the Sphinx site and docs workflows."""
+    root = render(include_docs=True)
+    assert (root / "docs" / "conf.py").is_file()
+    assert (root / ".github" / "workflows" / "docs-preview.yml").is_file()
+    pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    assert "docs" in pyproject["dependency-groups"]

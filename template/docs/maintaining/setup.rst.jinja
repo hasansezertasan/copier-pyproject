@@ -257,6 +257,7 @@ secret is set; ``check-security.yml`` is a standalone security workflow (not par
 of the required ``check`` gate), so this does not block merges, but the scan will
 not run until it is provided.
 
+{% if include_docs %}
 Documentation site (GitHub Pages)
 ---------------------------------
 
@@ -294,7 +295,7 @@ preview for each pull request under ``pr-preview/pr-<N>/`` on the same
 the PR closes). Previews are built only for pull requests opened from branches
 on this repository — a fork PR receives a read-only token and is skipped — and
 require no extra setup beyond Pages.
-
+{% endif %}
 Automated dependency updates (Renovate)
 ---------------------------------------
 
