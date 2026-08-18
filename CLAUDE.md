@@ -15,6 +15,35 @@ When you add or change a toggle, update `copier.yml` help + its ADR + the detail
 in `docs/template-architecture.md` + `README.md`, and add **one** index-line here
 — never a multi-line block. See **Adding New Optional Components** below.
 
+## A small glossary
+
+We need to be on the same page with terminology. When communicating, use this
+language:
+
+- **you** — the agent reading this file and changing **copier-pyproject** (this
+  template repo).
+- **we, us, maintainers** — the people building copier-pyproject. These are who
+  you are talking to now.
+- **user, adopter** — the person who runs `copier copy` to scaffold a new Python
+  project from this template. Not the maintainers; not you.
+- **template** — the Jinja-templated `template/` tree this repo renders
+  (`_subdirectory: template`).
+- **generated project, rendered project** — the output of a `copier copy` /
+  `copier update` run; the thing the adopter actually works in.
+- **toggle** — a boolean `include_*` question in `copier.yml` (e.g. `include_cli`,
+  `include_web`).
+- **preset** — the `library`/`tool`/`web`/`full` starting point that seeds every
+  toggle's default via `preset_map`.
+- **component** — an optional generated-project feature or integration a toggle
+  enables. The **runnable** components (CLI, web, GUI, TUI, MCP, worker) share a
+  launch precedence: the highest-precedence enabled one is the *primary* and owns
+  the bare `pkg` command (a console script — or `[project.gui-scripts]` when a
+  sole GUI needs a windowless Windows launcher); every other runnable component
+  becomes a `pkg <name>` subcommand. The order lives in `copier.yml`'s
+  `primary_component` — see ADR-019.
+- **`example/`** — the gitignored, locally-generated rendering used to smoke-test
+  the template.
+
 ## Project Overview
 
 This is a **Copier template** for generating modern Python packages with comprehensive tooling. The `template/` directory contains Jinja2-templated files that are rendered when users run `copier copy` to scaffold new Python projects.
