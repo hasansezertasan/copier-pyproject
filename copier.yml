@@ -186,6 +186,16 @@ include_docs:
   default: "{{ 'include_docs' in preset_map[preset] }}"
   help: >-
     Generate a Sphinx documentation site (docs/ tree, docs-build/docs-server/docs-linkcheck tox envs, the docs-preview + weekly docs-linkcheck workflows, and the release Pages deploy)? Off disables the Sphinx site for a README-only project; the maintainer setup guide (docs/maintaining/setup.rst) still ships.
+docs_version_granularity:
+  type: str
+  default: minor
+  when: "{{ include_docs }}"
+  choices:
+    "By minor line (X.Y) — recommended for pre-1.0 (ADR-002 minor = breaking)": minor
+    "By major line (X)": major
+    "Per full release (X.Y.Z)": full
+  help: >-
+    At what granularity should published docs be versioned? Each release's docs are deployed under this slug (e.g. 0.3.1 -> "0.3" for minor, "0" for major, "0.3.1" for full), with a `latest` alias tracking the newest release. Only the current release is built each deploy; older versions are preserved from the gh-pages branch. See ADR-027.
 # ── ⑤ Config ────────────────────────────────────────────────────────────────
 include_pydantic_settings:
   type: bool
