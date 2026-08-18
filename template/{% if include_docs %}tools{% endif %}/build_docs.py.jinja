@@ -15,8 +15,11 @@ and the docs dependencies are importable.
 
 from __future__ import annotations
 
+import argparse
+import json
 import os
 import re
+import shutil
 import subprocess  # noqa: S404
 import sys
 from pathlib import Path
@@ -39,6 +42,9 @@ GH_PAGES_REFS = ("gh-pages", "origin/gh-pages")
 # this skips ``latest``, ``pr-preview``, ``_static``, ``.nojekyll`` etc.
 _VERSION_RE = re.compile(r"^\d+(\.\d+)*$")
 
+# Raised when the required release version is not supplied via the environment.
+_MISSING_VERSION_MSG = "DOCS_BUILD_VERSION is required"
+
 _REDIRECT_HTML = """<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -54,7 +60,16 @@ _REDIRECT_HTML = """<!DOCTYPE html>
 
 
 def slugify(version: str) -> str:
-    """Reduce a release version (e.g. ``0.3.1``) to its docs-directory slug."""
+    """Reduce a release version to its docs-directory slug.
+
+    Args:
+        version: The release version, e.g. ``0.3.1`` (a leading ``v`` is
+            tolerated).
+
+    Returns:
+        The version-directory slug at the configured granularity, e.g. ``0.3``
+        (minor), ``0`` (major), or ``0.3.1`` (full).
+    """
     parts = version.lstrip("v").split(".")
     if VERSION_GRANULARITY == "major":
         return parts[0]
@@ -64,12 +79,20 @@ def slugify(version: str) -> str:
 
 
 def _version_key(slug: str) -> tuple[int, ...]:
-    """Sort key for numeric dotted slugs (``0.10`` sorts after ``0.9``)."""
+    """Return a numeric sort key for a dotted slug (``0.10`` after ``0.9``).
+
+    Returns:
+        A tuple of the slug's integer components.
+    """
     return tuple(int(part) for part in slug.split("."))
 
 
 def _gh_pages_ref() -> str | None:
-    """Return the first gh-pages ref that resolves, or ``None`` if none exist."""
+    """Resolve which gh-pages ref is available.
+
+    Returns:
+        The first gh-pages ref that resolves, or ``None`` if none exist.
+    """
     for ref in GH_PAGES_REFS:
         result = subprocess.run(  # noqa: S603
             ["git", "rev-parse", "--verify", "--quiet", ref],  # noqa: S607
@@ -82,7 +105,12 @@ def _gh_pages_ref() -> str | None:
 
 
 def existing_versions() -> list[str]:
-    """Version slugs already published on the gh-pages branch."""
+    """List the version slugs already published on the gh-pages branch.
+
+    Returns:
+        The numeric version-directory names found on gh-pages (empty if the
+        branch does not exist yet).
+    """
     ref = _gh_pages_ref()
     if ref is None:
         return []
@@ -96,14 +124,24 @@ def existing_versions() -> list[str]:
 
 
 def pick_latest(slugs: list[str]) -> str:
-    """Return the highest slug (the ``latest`` alias target)."""
+    """Choose the ``latest`` alias target.
+
+    Args:
+        slugs: All known version slugs.
+
+    Returns:
+        The highest slug.
+    """
     return max(slugs, key=_version_key)
 
 
 def write_versions_json(slugs: list[str], latest: str) -> None:
-    """Write the switcher manifest that ``conf.py`` reads into ``html_context``."""
-    import json
+    """Write the switcher manifest that ``conf.py`` reads into ``html_context``.
 
+    Args:
+        slugs: All known version slugs (including the one being built).
+        latest: The slug the ``latest`` alias points at.
+    """
     VERSIONS_JSON.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "versions": sorted(slugs, key=_version_key, reverse=True),
@@ -130,20 +168,18 @@ def build_sphinx() -> None:
         check=True,
     )
     subprocess.run(  # noqa: S603
-        [sys.executable, str(DOCS_DIR / "check_warnings.py")],
-        check=True,
+        [sys.executable, str(DOCS_DIR / "check_warnings.py")], check=True
     )
 
 
-def copy_tree(src: Path, dst: Path) -> None:
-    """Copy ``src`` onto ``dst`` (merging), like ``cp -r`` with dirs_exist_ok."""
-    import shutil
-
-    shutil.copytree(src, dst, dirs_exist_ok=True)
-
-
 def preserve_from_gh_pages(name: str, out: Path, ref: str) -> None:
-    """Extract the ``name`` subtree from gh-pages into ``out`` (keeping prefix)."""
+    """Extract the ``name`` subtree from gh-pages into ``out`` (keeping prefix).
+
+    Args:
+        name: The version-directory (or ``latest``) name to preserve.
+        out: The assembled-site output directory to extract into.
+        ref: The resolved gh-pages ref to read from.
+    """
     archive = subprocess.run(  # noqa: S603
         ["git", "archive", ref, name],  # noqa: S607
         capture_output=True,
@@ -158,17 +194,63 @@ def preserve_from_gh_pages(name: str, out: Path, ref: str) -> None:
     )
 
 
-def main() -> int:
-    """Build the current version and assemble the full versioned site."""
-    if len(sys.argv) != 2:
-        print("usage: build_docs.py <output_dir>", file=sys.stderr)
-        return 2
-    out = Path(sys.argv[1])
+def assemble_site(out: Path, slug: str, latest: str, all_slugs: list[str]) -> None:
+    """Assemble ``out`` from the fresh build plus preserved prior versions.
 
+    Args:
+        out: The output directory to assemble the full site into.
+        slug: The slug just built from the current release.
+        latest: The slug the ``latest`` alias points at.
+        all_slugs: Every known version slug.
+    """
+    out.mkdir(parents=True, exist_ok=True)
+    (out / ".nojekyll").touch()
+    (out / "index.html").write_text(_REDIRECT_HTML, encoding="utf-8")
+
+    shutil.copytree(HTML_DIR, out / slug, dirs_exist_ok=True)
+    if slug == latest:
+        shutil.copytree(HTML_DIR, out / "latest", dirs_exist_ok=True)
+
+    ref = _gh_pages_ref()
+    if ref is None:
+        return
+    preserved = {s for s in all_slugs if s != slug}
+    if slug != latest:
+        preserved.add("latest")
+    for name in preserved:
+        preserve_from_gh_pages(name, out, ref)
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    Args:
+        argv: Argument list to parse (defaults to ``sys.argv``).
+
+    Returns:
+        The parsed namespace with an ``output`` attribute.
+    """
+    parser = argparse.ArgumentParser(description="Assemble versioned docs site.")
+    parser.add_argument("output", help="Directory to assemble the site into.")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Build the current version and assemble the full versioned site.
+
+    Args:
+        argv: Argument list to parse (defaults to ``sys.argv``).
+
+    Returns:
+        A process exit code (``0`` on success).
+
+    Raises:
+        SystemExit: If ``DOCS_BUILD_VERSION`` is not set.
+    """
+    args = parse_args(argv)
     version = os.environ.get("DOCS_BUILD_VERSION", "").strip()
     if not version:
-        print("DOCS_BUILD_VERSION is required", file=sys.stderr)
-        return 2
+        raise SystemExit(_MISSING_VERSION_MSG)
     slug = slugify(version)
 
     all_slugs = sorted({*existing_versions(), slug}, key=_version_key)
@@ -179,22 +261,7 @@ def main() -> int:
     os.environ["DOCS_BUILD_VERSION_SLUG"] = slug
     build_sphinx()
 
-    out.mkdir(parents=True, exist_ok=True)
-    (out / ".nojekyll").touch()
-    (out / "index.html").write_text(_REDIRECT_HTML, encoding="utf-8")
-
-    copy_tree(HTML_DIR, out / slug)
-    if slug == latest:
-        copy_tree(HTML_DIR, out / "latest")
-
-    ref = _gh_pages_ref()
-    if ref is not None:
-        preserved = {s for s in all_slugs if s != slug}
-        if slug != latest:
-            preserved.add("latest")
-        for name in preserved:
-            preserve_from_gh_pages(name, out, ref)
-
+    assemble_site(Path(args.output), slug, latest, all_slugs)
     return 0
 
 

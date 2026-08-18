@@ -591,6 +591,9 @@ convention = "pep257"
 # The docs warning-allowlist gate is a standalone script (not an importable
 # package) whose whole job is to print GitHub `::error::` annotations to stdout.
 "docs/check_warnings.py" = ["INP001", "T201"]
+# The versioned-docs build orchestrator is a standalone CLI script under tools/,
+# not part of an importable package (ADR-027).
+"tools/build_docs.py" = ["INP001"]
 {%- endif %}
 {%- if include_worker %}
 # The worker probe is a standalone dev script, not part of an importable
