@@ -72,10 +72,11 @@ Optional components (all boolean):
   (enabled by the `library` preset default)
 - `include_docs` - the Sphinx documentation subsystem, **`default: true` in every
   preset** (docs-by-default; off is a deliberate opt-out for a README-only
-  project). Guards the nine Sphinx-site files under `docs/` (`conf.py`,
+  project). Guards the ten Sphinx-site files under `docs/` (`conf.py`,
   `check_warnings.py`, `expected_warnings.txt`, `index.rst`, `installation.rst`,
-  `usage.rst`, `modules.rst`, and the `web-interface.rst`/`worker-interface.rst`
-  component pages — those two also on their component toggles), the `docs`
+  `usage.rst`, `modules.rst`, the `web-interface.rst`/`worker-interface.rst`
+  component pages, and the `cli-reference.md` page — those three also on their
+  component toggles, the CLI page additionally on `cli_framework == "typer"`), the `docs`
   dependency group, the `docs-build`/`docs-server`/`docs-linkcheck` tox envs, the
   `sphinx-lint` entry in the `style` tox env and prek hook, the `sphinx` keyword,
   the `docs-preview.yml`/`docs-linkcheck.yml`/`gh-pages.yml` workflows and the
