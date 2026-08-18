@@ -18,7 +18,7 @@ Always included in every generated project:
 - **AI-agent onboarding** — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
 - **Modern Python** — uv for dependency management, hatch for building, and a devcontainer for reproducible environments.
 
-On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
+On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). Published docs are **versioned** — each release deploys under its `X.Y` slug (granularity set by `docs_version_granularity`) with an in-page version switcher and a `latest` alias, and every page footer shows its git "last updated" date (see ADR-027). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
 
 Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, smokeshow (a tokenless, account-free coverage-HTML mirror for public repos), MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), and repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App).
 
@@ -61,7 +61,7 @@ Copier will prompt for:
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
 - `include_examples` (include an `examples/` folder with simple and advanced usage stubs)
-- `include_docs` (Sphinx docs site — `docs/` tree, `docs-*` tox envs, docs CI + Pages deploy; on by default)
+- `include_docs` (Sphinx docs site — `docs/` tree, `docs-*` tox envs, docs CI + versioned Pages deploy + version switcher; on by default)
 - `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
