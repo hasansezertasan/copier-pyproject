@@ -397,6 +397,11 @@ branch = true
 {%- endif %}
 omit = ["*/_version.py"{% if include_worker %}, "*/worker/test_integration.py"{% endif %}]
 parallel = true
+# Store data-file paths relative to the project root so `.coverage` files produced
+# on different runners/OSes merge in the `coverage-combine` CI job without
+# absolute-path mismatches. Complements the `[tool.coverage.paths]` remap below
+# (which unifies the src/ vs site-packages layouts). See ADR-026.
+relative_files = true
 source_pkgs = ["{{github_repo_name}}", "tests"]
 
 

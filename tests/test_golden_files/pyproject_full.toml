@@ -284,6 +284,11 @@ branch = true
 # another component (which *would* run in the default suite) stays measured.
 omit = ["*/_version.py", "*/worker/test_integration.py"]
 parallel = true
+# Store data-file paths relative to the project root so `.coverage` files produced
+# on different runners/OSes merge in the `coverage-combine` CI job without
+# absolute-path mismatches. Complements the `[tool.coverage.paths]` remap below
+# (which unifies the src/ vs site-packages layouts). See ADR-026.
+relative_files = true
 source_pkgs = ["example", "tests"]
 
 

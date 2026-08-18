@@ -47,14 +47,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-    env:
-      # The `secrets` context is not available in `if:` conditions, so surface
-      # CODECOV_TOKEN as a presence flag — never expose the value job-wide.
-      # Codecov upload is opt-in: unset means a visible skip, not a build failure.
-      CODECOV_TOKEN_SET: {% raw %}${{ secrets.CODECOV_TOKEN != '' }}{% endraw %}
-      # On a public repo the codecov-action uploads tokenless, so the token is
-      # only needed for private repos (or to avoid tokenless rate-limits).
-      REPO_IS_PUBLIC: {% raw %}${{ !github.event.repository.private }}{% endraw %}
     steps:
       - name: System Info
         shell: bash
@@ -100,36 +92,100 @@ jobs:
         run: echo "Cache was restored"
       - name: Run the tests
         run: uv run --locked tox run
-      # https://github.com/marketplace/actions/alls-green#why used for branch protection checks
-      - name: Coverage
+      - name: Store coverage data
+        # Combine this cell's per-interpreter data and hand the raw `.coverage`
+        # off (under a per-OS name) to the `coverage-combine` job, which merges
+        # every OS × interpreter cell into the single authoritative report and
+        # enforces the one `fail_under` gate. The per-cell `coverage report` here
+        # stays for fast per-OS feedback but does NOT gate (`--fail-under=0`): a
+        # line covered on one OS yet version/OS-gated off on another only balances
+        # in the union, so the gate must measure the union, not each cell. See
+        # ADR-026.
         run: |
           uv run coverage combine
-          uv run coverage report --show-missing
-          uv run coverage xml
-      - name: Upload coverage
-        # Upload when the token is set, or whenever the repo is public — the
-        # codecov-action uploads tokenless on public repos, so owner pushes and
-        # fork PRs alike report coverage with no secret. Only a private repo with
-        # no token falls through to the visible skip below (a tokenless upload
-        # there would fail). The step is best-effort (fail_ci_if_error defaults to
-        # false), so a tokenless rate-limit never breaks the build.
+          uv run coverage report --show-missing --fail-under=0
+          mv .coverage ".coverage.{% raw %}${{ matrix.os }}{% endraw %}"
+      - name: Upload coverage data
+        # `include-hidden-files` is required for upload-artifact to pick up the
+        # dotfile `.coverage.*`. Downloaded and merged by `coverage-combine`.
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        with:
+          name: coverage-{% raw %}${{ matrix.os }}{% endraw %}
+          path: .coverage.{% raw %}${{ matrix.os }}{% endraw %}
+          include-hidden-files: true
+  coverage-combine:
+    name: Combine coverage across the matrix
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      # The `secrets` context is unavailable in `if:`, so surface CODECOV_TOKEN as
+      # a presence flag — never expose the value job-wide. See the `ci` job.
+      CODECOV_TOKEN_SET: {% raw %}${{ secrets.CODECOV_TOKEN != '' }}{% endraw %}
+      REPO_IS_PUBLIC: {% raw %}${{ !github.event.repository.private }}{% endraw %}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      - name: Download per-cell coverage data
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+      - name: Combine, gate, and render the report
+        # The single place the `fail_under = 99` gate is enforced — over the union
+        # of every OS × interpreter cell, not each cell independently.
+        # `relative_files` (pyproject `[tool.coverage.run]`) lets paths from
+        # different runners merge. `--locked --only-group test` pins the SAME
+        # coverage version that produced the `.coverage.*` data files (rather than
+        # an unpinned resolve that could drift), without building the project.
+        run: |
+          uv run --locked --only-group test coverage combine
+          uv run --locked --only-group test coverage report --show-missing --fail-under=99
+          uv run --locked --only-group test coverage html
+          uv run --locked --only-group test coverage xml
+      - name: Upload combined HTML report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        with:
+          name: coverage-html
+          path: htmlcov
+      - name: Upload coverage to Codecov
+        # Single authoritative upload for the whole fan-out. Uploads when the token
+        # is set or the repo is public (tokenless); only a private repo with no
+        # token falls through to the visible skip below. Best-effort
+        # (`fail_ci_if_error` defaults to false), so a rate-limit never breaks CI.
         if: {% raw %}${{ env.CODECOV_TOKEN_SET == 'true' || env.REPO_IS_PUBLIC == 'true' }}{% endraw %}
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v7.0.0
         with:
           files: ./coverage.xml
           token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
       - name: Note skipped coverage upload
-        if: {% raw %}${{ env.CODECOV_TOKEN_SET != 'true' && env.REPO_IS_PUBLIC != 'true' && matrix.os == 'ubuntu-latest' }}{% endraw %}
+        if: {% raw %}${{ env.CODECOV_TOKEN_SET != 'true' && env.REPO_IS_PUBLIC != 'true' }}{% endraw %}
         run: echo "::notice::CODECOV_TOKEN secret is not set and this repo is private — skipping the Codecov upload. See docs/maintaining/setup.rst (Repository setup) to enable coverage reporting."
 {%- if include_sonarcloud %}
-      - name: Upload coverage.xml for SonarCloud
-        # Ubuntu-only so the artifact name is unique (upload-artifact v4 rejects
-        # duplicate names across the matrix). Consumed by the `sonar` job below.
-        if: {% raw %}${{ matrix.os == 'ubuntu-latest' }}{% endraw %}
+      - name: Upload combined coverage.xml for SonarCloud
+        # The authoritative cross-matrix coverage.xml, consumed by the `sonar` job.
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: coverage-xml
           path: ./coverage.xml
+{%- endif %}
+{%- if include_smokeshow %}
+      - name: Publish coverage HTML (public repos)
+        # smokeshow uploads htmlcov to an ephemeral public URL and prints it — no
+        # account or secret required (an optional key only raises rate limits).
+        # Public repos only: a private report must not be published. Best-effort
+        # and ordered LAST — a tokenless rate-limit or outage must never fail the
+        # `check` gate nor block the authoritative Codecov/coverage.xml uploads
+        # above; smokeshow is a supplementary mirror, not load-bearing. See ADR-026.
+        if: {% raw %}${{ env.REPO_IS_PUBLIC == 'true' }}{% endraw %}
+        continue-on-error: true
+        run: uv run --no-project --with smokeshow smokeshow upload htmlcov
 {%- endif %}
 {%- if include_launcher or include_freezer or include_compiler %}
   # Build-only PR guards: build each enabled standalone executable (ADR-007)
@@ -353,7 +409,7 @@ jobs:
 {%- if include_sonarcloud %}
   sonar:
     name: SonarCloud Scan
-    needs: ci
+    needs: coverage-combine
     # Opt-in and non-blocking, mirroring the Codecov upload: forks never receive
     # secrets and SonarCloud has no tokenless fallback, so skip fork PRs entirely;
     # on same-repo runs, the scan step is gated on the SONAR_TOKEN presence flag
@@ -391,7 +447,7 @@ jobs:
 {%- endif %}
   check:
     if: always()
-    needs: [ci, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
+    needs: [ci, coverage-combine, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
