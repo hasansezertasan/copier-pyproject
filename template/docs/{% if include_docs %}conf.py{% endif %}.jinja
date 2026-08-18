@@ -91,8 +91,8 @@ html_theme_options = {
 # Each is derived from the source of truth (the ``description=`` strings and the
 # Pydantic/response models already on the code, and the live Typer app),
 # regenerated on every docs build, and is not committed (``docs/_generated/`` is
-# gitignored). ``docs-build`` runs Sphinx under ``-W``, so a broken app import or
-# a failed generation fails the build.
+# gitignored). Each generator runs with ``check=True``, so a broken app import or
+# a failed generation raises and fails the docs build.
 {%- if include_worker or (include_web and web_framework == "litestar") or (include_cli and cli_framework == "typer") %}
 import subprocess  # noqa: E402, S404
 import sys  # noqa: E402
