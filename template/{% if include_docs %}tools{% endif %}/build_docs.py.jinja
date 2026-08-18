@@ -1,0 +1,202 @@
+"""Build versioned documentation and assemble the full GitHub Pages site.
+
+Only the *current* release is built here; every previously published version is
+copied across from the ``gh-pages`` branch untouched — old versions are never
+rebuilt. The version list is derived from the ``gh-pages`` directory listing, so
+there is no committed ``versions.json`` to maintain. See ADR-027.
+
+Usage::
+
+    DOCS_BUILD_VERSION=0.3.1 python tools/build_docs.py site
+
+Run inside the docs environment (``uv run --group docs ...``) so ``sphinx-build``
+and the docs dependencies are importable.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import subprocess  # noqa: S404
+import sys
+from pathlib import Path
+
+# Version-directory granularity, baked from the Copier ``docs_version_granularity``
+# answer. Edit here only if you want to change how release versions map to docs
+# directories: "minor" -> X.Y, "major" -> X, "full" -> X.Y.Z.
+VERSION_GRANULARITY = "{{ docs_version_granularity }}"
+
+DOCS_DIR = Path("docs")
+HTML_DIR = DOCS_DIR / "_build" / "html"
+WARNINGS_FILE = DOCS_DIR / "_build" / "warnings.txt"
+VERSIONS_JSON = DOCS_DIR / "_static" / "versions.json"
+
+# gh-pages refs to try, in order (a local branch after ``git fetch origin
+# gh-pages:gh-pages``, or the remote-tracking ref after a plain fetch).
+GH_PAGES_REFS = ("gh-pages", "origin/gh-pages")
+
+# Only names matching a pure numeric dotted version are treated as version dirs;
+# this skips ``latest``, ``pr-preview``, ``_static``, ``.nojekyll`` etc.
+_VERSION_RE = re.compile(r"^\d+(\.\d+)*$")
+
+_REDIRECT_HTML = """<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0; url=./latest/">
+    <title>Redirecting to the latest documentation</title>
+  </head>
+  <body>
+    Redirecting to the <a href="./latest/">latest documentation</a>.
+  </body>
+</html>
+"""
+
+
+def slugify(version: str) -> str:
+    """Reduce a release version (e.g. ``0.3.1``) to its docs-directory slug."""
+    parts = version.lstrip("v").split(".")
+    if VERSION_GRANULARITY == "major":
+        return parts[0]
+    if VERSION_GRANULARITY == "minor":
+        return ".".join(parts[:2])
+    return version.lstrip("v")
+
+
+def _version_key(slug: str) -> tuple[int, ...]:
+    """Sort key for numeric dotted slugs (``0.10`` sorts after ``0.9``)."""
+    return tuple(int(part) for part in slug.split("."))
+
+
+def _gh_pages_ref() -> str | None:
+    """Return the first gh-pages ref that resolves, or ``None`` if none exist."""
+    for ref in GH_PAGES_REFS:
+        result = subprocess.run(  # noqa: S603
+            ["git", "rev-parse", "--verify", "--quiet", ref],  # noqa: S607
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            return ref
+    return None
+
+
+def existing_versions() -> list[str]:
+    """Version slugs already published on the gh-pages branch."""
+    ref = _gh_pages_ref()
+    if ref is None:
+        return []
+    result = subprocess.run(  # noqa: S603
+        ["git", "ls-tree", "--name-only", ref],  # noqa: S607
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [name for name in result.stdout.split() if _VERSION_RE.match(name)]
+
+
+def pick_latest(slugs: list[str]) -> str:
+    """Return the highest slug (the ``latest`` alias target)."""
+    return max(slugs, key=_version_key)
+
+
+def write_versions_json(slugs: list[str], latest: str) -> None:
+    """Write the switcher manifest that ``conf.py`` reads into ``html_context``."""
+    import json
+
+    VERSIONS_JSON.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "versions": sorted(slugs, key=_version_key, reverse=True),
+        "latest": latest,
+    }
+    VERSIONS_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def build_sphinx() -> None:
+    """Run the same warning-gated build the docs-build tox env uses."""
+    WARNINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-w",
+            str(WARNINGS_FILE),
+            "-b",
+            "html",
+            str(DOCS_DIR),
+            str(HTML_DIR),
+        ],
+        check=True,
+    )
+    subprocess.run(  # noqa: S603
+        [sys.executable, str(DOCS_DIR / "check_warnings.py")],
+        check=True,
+    )
+
+
+def copy_tree(src: Path, dst: Path) -> None:
+    """Copy ``src`` onto ``dst`` (merging), like ``cp -r`` with dirs_exist_ok."""
+    import shutil
+
+    shutil.copytree(src, dst, dirs_exist_ok=True)
+
+
+def preserve_from_gh_pages(name: str, out: Path, ref: str) -> None:
+    """Extract the ``name`` subtree from gh-pages into ``out`` (keeping prefix)."""
+    archive = subprocess.run(  # noqa: S603
+        ["git", "archive", ref, name],  # noqa: S607
+        capture_output=True,
+        check=False,
+    )
+    if archive.returncode != 0 or not archive.stdout:
+        return  # not present on gh-pages (e.g. first release) — nothing to keep
+    subprocess.run(  # noqa: S603
+        ["tar", "-x", "-C", str(out)],  # noqa: S607
+        input=archive.stdout,
+        check=True,
+    )
+
+
+def main() -> int:
+    """Build the current version and assemble the full versioned site."""
+    if len(sys.argv) != 2:
+        print("usage: build_docs.py <output_dir>", file=sys.stderr)
+        return 2
+    out = Path(sys.argv[1])
+
+    version = os.environ.get("DOCS_BUILD_VERSION", "").strip()
+    if not version:
+        print("DOCS_BUILD_VERSION is required", file=sys.stderr)
+        return 2
+    slug = slugify(version)
+
+    all_slugs = sorted({*existing_versions(), slug}, key=_version_key)
+    latest = pick_latest(all_slugs)
+    write_versions_json(all_slugs, latest)
+
+    # Tell conf.py which slug is being built so the switcher highlights it.
+    os.environ["DOCS_BUILD_VERSION_SLUG"] = slug
+    build_sphinx()
+
+    out.mkdir(parents=True, exist_ok=True)
+    (out / ".nojekyll").touch()
+    (out / "index.html").write_text(_REDIRECT_HTML, encoding="utf-8")
+
+    copy_tree(HTML_DIR, out / slug)
+    if slug == latest:
+        copy_tree(HTML_DIR, out / "latest")
+
+    ref = _gh_pages_ref()
+    if ref is not None:
+        preserved = {s for s in all_slugs if s != slug}
+        if slug != latest:
+            preserved.add("latest")
+        for name in preserved:
+            preserve_from_gh_pages(name, out, ref)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
