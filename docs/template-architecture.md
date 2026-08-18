@@ -72,10 +72,11 @@ Optional components (all boolean):
   (enabled by the `library` preset default)
 - `include_docs` - the Sphinx documentation subsystem, **`default: true` in every
   preset** (docs-by-default; off is a deliberate opt-out for a README-only
-  project). Guards the nine Sphinx-site files under `docs/` (`conf.py`,
+  project). Guards the ten Sphinx-site files under `docs/` (`conf.py`,
   `check_warnings.py`, `expected_warnings.txt`, `index.rst`, `installation.rst`,
-  `usage.rst`, `modules.rst`, and the `web-interface.rst`/`worker-interface.rst`
-  component pages — those two also on their component toggles), the `docs`
+  `usage.rst`, `modules.rst`, the `web-interface.rst`/`worker-interface.rst`
+  component pages, and the `cli-reference.md` page — those three also on their
+  component toggles, the CLI page additionally on `cli_framework == "typer"`), the `docs`
   dependency group, the `docs-build`/`docs-server`/`docs-linkcheck` tox envs, the
   `sphinx-lint` entry in the `style` tox env and prek hook, the `sphinx` keyword,
   the `docs-preview.yml`/`docs-linkcheck.yml`/`gh-pages.yml` workflows and the
@@ -406,7 +407,19 @@ Subpackages (each with `__init__.py` and `app.py`):
 - `cli/` - the `pkg` Typer root (present when `include_console_root`). With
   `include_cli` it is the full CLI (`version`/`info` commands + component
   subcommands); without `include_cli` it is a minimal launcher (component
-  subcommands + a default callback, no `version`/`info`)
+  subcommands + a default callback, no `version`/`info`). With `include_cli` and
+  `cli_framework == "typer"`, the docs build generates a CLI reference straight
+  from the live app: `docs/conf.py` shells `typer {{pkg}}.cli.app utils docs`
+  into the gitignored `docs/_generated/cli.md`, and the conditional
+  `docs/cli-reference.md` page `{include}`s it (heading-demoted) so the
+  documented commands/options — including the enabled component subcommands —
+  never drift from `--help`. The `sphinx-click` route is unusable here because
+  current Typer vendors its own Click (`typer._click`), so `TyperGroup` fails
+  `sphinx-click`'s `isinstance(..., click.Command)` check.
+  [`sphinxcontrib-typer`](https://github.com/sphinx-contrib/typer) was also
+  evaluated — it works, but the build-time generation keeps the CLI reference
+  uniform with the worker/web generators and pulls in no extra extension. The
+  `argparse` variant has no generated reference
 - `web/` - FastAPI/Litestar with `/version` and `/info` endpoints (conditional).
   The docs build emits the web app's [OpenAPI](https://www.openapis.org/) schema
   straight from the live `{{github_repo_name}}.web.app:app` object into the
