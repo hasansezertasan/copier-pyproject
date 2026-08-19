@@ -1,4 +1,4 @@
-# ADR-027: Per-component pytest markers + path-filtered CI jobs
+# ADR-028: Per-component pytest markers + path-filtered CI jobs
 
 ## Status
 

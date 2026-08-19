@@ -365,6 +365,11 @@ __marimo__/
 # regenerated, never committed.
 docs/_generated/
 {%- endif %}
+{%- if include_docs %}
+# Version manifest generated into each docs build by tools/build_docs.py from the
+# gh-pages branch listing (ADR-027); regenerated, never committed.
+docs/_static/versions.json
+{%- endif %}
 # MegaLinter local report output (REPORT_OUTPUT_FOLDER in .mega-linter.yml)
 megalinter-reports/
 src/**/_version.py

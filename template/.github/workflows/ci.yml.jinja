@@ -227,7 +227,7 @@ jobs:
         # enforces the scoped `fail_under` gate. The per-cell `coverage report`
         # here stays for fast feedback but does NOT gate (`--fail-under=0`): a
         # line covered on one OS yet version/OS-gated off on another only
-        # balances in the per-component union. See ADR-027 (decomposes ADR-026).
+        # balances in the per-component union. See ADR-028 (decomposes ADR-026).
         run: |
           uv run coverage combine
           uv run coverage report --show-missing --fail-under=0
@@ -241,7 +241,7 @@ jobs:
           path: .coverage.{{ job.slug }}.{% raw %}${{ matrix.os }}{% endraw %}
           include-hidden-files: true
 {% endfor %}
-{#- Per-component coverage gates (ADR-027, decomposes ADR-026's single union
+{#- Per-component coverage gates (ADR-028, decomposes ADR-026's single union
     gate). Each gate merges its component's OS cells (preserving ADR-026's
     cross-OS union WITHIN a component) and enforces `fail_under=99` scoped to
     that subtree, so a skipped (unchanged) component needs no gate. `source_pkgs`
@@ -570,13 +570,14 @@ jobs:
 {%- if include_worker %}
   worker-integration:
     name: Worker integration tests ({{worker_broker}})
-    # Ubuntu-only: testcontainers needs a Docker daemon, which GitHub provides on
-    # Linux runners but not macOS/Windows. Runs only the `integration`-marked
-    # tests (deselected from the default matrix) against a real {{worker_broker}}
-    # started in a container — the one thing that exercises the real driver and
-    # serialization the in-memory unit tests stub out. See ADR-008. Path-gated
-    # like the component test jobs (issue #160): skips the container spin-up on
-    # PRs that touch neither the worker tree nor shared core.
+    # Ubuntu-only: the real {{worker_broker}} runs in a Linux container — a
+    # GitHub Actions service for redis/nats (below), an in-test testcontainer for
+    # kafka/rabbitmq — and container support is Linux-runner-only. Runs only the
+    # `integration`-marked tests (deselected from the default `test-*` jobs)
+    # against a real {{worker_broker}} — the one thing that exercises the real
+    # driver and serialization the in-memory unit tests stub out. See ADR-008.
+    # Path-gated like the component test jobs (issue #160): skips the container
+    # spin-up on PRs that touch neither the worker tree nor shared core.
     needs: changes
     if: >-
       {% raw %}${{ github.event.pull_request.draft != true &&
@@ -586,6 +587,36 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+{%- set ci_service = worker_broker_spec.get("ci_service") %}
+{%- if ci_service %}
+    # {{worker_broker}} starts fast, so CI uses a GitHub Actions service
+    # container — started (and torn down) by the runner before the job — instead
+    # of an in-test testcontainer. Setting {{worker_broker_spec.env}} makes the
+    # integration test connect to it directly and skip container startup; a
+    # local `pytest -m integration` (no env var) still uses testcontainers.
+    # Which brokers get this path, and every value below, is derived from
+    # `worker_broker_spec.ci_service` — see ADR-008 / issue #169.
+    services:
+      {{ci_service.name}}:
+        image: {{ci_service.image}}
+        ports:
+          - {{ci_service.port}}:{{ci_service.port}}
+{%- if ci_service.health_cmd %}
+        options: >-
+          --health-cmd "{{ci_service.health_cmd}}"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+{%- else %}
+        # No `--health-cmd`: this image ships no usable in-container health probe,
+        # so the runner cannot gate on readiness. It boots in well under a second
+        # and the checkout/Python/uv setup steps precede the first test line, so
+        # the service is long ready by then; the integration test's own
+        # connect-retry covers the rest. See ADR-008.
+{%- endif %}
+    env:
+      {{worker_broker_spec.env}}: {{ci_service.url}}
+{%- endif %}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7

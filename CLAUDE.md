@@ -182,6 +182,11 @@ Required inputs: `github_user`, `github_repo_name`, `author_full_name`,
 `repository_topics` (asked only when `include_repo_settings`). Starting point:
 `preset` (`library`/`tool`/`web`/`full`, `default: library`; seeds every toggle
 default via the hidden `preset_map`, [ADR-016](docs/adr/016-archetype-based-presets.md)).
+Choice questions gated on a toggle: `cli_framework` (when `include_cli`),
+`web_framework` (when `include_web`), `worker_broker` (when `include_worker`),
+and `docs_version_granularity` (`minor`/`major`/`full`, `default: minor`; when
+`include_docs`, sets the versioned-docs directory granularity —
+[ADR-027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md)).
 
 Optional components and integrations (all boolean; see `copier.yml` help for the
 prompt, `docs/template-architecture.md` for what each renders):
@@ -197,7 +202,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_c_extensions` | Cython + multi-platform wheels | — |
 | `include_profiling` | py-spy / scalene / cProfile | — |
 | `include_examples` | `examples/` folder with usage stubs (`library`-preset default) | — |
-| `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + Pages deploy); **default-on** every preset, off keeps a README-only project. `docs/maintaining/` always ships | [025](docs/adr/025-optional-docs-subsystem.md) |
+| `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + versioned Pages deploy with a version switcher + per-page "last updated"); **default-on** every preset, off keeps a README-only project. `docs/maintaining/` always ships | [025](docs/adr/025-optional-docs-subsystem.md), [027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md) |
 | `include_launcher` | PyCrucible online-first-run launcher | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_compiler` | Nuitka native-compiled executable | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_freezer` | PyInstaller offline bundle | [007](docs/adr/007-standalone-executable-toggles.md) |
@@ -255,7 +260,15 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   must match `src/<pkg>/…` (editable) **and** `*/site-packages/…` (installed
   wheel/sdist), so they are `*/`-anchored — a `src/**`-only pattern silently
   reports the installed copy at 0%. Verify via a real `tox run`, never editable
-  `pytest` ([ADR-027](docs/adr/027-per-component-markers-and-path-filtered-ci.md)).
+  `pytest` ([ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md)).
+- **Docs deploys must preserve the version-slug directories** (numeric, e.g.
+  `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
+  `gh-pages.yml` build only the current version and re-supply prior versions from
+  `gh-pages` via `tools/build_docs.py`; a naive root publish with only
+  `clean-exclude: pr-preview/**` would wipe every version directory. The manual
+  workflow checks out the latest release tag first (never HEAD). Old versions are
+  never rebuilt
+  ([ADR-027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md)).
 
 ### CI/CD Workflows — index
 
@@ -263,7 +276,7 @@ Detail (jobs, gating, security posture) in `docs/template-architecture.md`.
 
 | Workflow | Purpose | ADR |
 | --- | --- | --- |
-| `ci.yml` | `changes` path-filter → per-component `test-*` + scoped `coverage-*` gates + central `coverage-report`; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md), [027](docs/adr/027-per-component-markers-and-path-filtered-ci.md) |
+| `ci.yml` | `changes` path-filter → per-component `test-*` + scoped `coverage-*` gates + central `coverage-report`; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md), [028](docs/adr/028-per-component-markers-and-path-filtered-ci.md) |
 | `release.yml` | release-please → build / pypi-publish / executables / docker / docs / sbom / issue-notify | [002](docs/adr/002-release-please-for-release-automation.md), [010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md) |
 | `check-pr-title.yml` | PR title vs Conventional Commits | — |
 | `check-linked-issues.yml` | require a linked issue (`no-issue` bypasses) | — |
@@ -382,7 +395,7 @@ above — never a multi-line block here.
    `_display_*` helpers, and the worker lifecycle hooks do). Do **not** add
    blanket `exclude_lines` regexes for these — see the convention below.
 9. Wire the component into the per-component marker + path-filter surfaces
-   ([ADR-027](docs/adr/027-per-component-markers-and-path-filtered-ci.md)), which
+   ([ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md)), which
    must stay in lockstep: register the marker in `pyproject.toml.jinja`
    `[tool.pytest.ini_options] markers` **and** add its `tests/` dir to
    `tests/conftest.py.jinja` `_COMPONENT_DIRS`; add its `changes` filter + its
@@ -442,7 +455,7 @@ overrides the pyproject `omit`, so `coverage-core` re-adds `*/_version.py`; the
 component gates pass only `--include`, so the config `omit` still shields the
 worker integration file. This decomposition (which lets a path-skipped component
 keep the merge gate green) is
-[ADR-027](docs/adr/027-per-component-markers-and-path-filtered-ci.md), superseding
+[ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md), superseding
 ADR-026's single union gate.
 
 ### Modifying Template Variables

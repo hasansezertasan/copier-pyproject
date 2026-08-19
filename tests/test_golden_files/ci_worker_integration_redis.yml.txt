@@ -1,0 +1,56 @@
+  worker-integration:
+    name: Worker integration tests (redis)
+    # Ubuntu-only: the real redis runs in a Linux container — a
+    # GitHub Actions service for redis/nats (below), an in-test testcontainer for
+    # kafka/rabbitmq — and container support is Linux-runner-only. Runs only the
+    # `integration`-marked tests (deselected from the default `test-*` jobs)
+    # against a real redis — the one thing that exercises the real
+    # driver and serialization the in-memory unit tests stub out. See ADR-008.
+    # Path-gated like the component test jobs (issue #160): skips the container
+    # spin-up on PRs that touch neither the worker tree nor shared core.
+    needs: changes
+    if: >-
+      ${{ github.event.pull_request.draft != true &&
+      (needs.changes.outputs.worker == 'true' ||
+      needs.changes.outputs.core == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    # redis starts fast, so CI uses a GitHub Actions service
+    # container — started (and torn down) by the runner before the job — instead
+    # of an in-test testcontainer. Setting REDIS_URL makes the
+    # integration test connect to it directly and skip container startup; a
+    # local `pytest -m integration` (no env var) still uses testcontainers.
+    # Which brokers get this path, and every value below, is derived from
+    # `worker_broker_spec.ci_service` — see ADR-008 / issue #169.
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    env:
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Run worker integration tests
+        run: uv run --locked tox run -e integration

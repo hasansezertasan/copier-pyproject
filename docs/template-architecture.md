@@ -76,7 +76,8 @@ Optional components (all boolean):
   `check_warnings.py`, `expected_warnings.txt`, `index.rst`, `installation.rst`,
   `usage.rst`, `modules.rst`, the `web-interface.rst`/`worker-interface.rst`
   component pages, and the `cli-reference.md` page — those three also on their
-  component toggles, the CLI page additionally on `cli_framework == "typer"`), the `docs`
+  component toggles, the CLI page additionally on `cli_framework == "typer"`), the
+  `tools/build_docs.py` versioned-docs orchestrator, the `docs`
   dependency group, the `docs-build`/`docs-server`/`docs-linkcheck` tox envs, the
   `sphinx-lint` entry in the `style` tox env and prek hook, the `sphinx` keyword,
   the `docs-preview.yml`/`docs-linkcheck.yml`/`gh-pages.yml` workflows and the
@@ -478,9 +479,20 @@ Test packages mirror source structure in `tests/`:
 
 - `tests/cli/`, `tests/web/`, `tests/gui/`, `tests/tui/`, `tests/mcp/`, `tests/worker/` (each conditional)
 - `tests/worker/` holds both the in-memory `Test<Broker>` unit tests (always run)
-  and a testcontainers-backed integration test marked `integration` (excluded
-  from the default run, Docker required); see
-  [ADR-008](adr/008-worker-broker-testing-strategy.md).
+  and a broker round-trip integration test marked `integration` (excluded from
+  the default run). Its `_broker_url` context manager reads a single seam: if the broker's
+  env var (`REDIS_URL`/`NATS_URL`/`KAFKA_BOOTSTRAP_SERVERS`/`RABBITMQ_URL`) is
+  set it connects to that live broker directly, otherwise it starts a
+  testcontainer (Docker required for the local path). In CI, **redis** and
+  **nats** run against a GitHub Actions `services:` container that the runner
+  starts and injects before the job (**redis** is health-gated; **nats** has no
+  container health check and relies on the test's own connect-retry), while
+  **kafka** and **rabbitmq** stay on testcontainers — a per-broker CI mechanism
+  derived from the `ci_service` field on `worker_broker_spec` (present ⇒
+  `services:`; its `image`/`port`/`health_cmd`/`url` render the block), no extra
+  question. See
+  [ADR-008](adr/008-worker-broker-testing-strategy.md) (incl. the issue #169
+  amendment).
 
 Entry points configured in `pyproject.toml` (console-script wiring — see
 **[ADR-019](adr/019-components-as-cli-subcommands.md)**): the
@@ -558,7 +570,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
    - **Per-component jobs + path filtering**
-     ([ADR-027](adr/027-per-component-markers-and-path-filtered-ci.md)): a
+     ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md)): a
      `changes` job (`dorny/paths-filter`) emits a boolean per component plus
      `core`. The test job is split into `test-core` (always runs) and one
      `test-<component>` per enabled component, each gated on
@@ -569,7 +581,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      by `tests/conftest.py` from each test's top-level `tests/<dir>/`; the default
      local `tox run` is unchanged (everything minus `integration`).
    - **Per-component coverage gates**
-     ([ADR-027](adr/027-per-component-markers-and-path-filtered-ci.md), decomposing
+     ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md), decomposing
      [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):
      each `test-<component>` cell `coverage combine`s its per-interpreter data,
      keeps a non-gating `--fail-under=0` report for fast feedback, and uploads
@@ -620,7 +632,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `integration` marker is deselected by default via the pytest `addopts`); this
      job is the only thing exercising the real driver, and it gates the `check`
      aggregation job. It is path-gated like the component test jobs (skips its
-     container spin-up unless the worker tree or shared `core` changed; ADR-027).
+     container spin-up unless the worker tree or shared `core` changed; ADR-028).
      See [ADR-008](adr/008-worker-broker-testing-strategy.md).
 2. **Release + CD** (`release.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
@@ -647,17 +659,28 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    - `attach-github-release`: uploads artifacts to the still-draft release.
    - `finalize-release`: un-drafts the release and reconciles the phantom
      next-release PR (close + re-dispatch — bounded to one re-run).
-   - `deploy-docs` (`needs: finalize-release`): builds the Sphinx docs and
-     publishes them via `JamesIves/github-pages-deploy-action`. Lives in
+   - `deploy-docs` (`needs: finalize-release`): runs `tools/build_docs.py site`
+     and publishes the result via `JamesIves/github-pages-deploy-action`. Lives in
      this workflow rather than reacting to `release: published` because an event
      fired by `finalize-release`'s `GITHUB_TOKEN` cannot trigger another workflow
      (the same loop-prevention rule that forces the `workflow_dispatch`
-     re-dispatch above). `gh-pages.yml` is kept only for manual redeploys.
-     Docs are built with Sphinx + the Shibuya theme (autodoc API reference),
-     not MkDocs (see [ADR-006](adr/006-sphinx-shibuya-for-documentation.md)).
-     The `deploy-docs` publish (and the manual `gh-pages.yml`) set
+     re-dispatch above). `gh-pages.yml` is kept for manual redeploys and is
+     likewise version-aware. Docs are built with Sphinx + the Shibuya theme
+     (autodoc API reference), not MkDocs (see
+     [ADR-006](adr/006-sphinx-shibuya-for-documentation.md)). Publishing is
+     **versioned** ([ADR-027](adr/027-versioned-documentation-and-last-updated-stamps.md)):
+     only the released version is built (its slug set by the
+     `docs_version_granularity` question — `X.Y`/`X`/`X.Y.Z`); prior versions are
+     copied untouched from the `gh-pages` branch (never rebuilt), a `latest` alias
+     tracks the newest, and a root `index.html` redirects to it. The switcher is
+     Shibuya-native, fed from a generated (gitignored) `docs/_static/versions.json`
+     via `html_context`, and each page footer carries a `sphinx-last-updated-by-git`
+     date. Both `deploy-docs` and the manual `gh-pages.yml` set
      `clean-exclude: pr-preview/**` so a release never wipes the live PR previews
-     `docs-preview.yml` maintains under that path (see ADR-010 below).
+     `docs-preview.yml` maintains under that path (see ADR-010 below); the numeric
+     version-slug directories (e.g. `0.3/`) are re-supplied in `./site` each run.
+     The manual `gh-pages.yml` checks out the latest release tag before building
+     so a manual redeploy never overwrites released docs with unreleased `main`.
    - `notify-released-issues` (`needs: finalize-release`): a single
      `actions/github-script` step that maps the release's commit range
      (previous published tag → this tag) to the PRs that carried it, resolves each

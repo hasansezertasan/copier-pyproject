@@ -244,6 +244,13 @@ docs = [
     "sphinx-paramlinks==0.6.0",
     "auto-pytabs[sphinx]==0.5.0",
     "myst-parser==4.0.1",
+    # Per-page "last updated" footer sourced from git commit dates (ADR-027);
+    # offline, no network. Works from full history (docs CI checks out depth 0).
+    "sphinx-last-updated-by-git==0.3.8",
+    # PEP 440 version parsing/sorting used by tools/build_docs.py to order
+    # published versions and pick the `latest` alias (ADR-027). Also a Sphinx
+    # transitive dependency; pinned here for the explicit direct use.
+    "packaging>=24.0",
 {%- if include_pydantic_settings %}
     # Renders the Configuration reference (docs/configuration.rst) directly from
     # the live ``core.config`` Settings model so documented fields/types/
@@ -363,7 +370,7 @@ addopts = "-v --tb=short"
 {%- endif %}
 # One marker per component, auto-applied by tests/conftest.py from each test's
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
-# jobs (issue #160, ADR-027); `integration` (ADR-008) is one axis of the scheme.
+# jobs (issue #160, ADR-028); `integration` (ADR-008) is one axis of the scheme.
 markers = [
 {%- if include_worker %}
   "integration: requires a real broker via testcontainers (run with -m integration)",
@@ -612,6 +619,9 @@ convention = "pep257"
 # The docs warning-allowlist gate is a standalone script (not an importable
 # package) whose whole job is to print GitHub `::error::` annotations to stdout.
 "docs/check_warnings.py" = ["INP001", "T201"]
+# The versioned-docs build orchestrator is a standalone CLI script under tools/,
+# not part of an importable package (ADR-027).
+"tools/build_docs.py" = ["INP001"]
 {%- endif %}
 {%- if include_worker %}
 # The worker probe is a standalone dev script, not part of an importable
@@ -1002,6 +1012,12 @@ description = "Run worker broker integration tests against a real broker."
 extras = ["all"]
 dependency_groups = ["test"]
 runner = "uv-venv-runner"
+# tox passes only an allowlisted set of environment variables into the test
+# subprocess. Forward {{ worker_broker_spec.env }} so a broker already provided by
+# the environment — the CI `services:` broker for redis/nats, or a docker-compose
+# / manually-exported one — reaches the integration test; without it the var is
+# dropped and the run falls back to testcontainers. See ADR-008 / issue #169.
+pass_env = ["{{ worker_broker_spec.env }}"]
 {%- endif %}
 {%- if include_launcher %}
 

@@ -4,10 +4,10 @@
 
 Proposed (2026-08). Extends the intra-job coverage merge documented in
 [ADR-008](008-worker-broker-testing-strategy.md) to the whole CI fan-out.
-**Superseded in part** by [ADR-027](027-per-component-markers-and-path-filtered-ci.md):
+**Superseded in part** by [ADR-028](028-per-component-markers-and-path-filtered-ci.md):
 the single union `fail_under` gate below is decomposed into N per-component gates
 once the `ci` job splits per component, so a path-skipped component keeps the merge
-gate green. The union-over-cells *principle* still holds — ADR-027 applies it
+gate green. The union-over-cells *principle* still holds — ADR-028 applies it
 per component (across that component's OS cells) rather than once across all code.
 
 ## Context
@@ -73,10 +73,10 @@ Because the matrix is symmetric (three OSes, each running the full `tox run`),
 there is no skipped-component subtlety: every cell measures the same code, so the
 combined gate runs on every push/PR with no full-build-only carve-out.
 
-> **Amended by [ADR-027](027-per-component-markers-and-path-filtered-ci.md).** Once
+> **Amended by [ADR-028](028-per-component-markers-and-path-filtered-ci.md).** Once
 > the `ci` job splits into path-filtered per-component jobs, the matrix is no longer
 > symmetric — an unchanged component is skipped, dropping its subtree from a single
-> union. ADR-027 therefore decomposes this one gate into per-component gates, each
+> union. ADR-028 therefore decomposes this one gate into per-component gates, each
 > combining across its own OS cells and scoped to its subtree via
 > `coverage report --include`/`--omit`.
 

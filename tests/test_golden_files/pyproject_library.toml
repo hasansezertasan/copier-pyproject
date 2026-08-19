@@ -117,6 +117,13 @@ docs = [
     "sphinx-paramlinks==0.6.0",
     "auto-pytabs[sphinx]==0.5.0",
     "myst-parser==4.0.1",
+    # Per-page "last updated" footer sourced from git commit dates (ADR-027);
+    # offline, no network. Works from full history (docs CI checks out depth 0).
+    "sphinx-last-updated-by-git==0.3.8",
+    # PEP 440 version parsing/sorting used by tools/build_docs.py to order
+    # published versions and pick the `latest` alias (ADR-027). Also a Sphinx
+    # transitive dependency; pinned here for the explicit direct use.
+    "packaging>=24.0",
 ]
 tool = [
   "commitizen==4.17.0",
@@ -187,7 +194,7 @@ name = "cz_conventional_commits"
 addopts = "-v --tb=short"
 # One marker per component, auto-applied by tests/conftest.py from each test's
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
-# jobs (issue #160, ADR-027); `integration` (ADR-008) is one axis of the scheme.
+# jobs (issue #160, ADR-028); `integration` (ADR-008) is one axis of the scheme.
 markers = [
   "core: core/shared component tests",
 ]
@@ -362,6 +369,9 @@ convention = "pep257"
 # The docs warning-allowlist gate is a standalone script (not an importable
 # package) whose whole job is to print GitHub `::error::` annotations to stdout.
 "docs/check_warnings.py" = ["INP001", "T201"]
+# The versioned-docs build orchestrator is a standalone CLI script under tools/,
+# not part of an importable package (ADR-027).
+"tools/build_docs.py" = ["INP001"]
 
 
 [tool.ruff.lint.pyupgrade]
