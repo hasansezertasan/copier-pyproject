@@ -6,9 +6,20 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    # `ready_for_review` is NOT in the default type set (opened, synchronize,
+    # reopened) and is load-bearing here: every job below is gated on
+    # `draft != true`, so without this type, taking a PR out of draft would
+    # never re-run the CI it skipped while drafted. See ADR-028.
+    types: [opened, synchronize, reopened, ready_for_review]
 jobs:
   hooks:
     name: Run prek hooks
+    # Draft PRs skip the whole workflow — including the `check` gate, so the
+    # required status stays pending rather than failing (`alls-green` counts a
+    # skipped `needs` job as a failure). `!= true` is falsy-safe on
+    # `push`/`workflow_dispatch`, where there is no `pull_request` context. Every
+    # job below carries the same guard; see ADR-028.
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -38,10 +49,44 @@ jobs:
       - name: Run prek hooks
         run: uv run --locked --group prek prek run --all-files --show-diff-on-failure
   ci:
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+{%- if include_c_extensions %}
+    # Full grid: `include_c_extensions` makes each wheel ABI-specific (tox
+    # `package = "sdist"`, so every interpreter compiles the extension itself), so
+    # every OS × interpreter pair is a distinct build that must be verified. Every
+    # cell gets the bare `tox run` (the whole `env_list`). This is the deliberate
+    # carve-out from the asymmetric matrix below — see ADR-028.
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            tox_args: ""
+          - os: ubuntu-latest
+            tox_args: ""
+          - os: macos-latest
+            tox_args: ""
+{%- else %}
+    # Asymmetric matrix: full interpreter depth on Linux, one representative
+    # interpreter elsewhere. Every OS still runs the suite and every interpreter
+    # still runs the suite, but not every pair — cross-platform bugs (path
+    # separators, line endings, signals) are interpreter-independent and
+    # interpreter bugs are OS-independent, so the full grid is largely redundant
+    # spend (15 heavy runs → 5 + 1 + 1). `-e py` runs the single tox env for the
+    # interpreter that invoked tox — i.e. the `.python-version` one `setup-python`
+    # installs above — so these cells also skip the OS-independent lint/CLI envs
+    # (`style`{% if include_cli %}, `cli`{% endif %}), already covered in the Linux cell. See ADR-028.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            tox_args: ""
+          - os: macos-latest
+            tox_args: "-e py"
+          - os: windows-latest
+            tox_args: "-e py"
+{%- endif %}
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     name: Run Tests on {% raw %}${{ matrix.os }}{% endraw %}
     timeout-minutes: 10
@@ -91,7 +136,11 @@ jobs:
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
       - name: Run the tests
-        run: uv run --locked tox run
+        # `matrix.tox_args` selects this cell's depth — empty for the full
+        # `env_list`, `-e py` for the single `.python-version` interpreter. Safe to
+        # interpolate into `run:`: the values are literals from the matrix above,
+        # not untrusted event input.
+        run: uv run --locked tox run {% raw %}${{ matrix.tox_args }}{% endraw %}
       - name: Store coverage data
         # Combine this cell's per-interpreter data and hand the raw `.coverage`
         # off (under a per-OS name) to the `coverage-combine` job, which merges
@@ -115,6 +164,7 @@ jobs:
           include-hidden-files: true
   coverage-combine:
     name: Combine coverage across the matrix
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     needs: ci
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -203,6 +253,7 @@ jobs:
 {%- endif %}
 {%- if include_launcher %}
   build-launcher-check:
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     name: Build Launcher (PyCrucible) on {% raw %}${{ matrix.os }}{% endraw %}
     strategy:
       fail-fast: false
@@ -257,6 +308,7 @@ jobs:
 {%- endif %}
 {%- if include_freezer %}
   build-freezer-check:
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     name: Build Freezer (PyInstaller) on {% raw %}${{ matrix.os }}{% endraw %}
     strategy:
       fail-fast: false
@@ -312,6 +364,7 @@ jobs:
 {%- endif %}
 {%- if include_compiler %}
   build-compiler-check:
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     name: Build Compiler (Nuitka) on {% raw %}${{ matrix.os }}{% endraw %}
     strategy:
       fail-fast: false
@@ -377,6 +430,7 @@ jobs:
 {%- endif %}
 {%- if include_worker %}
   worker-integration:
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     name: Worker integration tests ({{worker_broker}})
     # Ubuntu-only: the real {{worker_broker}} runs in a Linux container — a
     # GitHub Actions service for redis/nats (below), an in-test testcontainer for
@@ -447,7 +501,7 @@ jobs:
     # (the `secrets` context is unavailable in `if:`) and records a visible skip
     # instead of failing when the secret is unset. Not wired into the `check`
     # aggregation gate — quality reporting is best-effort, not merge-blocking.
-    if: {% raw %}${{ github.event.pull_request.head.repo.fork != true }}{% endraw %}
+    if: {% raw %}${{ github.event.pull_request.head.repo.fork != true && github.event.pull_request.draft != true }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -477,7 +531,7 @@ jobs:
         run: echo "::notice::SONAR_TOKEN secret is not set — skipping the SonarCloud scan. See docs/maintaining/setup.rst (Repository setup) to enable it."
 {%- endif %}
   check:
-    if: always()
+    if: {% raw %}${{ always() && github.event.pull_request.draft != true }}{% endraw %}
     needs: [ci, coverage-combine, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -255,6 +255,13 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   var in `copier.yml` (CLI > GUI > TUI > web > MCP > worker). Derive from it; do
   **not** re-spell it as inline `include_x or include_y …`
   ([ADR-019](docs/adr/019-components-as-cli-subcommands.md)).
+- **The `ci.yml` draft guard is all-or-nothing.** Every job — including `check` —
+  carries `if: ${{ github.event.pull_request.draft != true }}`, and the
+  `pull_request` trigger must keep `ready_for_review` in `types:`. Gating only
+  some jobs turns draft PRs *red* (`alls-green` counts a skipped `needs` as a
+  failure); dropping `ready_for_review` (not a default type) makes the skip
+  permanent. Use `!= true`, never `== false` — the latter also disables CI on
+  `push` ([ADR-028](docs/adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md)).
 - **Docs deploys must preserve the version-slug directories** (numeric, e.g.
   `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
   `gh-pages.yml` build only the current version and re-supply prior versions from
@@ -270,7 +277,7 @@ Detail (jobs, gating, security posture) in `docs/template-architecture.md`.
 
 | Workflow | Purpose | ADR |
 | --- | --- | --- |
-| `ci.yml` | matrix tests + coverage; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md) |
+| `ci.yml` | asymmetric OS/Python matrix + coverage, draft-PR skip; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md), [028](docs/adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md) |
 | `release.yml` | release-please → build / pypi-publish / executables / docker / docs / sbom / issue-notify | [002](docs/adr/002-release-please-for-release-automation.md), [010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md) |
 | `check-pr-title.yml` | PR title vs Conventional Commits | — |
 | `check-linked-issues.yml` | require a linked issue (`no-issue` bypasses) | — |

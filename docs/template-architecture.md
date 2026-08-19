@@ -569,6 +569,28 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ## CI/CD Workflows
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
+   - **Asymmetric matrix** ([ADR-028](adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md)):
+     the `ci` matrix is an explicit `include:` list carrying a `tox_args` field
+     that the test step passes through (`uv run --locked tox run ${{ matrix.tox_args }}`).
+     `ubuntu-latest` gets `""` — the full `env_list` (3.10-3.14 plus `style`, and
+     `cli` when `include_cli`); `macos-latest` and `windows-latest` get `-e py`,
+     the single tox env for the `.python-version` interpreter `setup-python`
+     installs. Every OS still runs the suite and every interpreter still runs the
+     suite; only the cross product is dropped (15 heavy runs → `5 + 1 + 1`), and
+     the OS-independent `style`/`cli` envs run once instead of three times. Under
+     `include_c_extensions` all three cells render `tox_args: ""` (the old full
+     grid) — a compiled extension makes each OS × interpreter pair a distinct
+     ABI-specific build, which is also why tox switches to `package = "sdist"`
+     there. There is no `ci_full_matrix` toggle; the carve-out is inferred.
+   - **Draft-PR skip** (ADR-028): every job carries
+     `if: ${{ github.event.pull_request.draft != true }}` — `!= true` so it stays
+     falsy-safe on `push`/`workflow_dispatch` (no `pull_request` context), and
+     **including `check`**, because `re-actors/alls-green` counts a skipped
+     `needs` job as a failure and would otherwise turn every draft PR red; a
+     skipped `check` leaves the required status pending, which is correct for a
+     draft. `sonar` ANDs the guard onto its existing fork check and `check` onto
+     its `always()`. The `pull_request` trigger adds `ready_for_review` to
+     `types:` (not a default type) so leaving draft re-runs the skipped CI.
    - **Cross-matrix coverage** ([ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):
      each matrix cell `coverage combine`s its per-interpreter data, keeps a
      non-gating `coverage report --fail-under=0` for fast per-OS feedback, and
