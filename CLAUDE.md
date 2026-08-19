@@ -255,11 +255,13 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   var in `copier.yml` (CLI > GUI > TUI > web > MCP > worker). Derive from it; do
   **not** re-spell it as inline `include_x or include_y …`
   ([ADR-019](docs/adr/019-components-as-cli-subcommands.md)).
-- **Docs deploys must preserve `vX.Y/**`.** Both `release.yml` `deploy-docs` and
-  the manual `gh-pages.yml` build only the current version and re-supply prior
-  versions from `gh-pages` via `tools/build_docs.py`; a naive root publish with
-  only `clean-exclude: pr-preview/**` would wipe every version directory. Old
-  versions are never rebuilt
+- **Docs deploys must preserve the version-slug directories** (numeric, e.g.
+  `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
+  `gh-pages.yml` build only the current version and re-supply prior versions from
+  `gh-pages` via `tools/build_docs.py`; a naive root publish with only
+  `clean-exclude: pr-preview/**` would wipe every version directory. The manual
+  workflow checks out the latest release tag first (never HEAD). Old versions are
+  never rebuilt
   ([ADR-027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md)).
 
 ### CI/CD Workflows — index

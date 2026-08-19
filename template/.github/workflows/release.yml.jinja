@@ -634,9 +634,9 @@ jobs:
           folder: site
           # Preserve the PR preview tree (pr-preview/**) that docs-preview.yml
           # maintains — the action's default clean: true would otherwise wipe it.
-          # Version directories (vX.Y/**) are re-supplied in ./site each run, so
-          # clean is safe for them. Disable force-push so a concurrent preview
-          # deploy is not clobbered. See ADR-010 / ADR-027.
+          # The numeric version directories (e.g. 0.3/) are re-supplied in ./site
+          # each run, so clean is safe for them. Disable force-push so a
+          # concurrent preview deploy is not clobbered. See ADR-010 / ADR-027.
           clean-exclude: pr-preview/**
           force: false
 {%- endif %}

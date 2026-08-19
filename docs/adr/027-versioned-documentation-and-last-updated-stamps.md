@@ -59,7 +59,10 @@ publishes. A generated `tools/build_docs.py` orchestrates each deploy:
    (full).
 2. Enumerate the version directories already present on `gh-pages`, union the new
    slug, and sort with `packaging.version`. `latest` is the highest
-   non-prerelease.
+   non-prerelease (prerelease slugs — `rc`/`a`/`b`/`dev`, which only survive
+   slugging under `full` granularity — are excluded from `latest` so a
+   pre-release never becomes the default, and are ordered with PEP 440 semantics
+   rather than a naïve numeric split that would choke on them).
 3. Write `docs/_static/versions.json` into the source tree so *this* build's
    switcher lists every known version, then run the existing docs build
    (`sphinx-build -w … + docs/check_warnings.py`) unchanged.
@@ -68,8 +71,8 @@ publishes. A generated `tools/build_docs.py` orchestrates each deploy:
    `gh-pages` so the deploy folder is the complete site; write a root
    `index.html` that redirects to `latest`.
 5. Deploy with the existing `clean-exclude: pr-preview/**` + `force: false`, so PR
-   previews (ADR-010) are never wiped and version directories (`vX.Y/**`) and the
-   preview tree stay disjoint.
+   previews (ADR-010) are never wiped and the numeric version directories (the
+   slug dirs, e.g. `0.3/`) and the preview tree stay disjoint.
 
 ### 2. Deviation from Litestar — stateless version list
 
@@ -100,8 +103,9 @@ constant into the generated `build_docs.py`.
 
 The manual redeploy escape hatch is kept but **must** route through
 `build_docs.py` — a naive root publish with only `clean-exclude: pr-preview/**`
-would wipe every `vX.Y/**` directory. It rebuilds the current release version and
-preserves the rest, identically to the release path.
+would wipe every version-slug directory. It checks out the latest release tag,
+rebuilds that version, and preserves the rest — so a manual run never overwrites
+a released version's docs with unreleased `main` content.
 
 ### 5. Per-page "last updated"
 
@@ -119,8 +123,11 @@ blanket suppression.
   `latest` alias, at no extra build cost per deploy (only the current version is
   ever built; the rest are copied).
 - `gh-pages` becomes load-bearing state: the version list is reconstructed from
-  it, and both the release and manual deploy paths **must preserve `vX.Y/**`** (a
-  load-bearing invariant recorded in `CLAUDE.md`).
+  it, and both the release and manual deploy paths **must preserve the numeric
+  version-slug directories** (e.g. `0.3/`) (a load-bearing invariant recorded in
+  `CLAUDE.md`). The manual `gh-pages.yml` also checks out the latest release tag
+  before building, so a manual redeploy never overwrites a released version's
+  docs with unreleased `main` content.
 - Old versions are never rebuilt, so a past `conf.py` need not keep building under
   future tooling — the constraint that sinks the multiversion libraries here does
   not apply.

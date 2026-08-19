@@ -659,8 +659,10 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      via `html_context`, and each page footer carries a `sphinx-last-updated-by-git`
      date. Both `deploy-docs` and the manual `gh-pages.yml` set
      `clean-exclude: pr-preview/**` so a release never wipes the live PR previews
-     `docs-preview.yml` maintains under that path (see ADR-010 below); version
-     directories (`vX.Y/**`) are re-supplied in `./site` each run.
+     `docs-preview.yml` maintains under that path (see ADR-010 below); the numeric
+     version-slug directories (e.g. `0.3/`) are re-supplied in `./site` each run.
+     The manual `gh-pages.yml` checks out the latest release tag before building
+     so a manual redeploy never overwrites released docs with unreleased `main`.
    - `notify-released-issues` (`needs: finalize-release`): a single
      `actions/github-script` step that maps the release's commit range
      (previous published tag → this tag) to the PRs that carried it, resolves each

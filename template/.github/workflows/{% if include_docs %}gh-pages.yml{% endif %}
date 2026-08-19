@@ -34,17 +34,21 @@ jobs:
       - name: Restore cache
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
+      - name: Check out the latest release tag
+        # Manual redeploy has no release event. Build the newest *released* tag's
+        # source (not the default branch's HEAD, which may carry unreleased
+        # commits that would overwrite the tagged version's docs), and set
+        # DOCS_BUILD_VERSION from that same tag. Requires at least one tag.
+        run: |
+          tag="$(git describe --tags --abbrev=0)"
+          git checkout --force --detach "$tag"
+          echo "DOCS_BUILD_VERSION=${tag#v}" >> "$GITHUB_ENV"
       - name: Set reproducible build epoch
-        # Pin Sphinx's "today"/copyright to the last commit date so the same
-        # commit always renders the same docs output (reproducible-builds.org).
+        # Pin Sphinx's "today"/copyright to the checked-out tag's commit date so
+        # the same tag always renders the same docs output (reproducible-builds.org).
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
       - name: Fetch gh-pages branch
         run: git fetch origin gh-pages:gh-pages || echo "gh-pages does not exist yet"
-      - name: Determine version from latest tag
-        # Manual redeploy has no release event; rebuild the newest released
-        # version's docs, preserving the rest. Requires at least one release tag.
-        run: |
-          echo "DOCS_BUILD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')" >> "$GITHUB_ENV"
       - name: Build versioned docs
         env:
           PYTHONUNBUFFERED: "1"
@@ -59,8 +63,9 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445  # v4.9.0
         with:
           folder: site
-          # Preserve the PR preview tree (pr-preview/**); version directories
-          # (vX.Y/**) are re-supplied in ./site each run. Disable force-push so a
-          # concurrent preview deploy is not clobbered. See ADR-010 / ADR-027.
+          # Preserve the PR preview tree (pr-preview/**); the numeric version
+          # directories (e.g. 0.3/) are re-supplied in ./site each run. Disable
+          # force-push so a concurrent preview deploy is not clobbered. See
+          # ADR-010 / ADR-027.
           clean-exclude: pr-preview/**
           force: false

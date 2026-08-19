@@ -16,13 +16,16 @@ and the docs dependencies are importable.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
-import re
 import shutil
 import subprocess  # noqa: S404
 import sys
+import tarfile
 from pathlib import Path
+
+from packaging.version import InvalidVersion, Version
 
 # Version-directory granularity, baked from the Copier ``docs_version_granularity``
 # answer. Edit here only if you want to change how release versions map to docs
@@ -37,10 +40,6 @@ VERSIONS_JSON = DOCS_DIR / "_static" / "versions.json"
 # gh-pages refs to try, in order (a local branch after ``git fetch origin
 # gh-pages:gh-pages``, or the remote-tracking ref after a plain fetch).
 GH_PAGES_REFS = ("gh-pages", "origin/gh-pages")
-
-# Only names matching a pure numeric dotted version are treated as version dirs;
-# this skips ``latest``, ``pr-preview``, ``_static``, ``.nojekyll`` etc.
-_VERSION_RE = re.compile(r"^\d+(\.\d+)*$")
 
 # Raised when the required release version is not supplied via the environment.
 _MISSING_VERSION_MSG = "DOCS_BUILD_VERSION is required"
@@ -78,13 +77,21 @@ def slugify(version: str) -> str:
     return version.lstrip("v")
 
 
-def _version_key(slug: str) -> tuple[int, ...]:
-    """Return a numeric sort key for a dotted slug (``0.10`` after ``0.9``).
+def _is_version_dir(name: str) -> bool:
+    """Report whether a gh-pages entry name is a published version directory.
+
+    Args:
+        name: A top-level name from the gh-pages tree.
 
     Returns:
-        A tuple of the slug's integer components.
+        ``True`` if ``name`` parses as a PEP 440 version (so ``latest``,
+        ``pr-preview``, ``_static``, ``index.html`` etc. are excluded).
     """
-    return tuple(int(part) for part in slug.split("."))
+    try:
+        Version(name)
+    except InvalidVersion:
+        return False
+    return True
 
 
 def _gh_pages_ref() -> str | None:
@@ -120,19 +127,24 @@ def existing_versions() -> list[str]:
         text=True,
         check=True,
     )
-    return [name for name in result.stdout.split() if _VERSION_RE.match(name)]
+    return [name for name in result.stdout.split() if _is_version_dir(name)]
 
 
 def pick_latest(slugs: list[str]) -> str:
     """Choose the ``latest`` alias target.
 
+    Prereleases (``rc``/``a``/``b``/``dev`` slugs, which only appear under
+    ``full`` granularity) are excluded so a pre-release never becomes ``latest``
+    while any stable version exists.
+
     Args:
         slugs: All known version slugs.
 
     Returns:
-        The highest slug.
+        The highest stable slug, or the highest overall if all are prereleases.
     """
-    return max(slugs, key=_version_key)
+    stable = [slug for slug in slugs if not Version(slug).is_prerelease]
+    return max(stable or slugs, key=Version)
 
 
 def write_versions_json(slugs: list[str], latest: str) -> None:
@@ -143,10 +155,7 @@ def write_versions_json(slugs: list[str], latest: str) -> None:
         latest: The slug the ``latest`` alias points at.
     """
     VERSIONS_JSON.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "versions": sorted(slugs, key=_version_key, reverse=True),
-        "latest": latest,
-    }
+    payload = {"versions": sorted(slugs, key=Version, reverse=True), "latest": latest}
     VERSIONS_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
@@ -187,11 +196,14 @@ def preserve_from_gh_pages(name: str, out: Path, ref: str) -> None:
     )
     if archive.returncode != 0 or not archive.stdout:
         return  # not present on gh-pages (e.g. first release) — nothing to keep
-    subprocess.run(  # noqa: S603
-        ["tar", "-x", "-C", str(out)],  # noqa: S607
-        input=archive.stdout,
-        check=True,
-    )
+    # Extract the in-memory tar with the stdlib so the script needs no external
+    # ``tar`` binary. The stream is our own trusted ``git archive`` output; use
+    # the safe extraction filter where available (Python 3.12+).
+    with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
+        if sys.version_info >= (3, 12):
+            tar.extractall(out, filter="data")
+        else:
+            tar.extractall(out)  # noqa: S202
 
 
 def assemble_site(out: Path, slug: str, latest: str, all_slugs: list[str]) -> None:
@@ -253,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(_MISSING_VERSION_MSG)
     slug = slugify(version)
 
-    all_slugs = sorted({*existing_versions(), slug}, key=_version_key)
+    all_slugs = sorted({*existing_versions(), slug}, key=Version)
     latest = pick_latest(all_slugs)
     write_versions_json(all_slugs, latest)
 
