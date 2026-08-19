@@ -180,3 +180,21 @@ def test_coverage_report_has_draft_guard(render: Callable[..., Path]) -> None:
     cond = ci["jobs"]["coverage-report"]["if"]
     assert "github.event.pull_request.draft != true" in cond
     assert "!cancelled()" in cond
+
+
+def test_coverage_report_scopes_out_skipped_components(render: Callable[..., Path]) -> None:
+    # The aggregate report/html/xml must omit components that did not run this PR,
+    # else `source_pkgs` surfaces their unexecuted files at ~0% and misreports the
+    # combined number (CodeRabbit PR #259 review).
+    ci = _ci(render, preset="library", include_web=True, include_worker=True,
+             worker_broker="redis")
+    job = ci["jobs"]["coverage-report"]
+    combine = next(s for s in job["steps"] if s.get("name", "").startswith("Combine"))
+    # reads changes outputs via env, per component
+    assert job["needs"][0] == "changes" or "changes" in job["needs"]
+    assert "CHANGED_WEB" in combine["env"]
+    assert "CHANGED_WORKER" in combine["env"]
+    run = combine["run"]
+    # each report/html/xml command is scoped by the computed omit list
+    assert run.count('--omit="$omit"') == 3
+    assert 'CHANGED_WEB" != "true"' in run

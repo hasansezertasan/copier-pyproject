@@ -81,11 +81,16 @@ component's source **and** test subtree. All patterns are `*/`-anchored to match
 both the editable `src/` and installed `*/site-packages/` layouts — the same
 requirement as ADR-008's `omit` globs, verifiable only via a real `tox run`.
 
-A central, **non-gating** `coverage-report` job (`if: !cancelled()`) merges
-whatever component data is present, renders combined HTML/XML, uploads to Codecov
-(unchanged opt-in/tokenless gating), optionally publishes via smokeshow
-(ADR-026 §2), and feeds the SonarCloud job. Gating lives in the per-component jobs;
-publishing stays centralized.
+A central, **non-gating** `coverage-report` job (`if: !cancelled() &&
+draft != true`) merges whatever component data is present, renders combined
+HTML/XML, uploads to Codecov (unchanged opt-in/tokenless gating), optionally
+publishes via smokeshow (ADR-026 §2), and feeds the SonarCloud job. Gating lives
+in the per-component jobs; publishing stays centralized. The aggregate
+report/HTML/XML is **scoped to the components that ran** (it `--omit`s any
+component skipped this run, derived from the `changes` outputs): `source_pkgs`
+otherwise makes coverage discover a skipped component's unexecuted files and
+report them at ~0%, which would misreport the combined number on a path-filtered
+PR.
 
 ### Interaction with #159
 

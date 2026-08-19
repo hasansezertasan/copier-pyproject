@@ -289,7 +289,7 @@ jobs:
     # Renders combined HTML/XML from whatever component gates ran and uploads to
     # Codecov + (optionally) smokeshow. `if: !cancelled()` so it runs even when a
     # component is path-skipped; downloads all present `coverage-*-*` artifacts.
-    needs: [coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}]
+    needs: [changes, coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}]
     # `!cancelled()` still publishes when a component gate failed, but must ALSO
     # carry the draft guard: on a draft PR every dependency is *skipped* (not
     # cancelled), so without it this job would run with zero coverage artifacts
@@ -318,13 +318,30 @@ jobs:
           merge-multiple: true
       - name: Combine and render (non-gating)
         # `--fail-under=0`: gating is done per component above; this job only
-        # publishes. On a partial PR some components are absent — that is expected
-        # (Codecov reconciles via flags), so it must never fail here.
+        # publishes. On a path-filtered PR the skipped components never ran, but
+        # `source_pkgs` still makes coverage discover their (unexecuted) files and
+        # report them at ~0%, which would misrepresent the combined number in
+        # Codecov/smokeshow. So omit every component that did NOT run this time
+        # (derived from the `changes` outputs — `core` forces the full report).
+        # The `changes` booleans are workflow-derived (trusted), passed via env.
+        env:
+          CHANGED_CORE: {% raw %}${{ needs.changes.outputs.core }}{% endraw %}
+{%- for c in comp_names %}
+          CHANGED_{{ c | upper }}: {% raw %}${{ needs.changes.outputs.{% endraw %}{{ c }}{% raw %} }}{% endraw %}
+{%- endfor %}
         run: |
           uv run --locked --only-group test coverage combine
-          uv run --locked --only-group test coverage report --show-missing --fail-under=0
-          uv run --locked --only-group test coverage html
-          uv run --locked --only-group test coverage xml
+          # `--omit` on the CLI overrides the pyproject omit, so re-add the always
+          # -omitted files, then append each component that was skipped this run.
+          omit="*/_version.py{% if include_worker %},*/worker/test_integration.py{% endif %}"
+{%- for c in comp_names %}
+          if [ "$CHANGED_CORE" != "true" ] && [ "$CHANGED_{{ c | upper }}" != "true" ]; then
+            omit="$omit,*/{{github_repo_name}}/{{c}}/*,*/tests/{{c}}/*"
+          fi
+{%- endfor %}
+          uv run --locked --only-group test coverage report --show-missing --omit="$omit" --fail-under=0
+          uv run --locked --only-group test coverage html --omit="$omit"
+          uv run --locked --only-group test coverage xml --omit="$omit"
       - name: Upload combined HTML report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
