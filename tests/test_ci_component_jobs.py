@@ -94,3 +94,50 @@ def test_matrix_full_grid_with_c_extensions(render: Callable[..., Path]) -> None
     ci = _ci(render, preset="library", include_c_extensions=True)
     include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
     assert all(row["tox_args"] == "" for row in include)
+
+
+# --- Task 4: coverage decomposition -------------------------------------------
+
+
+def test_coverage_core_job_omits_components(render: Callable[..., Path]) -> None:
+    ci = _ci(render, preset="library", include_web=True)
+    run = _job_run(ci["jobs"]["coverage-core"])
+    assert "--fail-under=99" in run
+    assert "--omit=" in run
+    assert "/web/*" in run  # web src omitted from the core gate
+    assert "/tests/web/*" in run  # web tests omitted too (source_pkgs includes tests)
+    assert "*/_version.py" in run  # re-added because --omit overrides config omit
+
+
+def test_coverage_web_job_includes_only_web(render: Callable[..., Path]) -> None:
+    ci = _ci(render, preset="library", include_web=True)
+    run = _job_run(ci["jobs"]["coverage-web"])
+    assert "--include=" in run
+    assert "/web/*" in run
+    assert "/tests/web/*" in run
+    assert "--fail-under=99" in run
+
+
+def test_coverage_web_gated_on_web_or_core(render: Callable[..., Path]) -> None:
+    ci = _ci(render, preset="library", include_web=True)
+    cond = ci["jobs"]["coverage-web"]["if"]
+    assert "needs.changes.outputs.web == 'true'" in cond
+    assert "needs.changes.outputs.core == 'true'" in cond
+
+
+def test_coverage_report_job_is_non_gating(render: Callable[..., Path]) -> None:
+    ci = _ci(render, preset="library", include_web=True)
+    assert "coverage-report" in ci["jobs"]
+    assert "coverage-combine" not in ci["jobs"]
+    run = _job_run(ci["jobs"]["coverage-report"])
+    assert "--fail-under=0" in run
+    assert "coverage xml" in run
+
+
+def test_check_and_sonar_reference_new_coverage_jobs(render: Callable[..., Path]) -> None:
+    ci = _ci(render, preset="full")
+    needs = ci["jobs"]["check"]["needs"]
+    assert "coverage-core" in needs
+    assert "coverage-report" in needs
+    assert "coverage-combine" not in needs
+    assert ci["jobs"]["sonar"]["needs"] == "coverage-report"

@@ -236,9 +236,55 @@ jobs:
           path: .coverage.{{ job.slug }}.{% raw %}${{ matrix.os }}{% endraw %}
           include-hidden-files: true
 {% endfor %}
-  coverage-combine:
-    name: Combine coverage across the matrix
-    needs: [test-core{% for c in comp_names %}, test-{{ c }}{% endfor %}]
+{#- Per-component coverage gates (ADR-027, decomposes ADR-026's single union
+    gate). Each gate merges its component's OS cells (preserving ADR-026's
+    cross-OS union WITHIN a component) and enforces `fail_under=99` scoped to
+    that subtree, so a skipped (unchanged) component needs no gate. `source_pkgs`
+    measures both `src/<pkg>` and `tests`, so each scope spans src + tests.
+    Component gates pass only `--include`, so the pyproject `[tool.coverage.report]
+    omit` (`_version.py`, the worker integration file) still applies; the core
+    gate passes `--omit` (which overrides config omit) so it re-adds `_version.py`
+    and omits every component's src+tests subtree. Patterns are `*/`-anchored to
+    match both the editable `src/` and installed `site-packages/` layouts. -#}
+{% for job in test_jobs %}
+  coverage-{{ job.slug }}:
+    name: Coverage gate ({{ job.slug }})
+    needs: [changes, test-{{ job.slug }}]
+    if: >-
+      {% raw %}${{ !cancelled() && github.event.pull_request.draft != true{% endraw %}{% if job.gated %} &&
+      {% raw %}(needs.changes.outputs.{% endraw %}{{ job.slug }}{% raw %} == 'true' ||
+      needs.changes.outputs.core == 'true'){% endraw %}{% endif %} {% raw %}}}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      - name: Download {{ job.slug }} coverage data
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        with:
+          pattern: coverage-{{ job.slug }}-*
+          merge-multiple: true
+      - name: Combine and gate the {{ job.slug }} subtree
+        # `--locked --only-group test` pins the SAME coverage version that produced
+        # the `.coverage.*` data files (no unpinned drift), without building the
+        # project. `relative_files` (pyproject) lets cross-runner paths merge.
+        run: |
+          uv run --locked --only-group test coverage combine
+          uv run --locked --only-group test coverage report --show-missing {% if job.slug == 'core' %}--omit="*/_version.py{% for c in comp_names %},*/{{github_repo_name}}/{{c}}/*,*/tests/{{c}}/*{% endfor %}"{% else %}--include="*/{{github_repo_name}}/{{job.slug}}/*,*/tests/{{job.slug}}/*"{% endif %} --fail-under=99
+{% endfor %}
+  coverage-report:
+    name: Combine coverage and publish
+    # Central non-gating publish (gating lives in the per-component jobs above).
+    # Renders combined HTML/XML from whatever component gates ran and uploads to
+    # Codecov + (optionally) smokeshow. `if: !cancelled()` so it runs even when a
+    # component is path-skipped; downloads all present `coverage-*-*` artifacts.
+    needs: [coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}]
     if: {% raw %}${{ !cancelled() }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -246,7 +292,7 @@ jobs:
       contents: read
     env:
       # The `secrets` context is unavailable in `if:`, so surface CODECOV_TOKEN as
-      # a presence flag — never expose the value job-wide. See the `ci` job.
+      # a presence flag — never expose the value job-wide.
       CODECOV_TOKEN_SET: {% raw %}${{ secrets.CODECOV_TOKEN != '' }}{% endraw %}
       REPO_IS_PUBLIC: {% raw %}${{ !github.event.repository.private }}{% endraw %}
     steps:
@@ -256,21 +302,18 @@ jobs:
           persist-credentials: false
       - name: Setup uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
-      - name: Download per-cell coverage data
+      - name: Download all coverage data
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
         with:
-          pattern: coverage-*
+          pattern: coverage-*-*
           merge-multiple: true
-      - name: Combine, gate, and render the report
-        # The single place the `fail_under = 99` gate is enforced — over the union
-        # of every OS × interpreter cell, not each cell independently.
-        # `relative_files` (pyproject `[tool.coverage.run]`) lets paths from
-        # different runners merge. `--locked --only-group test` pins the SAME
-        # coverage version that produced the `.coverage.*` data files (rather than
-        # an unpinned resolve that could drift), without building the project.
+      - name: Combine and render (non-gating)
+        # `--fail-under=0`: gating is done per component above; this job only
+        # publishes. On a partial PR some components are absent — that is expected
+        # (Codecov reconciles via flags), so it must never fail here.
         run: |
           uv run --locked --only-group test coverage combine
-          uv run --locked --only-group test coverage report --show-missing --fail-under=99
+          uv run --locked --only-group test coverage report --show-missing --fail-under=0
           uv run --locked --only-group test coverage html
           uv run --locked --only-group test coverage xml
       - name: Upload combined HTML report
@@ -279,10 +322,9 @@ jobs:
           name: coverage-html
           path: htmlcov
       - name: Upload coverage to Codecov
-        # Single authoritative upload for the whole fan-out. Uploads when the token
-        # is set or the repo is public (tokenless); only a private repo with no
-        # token falls through to the visible skip below. Best-effort
-        # (`fail_ci_if_error` defaults to false), so a rate-limit never breaks CI.
+        # Uploads when the token is set or the repo is public (tokenless); only a
+        # private repo with no token falls through to the visible skip below.
+        # Best-effort (`fail_ci_if_error` defaults to false).
         if: {% raw %}${{ env.CODECOV_TOKEN_SET == 'true' || env.REPO_IS_PUBLIC == 'true' }}{% endraw %}
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v7.0.0
         with:
@@ -533,7 +575,7 @@ jobs:
 {%- if include_sonarcloud %}
   sonar:
     name: SonarCloud Scan
-    needs: coverage-combine
+    needs: coverage-report
     # Opt-in and non-blocking, mirroring the Codecov upload: forks never receive
     # secrets and SonarCloud has no tokenless fallback, so skip fork PRs entirely;
     # on same-repo runs, the scan step is gated on the SONAR_TOKEN presence flag
@@ -571,7 +613,7 @@ jobs:
 {%- endif %}
   check:
     if: always()
-    needs: [changes, test-core{% for c in comp_names %}, test-{{ c }}{% endfor %}, coverage-combine, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
+    needs: [changes, test-core{% for c in comp_names %}, test-{{ c }}{% endfor %}, coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}, coverage-report, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
