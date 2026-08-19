@@ -182,6 +182,11 @@ Required inputs: `github_user`, `github_repo_name`, `author_full_name`,
 `repository_topics` (asked only when `include_repo_settings`). Starting point:
 `preset` (`library`/`tool`/`web`/`full`, `default: library`; seeds every toggle
 default via the hidden `preset_map`, [ADR-016](docs/adr/016-archetype-based-presets.md)).
+Choice questions gated on a toggle: `cli_framework` (when `include_cli`),
+`web_framework` (when `include_web`), `worker_broker` (when `include_worker`),
+and `docs_version_granularity` (`minor`/`major`/`full`, `default: minor`; when
+`include_docs`, sets the versioned-docs directory granularity —
+[ADR-027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md)).
 
 Optional components and integrations (all boolean; see `copier.yml` help for the
 prompt, `docs/template-architecture.md` for what each renders):
@@ -197,7 +202,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_c_extensions` | Cython + multi-platform wheels | — |
 | `include_profiling` | py-spy / scalene / cProfile | — |
 | `include_examples` | `examples/` folder with usage stubs (`library`-preset default) | — |
-| `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + Pages deploy); **default-on** every preset, off keeps a README-only project. `docs/maintaining/` always ships | [025](docs/adr/025-optional-docs-subsystem.md) |
+| `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + versioned Pages deploy with a version switcher + per-page "last updated"); **default-on** every preset, off keeps a README-only project. `docs/maintaining/` always ships | [025](docs/adr/025-optional-docs-subsystem.md), [027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md) |
 | `include_launcher` | PyCrucible online-first-run launcher | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_compiler` | Nuitka native-compiled executable | [007](docs/adr/007-standalone-executable-toggles.md) |
 | `include_freezer` | PyInstaller offline bundle | [007](docs/adr/007-standalone-executable-toggles.md) |
@@ -250,6 +255,14 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   var in `copier.yml` (CLI > GUI > TUI > web > MCP > worker). Derive from it; do
   **not** re-spell it as inline `include_x or include_y …`
   ([ADR-019](docs/adr/019-components-as-cli-subcommands.md)).
+- **Docs deploys must preserve the version-slug directories** (numeric, e.g.
+  `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
+  `gh-pages.yml` build only the current version and re-supply prior versions from
+  `gh-pages` via `tools/build_docs.py`; a naive root publish with only
+  `clean-exclude: pr-preview/**` would wipe every version directory. The manual
+  workflow checks out the latest release tag first (never HEAD). Old versions are
+  never rebuilt
+  ([ADR-027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md)).
 
 ### CI/CD Workflows — index
 

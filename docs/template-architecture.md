@@ -76,7 +76,8 @@ Optional components (all boolean):
   `check_warnings.py`, `expected_warnings.txt`, `index.rst`, `installation.rst`,
   `usage.rst`, `modules.rst`, the `web-interface.rst`/`worker-interface.rst`
   component pages, and the `cli-reference.md` page — those three also on their
-  component toggles, the CLI page additionally on `cli_framework == "typer"`), the `docs`
+  component toggles, the CLI page additionally on `cli_framework == "typer"`), the
+  `tools/build_docs.py` versioned-docs orchestrator, the `docs`
   dependency group, the `docs-build`/`docs-server`/`docs-linkcheck` tox envs, the
   `sphinx-lint` entry in the `style` tox env and prek hook, the `sphinx` keyword,
   the `docs-preview.yml`/`docs-linkcheck.yml`/`gh-pages.yml` workflows and the
@@ -640,17 +641,28 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    - `attach-github-release`: uploads artifacts to the still-draft release.
    - `finalize-release`: un-drafts the release and reconciles the phantom
      next-release PR (close + re-dispatch — bounded to one re-run).
-   - `deploy-docs` (`needs: finalize-release`): builds the Sphinx docs and
-     publishes them via `JamesIves/github-pages-deploy-action`. Lives in
+   - `deploy-docs` (`needs: finalize-release`): runs `tools/build_docs.py site`
+     and publishes the result via `JamesIves/github-pages-deploy-action`. Lives in
      this workflow rather than reacting to `release: published` because an event
      fired by `finalize-release`'s `GITHUB_TOKEN` cannot trigger another workflow
      (the same loop-prevention rule that forces the `workflow_dispatch`
-     re-dispatch above). `gh-pages.yml` is kept only for manual redeploys.
-     Docs are built with Sphinx + the Shibuya theme (autodoc API reference),
-     not MkDocs (see [ADR-006](adr/006-sphinx-shibuya-for-documentation.md)).
-     The `deploy-docs` publish (and the manual `gh-pages.yml`) set
+     re-dispatch above). `gh-pages.yml` is kept for manual redeploys and is
+     likewise version-aware. Docs are built with Sphinx + the Shibuya theme
+     (autodoc API reference), not MkDocs (see
+     [ADR-006](adr/006-sphinx-shibuya-for-documentation.md)). Publishing is
+     **versioned** ([ADR-027](adr/027-versioned-documentation-and-last-updated-stamps.md)):
+     only the released version is built (its slug set by the
+     `docs_version_granularity` question — `X.Y`/`X`/`X.Y.Z`); prior versions are
+     copied untouched from the `gh-pages` branch (never rebuilt), a `latest` alias
+     tracks the newest, and a root `index.html` redirects to it. The switcher is
+     Shibuya-native, fed from a generated (gitignored) `docs/_static/versions.json`
+     via `html_context`, and each page footer carries a `sphinx-last-updated-by-git`
+     date. Both `deploy-docs` and the manual `gh-pages.yml` set
      `clean-exclude: pr-preview/**` so a release never wipes the live PR previews
-     `docs-preview.yml` maintains under that path (see ADR-010 below).
+     `docs-preview.yml` maintains under that path (see ADR-010 below); the numeric
+     version-slug directories (e.g. `0.3/`) are re-supplied in `./site` each run.
+     The manual `gh-pages.yml` checks out the latest release tag before building
+     so a manual redeploy never overwrites released docs with unreleased `main`.
    - `notify-released-issues` (`needs: finalize-release`): a single
      `actions/github-script` step that maps the release's commit range
      (previous published tag → this tag) to the PRs that carried it, resolves each

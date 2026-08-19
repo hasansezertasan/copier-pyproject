@@ -165,6 +165,13 @@ docs = [
     "sphinx-paramlinks==0.6.0",
     "auto-pytabs[sphinx]==0.5.0",
     "myst-parser==4.0.1",
+    # Per-page "last updated" footer sourced from git commit dates (ADR-027);
+    # offline, no network. Works from full history (docs CI checks out depth 0).
+    "sphinx-last-updated-by-git==0.3.8",
+    # PEP 440 version parsing/sorting used by tools/build_docs.py to order
+    # published versions and pick the `latest` alias (ADR-027). Also a Sphinx
+    # transitive dependency; pinned here for the explicit direct use.
+    "packaging>=24.0",
     # Renders the Configuration reference (docs/configuration.rst) directly from
     # the live ``core.config`` Settings model so documented fields/types/
     # defaults/env-var names never drift from the source.
@@ -458,6 +465,9 @@ convention = "pep257"
 # The docs warning-allowlist gate is a standalone script (not an importable
 # package) whose whole job is to print GitHub `::error::` annotations to stdout.
 "docs/check_warnings.py" = ["INP001", "T201"]
+# The versioned-docs build orchestrator is a standalone CLI script under tools/,
+# not part of an importable package (ADR-027).
+"tools/build_docs.py" = ["INP001"]
 # The worker probe is a standalone dev script, not part of an importable
 # package, and its blocking main() cannot run in headless CI.
 "scripts/worker_probe.py" = ["INP001"]
