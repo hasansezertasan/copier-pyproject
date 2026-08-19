@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
 # tests/<dir> names that map to a component marker, rendered from the enabled
 # components. An unmarked dir (e.g. a future one) is simply left unmarked.
+# `# fmt: off` keeps this one-per-line no matter how many components are enabled:
+# the generated ruff config sets skip-magic-trailing-comma, so an unguarded set
+# literal would otherwise collapse or explode purely by line width.
+# fmt: off
 _COMPONENT_DIRS: frozenset[str] = frozenset({
     "core",
 {%- if include_console_root %}
@@ -37,6 +41,7 @@ _COMPONENT_DIRS: frozenset[str] = frozenset({
     "worker",
 {%- endif %}
 })
+# fmt: on
 
 
 def pytest_collection_modifyitems(
