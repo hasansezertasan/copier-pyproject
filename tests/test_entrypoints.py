@@ -51,7 +51,7 @@ def test_tui_only_gets_bare_command(render: Callable[..., Path]) -> None:
     assert "gui-scripts" not in project
     # textual is a core dependency, not an optional extra.
     assert any(dep.startswith("textual") for dep in project["dependencies"])
-    assert set(project.get("optional-dependencies", {})) == {"all"}
+    assert "optional-dependencies" not in project
 
 
 def test_cli_primary_exposes_tui_as_subcommand(render: Callable[..., Path]) -> None:
@@ -97,7 +97,7 @@ def test_console_component_only_gets_bare_command(
     assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
     assert "gui-scripts" not in project
     assert project["dependencies"], "primary component deps must be core"
-    assert set(project.get("optional-dependencies", {})) == {"all"}
+    assert "optional-dependencies" not in project
 
 
 def test_gui_primary_with_secondaries_uses_console_root(
@@ -168,7 +168,7 @@ def test_pydantic_settings_is_core_dependency(render: Callable[..., Path]) -> No
     assert any(
         dep.startswith("pydantic-settings") for dep in project["dependencies"]
     )
-    assert set(project.get("optional-dependencies", {})) <= {"all"}
+    assert "optional-dependencies" not in project
 
 
 def test_bare_command_is_unique_across_tables(render: Callable[..., Path]) -> None:

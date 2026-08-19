@@ -51,13 +51,6 @@ requires-python = ">=3.10"
 dependencies = [
 ]
 
-[project.optional-dependencies]
-# Runnable-component and settings deps are core (see ``dependencies`` above), so
-# no per-component extras remain. ``all`` is kept (empty) because the ``dev``
-# dependency-group installs ``example[all]``.
-all = []
-
-
 [project.urls]
 changelog = "https://github.com/octocat/example/blob/main/CHANGELOG.md"
 documentation = "https://octocat.github.io/example"
@@ -71,7 +64,6 @@ source = "https://github.com/octocat/example.git"
 
 [dependency-groups]
 dev = [
-  "example[all]",
   "tox==4.58.0",
   "tox-uv==1.36.0",
   "debugpy==1.8.21",
@@ -432,9 +424,9 @@ disable = [
   "missing-class-docstring",    # C0115
   "missing-function-docstring", # C0116
   "too-few-public-methods",     # R0903 — trips dataclasses / config / Protocol classes
-  # C0415 — components (cli->tui/gui/web, and each component's own
-  # optional-dependency probe) are deliberately lazy-imported so import-linter's
-  # layering contract holds and optional extras aren't required at import time.
+  # C0415 — components (cli->tui/gui/web) are deliberately lazy-imported so
+  # import-linter's layering contract holds and a heavy framework is only
+  # imported when the subcommand that needs it actually runs.
   "import-outside-toplevel",
   # W0706 — the generated TUI entry point explicitly re-raises
   # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the
@@ -491,7 +483,6 @@ env_tmp_dir = "{toxworkdir}/tmp/{envname}"
 # `coverage run` plus `parallel = true` writes per-env data files that the CI
 # `coverage combine` step merges.
 set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
-extras = ["all"]
 
 package = "wheel"
 
@@ -593,10 +584,6 @@ commands = [
 # resolve pytest and other test-only imports.
 dependency_groups = ["style", "test"]
 description = "Run Checkers, Linters and Formatters"
-# Optional components (web/gui/tui/mcp/worker) are only importable when their
-# extra is installed; without this, pylint/mypy/etc. see import-error for any
-# optional component present in this render.
-extras = ["all"]
 runner = "uv-venv-runner"
 
 
@@ -616,7 +603,6 @@ commands = [
     ["sphinx-build", "-w", "docs/_build/warnings.txt", "-b", "html", "docs", "docs/_build/html"],
     ["python", "docs/check_warnings.py"],
 ]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Build Docs"
 runner = "uv-venv-runner"
@@ -635,7 +621,6 @@ set_env = { PYTHONUNBUFFERED = "1" }
 # rewrites it on every Sphinx build, so watching it would make each rebuild
 # trigger the next in an endless live-reload loop.
 commands = [["sphinx-autobuild", "--ignore", "*/_generated/*", "docs", "docs/_build/html"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
 runner = "uv-venv-runner"
@@ -646,7 +631,6 @@ set_env = { PYTHONUNBUFFERED = "1" }
 # On-demand link checker. Also run weekly (non-blocking) by docs-linkcheck.yml.
 # Hits the network, so it is deliberately not part of the `style` env or PR CI.
 commands = [["sphinx-build", "-b", "linkcheck", "docs", "docs/_build/linkcheck"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Check documentation for broken links"
 runner = "uv-venv-runner"
