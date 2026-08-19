@@ -358,12 +358,36 @@ name = "cz_conventional_commits"
 # Docker required), so they are deselected by default. A CLI `-m integration`
 # overrides this addopts default; CI runs them in a dedicated Ubuntu-only job.
 addopts = "-v --tb=short -m 'not integration'"
-markers = [
-  "integration: requires a real broker via testcontainers (run with -m integration)",
-]
 {%- else %}
 addopts = "-v --tb=short"
 {%- endif %}
+# One marker per component, auto-applied by tests/conftest.py from each test's
+# top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
+# jobs (issue #160, ADR-027); `integration` (ADR-008) is one axis of the scheme.
+markers = [
+{%- if include_worker %}
+  "integration: requires a real broker via testcontainers (run with -m integration)",
+{%- endif %}
+  "core: core/shared component tests",
+{%- if include_console_root %}
+  "cli: CLI component tests",
+{%- endif %}
+{%- if include_web %}
+  "web: web component tests",
+{%- endif %}
+{%- if include_gui %}
+  "gui: GUI component tests",
+{%- endif %}
+{%- if include_tui %}
+  "tui: TUI component tests",
+{%- endif %}
+{%- if include_mcp %}
+  "mcp: MCP component tests",
+{%- endif %}
+{%- if include_worker %}
+  "worker: worker component tests",
+{%- endif %}
+]
 asyncio_mode = "auto"
 filterwarnings = [
   "error",
