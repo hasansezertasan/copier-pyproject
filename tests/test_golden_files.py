@@ -90,11 +90,16 @@ def test_worker_integration_job_snapshot_redis(
     ``services:`` path — the CI mechanism for redis/nats — is unsnapshotted.
     Scoped to the one job rather than all of ``ci.yml`` to keep the golden signal
     rather than churn.
+
+    Snapshotted as ``.yml.txt``, not ``.yml``: the block is an indented *fragment*
+    of a workflow, not a standalone document, and the repo's YAML hooks
+    (yamlfmt/yamllint/end-of-file-fixer) would reformat any ``.yml`` file they
+    find — rewriting the snapshot out from under this test.
     """
     root = render(include_worker=True, worker_broker="redis")
     workflow = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     file_regression.check(
         _extract_job(workflow, "worker-integration"),
-        extension=".yml",
+        extension=".yml.txt",
         basename="ci_worker_integration_redis",
     )

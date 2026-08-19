@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import pytest
 import yaml
@@ -120,14 +120,16 @@ EXPECTED_CI_SERVICES = {
 }
 
 
-def _worker_integration_job(root: Path) -> dict:
+def _worker_integration_job(root: Path) -> dict[str, Any]:
     ci = yaml.safe_load(
         (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     )
     return ci["jobs"]["worker-integration"]
 
 
-def _assert_ci_service_matches(job: dict, expected: dict) -> None:
+def _assert_ci_service_matches(
+    job: dict[str, Any], expected: dict[str, Any]
+) -> None:
     """Assert the rendered ``services:`` block matches ``expected`` exactly."""
     services = job["services"]
     assert list(services) == [expected["name"]]

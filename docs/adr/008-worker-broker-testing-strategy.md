@@ -127,11 +127,12 @@ while still gaining real-broker coverage on Linux.
 
 > **Amendment (2026-08, issue #169) — services: as the CI mechanism for
 > redis/nats.** The reasoning above stands for the *local* run and for
-> kafka/rabbitmq, but it over-generalized. For fast-starting, trivially
-> health-checked brokers, a runner-provided `services:` container is lighter in
-> CI: the runner starts it, health-gates it (redis via `redis-cli ping`), and
-> injects the connection *before* the job — no in-test Docker orchestration and
-> no readiness logic owned by the test. So CI now uses `services:` for **redis**
+> kafka/rabbitmq, but it over-generalized. For fast-starting brokers, a
+> runner-provided `services:` container is lighter in CI: the runner starts it,
+> health-gates it where the image offers a usable probe (redis via `redis-cli
+> ping`; nats has none — see below), and injects the connection *before* the job
+> — no in-test Docker orchestration, and readiness owned by the runner rather
+> than the test wherever a probe exists. So CI now uses `services:` for **redis**
 > and **nats**, and keeps **testcontainers** for **kafka** (KRaft
 > advertised-listeners) and **rabbitmq** (fiddly readiness), where `services:`
 > readiness is not worth the trouble. This is a *per-broker CI mechanism*, not a
