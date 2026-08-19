@@ -9,7 +9,7 @@ The ``_broker_url`` context manager reads a single seam: if
 directly and skip the testcontainer. CI uses that seam only for the fast brokers
 (redis via a health-gated GitHub Actions ``services:`` container; nats via a
 ``services:`` container with no health check, its readiness covered by this
-fixture's own connect-retry) — kafka/rabbitmq, and any local ``pytest -m
+context manager's own connect-retry) — kafka/rabbitmq, and any local ``pytest -m
 integration``, spin up their own testcontainer with no manual setup (issue #169).
 It is a plain context manager, not a pytest fixture, so ``pytest --dead-fixtures``
 (run in the default suite, where the ``integration`` test is deselected) does not

@@ -269,6 +269,20 @@ include_vpn:
   default: "{{ 'include_vpn' in preset_map[preset] }}"
   help: "Include OpenVPN client in devcontainer?"
 # ── Computed helpers (never asked or stored) ─────────────────────────────────
+# Single source of truth for the Redis-compatible image and its CLI, derived from
+# `redis_backend`. Consumed by both the devcontainer compose service and the CI
+# `services:` container for a redis worker, so the two can never drift on an
+# image bump. No `redis_enabled` gate is needed: `redis_backend` falls back to
+# its `redis` default whenever the question is not asked, so `== 'valkey'` is
+# only ever true when the user was actually asked and chose valkey.
+redis_image:
+  type: str
+  when: false
+  default: "{{ 'valkey/valkey:8' if redis_backend == 'valkey' else 'redis:7' }}"
+redis_cli:
+  type: str
+  when: false
+  default: "{{ 'valkey-cli' if redis_backend == 'valkey' else 'redis-cli' }}"
 # Single source of truth for the per-broker facts derived from `worker_broker`:
 # the import module, the broker/test-broker class names, and the env var +
 # default URL for the local (non-container) connection default. The mapping is
@@ -278,6 +292,16 @@ include_vpn:
 # `{% if worker_broker == ... %}` chain (see ADR note in issue #166). Empty when
 # the worker is not enabled. Must not be named with a leading underscore — a
 # `when: false` question whose name starts with `_` renders empty in Copier.
+#
+# `ci_service` carries the *CI mechanism* for the worker integration job
+# (ADR-008, issue #169): present for the brokers that run against a runner-
+# provided GitHub Actions `services:` container (`image`, `port`, `health_cmd`,
+# `url`), absent for the brokers that stay on in-test testcontainers. `ci.yml`
+# derives the whole block — and its presence — from this field, so the
+# services/testcontainers split lives here and nowhere else. `health_cmd: null`
+# means the image ships no usable health probe and readiness is covered by the
+# integration test's own connect-retry (see the nats note in ADR-008). `url` is
+# the value bound to `env`, always via the published host port on `localhost`.
 worker_broker_spec:
   type: json
   when: false
@@ -286,9 +310,9 @@ worker_broker_spec:
       (
         {
           "kafka": {"module": "faststream.kafka", "cls": "KafkaBroker", "test_cls": "TestKafkaBroker", "env": "KAFKA_BOOTSTRAP_SERVERS", "default_url": "localhost:9092"},
-          "nats": {"module": "faststream.nats", "cls": "NatsBroker", "test_cls": "TestNatsBroker", "env": "NATS_URL", "default_url": "nats://localhost:4222"},
+          "nats": {"module": "faststream.nats", "cls": "NatsBroker", "test_cls": "TestNatsBroker", "env": "NATS_URL", "default_url": "nats://localhost:4222", "ci_service": {"name": "nats", "image": "nats:2.10", "port": 4222, "health_cmd": none, "url": "nats://localhost:4222"}},
           "rabbitmq": {"module": "faststream.rabbit", "cls": "RabbitBroker", "test_cls": "TestRabbitBroker", "env": "RABBITMQ_URL", "default_url": "amqp://guest:guest@localhost:5672/"},
-          "redis": {"module": "faststream.redis", "cls": "RedisBroker", "test_cls": "TestRedisBroker", "env": "REDIS_URL", "default_url": "redis://localhost:6379"}
+          "redis": {"module": "faststream.redis", "cls": "RedisBroker", "test_cls": "TestRedisBroker", "env": "REDIS_URL", "default_url": "redis://localhost:6379", "ci_service": {"name": "redis", "image": redis_image, "port": 6379, "health_cmd": redis_cli ~ " ping", "url": "redis://localhost:6379"}}
         }[worker_broker] if include_worker else {}
       ) | tojson
     }}

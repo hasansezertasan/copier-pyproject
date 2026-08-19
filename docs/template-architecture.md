@@ -485,9 +485,11 @@ Test packages mirror source structure in `tests/`:
   testcontainer (Docker required for the local path). In CI, **redis** and
   **nats** run against a GitHub Actions `services:` container that the runner
   starts and injects before the job (**redis** is health-gated; **nats** has no
-  container health check and relies on the fixture's own connect-retry), while
+  container health check and relies on the test's own connect-retry), while
   **kafka** and **rabbitmq** stay on testcontainers — a per-broker CI mechanism
-  derived from `worker_broker`, no extra question. See
+  derived from the `ci_service` field on `worker_broker_spec` (present ⇒
+  `services:`; its `image`/`port`/`health_cmd`/`url` render the block), no extra
+  question. See
   [ADR-008](adr/008-worker-broker-testing-strategy.md) (incl. the issue #169
   amendment).
 

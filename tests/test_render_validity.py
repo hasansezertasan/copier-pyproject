@@ -87,30 +87,136 @@ def test_worker_broker_render_is_structurally_valid(
     _assert_pyproject_is_toml(root)
 
 
-@pytest.mark.parametrize(
-    ("broker", "expect_service"),
-    [("redis", True), ("nats", True), ("kafka", False), ("rabbitmq", False)],
-)
-def test_worker_integration_uses_services_only_for_light_brokers(
-    render: Callable[..., Path], broker: str, expect_service: bool
-) -> None:
-    """redis/nats get a GitHub Actions ``services:`` CI path; kafka/rabbitmq
-    stay on testcontainers (issue #169). The env var the services path sets is
-    the seam the integration fixture reads."""
-    root = render(include_worker=True, worker_broker=broker)
+# The env var each broker's integration seam reads — the single value that must
+# agree across ``worker_broker_spec.env``, the CI ``services:`` job ``env:``, and
+# the ``integration`` tox env's ``pass_env`` (ADR-008, issue #169).
+BROKER_ENV_VARS = {
+    "kafka": "KAFKA_BOOTSTRAP_SERVERS",
+    "nats": "NATS_URL",
+    "rabbitmq": "RABBITMQ_URL",
+    "redis": "REDIS_URL",
+}
+
+# Expected ``services:`` block per broker, or ``None`` for the brokers that stay
+# on in-test testcontainers. ``health_cmd`` is ``None`` where the image ships no
+# usable in-container probe and readiness falls to the test's connect-retry.
+EXPECTED_CI_SERVICES = {
+    "kafka": None,
+    "rabbitmq": None,
+    "nats": {
+        "name": "nats",
+        "image": "nats:2.10",
+        "port": 4222,
+        "health_cmd": None,
+        "url": "nats://localhost:4222",
+    },
+    "redis": {
+        "name": "redis",
+        "image": "redis:7",
+        "port": 6379,
+        "health_cmd": "redis-cli ping",
+        "url": "redis://localhost:6379",
+    },
+}
+
+
+def _worker_integration_job(root: Path) -> dict:
     ci = yaml.safe_load(
         (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     )
-    job = ci["jobs"]["worker-integration"]
-    env_var = {
-        "redis": "REDIS_URL",
-        "nats": "NATS_URL",
-    }.get(broker)
-    if expect_service:
-        assert "services" in job, f"{broker} should use a services: container"
-        assert env_var in job.get("env", {})
+    return ci["jobs"]["worker-integration"]
+
+
+def _assert_ci_service_matches(job: dict, expected: dict) -> None:
+    """Assert the rendered ``services:`` block matches ``expected`` exactly."""
+    services = job["services"]
+    assert list(services) == [expected["name"]]
+    service = services[expected["name"]]
+    assert service["image"] == expected["image"]
+    port = expected["port"]
+    assert service["ports"] == [f"{port}:{port}"]
+    if expected["health_cmd"] is None:
+        # Asserted absent, not merely unchecked: a health probe silently
+        # appearing (or the null-probe rationale being dropped) is a real change.
+        assert "options" not in service
     else:
+        assert f'--health-cmd "{expected["health_cmd"]}"' in service["options"]
+        assert "--health-interval" in service["options"]
+
+
+@pytest.mark.parametrize("broker", WORKER_BROKERS)
+def test_worker_integration_ci_service_matches_broker_spec(
+    render: Callable[..., Path], broker: str
+) -> None:
+    """redis/nats get a GitHub Actions ``services:`` CI path; kafka/rabbitmq
+    stay on testcontainers (issue #169).
+
+    Asserts the whole block — image, published port, health command — not just
+    that a ``services:`` key exists, so an edit to ``worker_broker_spec``'s
+    ``ci_service`` field cannot silently change what CI runs against.
+    """
+    job = _worker_integration_job(render(include_worker=True, worker_broker=broker))
+    expected = EXPECTED_CI_SERVICES[broker]
+    if expected is None:
         assert "services" not in job, f"{broker} should stay on testcontainers"
+        assert BROKER_ENV_VARS[broker] not in job.get("env", {})
+        return
+    _assert_ci_service_matches(job, expected)
+    assert job["env"] == {BROKER_ENV_VARS[broker]: expected["url"]}
+
+
+@pytest.mark.parametrize(
+    ("backend", "image", "cli"),
+    [("redis", "redis:7", "redis-cli"), ("valkey", "valkey/valkey:8", "valkey-cli")],
+)
+def test_redis_worker_ci_service_honors_redis_backend(
+    render: Callable[..., Path], backend: str, image: str, cli: str
+) -> None:
+    """The redis ``services:`` container tracks ``redis_backend``, and its image
+    and health CLI stay identical to the devcontainer compose service — both read
+    the ``redis_image``/``redis_cli`` computed vars, so they cannot drift.
+    """
+    root = render(
+        include_worker=True, worker_broker="redis", redis_backend=backend
+    )
+    service = _worker_integration_job(root)["services"]["redis"]
+    assert service["image"] == image
+    assert f'--health-cmd "{cli} ping"' in service["options"]
+
+    compose = yaml.safe_load(
+        (root / ".devcontainer" / "docker-compose.yml").read_text(encoding="utf-8")
+    )
+    compose_redis = compose["services"]["redis"]
+    assert compose_redis["image"] == image
+    assert compose_redis["healthcheck"]["test"] == ["CMD", cli, "ping"]
+
+
+@pytest.mark.parametrize("broker", WORKER_BROKERS)
+def test_worker_integration_env_seam_agrees_across_ci_and_tox(
+    render: Callable[..., Path], broker: str
+) -> None:
+    """The broker URL env var must be the *same* name in all three places.
+
+    The ``services:`` job ``env:`` sets it, the ``integration`` tox env must
+    ``pass_env`` it through to pytest, and the integration test reads it. A
+    mismatch in any one of them degrades the services path to a silent
+    testcontainers fallback rather than failing loudly (ADR-008, issue #169).
+    """
+    root = render(include_worker=True, worker_broker=broker)
+    env_var = BROKER_ENV_VARS[broker]
+
+    pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    integration = pyproject["tool"]["tox"]["env"]["integration"]
+    assert integration["pass_env"] == [env_var]
+
+    integration_test = (
+        root / "tests" / "worker" / "test_integration.py"
+    ).read_text(encoding="utf-8")
+    assert f'os.getenv("{env_var}")' in integration_test
+
+    job = _worker_integration_job(root)
+    if EXPECTED_CI_SERVICES[broker] is not None:
+        assert env_var in job["env"]
 
 
 @pytest.mark.parametrize("framework", WEB_FRAMEWORKS)

@@ -135,8 +135,18 @@ while still gaining real-broker coverage on Linux.
 > and **nats**, and keeps **testcontainers** for **kafka** (KRaft
 > advertised-listeners) and **rabbitmq** (fiddly readiness), where `services:`
 > readiness is not worth the trouble. This is a *per-broker CI mechanism*, not a
-> new question: the split is derived from `worker_broker`, and what the
-> integration test asserts is unchanged.
+> new question, and what the integration test asserts is unchanged.
+>
+> The split lives in **one** place: the `ci_service` field on `worker_broker_spec`
+> (`copier.yml`). A broker gets the `services:` path exactly when it has a
+> `ci_service` — and the image, published port, health command, and injected URL
+> all come from that field, so `ci.yml.jinja` carries no
+> `{% if worker_broker == … %}` chain (the convention noted in issue #166).
+> `health_cmd: null` is the explicit "no usable in-container probe" marker.
+> The Redis-compatible image and CLI themselves come from the `redis_image` /
+> `redis_cli` computed vars, which the devcontainer compose service reads too —
+> so a redis→valkey or version bump cannot leave CI and the devcontainer
+> disagreeing.
 >
 > The seam is the env-injectable factory (item 1). The integration test's
 > container startup moved into a `_broker_url` context manager: if the broker's
@@ -154,7 +164,7 @@ while still gaining real-broker coverage on Linux.
 > endpoint needs a container command (`-m 8222`), and GitHub Actions service
 > containers cannot override the image command (only image/env/ports/options).
 > NATS boots in well under a second and the checkout/Python/uv setup steps
-> precede the first test line, so the service is long ready; the fixture's own
+> precede the first test line, so the service is long ready; the test's own
 > connect-retry (`asyncio.wait_for(start(), 120s)` + the publish poll loop)
 > covers readiness. redis keeps a real `--health-cmd` gate.
 
