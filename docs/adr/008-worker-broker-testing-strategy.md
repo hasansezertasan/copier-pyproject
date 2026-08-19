@@ -125,6 +125,50 @@ while still gaining real-broker coverage on Linux.
 - It composes with the existing `.devcontainer` services rather than duplicating
   their definitions into workflow YAML.
 
+> **Amendment (2026-08, issue #169) — services: as the CI mechanism for
+> redis/nats.** The reasoning above stands for the *local* run and for
+> kafka/rabbitmq, but it over-generalized. For fast-starting brokers, a
+> runner-provided `services:` container is lighter in CI: the runner starts it,
+> health-gates it where the image offers a usable probe (redis via `redis-cli
+> ping`; nats has none — see below), and injects the connection *before* the job
+> — no in-test Docker orchestration, and readiness owned by the runner rather
+> than the test wherever a probe exists. So CI now uses `services:` for **redis**
+> and **nats**, and keeps **testcontainers** for **kafka** (KRaft
+> advertised-listeners) and **rabbitmq** (fiddly readiness), where `services:`
+> readiness is not worth the trouble. This is a *per-broker CI mechanism*, not a
+> new question, and what the integration test asserts is unchanged.
+>
+> The split lives in **one** place: the `ci_service` field on `worker_broker_spec`
+> (`copier.yml`). A broker gets the `services:` path exactly when it has a
+> `ci_service` — and the image, published port, health command, and injected URL
+> all come from that field, so `ci.yml.jinja` carries no
+> `{% if worker_broker == … %}` chain (the convention noted in issue #166).
+> `health_cmd: null` is the explicit "no usable in-container probe" marker.
+> The Redis-compatible image and CLI themselves come from the `redis_image` /
+> `redis_cli` computed vars, which the devcontainer compose service reads too —
+> so a redis→valkey or version bump cannot leave CI and the devcontainer
+> disagreeing.
+>
+> The seam is the env-injectable factory (item 1). The integration test's
+> container startup moved into a `_broker_url` context manager: if the broker's
+> env var (`REDIS_URL` / `NATS_URL` / …) is already set — the `services:` path,
+> where the runner points the job at a live broker — it connects to that directly;
+> otherwise it starts a throwaway testcontainer. So a local `pytest -m
+> integration` is unchanged (self-contained, Docker-owned-from-the-test), while
+> CI for redis/nats skips the in-test container entirely. It is a plain context
+> manager rather than a pytest fixture on purpose: the `integration` test is
+> deselected from the default suite, so a fixture consumed only by it reads as
+> unused to `pytest --dead-fixtures` (run in the `style` env) and would fail that
+> gate.
+>
+> **NATS runs without a container health-check.** Its `/healthz` monitoring
+> endpoint needs a container command (`-m 8222`), and GitHub Actions service
+> containers cannot override the image command (only image/env/ports/options).
+> NATS boots in well under a second and the checkout/Python/uv setup steps
+> precede the first test line, so the service is long ready; the test's own
+> connect-retry (`asyncio.wait_for(start(), 120s)` + the publish poll loop)
+> covers readiness. redis keeps a real `--health-cmd` gate.
+
 ## Consequences
 
 - `worker/app.py` exposes `build_broker(url=None)` and keeps a module-level

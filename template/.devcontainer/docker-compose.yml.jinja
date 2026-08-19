@@ -1,7 +1,7 @@
 ---
 {% set redis_enabled = include_redis or (include_worker and worker_broker == 'redis') -%}
-{%- set redis_image = ('valkey/valkey:8' if redis_backend == 'valkey' else 'redis:7') if redis_enabled else 'redis:7' -%}
-{%- set redis_cli = 'valkey-cli' if (redis_enabled and redis_backend == 'valkey') else 'redis-cli' -%}
+{#- `redis_image`/`redis_cli` come from copier.yml so this service and the CI
+    `services:` container for a redis worker can never drift on an image bump. -#}
 {%- set kafka_enabled = include_worker and worker_broker == 'kafka' -%}
 {%- set nats_enabled = include_worker and worker_broker == 'nats' -%}
 {%- set rabbitmq_enabled = include_worker and worker_broker == 'rabbitmq' -%}

@@ -978,6 +978,12 @@ description = "Run worker broker integration tests against a real broker."
 extras = ["all"]
 dependency_groups = ["test"]
 runner = "uv-venv-runner"
+# tox passes only an allowlisted set of environment variables into the test
+# subprocess. Forward {{ worker_broker_spec.env }} so a broker already provided by
+# the environment — the CI `services:` broker for redis/nats, or a docker-compose
+# / manually-exported one — reaches the integration test; without it the var is
+# dropped and the run falls back to testcontainers. See ADR-008 / issue #169.
+pass_env = ["{{ worker_broker_spec.env }}"]
 {%- endif %}
 {%- if include_launcher %}
 
