@@ -7,6 +7,88 @@ on:
   pull_request:
     branches: [main, master]
 jobs:
+  changes:
+    name: Detect changed components
+    # Draft-skip composes with #159 and is falsy-safe on push/workflow_dispatch
+    # (no pull_request context => the expression is not 'true', so it runs).
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      core: {% raw %}${{ steps.filter.outputs.core }}{% endraw %}
+{%- if include_console_root %}
+      cli: {% raw %}${{ steps.filter.outputs.cli }}{% endraw %}
+{%- endif %}
+{%- if include_web %}
+      web: {% raw %}${{ steps.filter.outputs.web }}{% endraw %}
+{%- endif %}
+{%- if include_gui %}
+      gui: {% raw %}${{ steps.filter.outputs.gui }}{% endraw %}
+{%- endif %}
+{%- if include_tui %}
+      tui: {% raw %}${{ steps.filter.outputs.tui }}{% endraw %}
+{%- endif %}
+{%- if include_mcp %}
+      mcp: {% raw %}${{ steps.filter.outputs.mcp }}{% endraw %}
+{%- endif %}
+{%- if include_worker %}
+      worker: {% raw %}${{ steps.filter.outputs.worker }}{% endraw %}
+{%- endif %}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d  # v4.0.3
+        with:
+          # `core` underpins every component (deps, shared core/, package-root
+          # modules, the root conftest, root-level tests), so a change here
+          # forces the full fan-out — mirrors the import-linter layering
+          # (ADR-014). Each component filter watches only its own src+tests tree.
+          filters: |
+            core:
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'tox.ini'
+              - 'src/{{github_repo_name}}/*.py'
+              - 'src/{{github_repo_name}}/core/**'
+              - 'tests/conftest.py'
+              - 'tests/core/**'
+              - 'tests/test_*.py'
+{%- if include_console_root %}
+            cli:
+              - 'src/{{github_repo_name}}/cli/**'
+              - 'tests/cli/**'
+{%- endif %}
+{%- if include_web %}
+            web:
+              - 'src/{{github_repo_name}}/web/**'
+              - 'tests/web/**'
+{%- endif %}
+{%- if include_gui %}
+            gui:
+              - 'src/{{github_repo_name}}/gui/**'
+              - 'tests/gui/**'
+{%- endif %}
+{%- if include_tui %}
+            tui:
+              - 'src/{{github_repo_name}}/tui/**'
+              - 'tests/tui/**'
+{%- endif %}
+{%- if include_mcp %}
+            mcp:
+              - 'src/{{github_repo_name}}/mcp/**'
+              - 'tests/mcp/**'
+{%- endif %}
+{%- if include_worker %}
+            worker:
+              - 'src/{{github_repo_name}}/worker/**'
+              - 'tests/worker/**'
+{%- endif %}
   hooks:
     name: Run prek hooks
     runs-on: ubuntu-latest
