@@ -532,6 +532,20 @@ layer, and the `__main__.py` branch.
 The CLI framework choice (Typer) is recorded in
 [ADR-020](adr/020-cli-framework-choice.md).
 
+Each launcher command wraps its lazy component import in a private
+`_component_dependencies(component)` context manager, so a missing dependency
+exits 1 with a message naming the component, the missing module, and `uv sync` —
+instead of a bare `ModuleNotFoundError` traceback. Because every component's
+runtime dependency is a core `dependency` (there are **no** per-component
+extras — `[project.optional-dependencies]` carries only an empty `all`, kept so
+the `dev` group's `pkg[all]` resolves), a missing module can only mean the
+environment is out of sync with the installed package: a `copier update` that
+enabled a component without a re-sync, or a stale venv. That is why the hint is
+`uv sync` and never `pip install pkg[<extra>]`. The guard is emitted only when
+the root actually lazy-imports something (derived from `primary_component`, so a
+CLI-only project renders without it) and covers the minimal launcher's default
+callback too.
+
 ## Devcontainer Structure
 
 The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
