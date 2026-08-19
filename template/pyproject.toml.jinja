@@ -517,7 +517,7 @@ fix = true
 output-format = "full"
 preview = true
 show-fixes = true
-src = ["src", "tests"{% if include_examples %}, "examples"{% endif %}{% if include_worker %}, "scripts"{% endif %}]
+src = ["src", "tests"{% if include_examples %}, "examples"{% endif %}{% if include_docs %}, "docs/examples"{% endif %}{% if include_worker %}, "scripts"{% endif %}]
 target-version = "py310"
 unsafe-fixes = true
 
@@ -590,6 +590,9 @@ convention = "pep257"
 "examples/**/*.py" = ["INP001"]
 {%- endif %}
 {%- if include_docs %}
+# Documentation examples are importable modules tested by
+# ``tests/test_docs_examples.py``; they are not application packages.
+"docs/examples/**/*.py" = ["INP001"]
 # The Sphinx config is a standalone module, not part of an importable package.
 "docs/conf.py" = ["INP001"]
 # The docs warning-allowlist gate is a standalone script (not an importable
@@ -621,7 +624,7 @@ parenthesize-tuple-in-subscript = true
 
 
 [tool.mypy]
-files = ["src"]
+files = ["src"{% if include_docs %}, "docs/examples"{% endif %}]
 pretty = true
 python_version = "3.10"
 strict = true
@@ -629,7 +632,7 @@ strict = true
 
 [tool.basedpyright]
 exclude = [".venv"]
-include = ["src/{{github_repo_name}}"]
+include = ["src/{{github_repo_name}}"{% if include_docs %}, "docs/examples"{% endif %}]
 pythonVersion = "3.10"
 venv = ".venv"
 # venvPath is the directory *containing* the venv, not the venv itself; ".venv"
@@ -649,7 +652,7 @@ reportImplicitStringConcatenation = "none"
 
 
 [tool.ty.src]
-include = ["src", "tests"]
+include = ["src", "tests"{% if include_docs %}, "docs/examples"{% endif %}]
 respect-ignore-files = false
 
 
@@ -663,11 +666,11 @@ error-on-warning = true
 
 [tool.pyrefly]
 python-version = "3.10"
-project-includes = ["src"]
+project-includes = ["src"{% if include_docs %}, "docs/examples"{% endif %}]
 
 [tool.pylint.main]
 # pylint runs as an always-on gate that deliberately overlaps ruff's PL* rules.
-# Its canonical invocation is `pylint src`, so it never descends into tests; this
+# Its canonical invocation is `pylint src{% if include_docs %} docs/examples{% endif %}`, so it never descends into tests; this
 # ignore-paths is a defensive scope guard for broader invocations (`pylint .`,
 # filename-passing hooks). Tests are linted by ruff, not pylint.
 ignore-paths = ["^tests/.*$"]
@@ -720,6 +723,11 @@ datas = "datas"
 # ``tox -e worker`` when a broker is up (e.g. inside the devcontainer).
 env_list = [
     "style",
+{%- if include_docs %}
+    # Inline ``>>>`` snippets are part of the tested-documentation contract,
+    # so run them in the default CI ``tox run`` invocation.
+    "docs-doctest",
+{%- endif %}
 {%- if include_cli %}
     "cli",
 {%- endif %}
@@ -808,10 +816,16 @@ commands = [
     "zuban",
     "check",
     "src",
+{%- if include_docs %}
+    "docs/examples",
+{%- endif %}
   ],
   [
     "pylint",
     "src",
+{%- if include_docs %}
+    "docs/examples",
+{%- endif %}
   ],
   [
     "python",
@@ -909,6 +923,18 @@ commands = [["sphinx-autobuild", "--ignore", "*/_generated/*", "docs", "docs/_bu
 extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
+runner = "uv-venv-runner"
+set_env = { PYTHONUNBUFFERED = "1" }
+
+
+[tool.tox.env.docs-doctest]
+# ``literalinclude`` keeps complete examples in tested Python modules; this
+# separate builder executes the occasional ``>>>`` snippet that belongs inline
+# with prose.
+commands = [["sphinx-build", "-b", "doctest", "docs", "docs/_build/doctest"]]
+extras = ["all"]
+dependency_groups = ["docs"]
+description = "Run documentation doctests"
 runner = "uv-venv-runner"
 set_env = { PYTHONUNBUFFERED = "1" }
 
