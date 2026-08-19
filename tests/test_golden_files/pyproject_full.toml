@@ -829,10 +829,10 @@ extras = ["all"]
 dependency_groups = ["test"]
 runner = "uv-venv-runner"
 # tox passes only an allowlisted set of environment variables into the test
-# subprocess. Forward KAFKA_BOOTSTRAP_SERVERS so the CI `services:` path
-# (which sets it at the job level — see ADR-008 / issue #169) actually reaches
-# the `broker_url` fixture; without this it would be dropped and every run would
-# fall back to testcontainers, silently defeating the services path.
+# subprocess. Forward KAFKA_BOOTSTRAP_SERVERS so a broker already provided by
+# the environment — the CI `services:` broker for redis/nats, or a docker-compose
+# / manually-exported one — reaches the integration test; without it the var is
+# dropped and the run falls back to testcontainers. See ADR-008 / issue #169.
 pass_env = ["KAFKA_BOOTSTRAP_SERVERS"]
 
 [tool.pycrucible]

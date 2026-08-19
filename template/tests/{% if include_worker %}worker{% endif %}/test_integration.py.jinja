@@ -6,12 +6,14 @@ suite. Run them explicitly with ``pytest -m integration`` (Docker required).
 
 The ``_broker_url`` context manager reads a single seam: if
 ``{{ worker_broker_spec.env }}`` is already set, the tests connect to that broker
-directly and skip the testcontainer. That lets CI point them at a runner-provided
-broker (a GitHub Actions ``services:`` container, started and health-gated before
-the job) while a local ``pytest -m integration`` still spins up its own container
-with no manual setup (issue #169). It is a plain context manager, not a pytest
-fixture, so ``pytest --dead-fixtures`` (run in the default suite, where the
-``integration`` test is deselected) does not flag it as unused.
+directly and skip the testcontainer. CI uses that seam only for the fast brokers
+(redis via a health-gated GitHub Actions ``services:`` container; nats via a
+``services:`` container with no health check, its readiness covered by this
+fixture's own connect-retry) — kafka/rabbitmq, and any local ``pytest -m
+integration``, spin up their own testcontainer with no manual setup (issue #169).
+It is a plain context manager, not a pytest fixture, so ``pytest --dead-fixtures``
+(run in the default suite, where the ``integration`` test is deselected) does not
+flag it as unused.
 """
 
 from __future__ import annotations
@@ -64,10 +66,10 @@ def _broker_url() -> Iterator[str]:
     """Yield a live {{worker_broker}} URL for the round-trip test.
 
     When ``{{ worker_broker_spec.env }}`` is set the tests connect to that broker
-    directly (CI ``services:`` path — the runner started and health-gated it
-    before the job); otherwise a throwaway testcontainer is started for the
-    duration of the ``with`` block (the self-contained local path). See ADR-008 /
-    issue #169.
+    directly (the runner-provided broker — the CI ``services:`` path for
+    redis/nats); otherwise a throwaway testcontainer is started for the duration
+    of the ``with`` block (the self-contained local path, and CI for
+    kafka/rabbitmq). See ADR-008 / issue #169.
 
     Yields:
         str: A connection URL for a live {{worker_broker}} broker.
