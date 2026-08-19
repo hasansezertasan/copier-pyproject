@@ -141,3 +141,14 @@ def test_check_and_sonar_reference_new_coverage_jobs(render: Callable[..., Path]
     assert "coverage-report" in needs
     assert "coverage-combine" not in needs
     assert ci["jobs"]["sonar"]["needs"] == "coverage-report"
+
+
+# --- Task 5: worker-integration gate ------------------------------------------
+
+
+def test_worker_integration_gated_on_worker_or_core(render: Callable[..., Path]) -> None:
+    ci = _ci(render, preset="library", include_worker=True, worker_broker="redis")
+    job = ci["jobs"]["worker-integration"]
+    assert "changes" in job["needs"]
+    assert "needs.changes.outputs.worker == 'true'" in job["if"]
+    assert "needs.changes.outputs.core == 'true'" in job["if"]

@@ -546,9 +546,16 @@ jobs:
     name: Worker integration tests ({{worker_broker}})
     # Ubuntu-only: testcontainers needs a Docker daemon, which GitHub provides on
     # Linux runners but not macOS/Windows. Runs only the `integration`-marked
-    # tests (deselected from the default matrix in the `ci` job) against a real
-    # {{worker_broker}} started in a container — the one thing that exercises the
-    # real driver and serialization the in-memory unit tests stub out. See ADR-008.
+    # tests (deselected from the default matrix) against a real {{worker_broker}}
+    # started in a container — the one thing that exercises the real driver and
+    # serialization the in-memory unit tests stub out. See ADR-008. Path-gated
+    # like the component test jobs (issue #160): skips the container spin-up on
+    # PRs that touch neither the worker tree nor shared core.
+    needs: changes
+    if: >-
+      {% raw %}${{ github.event.pull_request.draft != true &&
+      (needs.changes.outputs.worker == 'true' ||
+      needs.changes.outputs.core == 'true') }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
