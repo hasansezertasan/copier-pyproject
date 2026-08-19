@@ -139,12 +139,16 @@ while still gaining real-broker coverage on Linux.
 > integration test asserts is unchanged.
 >
 > The seam is the env-injectable factory (item 1). The integration test's
-> container startup moved into a `broker_url` fixture: if the broker's env var
-> (`REDIS_URL` / `NATS_URL` / …) is already set — the `services:` path, where the
-> runner points the job at a live broker — the fixture connects to it directly;
+> container startup moved into a `_broker_url` context manager: if the broker's
+> env var (`REDIS_URL` / `NATS_URL` / …) is already set — the `services:` path,
+> where the runner points the job at a live broker — it connects to that directly;
 > otherwise it starts a throwaway testcontainer. So a local `pytest -m
 > integration` is unchanged (self-contained, Docker-owned-from-the-test), while
-> CI for redis/nats skips the in-test container entirely.
+> CI for redis/nats skips the in-test container entirely. It is a plain context
+> manager rather than a pytest fixture on purpose: the `integration` test is
+> deselected from the default suite, so a fixture consumed only by it reads as
+> unused to `pytest --dead-fixtures` (run in the `style` env) and would fail that
+> gate.
 >
 > **NATS runs without a container health-check.** Its `/healthz` monitoring
 > endpoint needs a container command (`-m 8222`), and GitHub Actions service

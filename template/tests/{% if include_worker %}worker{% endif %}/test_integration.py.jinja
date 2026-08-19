@@ -4,17 +4,20 @@ By default these start a real {{worker_broker}} in a container via
 testcontainers, so they are marked ``integration`` and excluded from the default
 suite. Run them explicitly with ``pytest -m integration`` (Docker required).
 
-The ``broker_url`` fixture reads a single seam: if ``{{ worker_broker_spec.env }}``
-is already set, the tests connect to that broker directly and skip the
-testcontainer. That lets CI point them at a runner-provided broker (a GitHub
-Actions ``services:`` container, started and health-gated before the job) while
-a local ``pytest -m integration`` still spins up its own container with no manual
-setup (issue #169).
+The ``_broker_url`` context manager reads a single seam: if
+``{{ worker_broker_spec.env }}`` is already set, the tests connect to that broker
+directly and skip the testcontainer. That lets CI point them at a runner-provided
+broker (a GitHub Actions ``services:`` container, started and health-gated before
+the job) while a local ``pytest -m integration`` still spins up its own container
+with no manual setup (issue #169). It is a plain context manager, not a pytest
+fixture, so ``pytest --dead-fixtures`` (run in the default suite, where the
+``integration`` test is deselected) does not flag it as unused.
 """
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 from typing import TYPE_CHECKING
 
@@ -56,15 +59,15 @@ _RESPONSE_POLLS = 50
 _POLL_INTERVAL_SECONDS = 0.2
 
 
-@pytest.fixture
-def broker_url() -> Iterator[str]:
+@contextlib.contextmanager
+def _broker_url() -> Iterator[str]:
     """Yield a live {{worker_broker}} URL for the round-trip test.
 
     When ``{{ worker_broker_spec.env }}`` is set the tests connect to that broker
     directly (CI ``services:`` path — the runner started and health-gated it
     before the job); otherwise a throwaway testcontainer is started for the
-    duration of the test (the self-contained local path). See ADR-008 / issue
-    #169.
+    duration of the ``with`` block (the self-contained local path). See ADR-008 /
+    issue #169.
 
     Yields:
         str: A connection URL for a live {{worker_broker}} broker.
@@ -94,7 +97,7 @@ def broker_url() -> Iterator[str]:
 {%- endif %}
 
 
-async def test_worker_roundtrip_against_real_broker(broker_url: str) -> None:
+async def test_worker_roundtrip_against_real_broker() -> None:
     """Consume a request and publish a response over a real broker.
 
     Exercises the actual driver and serialization that the in-memory unit test
@@ -102,31 +105,32 @@ async def test_worker_roundtrip_against_real_broker(broker_url: str) -> None:
     at it, a request is published, and we assert the worker's response arrives on
     a collector subscriber.
     """
-    worker_broker = build_broker(broker_url)
-    responses: list[dict[str, object]] = []
+    with _broker_url() as broker_url:
+        worker_broker = build_broker(broker_url)
+        responses: list[dict[str, object]] = []
 
-    @worker_broker.subscriber(RESPONSES_DESTINATION)
-    async def collect(msg: dict[str, object]) -> None:  # noqa: RUF029
-        """Capture published version responses."""
-        responses.append(msg)
+        @worker_broker.subscriber(RESPONSES_DESTINATION)
+        async def collect(msg: dict[str, object]) -> None:  # noqa: RUF029
+            """Capture published version responses."""
+            responses.append(msg)
 
-    await asyncio.wait_for(worker_broker.start(), timeout=_START_TIMEOUT_SECONDS)
-    try:
-        # (Re)publish inside the poll loop rather than once up front: the
-        # subscription is at-most-once from a cold consumer's perspective
-        # (kafka resolves offsets to "latest", redis pub/sub and core NATS
-        # do not replay), so a single message published before the consumer
-        # is fully live would be dropped and no amount of waiting would
-        # recover it. Re-sending the same request_id is idempotent here.
-        for _ in range(_RESPONSE_POLLS):
-            if responses:
-                break
-            await worker_broker.publish(
-                VersionRequest(request_id="integration-001"), REQUESTS_DESTINATION
-            )
-            await asyncio.sleep(_POLL_INTERVAL_SECONDS)
-    finally:
-        await worker_broker.stop()
+        await asyncio.wait_for(worker_broker.start(), timeout=_START_TIMEOUT_SECONDS)
+        try:
+            # (Re)publish inside the poll loop rather than once up front: the
+            # subscription is at-most-once from a cold consumer's perspective
+            # (kafka resolves offsets to "latest", redis pub/sub and core NATS
+            # do not replay), so a single message published before the consumer
+            # is fully live would be dropped and no amount of waiting would
+            # recover it. Re-sending the same request_id is idempotent here.
+            for _ in range(_RESPONSE_POLLS):
+                if responses:
+                    break
+                await worker_broker.publish(
+                    VersionRequest(request_id="integration-001"), REQUESTS_DESTINATION
+                )
+                await asyncio.sleep(_POLL_INTERVAL_SECONDS)
+        finally:
+            await worker_broker.stop()
 
     # On failure, the root cause (handler exception, decode error, connection
     # drop) is in the captured FastStream log output pytest prints below.

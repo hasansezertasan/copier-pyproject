@@ -479,7 +479,7 @@ Test packages mirror source structure in `tests/`:
 - `tests/cli/`, `tests/web/`, `tests/gui/`, `tests/tui/`, `tests/mcp/`, `tests/worker/` (each conditional)
 - `tests/worker/` holds both the in-memory `Test<Broker>` unit tests (always run)
   and a broker round-trip integration test marked `integration` (excluded from
-  the default run). Its `broker_url` fixture reads a single seam: if the broker's
+  the default run). Its `_broker_url` context manager reads a single seam: if the broker's
   env var (`REDIS_URL`/`NATS_URL`/`KAFKA_BOOTSTRAP_SERVERS`/`RABBITMQ_URL`) is
   set it connects to that live broker directly, otherwise it starts a
   testcontainer (Docker required for the local path). In CI, **redis** and
