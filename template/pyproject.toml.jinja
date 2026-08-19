@@ -678,9 +678,10 @@ disable = [
   "missing-class-docstring",    # C0115
   "missing-function-docstring", # C0116
   "too-few-public-methods",     # R0903 — trips dataclasses / config / Protocol classes
-  # C0415 — components (cli->tui/gui/web) are deliberately lazy-imported so
-  # import-linter's layering contract holds and a heavy framework is only
-  # imported when the subcommand that needs it actually runs.
+  # C0415 — the cli->tui/gui/web dispatch, and each component's own heavy or
+  # platform-conditional import (tkinter, textual, uvicorn, the worker's uvloop
+  # probe), are deliberately lazy so import-linter's layering contract holds and
+  # a framework is only imported when the code path that needs it actually runs.
   "import-outside-toplevel",
   # W0706 — the generated TUI entry point explicitly re-raises
   # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the

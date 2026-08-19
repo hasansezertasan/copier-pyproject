@@ -17,8 +17,9 @@ What survived the move was the shell:
 
 - `[project.optional-dependencies]` with a single, permanently empty `all = []`;
 - `<pkg>[all]` in the `dev` dependency group;
-- `extras = ["all"]` on six tox envs (`test`, `style`, `docs-build`,
-  `docs-server`, `docs-linkcheck`, `integration`);
+- `extras = ["all"]` on six tox settings — `env_run_base` (inherited by the
+  per-version test envs and by `prek`/`profile`/`cli`/`worker`), `style`,
+  `docs-build`, `docs-server`, `docs-linkcheck`, and `integration`;
 - `uv run --no-default-groups --extra all --group docs …` in four docs workflows.
 
 None of it installed anything. Worse, it was actively misleading: the `style`
@@ -44,8 +45,9 @@ editing the dev group and six tox envs.
 - The `dev` group's `<pkg>[all]` self-reference is dropped entirely (rather than
   reduced to `<pkg>`): `uv sync` and tox's own packaging install the project, so
   the self-reference was redundant even before the extra emptied out.
-- All six `extras = ["all"]` tox settings are removed. Each env still installs
-  the project itself, which is what actually supplied the dependencies.
+- All six `extras = ["all"]` tox settings are removed (including the
+  `env_run_base` one every test env inherited). Each env still installs the
+  project itself, which is what actually supplied the dependencies.
 - The four docs workflows drop `--extra all`; `uv run --no-default-groups
   --group docs …` still installs the project.
 
@@ -55,9 +57,18 @@ a permanent empty declaration that three separate documents cite as load-bearing
 
 ## Consequences
 
-- **`uv run --extra all` in an adopter's own scripts breaks.** This is the only
-  outward-facing change. It is a `copier update` hazard for any project that
-  hand-added such a call; the remedy is to delete the flag.
+- **`uv run --extra all` in an adopter's own scripts breaks.** A `copier update`
+  hazard for any project that hand-added such a call; the remedy is to delete
+  the flag.
+- **The adopter must re-lock.** Removing the extra and the `<pkg>[all]` dev
+  entry changes the project metadata `uv.lock` records
+  (`[package.optional-dependencies]`, `[package.metadata.requires-dev]`), so a
+  committed lockfile goes stale the moment the copier-update PR lands. Renovate's
+  copier manager re-renders but does not re-lock, and CI, the `prek` system
+  hooks, and the `mise` tasks all use `uv run --locked` — which hard-fails on a
+  stale lockfile, so the update PR is red until someone runs `uv lock`. Applying
+  this update means running `uv lock` and committing the result in the same PR;
+  `docs/maintaining/setup.rst` now states this for copier updates generally.
 - **Adding a real optional extra is now an explicit act.** Re-introducing one
   means declaring the extra, adding it to the dev group, and adding `extras` to
   whichever tox envs genuinely need it — which is the correct blast radius to
