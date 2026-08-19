@@ -152,3 +152,31 @@ def test_worker_integration_gated_on_worker_or_core(render: Callable[..., Path])
     assert "changes" in job["needs"]
     assert "needs.changes.outputs.worker == 'true'" in job["if"]
     assert "needs.changes.outputs.core == 'true'" in job["if"]
+
+
+# --- PR #259 review fixes -----------------------------------------------------
+
+
+def test_changes_job_has_pull_requests_read(render: Callable[..., Path]) -> None:
+    # dorny/paths-filter uses the REST API on pull_request events (needs
+    # pull-requests: read), regardless of the checkout.
+    ci = _ci(render, preset="library")
+    assert ci["jobs"]["changes"]["permissions"].get("pull-requests") == "read"
+
+
+def test_core_filter_includes_utils(render: Callable[..., Path]) -> None:
+    # The always-present shared `utils` layer must force the full fan-out.
+    ci = _ci(render, preset="library")
+    filters = _job_run(ci["jobs"]["changes"]) + str(ci["jobs"]["changes"])
+    steps = ci["jobs"]["changes"]["steps"]
+    with_block = next(s for s in steps if s.get("id") == "filter")["with"]["filters"]
+    assert "utils/**" in with_block
+
+
+def test_coverage_report_has_draft_guard(render: Callable[..., Path]) -> None:
+    # On a draft PR all deps are skipped; without the draft guard `!cancelled()`
+    # still runs the job with no coverage data and `coverage combine` fails.
+    ci = _ci(render, preset="library", include_web=True)
+    cond = ci["jobs"]["coverage-report"]["if"]
+    assert "github.event.pull_request.draft != true" in cond
+    assert "!cancelled()" in cond

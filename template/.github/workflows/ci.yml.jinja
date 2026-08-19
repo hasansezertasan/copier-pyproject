@@ -16,6 +16,10 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      # dorny/paths-filter fetches the changed-file list via the REST API on
+      # `pull_request` events (git diff is only used for push/other events, even
+      # with a checkout), so it needs `pull-requests: read`.
+      pull-requests: read
     outputs:
       core: {% raw %}${{ steps.filter.outputs.core }}{% endraw %}
 {%- if include_console_root %}
@@ -56,6 +60,7 @@ jobs:
               - 'tox.ini'
               - 'src/{{github_repo_name}}/*.py'
               - 'src/{{github_repo_name}}/core/**'
+              - 'src/{{github_repo_name}}/utils/**'
               - 'tests/conftest.py'
               - 'tests/core/**'
               - 'tests/test_*.py'
@@ -285,7 +290,11 @@ jobs:
     # Codecov + (optionally) smokeshow. `if: !cancelled()` so it runs even when a
     # component is path-skipped; downloads all present `coverage-*-*` artifacts.
     needs: [coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}]
-    if: {% raw %}${{ !cancelled() }}{% endraw %}
+    # `!cancelled()` still publishes when a component gate failed, but must ALSO
+    # carry the draft guard: on a draft PR every dependency is *skipped* (not
+    # cancelled), so without it this job would run with zero coverage artifacts
+    # and `coverage combine` would fail with "No data to combine".
+    if: {% raw %}${{ !cancelled() && github.event.pull_request.draft != true }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
