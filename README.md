@@ -10,7 +10,7 @@ Always included in every generated project:
 - **Type safety** — full type hints and a `py.typed` marker, checked by mypy, basedpyright, ty, pyrefly, and zuban.
 - **Code quality** — ruff linting/formatting and an always-on pylint gate, plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement.
 - **Testing** — pytest with coverage/xdist/reruns (and `.github/codecov.yml`) and parallel execution.
-- **CI/CD & release** — matrix tests on macOS/Linux/Windows, trusted-publishing to PyPI, and release automation via release-please, with PR title linting, linked-issue enforcement, and a PR task-list completion check.
+- **CI/CD & release** — matrix tests on macOS/Linux/Windows with per-component pytest markers and path-filtered CI jobs (unchanged components skip), trusted-publishing to PyPI, and release automation via release-please, with PR title linting, linked-issue enforcement, and a PR task-list completion check.
 - **Security** — CodeQL, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks high-severity vulnerabilities, active scanning (gitleaks, pip-audit, and Trivy for web images), a local pre-commit `detect-secrets` gate with a committed `.secrets.baseline` (complementing gitleaks' history-spanning scan), GitHub Actions static analysis (zizmor + ghalint) enforcing least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, and full-length action SHA pins — a blocking prek/CI gate plus a zizmor Security-tab dashboard — and a CycloneDX SBOM attached to every release.
 - **Repo hygiene** — issue/PR templates, `SECURITY.md`, `SUPPORT.md`, `CODEOWNERS`, `FUNDING`, `LICENSE`, `.gitattributes`, `.dockerignore`, a badge-rich README, and VS Code launch configs (current file, tests, attach, entry points); always-on Commitizen and git hooks (run via prek) and an always-on `CITATION.cff` with a validation workflow.
 - **Managed `.gitignore`** — kept in sync with the upstream [github/gitignore](https://github.com/github/gitignore) templates by [cobo](https://github.com/hasansezertasan/cobo), with a weekly drift check.
@@ -67,7 +67,7 @@ Copier will prompt for:
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
 - `include_pydantic_settings` (use pydantic-settings for configuration; the docs build auto-generates a Configuration reference from the live settings model via autodoc-pydantic)
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
-- `include_smokeshow` (opt-in tokenless coverage-HTML host; publishes the combined report to an ephemeral public URL from the `coverage-combine` CI job — public repos only, no account or secret)
+- `include_smokeshow` (opt-in tokenless coverage-HTML host; publishes the combined report to an ephemeral public URL from the `coverage-report` CI job — public repos only, no account or secret)
 - `include_repo_ruleset` (opt-in branch protection as code — a ruleset + App-free sync workflow enforcing squash-only merges, linear history, and the required CI checks; needs a `REPO_ADMIN_TOKEN` PAT)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
@@ -175,12 +175,15 @@ The upload is best-effort either way: on a private repo with no token, CI record
 a notice and skips the upload rather than failing the run. The generated
 `CONTRIBUTING.md` documents the same setup for contributors to your project.
 
-Coverage is combined across the whole CI matrix: each OS uploads its raw
-`.coverage` data and a dedicated `coverage-combine` job merges every OS ×
-interpreter cell into the single authoritative report — the one place the
-`fail_under` gate runs (over the union) and the single Codecov upload. Enabling
-`include_smokeshow` additionally publishes the combined HTML report to a tokenless
-ephemeral URL (public repos only) — a browsable coverage report with no account.
+CI is split per component: a `changes` (path-filter) job lets each
+`test-<component>` job skip when its tree is untouched, and each component's
+coverage is gated `fail_under = 99` **scoped to its own subtree** (combined across
+that component's OS cells). A central `coverage-report` job merges whatever ran and
+performs the single Codecov upload. Enabling `include_smokeshow` additionally
+publishes the combined HTML report to a tokenless ephemeral URL (public repos
+only) — a browsable coverage report with no account. Locally, `pytest -m <component>`
+selects one component's tests; the default suite still runs everything minus
+`integration`.
 
 ### Documentation site and dependency updates
 
