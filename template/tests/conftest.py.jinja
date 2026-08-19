@@ -9,34 +9,34 @@ component without per-test decoration. Markers are registered in pyproject.toml
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import pytest
+if TYPE_CHECKING:
+    import pytest
 
 # tests/<dir> names that map to a component marker, rendered from the enabled
 # components. An unmarked dir (e.g. a future one) is simply left unmarked.
-_COMPONENT_DIRS: frozenset[str] = frozenset(
-    {
-        "core",
+_COMPONENT_DIRS: frozenset[str] = frozenset({
+    "core",
 {%- if include_console_root %}
-        "cli",
+    "cli",
 {%- endif %}
 {%- if include_web %}
-        "web",
+    "web",
 {%- endif %}
 {%- if include_gui %}
-        "gui",
+    "gui",
 {%- endif %}
 {%- if include_tui %}
-        "tui",
+    "tui",
 {%- endif %}
 {%- if include_mcp %}
-        "mcp",
+    "mcp",
 {%- endif %}
 {%- if include_worker %}
-        "worker",
+    "worker",
 {%- endif %}
-    }
-)
+})
 
 
 def pytest_collection_modifyitems(
