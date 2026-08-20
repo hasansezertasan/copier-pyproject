@@ -1,3 +1,11 @@
+{#- Mirrors ``need_import_guard`` in cli/app.py.jinja: the module only defines the
+    component-dependency guard when it lazy-imports at least one component. -#}
+{%- set has_launcher = (include_tui and primary_component != 'tui')
+    or (include_gui and primary_component != 'gui')
+    or (include_web and primary_component != 'web')
+    or (include_mcp and primary_component != 'mcp')
+    or (include_worker and primary_component != 'worker') -%}
+{%- set need_import_guard = has_launcher or not include_cli -%}
 {% if include_cli and cli_framework == "argparse" -%}
 """Test cases for the {{github_repo_name}} argparse root."""
 
@@ -29,6 +37,12 @@ class _MissingDistribution:
 {%- if include_web and primary_component != 'web' %}{% set _ = subcommands.append("web") %}{% endif -%}
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = subcommands.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = subcommands.append("worker") %}{% endif -%}
+{% if need_import_guard -%}
+# Bound to a name so the raise in the guard test stays a single statement (EM101).
+_MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
+
+
+{% endif -%}
 def test_help_lists_subcommands(capsys: pytest.CaptureFixture[str]) -> None:
     """``--help`` renders the root usage and exits 0.
 
@@ -90,25 +104,60 @@ def test_command_fails_loudly_when_metadata_missing(
         app([command])
 
     assert excinfo.value.code == 1
+{%- if need_import_guard %}
+
+
+def test_missing_component_dependency_is_actionable(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A missing component dependency exits 1 with a message naming the fix.
+
+    Given:
+        - A launcher subcommand whose lazy import raises ``ModuleNotFoundError``
+          (an environment out of sync with the installed package).
+    When:
+        - The import is performed inside the component-dependency guard.
+    Then:
+        - The command exits 1 and stderr names the component, the missing module,
+          and ``uv sync`` -- instead of dumping a bare ``ModuleNotFoundError``.
+
+    Raises:
+        ModuleNotFoundError: Simulating the missing dependency; the guard converts
+            it into the actionable exit.
+    """
+    with (
+        pytest.raises(SystemExit) as excinfo,
+        cli_app._component_dependencies("web"),  # noqa: SLF001
+    ):
+        raise ModuleNotFoundError(_MISSING_MODULE_MESSAGE, name="uvicorn")
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "uvicorn" in err
+    assert "uv sync" in err
+{%- endif %}
 {%- else -%}
 """Test cases for the {{github_repo_name}} Typer root."""
 
 from __future__ import annotations
 
-{% if include_cli -%}
 import importlib
+{% if include_cli -%}
 from importlib.metadata import Distribution, PackageNotFoundError
 {% endif -%}
 from typing import TYPE_CHECKING
 
 import pytest
+{% if need_import_guard -%}
+import typer
+{% endif -%}
 from typer.testing import CliRunner
 
 from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
     from typer.testing import Result
-{%- if include_cli %}
 
 
 # The cli ``__init__`` re-exports the Typer ``app`` object, which shadows the
@@ -116,6 +165,7 @@ if TYPE_CHECKING:
 # ``import ...app as ...``). importlib returns the real module from sys.modules —
 # the object the monkeypatch below needs to patch.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
+{%- if include_cli %}
 
 
 class _MissingDistribution:
@@ -127,6 +177,12 @@ class _MissingDistribution:
 {%- endif %}
 
 
+{% if need_import_guard -%}
+# Bound to a name so the raise in the guard test stays a single statement (EM101).
+_MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
+
+
+{% endif -%}
 @pytest.fixture
 def runner() -> CliRunner:
     """Fixture that provides a CLI runner for testing Typer commands."""
@@ -206,5 +262,39 @@ def test_command_fails_loudly_when_metadata_missing(
     result: Result = runner.invoke(app, [command])
 
     assert result.exit_code == 1
+{%- endif %}
+{%- if need_import_guard %}
+
+
+def test_missing_component_dependency_is_actionable(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A missing component dependency exits 1 with a message naming the fix.
+
+    Given:
+        - A launcher command whose lazy import raises ``ModuleNotFoundError`` (an
+          environment out of sync with the installed package).
+    When:
+        - The import is performed inside the component-dependency guard.
+    Then:
+        - The guard raises ``typer.Exit(1)`` and stderr names the component, the
+          missing module, and ``uv sync`` -- instead of dumping a bare
+          ``ModuleNotFoundError``.
+
+    Raises:
+        ModuleNotFoundError: Simulating the missing dependency; the guard converts
+            it into the actionable exit.
+    """
+    with (
+        pytest.raises(typer.Exit) as excinfo,
+        cli_app._component_dependencies("web"),  # noqa: SLF001
+    ):
+        raise ModuleNotFoundError(_MISSING_MODULE_MESSAGE, name="uvicorn")
+
+    assert excinfo.value.exit_code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "uvicorn" in err
+    assert "uv sync" in err
 {%- endif %}
 {%- endif %}

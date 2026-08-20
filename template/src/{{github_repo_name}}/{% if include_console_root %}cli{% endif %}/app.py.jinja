@@ -1,3 +1,15 @@
+{#- Components this module launches via a lazy import: every enabled non-primary
+    runnable component. Derived from ``primary_component`` (ADR-019); used to
+    decide whether the stale-environment import guard is needed at all. -#}
+{%- set launcher_components = [] -%}
+{%- if include_tui and primary_component != 'tui' %}{% set _ = launcher_components.append("tui") %}{% endif -%}
+{%- if include_gui and primary_component != 'gui' %}{% set _ = launcher_components.append("gui") %}{% endif -%}
+{%- if include_web and primary_component != 'web' %}{% set _ = launcher_components.append("web") %}{% endif -%}
+{%- if include_mcp and primary_component != 'mcp' %}{% set _ = launcher_components.append("mcp") %}{% endif -%}
+{%- if include_worker and primary_component != 'worker' %}{% set _ = launcher_components.append("worker") %}{% endif -%}
+{#- The minimal-launcher Typer root (no ``include_cli``) also lazy-imports the
+    primary component from its default callback, so it needs the guard too. -#}
+{%- set need_import_guard = launcher_components or not include_cli -%}
 {% if include_cli and cli_framework == "argparse" -%}
 """CLI application for the project.
 
@@ -12,6 +24,9 @@ ADR-019 and ADR-020). Selected via ``cli_framework``.
 from __future__ import annotations
 
 import argparse
+{% if need_import_guard -%}
+import contextlib
+{% endif -%}
 import platform
 import sys
 from importlib.metadata import Distribution, PackageNotFoundError
@@ -21,7 +36,7 @@ from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable{% if need_import_guard %}, Generator{% endif %}
 
 {% set cli_all = ["app", "show_version", "info"] -%}
 {%- if include_tui and primary_component != 'tui' %}{% set _ = cli_all.append("interactive") %}{% endif -%}
@@ -35,6 +50,46 @@ __all__ = [{% for n in cli_all %}"{{ n }}"{% if not loop.last %}, {% endif %}{% 
 logger = get_logger()
 
 _METADATA_MISSING = f"Error: Package '{PROJECT_NAME}' metadata not found. Is the package installed correctly?"  # noqa: E501
+{%- if need_import_guard %}
+
+# Every component's runtime dependency is a core ``dependency`` of this package
+# (there are no per-component extras), so a missing one never means "install the
+# extra" -- it means this environment is out of sync with the installed metadata.
+# That happens after a ``copier update`` enables a component, or in a stale venv.
+_STALE_ENVIRONMENT = "Error: The {component} component requires the '{missing}' package, which is not installed. Component dependencies ship with '{project}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+
+
+@contextlib.contextmanager
+def _component_dependencies(component: str) -> Generator[None, None, None]:
+    """Translate a missing component dependency into an actionable CLI error.
+
+    Wraps a launcher subcommand's lazy import so a bare ``ModuleNotFoundError``
+    from a stale environment becomes a message naming the component, the missing
+    module, and the fix.
+
+    Args:
+        component: Human name of the component being launched (e.g. ``"web"``).
+
+    Yields:
+        ``None``; the caller performs the import inside the block.
+
+    Raises:
+        SystemExit: With code 1 if a dependency of ``component`` is missing.
+    """
+    try:
+        yield
+    except ModuleNotFoundError as exc:
+        # An out-of-sync environment is an expected, user-facing error, so log
+        # without the traceback that logging.exception would add.
+        logger.error(  # noqa: TRY400
+            "Missing dependency %r for the %s component", exc.name, component
+        )
+        message = _STALE_ENVIRONMENT.format(
+            component=component, missing=exc.name, project=PROJECT_NAME
+        )
+        _ = sys.stderr.write(message + "\n")
+        raise SystemExit(1) from None
+{%- endif %}
 
 
 def show_version() -> None:
@@ -104,9 +159,11 @@ def interactive() -> None:  # pragma: no cover
         {{github_repo_name}} interactive
 
     Raises:
-        SystemExit: Propagating the TUI's exit code.
+        SystemExit: Propagating the TUI's exit code, or code 1 if a dependency of
+            the TUI is missing from this environment.
     """
-    from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
+    with _component_dependencies("TUI"):
+        from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
 {%- endif %}
@@ -120,9 +177,11 @@ def gui() -> None:  # pragma: no cover
         {{github_repo_name}} gui
 
     Raises:
-        SystemExit: Propagating the GUI's exit code.
+        SystemExit: Propagating the GUI's exit code, or code 1 if a dependency of
+            the GUI is missing from this environment.
     """
-    from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
+    with _component_dependencies("GUI"):
+        from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
 {%- endif %}
@@ -134,8 +193,11 @@ def web() -> None:  # pragma: no cover
 
     Launch the web server:
         {{github_repo_name}} web
+
+    A missing dependency is reported by ``_component_dependencies`` below.
     """
-    from {{github_repo_name}}.web.app import main  # noqa: PLC0415
+    with _component_dependencies("web"):
+        from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
@@ -147,8 +209,11 @@ def mcp() -> None:  # pragma: no cover
 
     Launch the MCP server:
         {{github_repo_name}} mcp
+
+    A missing dependency is reported by ``_component_dependencies`` below.
     """
-    from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
+    with _component_dependencies("MCP"):
+        from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
@@ -160,8 +225,11 @@ def worker() -> None:  # pragma: no cover
 
     Launch the worker:
         {{github_repo_name}} worker
+
+    A missing dependency is reported by ``_component_dependencies`` below.
     """
-    from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
+    with _component_dependencies("worker"):
+        from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
@@ -252,17 +320,25 @@ via the default callback.
 
 from __future__ import annotations
 
+{% if need_import_guard -%}
+import contextlib
+{% endif -%}
 {% if include_cli -%}
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
-
 {% endif -%}
+{% if need_import_guard -%}
+from typing import TYPE_CHECKING
+{% endif %}
 import typer
 
-{% if include_cli -%}
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-{% endif -%}
 from {{github_repo_name}}.core.logging_setup import get_logger
+{%- if need_import_guard %}
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+{%- endif %}
 
 {% set cli_all = ["app"] -%}
 {%- if include_cli %}{% set _ = cli_all.append("show_version") %}{% set _ = cli_all.append("info") %}{% else %}{% set _ = cli_all.append("default") %}{% endif -%}
@@ -275,6 +351,48 @@ from {{github_repo_name}}.core.logging_setup import get_logger
 __all__ = [{% for n in cli_all %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}]
 
 logger = get_logger()
+{%- if need_import_guard %}
+
+# Every component's runtime dependency is a core ``dependency`` of this package
+# (there are no per-component extras), so a missing one never means "install the
+# extra" -- it means this environment is out of sync with the installed metadata.
+# That happens after a ``copier update`` enables a component, or in a stale venv.
+_STALE_ENVIRONMENT = "Error: The {component} component requires the '{missing}' package, which is not installed. Component dependencies ship with '{project}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+
+
+@contextlib.contextmanager
+def _component_dependencies(component: str) -> Generator[None, None, None]:
+    """Translate a missing component dependency into an actionable CLI error.
+
+    Wraps a launcher command's lazy import so a bare ``ModuleNotFoundError`` from
+    a stale environment becomes a message naming the component, the missing
+    module, and the fix.
+
+    Args:
+        component: Human name of the component being launched (e.g. ``"web"``).
+
+    Yields:
+        ``None``; the caller performs the import inside the block.
+
+    Raises:
+        typer.Exit: With code 1 if a dependency of ``component`` is missing.
+    """
+    try:
+        yield
+    except ModuleNotFoundError as exc:
+        # An out-of-sync environment is an expected, user-facing error, so log
+        # without the traceback that logging.exception would add.
+        logger.error(  # noqa: TRY400
+            "Missing dependency %r for the %s component", exc.name, component
+        )
+        typer.echo(
+            _STALE_ENVIRONMENT.format(
+                component=component, missing=exc.name, project=PROJECT_NAME
+            ),
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
+{% endif %}
 
 app = typer.Typer(name="{{github_repo_name}}"{% if include_cli %}, no_args_is_help=True{% endif %})
 {%- if not include_cli %}
@@ -286,15 +404,19 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
 
     Runs when ``{{github_repo_name}}`` is invoked with no subcommand; a named
     subcommand always takes precedence.
-{%- if primary_component in ["gui", "tui"] %}
 
+{%- if primary_component in ["gui", "tui"] %}
     Raises:
-        typer.Exit: Propagating the primary component's exit code.
+        typer.Exit: Propagating the primary component's exit code, or code 1 if a
+            dependency of the component is missing from this environment.
+{%- else %}
+    A missing dependency is reported by ``_component_dependencies`` below.
 {%- endif %}
     """
     if ctx.invoked_subcommand is not None:
         return
-    from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
+    with _component_dependencies("{{primary_component}}"):
+        from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
     {{ "raise typer.Exit(code=main())" if primary_component in ["gui", "tui"] else "main()" }}
 {%- endif %}
@@ -375,9 +497,11 @@ def interactive() -> None:  # pragma: no cover
         {{github_repo_name}} interactive
 
     Raises:
-        typer.Exit: Propagating the TUI's exit code.
+        typer.Exit: Propagating the TUI's exit code, or code 1 if a dependency of
+            the TUI is missing from this environment.
     """
-    from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
+    with _component_dependencies("TUI"):
+        from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
 {%- endif %}
@@ -392,9 +516,11 @@ def gui() -> None:  # pragma: no cover
         {{github_repo_name}} gui
 
     Raises:
-        typer.Exit: Propagating the GUI's exit code.
+        typer.Exit: Propagating the GUI's exit code, or code 1 if a dependency of
+            the GUI is missing from this environment.
     """
-    from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
+    with _component_dependencies("GUI"):
+        from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
 {%- endif %}
@@ -407,8 +533,11 @@ def web() -> None:  # pragma: no cover
 
     Launch the web server:
         {{github_repo_name}} web
+
+    A missing dependency is reported by ``_component_dependencies`` below.
     """
-    from {{github_repo_name}}.web.app import main  # noqa: PLC0415
+    with _component_dependencies("web"):
+        from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
@@ -421,8 +550,11 @@ def mcp() -> None:  # pragma: no cover
 
     Launch the MCP server:
         {{github_repo_name}} mcp
+
+    A missing dependency is reported by ``_component_dependencies`` below.
     """
-    from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
+    with _component_dependencies("MCP"):
+        from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
@@ -435,8 +567,11 @@ def worker() -> None:  # pragma: no cover
 
     Launch the worker:
         {{github_repo_name}} worker
+
+    A missing dependency is reported by ``_component_dependencies`` below.
     """
-    from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
+    with _component_dependencies("worker"):
+        from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
