@@ -6,10 +6,9 @@ Accepted (2026-06). Implemented.
 
 > **Revision (during implementation).** The original draft proposed *lazy broker
 > imports* as item 1. Implementation showed that this buys nothing for this
-> worker: it has exactly one broker, `faststream[<broker>]` is a hard dependency
-> of the `worker` extra and every test/tox environment installs
-> `extras = ["all"]` (so the driver is always present wherever the worker is
-> exercised), and the broker is constructed at module top — so the driver is
+> worker: it has exactly one broker, `faststream[<broker>]` is a core runtime
+> dependency of the rendered project (so the driver is always present wherever
+> the worker is exercised), and the broker is constructed at module top — so the driver is
 > imported at module load regardless of where the `import` statement sits, and
 > the top-level package never imports `worker.app` anyway. The real blocker to
 > integration testing was *construction at import time* (a localhost-bound
@@ -182,8 +181,8 @@ while still gaining real-broker coverage on Linux.
 - A new `pytest` marker `integration` is registered in `pyproject.toml`, and the
   default `addopts` deselects it (`-m "not integration"`) so `tox run` stays
   Docker-free. An on-demand `[tool.tox.env.integration]` env (not in `env_list`,
-  like the `worker` env) runs `pytest -m integration tests/worker` with
-  `extras = ["all"]` + the `test` group.
+  like the `worker` env) runs `pytest -m integration tests/worker` with the
+  installed package + the `test` group.
 - `ci.yml` gains one conditional, Ubuntu-only `worker-integration` job (rendered
   only when `include_worker`) that runs `tox run -e integration` against the chosen
   broker and gates the `check` aggregation job, in the same spirit as ADR-007's
