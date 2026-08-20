@@ -3,9 +3,16 @@
     # Ubuntu-only: the real redis runs in a Linux container — a
     # GitHub Actions service for redis/nats (below), an in-test testcontainer for
     # kafka/rabbitmq — and container support is Linux-runner-only. Runs only the
-    # `integration`-marked tests (deselected from the default matrix in the `ci`
-    # job) against a real redis — the one thing that exercises the real
+    # `integration`-marked tests (deselected from the default `test-*` jobs)
+    # against a real redis — the one thing that exercises the real
     # driver and serialization the in-memory unit tests stub out. See ADR-008.
+    # Path-gated like the component test jobs (issue #160): skips the container
+    # spin-up on PRs that touch neither the worker tree nor shared core.
+    needs: changes
+    if: >-
+      ${{ github.event.pull_request.draft != true &&
+      (needs.changes.outputs.worker == 'true' ||
+      needs.changes.outputs.core == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

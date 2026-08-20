@@ -255,6 +255,12 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   var in `copier.yml` (CLI > GUI > TUI > web > MCP > worker). Derive from it; do
   **not** re-spell it as inline `include_x or include_y …`
   ([ADR-019](docs/adr/019-components-as-cli-subcommands.md)).
+- **Per-component coverage scopes must match both layouts.** The per-component
+  `coverage report --include`/`--omit` patterns in `ci.yml`'s `coverage-*` jobs
+  must match `src/<pkg>/…` (editable) **and** `*/site-packages/…` (installed
+  wheel/sdist), so they are `*/`-anchored — a `src/**`-only pattern silently
+  reports the installed copy at 0%. Verify via a real `tox run`, never editable
+  `pytest` ([ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md)).
 - **Docs deploys must preserve the version-slug directories** (numeric, e.g.
   `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
   `gh-pages.yml` build only the current version and re-supply prior versions from
@@ -270,7 +276,7 @@ Detail (jobs, gating, security posture) in `docs/template-architecture.md`.
 
 | Workflow | Purpose | ADR |
 | --- | --- | --- |
-| `ci.yml` | matrix tests + coverage; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md) |
+| `ci.yml` | `changes` path-filter → per-component `test-*` + scoped `coverage-*` gates + central `coverage-report`; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md), [028](docs/adr/028-per-component-markers-and-path-filtered-ci.md) |
 | `release.yml` | release-please → build / pypi-publish / executables / docker / docs / sbom / issue-notify | [002](docs/adr/002-release-please-for-release-automation.md), [010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md) |
 | `check-pr-title.yml` | PR title vs Conventional Commits | — |
 | `check-linked-issues.yml` | require a linked issue (`no-issue` bypasses) | — |
@@ -388,6 +394,15 @@ above — never a multi-line block here.
    (as the `main()` entrypoints, the CLI launcher subcommands, the GUI/TUI
    `_display_*` helpers, and the worker lifecycle hooks do). Do **not** add
    blanket `exclude_lines` regexes for these — see the convention below.
+9. Wire the component into the per-component marker + path-filter surfaces
+   ([ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md)), which
+   must stay in lockstep: register the marker in `pyproject.toml.jinja`
+   `[tool.pytest.ini_options] markers` **and** add its `tests/` dir to
+   `tests/conftest.py.jinja` `_COMPONENT_DIRS`; add its `changes` filter + its
+   `test-<component>` and scoped `coverage-<component>` jobs in `ci.yml.jinja`
+   (all driven by the `comp_names` list — extend that and the loops follow); and
+   add its subtree to the `coverage-core` `--omit` list. Verify both gates via a
+   real `tox run` on an explicitly-generated project (installed layout).
 
 ### Coverage exclusion convention
 
@@ -430,6 +445,18 @@ or the gate silently fails for *every* generated project:
 Always verify coverage via the real `tox run` path (installed package, all envs),
 never editable `pytest` — both defects are invisible otherwise. See
 [ADR-008](docs/adr/008-worker-broker-testing-strategy.md).
+
+CI enforces this gate **per component**, not once over a union: the `ci.yml`
+`coverage-<component>` jobs each merge their component's OS cells and gate
+`fail_under = 99` scoped to that subtree (`--include` for a component,
+`--omit` of every component for `coverage-core`); a central non-gating
+`coverage-report` job publishes the combined HTML/XML + Codecov. A CLI `--omit`
+overrides the pyproject `omit`, so `coverage-core` re-adds `*/_version.py`; the
+component gates pass only `--include`, so the config `omit` still shields the
+worker integration file. This decomposition (which lets a path-skipped component
+keep the merge gate green) is
+[ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md), superseding
+ADR-026's single union gate.
 
 ### Modifying Template Variables
 
