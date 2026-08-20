@@ -93,8 +93,15 @@ Two details make this correct rather than merely short:
 - **`check` is gated too.** `re-actors/alls-green` treats a *skipped* `needs` job
   as a failure unless it is listed in `allowed-skips`. Gating the work jobs while
   letting `check` run would therefore turn every draft PR red. Skipping `check`
-  as well leaves the required status **pending**, which is the right state for a
-  draft — a draft PR cannot be merged regardless. `check` keeps its `always()`:
+  as well avoids that. Note what a job-level skip actually reports: GitHub
+  records a skipped job as **success** for required-status-check purposes (only a
+  *workflow*-level skip — path/branch filters, `[skip ci]` — leaves a check
+  unreported and therefore pending). So a drafted PR ends up with a green,
+  non-blocking `check` rather than a pending one. That is harmless: a draft PR
+  cannot be merged regardless, and `ready_for_review` starts a fresh `check` run
+  on the same head SHA that supersedes the skipped one, so the authoritative
+  status once the PR is reviewable always comes from a real run. `check` keeps
+  its `always()`:
   `if: ${{ always() && github.event.pull_request.draft != true }}`. `sonar`
   likewise keeps its existing fork guard, combined with the draft guard via `&&`.
 - **`ready_for_review` is added to the `pull_request` `types:`.** It is *not* in

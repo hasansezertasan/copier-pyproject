@@ -351,8 +351,8 @@ def test_every_ci_job_is_gated_on_draft_prs(render: Callable[..., Path]) -> None
 
     ``re-actors/alls-green`` counts a skipped ``needs`` job as a failure, so
     gating the work jobs while leaving ``check`` to run would turn every draft PR
-    red instead of leaving the required status pending. The ``full`` preset is
-    used so the conditional jobs (executables, worker, sonar) are present too.
+    red. The ``full`` preset is used so the conditional jobs (executables,
+    worker, sonar) are present too.
     """
     workflow = _ci_workflow(render(preset="full"))
     for name, job in workflow["jobs"].items():

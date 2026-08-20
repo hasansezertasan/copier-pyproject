@@ -586,9 +586,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `if: ${{ github.event.pull_request.draft != true }}` — `!= true` so it stays
      falsy-safe on `push`/`workflow_dispatch` (no `pull_request` context), and
      **including `check`**, because `re-actors/alls-green` counts a skipped
-     `needs` job as a failure and would otherwise turn every draft PR red; a
-     skipped `check` leaves the required status pending, which is correct for a
-     draft. `sonar` ANDs the guard onto its existing fork check and `check` onto
+     `needs` job as a failure and would otherwise turn every draft PR red. A
+     job-level skip reports as *success* for required-check purposes (only a
+     workflow-level skip leaves a check pending), which is harmless: a draft
+     cannot be merged, and `ready_for_review` starts a fresh `check` run that
+     supersedes the skipped one. `sonar` ANDs the guard onto its existing fork check and `check` onto
      its `always()`. The `pull_request` trigger adds `ready_for_review` to
      `types:` (not a default type) so leaving draft re-runs the skipped CI.
    - **Cross-matrix coverage** ([ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):

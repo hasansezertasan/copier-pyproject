@@ -14,9 +14,12 @@ on:
 jobs:
   hooks:
     name: Run prek hooks
-    # Draft PRs skip the whole workflow — including the `check` gate, so the
-    # required status stays pending rather than failing (`alls-green` counts a
-    # skipped `needs` job as a failure). `!= true` is falsy-safe on
+    # Draft PRs skip the whole workflow — including the `check` gate, which would
+    # otherwise *fail* (`alls-green` counts a skipped `needs` job as a failure)
+    # and paint every draft red. A skipped job reports as **success** for
+    # required-check purposes, which is harmless here: a draft cannot be merged,
+    # and `ready_for_review` starts a fresh `check` run that supersedes it.
+    # `!= true` is falsy-safe on
     # `push`/`workflow_dispatch`, where there is no `pull_request` context. Every
     # job below carries the same guard; see ADR-028.
     if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}

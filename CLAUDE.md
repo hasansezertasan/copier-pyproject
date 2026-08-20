@@ -261,7 +261,9 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   some jobs turns draft PRs *red* (`alls-green` counts a skipped `needs` as a
   failure); dropping `ready_for_review` (not a default type) makes the skip
   permanent. Use `!= true`, never `== false` — the latter also disables CI on
-  `push` ([ADR-028](docs/adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md)).
+  `push`. A job-level skip reports as *success*, not pending — only a
+  workflow-level skip leaves a check unreported
+  ([ADR-028](docs/adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md)).
 - **Docs deploys must preserve the version-slug directories** (numeric, e.g.
   `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
   `gh-pages.yml` build only the current version and re-supply prior versions from
