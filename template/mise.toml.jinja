@@ -60,6 +60,10 @@ run = "uv run --locked tox run -e docs-build"
 [tasks.docs-serve]
 description = "Serve documentation locally"
 run = "uv run --locked tox run -e docs-server"
+
+[tasks.docs-doctest]
+description = "Run documentation doctests"
+run = "uv run --locked tox run -e docs-doctest"
 {%- endif %}
 {% raw %}
 
