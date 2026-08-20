@@ -1,5 +1,57 @@
 # Changelog
 
+## [1.3.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.2.1...v1.3.0) (2026-08-20)
+
+
+### 🚀 Features
+
+* add a detect-secrets pre-commit gate with a committed baseline ([#236](https://github.com/hasansezertasan/copier-pyproject/issues/236)) ([825f420](https://github.com/hasansezertasan/copier-pyproject/commit/825f420cf4fafcc4444f85b108db84a21b4389e8))
+* auto-generate the CLI reference from the live Typer app (include_cli) ([#248](https://github.com/hasansezertasan/copier-pyproject/issues/248)) ([19b02f7](https://github.com/hasansezertasan/copier-pyproject/commit/19b02f755e423828bc367cefd87fdfd0718f6a24))
+* auto-generate the configuration reference from the pydantic-settings model (include_pydantic_settings) ([#246](https://github.com/hasansezertasan/copier-pyproject/issues/246)) ([50d93b9](https://github.com/hasansezertasan/copier-pyproject/commit/50d93b9505837938c8e0b3ccc131e86a0a3f08b2))
+* combine coverage across the CI matrix + optional tokenless HTML host (include_smokeshow) ([#256](https://github.com/hasansezertasan/copier-pyproject/issues/256)) ([46e2b96](https://github.com/hasansezertasan/copier-pyproject/commit/46e2b96ad902240c7fe60180c9f0dfc68a851edf))
+* flag unused pytest fixtures with pytest-deadfixtures ([#234](https://github.com/hasansezertasan/copier-pyproject/issues/234)) ([2b25949](https://github.com/hasansezertasan/copier-pyproject/commit/2b259497dad5eb08ad5a4dc306a0549b58181c71))
+* harden devcontainer backing services with no-new-privileges ([#228](https://github.com/hasansezertasan/copier-pyproject/issues/228)) ([3c79586](https://github.com/hasansezertasan/copier-pyproject/commit/3c7958630f43165940a2f245cb490e10f5c198ae))
+* make the Sphinx docs subsystem optional (include_docs) ([#253](https://github.com/hasansezertasan/copier-pyproject/issues/253)) ([f054e03](https://github.com/hasansezertasan/copier-pyproject/commit/f054e03c6bfdfbdace10b4343ce00b86798bf69c))
+* offer GitHub services: containers as a lighter worker-integration path ([#257](https://github.com/hasansezertasan/copier-pyproject/issues/257)) ([374e0cd](https://github.com/hasansezertasan/copier-pyproject/commit/374e0cdce8b52884e46326e842a9d2d5d9dede62))
+* publish the web app's OpenAPI schema (include_web) ([#247](https://github.com/hasansezertasan/copier-pyproject/issues/247)) ([f1a9671](https://github.com/hasansezertasan/copier-pyproject/commit/f1a96718665492dc1940a1c6abda6dc6de9e5b33))
+* publish the worker's AsyncAPI message-interface schema (include_worker) ([#243](https://github.com/hasansezertasan/copier-pyproject/issues/243)) ([3eaa627](https://github.com/hasansezertasan/copier-pyproject/commit/3eaa627f89bcbba41f75f0ce432ef0e4b5087ad5))
+* reproducible docs builds via SOURCE_DATE_EPOCH ([#232](https://github.com/hasansezertasan/copier-pyproject/issues/232)) ([c393e4d](https://github.com/hasansezertasan/copier-pyproject/commit/c393e4d6588fda8f68296657cd1cb35033902d54))
+* ship structured issue forms and a PR template ([#235](https://github.com/hasansezertasan/copier-pyproject/issues/235)) ([4fc53ca](https://github.com/hasansezertasan/copier-pyproject/commit/4fc53cae6d3404b21525c149afbd1a34e3c0293d))
+* Sphinx build-warning allowlist gate for the docs ([#242](https://github.com/hasansezertasan/copier-pyproject/issues/242)) ([ab6a857](https://github.com/hasansezertasan/copier-pyproject/commit/ab6a8575d401f41fb35ab98a1bf50a2a1ff29fe7))
+* versioned documentation + per-page "last updated" stamps ([#258](https://github.com/hasansezertasan/copier-pyproject/issues/258)) ([effbf80](https://github.com/hasansezertasan/copier-pyproject/commit/effbf80c0838af26cc2f45ed01a83a76ec3bb43f))
+* worker probe dev helper + mise task (include_worker) ([#239](https://github.com/hasansezertasan/copier-pyproject/issues/239)) ([dc02db0](https://github.com/hasansezertasan/copier-pyproject/commit/dc02db0540cb232abff15063b82959f85de00eaf))
+
+
+### 🐛 Bug Fixes
+
+* re-indent pylint disable comment continuations for editorconfig-checker ([#238](https://github.com/hasansezertasan/copier-pyproject/issues/238)) ([b220fc5](https://github.com/hasansezertasan/copier-pyproject/commit/b220fc543c7ec8d4bcfc4bb7639adf6331b5a851))
+* stop emitting a stray docs/.rst when include_worker is off ([#250](https://github.com/hasansezertasan/copier-pyproject/issues/250)) ([ff8a48d](https://github.com/hasansezertasan/copier-pyproject/commit/ff8a48d941348556fae20fd83e33b58397da6d83))
+
+
+### ♻️ Refactoring
+
+* define the worker_broker class/module mapping once via a computed var ([#240](https://github.com/hasansezertasan/copier-pyproject/issues/240)) ([5e4c58a](https://github.com/hasansezertasan/copier-pyproject/commit/5e4c58a7fadf0cfdcf726b10b333cb286f0f0ac7))
+* drop the empty `all` extra from generated projects ([#263](https://github.com/hasansezertasan/copier-pyproject/issues/263)) ([95c27c1](https://github.com/hasansezertasan/copier-pyproject/commit/95c27c1ae606a01dcd8e2ac780182a6d71636c0b))
+* extract worker destination names into shared constants ([#231](https://github.com/hasansezertasan/copier-pyproject/issues/231)) ([04edfea](https://github.com/hasansezertasan/copier-pyproject/commit/04edfead48d784e4e581c9af1048d9dc66677f3b))
+
+
+### 📝 Documentation
+
+* add a shared-terminology glossary to CLAUDE.md ([#254](https://github.com/hasansezertasan/copier-pyproject/issues/254)) ([e00c597](https://github.com/hasansezertasan/copier-pyproject/commit/e00c5975d8f2096b97f8d4d8223eada62985bc34))
+* enforce Sphinx warnings-as-errors on the HTML build ([#229](https://github.com/hasansezertasan/copier-pyproject/issues/229)) ([ea3e2cf](https://github.com/hasansezertasan/copier-pyproject/commit/ea3e2cf1b943b558aa897eba9e004c662f31a53c))
+* gate component-specific CONTRIBUTING.md prose behind include_* toggles ([#230](https://github.com/hasansezertasan/copier-pyproject/issues/230)) ([9eba782](https://github.com/hasansezertasan/copier-pyproject/commit/9eba782577faeeaa8a73d86dd9226e1dc1a6e156))
+
+
+### 🧪 Tests
+
+* regenerate golden pyproject snapshots to match main ([#249](https://github.com/hasansezertasan/copier-pyproject/issues/249)) ([24f5378](https://github.com/hasansezertasan/copier-pyproject/commit/24f53787b34b9a477bcba73a49d30c59e21cc5dd))
+* render-and-inspect suite — YAML/TOML validity + golden files ([#244](https://github.com/hasansezertasan/copier-pyproject/issues/244)) ([121dfd1](https://github.com/hasansezertasan/copier-pyproject/commit/121dfd13a2a32c129fe24553f234c44077b62340))
+
+
+### 👷 CI
+
+* **labeler:** add `hotfix` prefix to the `bug` label rule ([#226](https://github.com/hasansezertasan/copier-pyproject/issues/226)) ([49d3cee](https://github.com/hasansezertasan/copier-pyproject/commit/49d3cee58f10e0f6942747b2d41ed294de3c110f))
+
 ## [1.2.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.2.0...v1.2.1) (2026-08-15)
 
 
