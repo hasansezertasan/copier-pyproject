@@ -357,9 +357,14 @@ def test_every_ci_job_is_gated_on_draft_prs(render: Callable[..., Path]) -> None
     workflow = _ci_workflow(render(preset="full"))
     for name, job in workflow["jobs"].items():
         assert DRAFT_GUARD in job.get("if", ""), f"job {name} is not draft-gated"
-    # Pre-existing job conditions must be preserved, not replaced.
-    assert "fork != true" in workflow["jobs"]["sonar"]["if"]
-    assert "always()" in workflow["jobs"]["check"]["if"]
+    # Pre-existing job conditions must be preserved and `&&`-composed with the
+    # draft guard, not replaced — and not `||`-composed, which would let draft
+    # jobs run whenever the other operand is true.
+    assert workflow["jobs"]["sonar"]["if"] == (
+        "${{ github.event.pull_request.head.repo.fork != true"
+        f" && {DRAFT_GUARD} }}}}"
+    )
+    assert workflow["jobs"]["check"]["if"] == f"${{{{ always() && {DRAFT_GUARD} }}}}"
 
 
 def test_ci_reruns_when_a_pr_leaves_draft(render: Callable[..., Path]) -> None:
