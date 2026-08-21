@@ -297,3 +297,104 @@ def test_docs_on_by_default_keeps_sphinx_subsystem(
         pyproject["project"]["urls"]["documentation"]
         == "https://octocat.github.io/example"
     )
+
+
+# The guard every ``ci.yml`` job carries so a draft PR runs none of the
+# test/coverage/packaging fan-out (ADR-029). Scoped to this workflow: the security
+# and docs-preview workflows still run on drafts by design.
+DRAFT_GUARD = "github.event.pull_request.draft != true"
+
+
+def _ci_workflow(root: Path) -> dict[str, Any]:
+    return yaml.safe_load(
+        (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    )
+
+
+def _ci_test_step(job: dict[str, Any]) -> dict[str, Any]:
+    return next(step for step in job["steps"] if step["name"] == "Run the tests")
+
+
+def test_ci_matrix_is_asymmetric_by_default(render: Callable[..., Path]) -> None:
+    """Full interpreter depth on Linux, one representative interpreter elsewhere.
+
+    Asserted as the exact list, not merely "``tox_args`` exists": the whole point
+    of ADR-029 is *which* cell runs which depth, and a silent flip back to a
+    uniform grid (or to a single-interpreter Linux cell, which would gut
+    interpreter coverage) must fail here.
+    """
+    job = _ci_workflow(render())["jobs"]["ci"]
+    assert job["strategy"]["matrix"]["include"] == [
+        {"os": "ubuntu-latest", "tox_args": ""},
+        {"os": "macos-latest", "tox_args": "-e py"},
+        {"os": "windows-latest", "tox_args": "-e py"},
+    ]
+    assert (
+        _ci_test_step(job)["run"] == "uv run --locked tox run ${{ matrix.tox_args }}"
+    )
+
+
+def test_cli_env_still_runs_on_every_os(render: Callable[..., Path]) -> None:
+    """``cli`` is appended to the non-Linux cells whenever ``include_cli``.
+
+    Unlike ``style``, the ``cli`` env is *not* OS-independent: its command is the
+    **installed** console script, and script generation is per-OS (Windows
+    ``.exe`` shims, ``[project.gui-scripts]`` — ADR-019). The pytest suite drives
+    the CLI *in process*, never through the installed script, so ``tox -e cli`` is
+    the only thing in CI that runs it. Narrowing these cells back to
+    a bare ``-e py`` would let a Windows-only entry-point break merge green in a
+    ``tool``-preset project (which renders no launcher/freezer/compiler job to
+    catch it), so pin it here. See ADR-029.
+    """
+    job = _ci_workflow(render(preset="tool"))["jobs"]["ci"]
+    assert job["strategy"]["matrix"]["include"] == [
+        {"os": "ubuntu-latest", "tox_args": ""},
+        {"os": "macos-latest", "tox_args": "-e py,cli"},
+        {"os": "windows-latest", "tox_args": "-e py,cli"},
+    ]
+
+
+def test_c_extensions_restores_the_full_grid(render: Callable[..., Path]) -> None:
+    """The one carve-out: a compiled extension makes every OS × interpreter pair a
+    distinct ABI-specific build, so every cell runs the whole ``env_list``
+    (ADR-029)."""
+    job = _ci_workflow(render(include_c_extensions=True))["jobs"]["ci"]
+    assert job["strategy"]["matrix"]["include"] == [
+        {"os": "windows-latest", "tox_args": ""},
+        {"os": "ubuntu-latest", "tox_args": ""},
+        {"os": "macos-latest", "tox_args": ""},
+    ]
+
+
+def test_every_ci_job_is_gated_on_draft_prs(render: Callable[..., Path]) -> None:
+    """*Every* job — including ``check``.
+
+    ``re-actors/alls-green`` counts a skipped ``needs`` job as a failure, so
+    gating the work jobs while leaving ``check`` to run would turn every draft PR
+    red. The ``full`` preset is used so the conditional jobs (executables,
+    worker, sonar) are present too.
+    """
+    workflow = _ci_workflow(render(preset="full"))
+    for name, job in workflow["jobs"].items():
+        assert DRAFT_GUARD in job.get("if", ""), f"job {name} is not draft-gated"
+    # Pre-existing job conditions must be preserved and `&&`-composed with the
+    # draft guard, not replaced — and not `||`-composed, which would let draft
+    # jobs run whenever the other operand is true.
+    assert workflow["jobs"]["sonar"]["if"] == (
+        "${{ github.event.pull_request.head.repo.fork != true"
+        f" && {DRAFT_GUARD} }}}}"
+    )
+    assert workflow["jobs"]["check"]["if"] == f"${{{{ always() && {DRAFT_GUARD} }}}}"
+
+
+def test_ci_reruns_when_a_pr_leaves_draft(render: Callable[..., Path]) -> None:
+    """``ready_for_review`` is not a default ``pull_request`` type, and without it
+    the draft guard would permanently skip CI for a PR opened as a draft.
+
+    Read out of the parsed document rather than matched as a raw substring, so a
+    reformat of the flow sequence by yamlfmt does not fail the test. PyYAML
+    resolves the ``on`` key to the boolean ``True`` (YAML 1.1), hence the
+    ``[True]`` index.
+    """
+    triggers = _ci_workflow(render())[True]["pull_request"]["types"]
+    assert triggers == ["opened", "synchronize", "reopened", "ready_for_review"]

@@ -1,4 +1,5 @@
   worker-integration:
+    if: ${{ github.event.pull_request.draft != true }}
     name: Worker integration tests (redis)
     # Ubuntu-only: the real redis runs in a Linux container — a
     # GitHub Actions service for redis/nats (below), an in-test testcontainer for
