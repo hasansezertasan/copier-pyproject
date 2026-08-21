@@ -89,12 +89,12 @@ jobs:
     # spend (15 heavy runs → 5 + 1 + 1). `-e py` runs the single tox env for the
     # interpreter that invoked tox — i.e. the `.python-version` one `setup-python`
     # installs above — so these cells also skip `style`, a lint/type-check pass
-    # pinned to one interpreter and already covered in the Linux cell. The one
-    # thing that costs: type checkers resolve `sys.platform` against the *host*,
-    # so a branch guarded by `sys.platform == "win32"` is now type-checked
-    # nowhere. If this project carries platform-gated code, either pin the
-    # checkers' platform explicitly or add `,style` to the Windows cell below.
-    # See ADR-029.
+    # pinned to one interpreter and already covered in the Linux cell. Dropping
+    # `style` here would cost one thing, so the `style` env pays for it directly:
+    # type checkers resolve `sys.platform` against the *host*, so the env sweeps
+    # the platform axis explicitly (`mypy --platform win32` / `darwin`) alongside
+    # its existing version sweep. A `sys.platform == "win32"` branch is therefore
+    # still type-checked — on the Linux runner. See ADR-029.
 {%- if include_cli %}
     # The `cli` env IS kept on every OS: it invokes the *installed* console
     # script, and script shims are per-OS (Windows `.exe` wrappers), so it is the

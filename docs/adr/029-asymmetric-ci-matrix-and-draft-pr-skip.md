@@ -55,9 +55,11 @@ that the test step passes through:
 `.python-version` interpreter `setup-python` installs — inheriting
 `[tool.tox.env_run_base]` unchanged (same `coverage run --module pytest`, same
 `package = "wheel"`). It therefore also skips `style` on the non-Linux cells:
-`style` is a lint/type-check pass pinned to one interpreter, and for a project
-with no platform-gated code its verdict is OS-independent. That qualifier is the
-one real cost — see the type-checker note under **Consequences**.
+`style` is a lint/type-check pass pinned to one interpreter, so its verdict is
+OS-independent — except for code the type checkers narrow on `sys.platform`. The
+`style` env absorbs that exception itself by sweeping the platform axis
+(`mypy --platform win32` / `darwin`) the same way it already sweeps the version
+axis; see the type-checker note under **Consequences**.
 
 **`cli` is deliberately *not* dropped.** It is the one `env_list` entry that is
 OS-dependent despite looking like a lint env: its command is the *installed*
@@ -152,18 +154,29 @@ Two details make this correct rather than merely short:
   non-Linux cells contribute one interpreter each, as before.
 - `style` now runs exactly once (Linux), which is also where the `hooks` job's
   prek run already lives. `cli` still runs on all three OSes (see above).
-- **`style` running Linux-only means platform-gated code loses its type check.**
-  mypy, basedpyright, ty, pyrefly and zuban all resolve `sys.platform` against
-  the *host* they run on, so a branch under `if sys.platform == "win32":` is now
-  analysed on no CI runner at all — previously the Windows cell covered it. The
-  same applies to `sys.platform`-narrowed imports (`msvcrt`, `winreg`) and to
-  `platform.system()` branches the checkers can narrow. The template ships no
-  such code, so the default rendering loses nothing; a project that adds it has
-  two one-line fixes, both documented in the rendered `ci.yml` comment: pin the
-  checkers' target platform in `pyproject.toml`
-  (`[tool.mypy] platform = "win32"`, basedpyright's `pythonPlatform`) so the
-  single Linux run analyses both branches, or append `,style` to the Windows
-  cell's `tox_args`. Preferring the pinned-platform fix keeps the cost at zero.
+- **`style` running Linux-only would have cost platform-gated code its type
+  check, so the `style` env now sweeps the platform axis itself.** mypy,
+  basedpyright, ty, pyrefly and zuban all resolve `sys.platform` against the
+  *host* they run on, so a branch under `if sys.platform == "win32":` would be
+  analysed on no CI runner at all once the Windows cell stops running `style` —
+  the checkers prune it as unreachable. The same applies to `sys.platform`-
+  narrowed imports (`msvcrt`, `winreg`) and to `platform.system()` branches the
+  checkers can narrow.
+
+  The fix mirrors the version axis. `[tool.tox.env.style]` already invokes mypy
+  twice to sweep `--python-version 3.10` / `3.14`; it now also invokes it twice
+  to sweep `--platform win32` / `darwin`. Two extra mypy runs on the existing
+  Linux runner replace two whole `style` envs (ruff, five type checkers, pylint,
+  slotscheck, taplo, typos, editorconfig-checker, sphinx-lint) on two extra
+  agents, so the saving survives essentially intact.
+
+  Two limits, stated rather than papered over: the sweep is **mypy-only** — a
+  static `platform =` in `pyproject.toml` pins the *other* four checkers to one
+  platform, which trades the Linux blind spot for a Windows one, so they stay on
+  the host platform and mypy carries the cross-platform verdict. And the sweep is
+  static analysis, not execution: it catches a type error inside a win32 branch,
+  never a runtime one. Genuinely platform-sensitive *behaviour* is what the
+  per-OS `py`/`cli` cells still cover on every OS.
 - The rendered `ci.yml` is the only file that changes; no `copier.yml` question,
   no `preset_map` entry, no new generated file.
 - Guarded by `tests/test_render_validity.py`: the exact asymmetric `include:`

@@ -578,7 +578,12 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `.python-version` interpreter `setup-python`
      installs. Every OS still runs the suite and every interpreter still runs the
      suite; only the cross product is dropped (15 heavy runs → `5 + 1 + 1`), and
-     the OS-independent `style` env runs once instead of three times. `cli` is
+     the OS-independent `style` env runs once instead of three times. `style`
+     earns that by sweeping the platform axis in-process — it invokes
+     `mypy --platform win32` and `--platform darwin` alongside its existing
+     `--python-version 3.10`/`3.14` sweep, because type checkers resolve
+     `sys.platform` against the host and would otherwise prune every non-Linux
+     branch as unreachable. `cli` is
      *kept* on every OS: its command is the **installed** console script and
      script shims are per-OS (Windows `.exe` wrappers, `[project.gui-scripts]`),
      so it is the only cross-platform check of the entry point — the pytest suite

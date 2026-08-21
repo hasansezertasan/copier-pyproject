@@ -793,6 +793,24 @@ commands = [
     "--python-version",
     "3.14",
   ],
+  # Platform axis, swept the same way as the version axis above. Type checkers
+  # resolve `sys.platform` against the *host*, so on the Linux-only `style` cell
+  # (ADR-029) a branch guarded by `sys.platform == "win32"` would otherwise be
+  # analyzed on no platform at all — the checker prunes it as unreachable. These
+  # two runs restore that coverage on the same runner, which is far cheaper than
+  # re-running the whole `style` env on Windows and macOS agents. `--platform`
+  # only overrides `sys.platform`; the pinned `python_version = "3.10"` from
+  # `[tool.mypy]` still applies.
+  [
+    "mypy",
+    "--platform",
+    "win32",
+  ],
+  [
+    "mypy",
+    "--platform",
+    "darwin",
+  ],
   [
     "basedpyright",
   ],

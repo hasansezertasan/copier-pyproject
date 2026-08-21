@@ -270,7 +270,11 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   `-e py,cli`, not a bare `-e py`: `cli` invokes the *installed* console script
   and script shims are per-OS, so it is the only cross-platform check of the
   entry point (the suite drives the CLI in process). Only `style` is safe to run
-  Linux-only (ADR-029).
+  Linux-only, and only because it pays for it: the env sweeps the platform axis
+  itself with `mypy --platform win32`/`darwin` (mirroring its `--python-version`
+  sweep), since type checkers resolve `sys.platform` against the host and would
+  otherwise prune every non-Linux branch as unreachable. Keep those two
+  invocations if you touch the `style` env (ADR-029).
 - **Docs deploys must preserve the version-slug directories** (numeric, e.g.
   `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
   `gh-pages.yml` build only the current version and re-supply prior versions from
