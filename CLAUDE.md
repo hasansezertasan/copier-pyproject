@@ -262,8 +262,15 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   failure); dropping `ready_for_review` (not a default type) makes the skip
   permanent. Use `!= true`, never `== false` — the latter also disables CI on
   `push`. A job-level skip reports as *success*, not pending — only a
-  workflow-level skip leaves a check unreported
+  workflow-level skip leaves a check unreported. The guard covers `ci.yml` only;
+  the security workflows and docs preview still run on drafts, so never claim "no
+  CI spend on drafts"
   ([ADR-028](docs/adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md)).
+- **The asymmetric `ci` matrix keeps `cli` on every OS.** The non-Linux cells run
+  `-e py,cli`, not a bare `-e py`: `cli` invokes the *installed* console script
+  and script shims are per-OS, so it is the only cross-platform check of the
+  entry point (the suite drives the CLI in process). Only `style` is safe to run
+  Linux-only (ADR-028).
 - **Docs deploys must preserve the version-slug directories** (numeric, e.g.
   `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
   `gh-pages.yml` build only the current version and re-supply prior versions from

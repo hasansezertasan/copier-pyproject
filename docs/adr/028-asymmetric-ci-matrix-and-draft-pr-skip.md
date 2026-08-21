@@ -43,9 +43,9 @@ that the test step passes through:
           - os: ubuntu-latest
             tox_args: ""
           - os: macos-latest
-            tox_args: "-e py"
+            tox_args: "-e py,cli"   # `,cli` only when include_cli
           - os: windows-latest
-            tox_args: "-e py"
+            tox_args: "-e py,cli"
     # ...
       - name: Run the tests
         run: uv run --locked tox run ${{ matrix.tox_args }}
@@ -54,8 +54,22 @@ that the test step passes through:
 `-e py` runs the single tox env for the interpreter that invoked tox — the
 `.python-version` interpreter `setup-python` installs — inheriting
 `[tool.tox.env_run_base]` unchanged (same `coverage run --module pytest`, same
-`package = "wheel"`). It therefore also skips the OS-independent `style`/`cli`
-envs on the non-Linux cells.
+`package = "wheel"`). It therefore also skips `style` on the non-Linux cells:
+`style` is a lint/type-check pass pinned to one interpreter, and its verdict is
+OS-independent.
+
+**`cli` is deliberately *not* dropped.** It is the one `env_list` entry that is
+OS-dependent despite looking like a lint env: its command is the *installed*
+console script (`[["<pkg>", "version"]]`), and console-script generation is
+per-OS — Windows produces `.exe` shims, and a sole GUI uses
+`[project.gui-scripts]` (ADR-019). The pytest suite exercises the CLI *in
+process* (typer's `CliRunner`, or a direct call under `cli_framework =
+argparse`), so `tox -e cli` is the only thing in CI that runs the
+real entry point. Dropping it from the non-Linux cells would let a Windows-only
+entry-point break (a lazily imported subcommand that fails to import there, a
+broken script mapping) merge green in a `tool`-preset project, which renders no
+launcher/freezer/compiler job to catch it. It costs one extra fast env per cell,
+so it is appended to `tox_args` whenever `include_cli` is set.
 
 Every OS still runs the suite; every interpreter still runs the suite. What is
 dropped is only the *cross product*: 15 heavy runs become `5 + 1 + 1 = 7`.
@@ -108,11 +122,19 @@ Two details make this correct rather than merely short:
   the default set (`opened`, `synchronize`, `reopened`). Without it, a PR opened
   as a draft would skip CI and then never re-run it on "Ready for review" — the
   guard would silently become permanent. This line is load-bearing, not cosmetic.
+- **The guard is scoped to `ci.yml`, not to "CI".** It removes the whole
+  test/coverage/packaging fan-out — by far the bulk of the spend — but the other
+  `pull_request`-triggered workflows (`codeql`, `check-security`,
+  `dependency-review`, `validate-citation`, `zizmor`, the docs preview, and
+  MegaLinter when enabled) deliberately keep running on drafts: they are fast,
+  and the security passes are the ones you least want deferred to the moment a PR
+  is declared ready. Do not describe the result as "no CI spend on drafts".
 
 ## Consequences
 
 - Roughly a 2× reduction in `ci` runner minutes per push for the default
-  (non-c-extension) project, and no CI spend at all while a PR is drafted.
+  (non-c-extension) project, and no `ci.yml` spend at all while a PR is drafted
+  (the security/docs-preview workflows still run — see the scoping note above).
 - A bug that requires a *specific* interpreter on a *specific* non-Linux OS
   (e.g. only Windows + 3.10) is no longer caught pre-merge in a default project.
   This is the accepted trade: such bugs are rare, and the escape hatch is a
@@ -123,10 +145,10 @@ Two details make this correct rather than merely short:
   every interpreter, so no version-gated line loses its covering cell. The
   non-Linux cells contribute one interpreter each, as before.
 - `style` now runs exactly once (Linux), which is also where the `hooks` job's
-  prek run already lives.
+  prek run already lives. `cli` still runs on all three OSes (see above).
 - The rendered `ci.yml` is the only file that changes; no `copier.yml` question,
   no `preset_map` entry, no new generated file.
 - Guarded by `tests/test_render_validity.py`: the exact asymmetric `include:`
-  list, the `include_c_extensions` full-grid fallback, the draft guard on *every*
-  job (with `sonar`/`check`'s pre-existing conditions preserved), and the
-  `ready_for_review` trigger type.
+  list, the `-e py,cli` variant under `include_cli`, the `include_c_extensions`
+  full-grid fallback, the draft guard on *every* job (with `sonar`/`check`'s
+  pre-existing conditions preserved), and the `ready_for_review` trigger type.

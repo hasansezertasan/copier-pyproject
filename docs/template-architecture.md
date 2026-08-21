@@ -573,11 +573,16 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      the `ci` matrix is an explicit `include:` list carrying a `tox_args` field
      that the test step passes through (`uv run --locked tox run ${{ matrix.tox_args }}`).
      `ubuntu-latest` gets `""` — the full `env_list` (3.10-3.14 plus `style`, and
-     `cli` when `include_cli`); `macos-latest` and `windows-latest` get `-e py`,
-     the single tox env for the `.python-version` interpreter `setup-python`
+     `cli` when `include_cli`); `macos-latest` and `windows-latest` get
+     `-e py` (`-e py,cli` when `include_cli`), i.e. the single tox env for the
+     `.python-version` interpreter `setup-python`
      installs. Every OS still runs the suite and every interpreter still runs the
      suite; only the cross product is dropped (15 heavy runs → `5 + 1 + 1`), and
-     the OS-independent `style`/`cli` envs run once instead of three times. Under
+     the OS-independent `style` env runs once instead of three times. `cli` is
+     *kept* on every OS: its command is the **installed** console script and
+     script shims are per-OS (Windows `.exe` wrappers, `[project.gui-scripts]`),
+     so it is the only cross-platform check of the entry point — the pytest suite
+     drives the CLI in process, never through the installed script. Under
      `include_c_extensions` all three cells render `tox_args: ""` (the old full
      grid) — a compiled extension makes each OS × interpreter pair a distinct
      ABI-specific build, which is also why tox switches to `package = "sdist"`
@@ -592,7 +597,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      cannot be merged, and `ready_for_review` starts a fresh `check` run that
      supersedes the skipped one. `sonar` ANDs the guard onto its existing fork check and `check` onto
      its `always()`. The `pull_request` trigger adds `ready_for_review` to
-     `types:` (not a default type) so leaving draft re-runs the skipped CI.
+     `types:` (not a default type) so leaving draft re-runs the skipped CI. The
+     guard covers `ci.yml` only — `codeql`, `check-security`,
+     `dependency-review`, `validate-citation`, `zizmor`, the docs preview, and
+     MegaLinter still run on drafts by design (fast, and security passes should
+     not be deferred), so this is not "no CI spend on drafts".
    - **Cross-matrix coverage** ([ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):
      each matrix cell `coverage combine`s its per-interpreter data, keeps a
      non-gating `coverage report --fail-under=0` for fast per-OS feedback, and

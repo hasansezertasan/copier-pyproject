@@ -14,14 +14,18 @@ on:
 jobs:
   hooks:
     name: Run prek hooks
-    # Draft PRs skip the whole workflow — including the `check` gate, which would
-    # otherwise *fail* (`alls-green` counts a skipped `needs` job as a failure)
-    # and paint every draft red. A skipped job reports as **success** for
-    # required-check purposes, which is harmless here: a draft cannot be merged,
-    # and `ready_for_review` starts a fresh `check` run that supersedes it.
+    # Draft PRs skip every job in this workflow — including the `check` gate,
+    # which would otherwise *fail* (`alls-green` counts a skipped `needs` job as
+    # a failure) and paint every draft red. Note this is a per-*job* skip, not a
+    # workflow-level one: GitHub records a skipped job as **success** for
+    # required-check purposes rather than leaving it pending. That is harmless
+    # here — a draft cannot be merged, and `ready_for_review` starts a fresh
+    # `check` run on the same head SHA that supersedes the skipped one.
     # `!= true` is falsy-safe on
     # `push`/`workflow_dispatch`, where there is no `pull_request` context. Every
-    # job below carries the same guard; see ADR-028.
+    # job below carries the same guard; see ADR-028. Note the guard covers this
+    # workflow only — codeql, check-security, dependency-review, validate-citation
+    # and the docs preview still run on drafts.
     if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -54,11 +58,12 @@ jobs:
   ci:
     if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
 {%- if include_c_extensions %}
-    # Full grid: `include_c_extensions` makes each wheel ABI-specific (tox
-    # `package = "sdist"`, so every interpreter compiles the extension itself), so
-    # every OS × interpreter pair is a distinct build that must be verified. Every
-    # cell gets the bare `tox run` (the whole `env_list`). This is the deliberate
-    # carve-out from the asymmetric matrix below — see ADR-028.
+    # Full grid: this project ships a compiled extension, so each wheel is
+    # ABI-specific — the tox config uses `package = "sdist"` and every interpreter
+    # compiles the extension itself. Every OS × interpreter pair is therefore a
+    # distinct build that must be verified, so every cell runs the bare `tox run`
+    # (the whole `env_list`). Projects without a compiled extension get a
+    # narrower, asymmetric matrix instead — see ADR-028.
     strategy:
       fail-fast: false
       matrix:
@@ -77,8 +82,15 @@ jobs:
     # interpreter bugs are OS-independent, so the full grid is largely redundant
     # spend (15 heavy runs → 5 + 1 + 1). `-e py` runs the single tox env for the
     # interpreter that invoked tox — i.e. the `.python-version` one `setup-python`
-    # installs above — so these cells also skip the OS-independent lint/CLI envs
-    # (`style`{% if include_cli %}, `cli`{% endif %}), already covered in the Linux cell. See ADR-028.
+    # installs above — so these cells also skip `style`, a lint/type-check pass
+    # pinned to one interpreter whose verdict is OS-independent and so already
+    # covered in the Linux cell. See ADR-028.
+{%- if include_cli %}
+    # The `cli` env IS kept on every OS: it invokes the *installed* console
+    # script, and script shims are per-OS (Windows `.exe` wrappers), so it is the
+    # only cross-platform check of the entry point — the pytest suite drives the
+    # CLI in process, never through the installed script.
+{%- endif %}
     strategy:
       fail-fast: false
       matrix:
@@ -86,9 +98,9 @@ jobs:
           - os: ubuntu-latest
             tox_args: ""
           - os: macos-latest
-            tox_args: "-e py"
+            tox_args: "-e py{% if include_cli %},cli{% endif %}"
           - os: windows-latest
-            tox_args: "-e py"
+            tox_args: "-e py{% if include_cli %},cli{% endif %}"
 {%- endif %}
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     name: Run Tests on {% raw %}${{ matrix.os }}{% endraw %}
@@ -139,10 +151,19 @@ jobs:
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
       - name: Run the tests
+{%- if include_c_extensions %}
+        # `matrix.tox_args` carries this cell's depth. Every cell passes the same
+        # empty value here — the whole `env_list` — because each OS × interpreter
+        # pair is its own ABI-specific build (see the matrix above). Safe to
+        # interpolate into `run:`: the value is a literal from the matrix, not
+        # untrusted event input.
+{%- else %}
         # `matrix.tox_args` selects this cell's depth — empty for the full
-        # `env_list`, `-e py` for the single `.python-version` interpreter. Safe to
-        # interpolate into `run:`: the values are literals from the matrix above,
-        # not untrusted event input.
+        # `env_list`, `-e py{% if include_cli %},cli{% endif %}` elsewhere: the single tox env for the
+        # `.python-version` interpreter{% if include_cli %}, plus the console-script check{% endif %}.
+        # Safe to interpolate into `run:`: the values are literals from the matrix
+        # above, not untrusted event input.
+{%- endif %}
         run: uv run --locked tox run {% raw %}${{ matrix.tox_args }}{% endraw %}
       - name: Store coverage data
         # Combine this cell's per-interpreter data and hand the raw `.coverage`

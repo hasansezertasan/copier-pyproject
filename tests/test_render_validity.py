@@ -299,7 +299,9 @@ def test_docs_on_by_default_keeps_sphinx_subsystem(
     )
 
 
-# The guard every ``ci.yml`` job carries so draft PRs burn no minutes (ADR-028).
+# The guard every ``ci.yml`` job carries so a draft PR runs none of the
+# test/coverage/packaging fan-out (ADR-028). Scoped to this workflow: the security
+# and docs-preview workflows still run on drafts by design.
 DRAFT_GUARD = "github.event.pull_request.draft != true"
 
 
@@ -330,6 +332,26 @@ def test_ci_matrix_is_asymmetric_by_default(render: Callable[..., Path]) -> None
     assert (
         _ci_test_step(job)["run"] == "uv run --locked tox run ${{ matrix.tox_args }}"
     )
+
+
+def test_cli_env_still_runs_on_every_os(render: Callable[..., Path]) -> None:
+    """``cli`` is appended to the non-Linux cells whenever ``include_cli``.
+
+    Unlike ``style``, the ``cli`` env is *not* OS-independent: its command is the
+    **installed** console script, and script generation is per-OS (Windows
+    ``.exe`` shims, ``[project.gui-scripts]`` — ADR-019). The pytest suite drives
+    the CLI *in process*, never through the installed script, so ``tox -e cli`` is
+    the only thing in CI that runs it. Narrowing these cells back to
+    a bare ``-e py`` would let a Windows-only entry-point break merge green in a
+    ``tool``-preset project (which renders no launcher/freezer/compiler job to
+    catch it), so pin it here. See ADR-028.
+    """
+    job = _ci_workflow(render(preset="tool"))["jobs"]["ci"]
+    assert job["strategy"]["matrix"]["include"] == [
+        {"os": "ubuntu-latest", "tox_args": ""},
+        {"os": "macos-latest", "tox_args": "-e py,cli"},
+        {"os": "windows-latest", "tox_args": "-e py,cli"},
+    ]
 
 
 def test_c_extensions_restores_the_full_grid(render: Callable[..., Path]) -> None:
