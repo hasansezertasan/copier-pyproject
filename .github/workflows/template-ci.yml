@@ -138,6 +138,39 @@ jobs:
             grep -Eq "example-${tool}-.*matrix\.label" "$wf" \
               || { echo "::error::release.yml does not name the ${tool} artifact uniquely per OS (missing matrix.label qualifier)"; exit 1; }
           done
+  hooks:
+    name: Run prek hooks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          enable-cache: true
+      - name: Run prek hooks
+        # THIS repo's own hook suite, over its own files — distinct from the
+        # `render` job's `prek run zizmor`, which audits the *rendered* project's
+        # workflows. Until this job existed, `zizmor` was the only hook that ever
+        # ran in CI, so every formatter hook was effectively unenforced: two
+        # defects sat on main undetected, one of them non-idempotent (yamlfmt
+        # appended a blank line to copier.yml on every run, without bound).
+        #
+        # `--all-files` because the point is a whole-repo invariant, not a
+        # diff-scoped check: formatter churn hides in files a given PR never
+        # touches. `--show-diff-on-failure` prints what a formatter hook changed,
+        # so a failure is actionable from the log alone.
+        #
+        # uvx, not mise: every hook in prek.toml comes from `builtin` or an
+        # upstream repo, so prek provisions its own hook environments (including
+        # the node one for markdownlint) and the only tool CI needs is prek
+        # itself. mise.toml stays the source of truth for local dev.
+        run: uvx prek run --all-files --show-diff-on-failure
   render-tests:
     name: Render harness (pytest)
     runs-on: ubuntu-latest
