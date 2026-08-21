@@ -9,7 +9,10 @@ on:
     # `ready_for_review` is NOT in the default type set (opened, synchronize,
     # reopened) and is load-bearing here: every job below is gated on
     # `draft != true`, so without this type, taking a PR out of draft would
-    # never re-run the CI it skipped while drafted. See ADR-028.
+    # never re-run the CI it skipped while drafted. `converted_to_draft` is
+    # deliberately absent: converting back to draft leaves the green `check` from
+    # the pre-draft head SHA as the reported status until the next push, which is
+    # harmless because a draft cannot be merged. See ADR-028.
     types: [opened, synchronize, reopened, ready_for_review]
 jobs:
   hooks:
@@ -75,6 +78,9 @@ jobs:
           - os: macos-latest
             tox_args: ""
 {%- else %}
+{#- The non-Linux cells' depth, spelled once: the matrix cells below and the
+    `Run the tests` comment further down both read it. -#}
+{%- set light_tox_args = "-e py" ~ (",cli" if include_cli else "") %}
     # Asymmetric matrix: full interpreter depth on Linux, one representative
     # interpreter elsewhere. Every OS still runs the suite and every interpreter
     # still runs the suite, but not every pair — cross-platform bugs (path
@@ -83,8 +89,12 @@ jobs:
     # spend (15 heavy runs → 5 + 1 + 1). `-e py` runs the single tox env for the
     # interpreter that invoked tox — i.e. the `.python-version` one `setup-python`
     # installs above — so these cells also skip `style`, a lint/type-check pass
-    # pinned to one interpreter whose verdict is OS-independent and so already
-    # covered in the Linux cell. See ADR-028.
+    # pinned to one interpreter and already covered in the Linux cell. The one
+    # thing that costs: type checkers resolve `sys.platform` against the *host*,
+    # so a branch guarded by `sys.platform == "win32"` is now type-checked
+    # nowhere. If this project carries platform-gated code, either pin the
+    # checkers' platform explicitly or add `,style` to the Windows cell below.
+    # See ADR-028.
 {%- if include_cli %}
     # The `cli` env IS kept on every OS: it invokes the *installed* console
     # script, and script shims are per-OS (Windows `.exe` wrappers), so it is the
@@ -98,9 +108,9 @@ jobs:
           - os: ubuntu-latest
             tox_args: ""
           - os: macos-latest
-            tox_args: "-e py{% if include_cli %},cli{% endif %}"
+            tox_args: "{{light_tox_args}}"
           - os: windows-latest
-            tox_args: "-e py{% if include_cli %},cli{% endif %}"
+            tox_args: "{{light_tox_args}}"
 {%- endif %}
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     name: Run Tests on {% raw %}${{ matrix.os }}{% endraw %}
@@ -159,7 +169,7 @@ jobs:
         # untrusted event input.
 {%- else %}
         # `matrix.tox_args` selects this cell's depth — empty for the full
-        # `env_list`, `-e py{% if include_cli %},cli{% endif %}` elsewhere: the single tox env for the
+        # `env_list`, `{{light_tox_args}}` elsewhere: the single tox env for the
         # `.python-version` interpreter{% if include_cli %}, plus the console-script check{% endif %}.
         # Safe to interpolate into `run:`: the values are literals from the matrix
         # above, not untrusted event input.

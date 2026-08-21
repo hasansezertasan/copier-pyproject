@@ -55,8 +55,9 @@ that the test step passes through:
 `.python-version` interpreter `setup-python` installs — inheriting
 `[tool.tox.env_run_base]` unchanged (same `coverage run --module pytest`, same
 `package = "wheel"`). It therefore also skips `style` on the non-Linux cells:
-`style` is a lint/type-check pass pinned to one interpreter, and its verdict is
-OS-independent.
+`style` is a lint/type-check pass pinned to one interpreter, and for a project
+with no platform-gated code its verdict is OS-independent. That qualifier is the
+one real cost — see the type-checker note under **Consequences**.
 
 **`cli` is deliberately *not* dropped.** It is the one `env_list` entry that is
 OS-dependent despite looking like a lint env: its command is the *installed*
@@ -122,6 +123,11 @@ Two details make this correct rather than merely short:
   the default set (`opened`, `synchronize`, `reopened`). Without it, a PR opened
   as a draft would skip CI and then never re-run it on "Ready for review" — the
   guard would silently become permanent. This line is load-bearing, not cosmetic.
+  `converted_to_draft` is deliberately *not* added: converting a reviewable PR
+  back to draft leaves the green `check` from the pre-draft head SHA standing as
+  the reported status until the next push, which is harmless because a draft
+  cannot be merged — and adding the type would only start a run whose jobs the
+  guard immediately skips.
 - **The guard is scoped to `ci.yml`, not to "CI".** It removes the whole
   test/coverage/packaging fan-out — by far the bulk of the spend — but the other
   `pull_request`-triggered workflows (`codeql`, `check-security`,
@@ -146,6 +152,18 @@ Two details make this correct rather than merely short:
   non-Linux cells contribute one interpreter each, as before.
 - `style` now runs exactly once (Linux), which is also where the `hooks` job's
   prek run already lives. `cli` still runs on all three OSes (see above).
+- **`style` running Linux-only means platform-gated code loses its type check.**
+  mypy, basedpyright, ty, pyrefly and zuban all resolve `sys.platform` against
+  the *host* they run on, so a branch under `if sys.platform == "win32":` is now
+  analysed on no CI runner at all — previously the Windows cell covered it. The
+  same applies to `sys.platform`-narrowed imports (`msvcrt`, `winreg`) and to
+  `platform.system()` branches the checkers can narrow. The template ships no
+  such code, so the default rendering loses nothing; a project that adds it has
+  two one-line fixes, both documented in the rendered `ci.yml` comment: pin the
+  checkers' target platform in `pyproject.toml`
+  (`[tool.mypy] platform = "win32"`, basedpyright's `pythonPlatform`) so the
+  single Linux run analyses both branches, or append `,style` to the Windows
+  cell's `tox_args`. Preferring the pinned-platform fix keeps the cost at zero.
 - The rendered `ci.yml` is the only file that changes; no `copier.yml` question,
   no `preset_map` entry, no new generated file.
 - Guarded by `tests/test_render_validity.py`: the exact asymmetric `include:`

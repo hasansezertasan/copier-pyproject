@@ -359,13 +359,11 @@ def test_c_extensions_restores_the_full_grid(render: Callable[..., Path]) -> Non
     distinct ABI-specific build, so every cell runs the whole ``env_list``
     (ADR-028)."""
     job = _ci_workflow(render(include_c_extensions=True))["jobs"]["ci"]
-    include = job["strategy"]["matrix"]["include"]
-    assert {entry["os"] for entry in include} == {
-        "ubuntu-latest",
-        "macos-latest",
-        "windows-latest",
-    }
-    assert [entry["tox_args"] for entry in include] == ["", "", ""]
+    assert job["strategy"]["matrix"]["include"] == [
+        {"os": "windows-latest", "tox_args": ""},
+        {"os": "ubuntu-latest", "tox_args": ""},
+        {"os": "macos-latest", "tox_args": ""},
+    ]
 
 
 def test_every_ci_job_is_gated_on_draft_prs(render: Callable[..., Path]) -> None:
@@ -393,11 +391,10 @@ def test_ci_reruns_when_a_pr_leaves_draft(render: Callable[..., Path]) -> None:
     """``ready_for_review`` is not a default ``pull_request`` type, and without it
     the draft guard would permanently skip CI for a PR opened as a draft.
 
-    Asserted against the raw text: PyYAML resolves the ``on`` key to the boolean
-    ``True`` (YAML 1.1), so reading the trigger block back out of the parsed
-    document is more fragile than reading the line.
+    Read out of the parsed document rather than matched as a raw substring, so a
+    reformat of the flow sequence by yamlfmt does not fail the test. PyYAML
+    resolves the ``on`` key to the boolean ``True`` (YAML 1.1), hence the
+    ``[True]`` index.
     """
-    workflow = (
-        render() / ".github" / "workflows" / "ci.yml"
-    ).read_text(encoding="utf-8")
-    assert "types: [opened, synchronize, reopened, ready_for_review]" in workflow
+    triggers = _ci_workflow(render())[True]["pull_request"]["types"]
+    assert triggers == ["opened", "synchronize", "reopened", "ready_for_review"]
