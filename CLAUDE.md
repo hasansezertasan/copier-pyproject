@@ -265,12 +265,12 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   workflow-level skip leaves a check unreported. The guard covers `ci.yml` only;
   the security workflows and docs preview still run on drafts, so never claim "no
   CI spend on drafts"
-  ([ADR-028](docs/adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md)).
+  ([ADR-029](docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md)).
 - **The asymmetric `ci` matrix keeps `cli` on every OS.** The non-Linux cells run
   `-e py,cli`, not a bare `-e py`: `cli` invokes the *installed* console script
   and script shims are per-OS, so it is the only cross-platform check of the
   entry point (the suite drives the CLI in process). Only `style` is safe to run
-  Linux-only (ADR-028).
+  Linux-only (ADR-029).
 - **Docs deploys must preserve the version-slug directories** (numeric, e.g.
   `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
   `gh-pages.yml` build only the current version and re-supply prior versions from
@@ -286,7 +286,7 @@ Detail (jobs, gating, security posture) in `docs/template-architecture.md`.
 
 | Workflow | Purpose | ADR |
 | --- | --- | --- |
-| `ci.yml` | asymmetric OS/Python matrix + coverage, draft-PR skip; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md), [028](docs/adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md) |
+| `ci.yml` | asymmetric OS/Python matrix + coverage, draft-PR skip; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md), [029](docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md) |
 | `release.yml` | release-please → build / pypi-publish / executables / docker / docs / sbom / issue-notify | [002](docs/adr/002-release-please-for-release-automation.md), [010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md) |
 | `check-pr-title.yml` | PR title vs Conventional Commits | — |
 | `check-linked-issues.yml` | require a linked issue (`no-issue` bypasses) | — |

@@ -12,7 +12,7 @@ on:
     # never re-run the CI it skipped while drafted. `converted_to_draft` is
     # deliberately absent: converting back to draft leaves the green `check` from
     # the pre-draft head SHA as the reported status until the next push, which is
-    # harmless because a draft cannot be merged. See ADR-028.
+    # harmless because a draft cannot be merged. See ADR-029.
     types: [opened, synchronize, reopened, ready_for_review]
 jobs:
   hooks:
@@ -26,7 +26,7 @@ jobs:
     # `check` run on the same head SHA that supersedes the skipped one.
     # `!= true` is falsy-safe on
     # `push`/`workflow_dispatch`, where there is no `pull_request` context. Every
-    # job below carries the same guard; see ADR-028. Note the guard covers this
+    # job below carries the same guard; see ADR-029. Note the guard covers this
     # workflow only — codeql, check-security, dependency-review, validate-citation
     # and the docs preview still run on drafts.
     if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
@@ -66,7 +66,7 @@ jobs:
     # compiles the extension itself. Every OS × interpreter pair is therefore a
     # distinct build that must be verified, so every cell runs the bare `tox run`
     # (the whole `env_list`). Projects without a compiled extension get a
-    # narrower, asymmetric matrix instead — see ADR-028.
+    # narrower, asymmetric matrix instead — see ADR-029.
     strategy:
       fail-fast: false
       matrix:
@@ -94,7 +94,7 @@ jobs:
     # so a branch guarded by `sys.platform == "win32"` is now type-checked
     # nowhere. If this project carries platform-gated code, either pin the
     # checkers' platform explicitly or add `,style` to the Windows cell below.
-    # See ADR-028.
+    # See ADR-029.
 {%- if include_cli %}
     # The `cli` env IS kept on every OS: it invokes the *installed* console
     # script, and script shims are per-OS (Windows `.exe` wrappers), so it is the

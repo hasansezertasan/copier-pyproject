@@ -1,4 +1,4 @@
-# ADR-028: Asymmetric OS/Python CI matrix + draft-PR skip
+# ADR-029: Asymmetric OS/Python CI matrix + draft-PR skip
 
 ## Status
 

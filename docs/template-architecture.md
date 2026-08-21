@@ -569,7 +569,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ## CI/CD Workflows
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
-   - **Asymmetric matrix** ([ADR-028](adr/028-asymmetric-ci-matrix-and-draft-pr-skip.md)):
+   - **Asymmetric matrix** ([ADR-029](adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md)):
      the `ci` matrix is an explicit `include:` list carrying a `tox_args` field
      that the test step passes through (`uv run --locked tox run ${{ matrix.tox_args }}`).
      `ubuntu-latest` gets `""` — the full `env_list` (3.10-3.14 plus `style`, and
@@ -587,7 +587,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      grid) — a compiled extension makes each OS × interpreter pair a distinct
      ABI-specific build, which is also why tox switches to `package = "sdist"`
      there. There is no `ci_full_matrix` toggle; the carve-out is inferred.
-   - **Draft-PR skip** (ADR-028): every job carries
+   - **Draft-PR skip** (ADR-029): every job carries
      `if: ${{ github.event.pull_request.draft != true }}` — `!= true` so it stays
      falsy-safe on `push`/`workflow_dispatch` (no `pull_request` context), and
      **including `check`**, because `re-actors/alls-green` counts a skipped
