@@ -27,6 +27,9 @@ import argparse
 {% if need_import_guard -%}
 import contextlib
 {% endif -%}
+{% if include_web -%}
+import importlib
+{% endif -%}
 import platform
 import sys
 from importlib.metadata import Distribution, PackageNotFoundError
@@ -197,6 +200,7 @@ def web() -> None:  # pragma: no cover
     A missing dependency is reported by ``_component_dependencies`` below.
     """
     with _component_dependencies("web"):
+        _ = importlib.import_module("uvicorn")
         from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
@@ -323,6 +327,9 @@ from __future__ import annotations
 {% if need_import_guard -%}
 import contextlib
 {% endif -%}
+{% if include_web -%}
+import importlib
+{% endif -%}
 {% if include_cli -%}
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
@@ -416,6 +423,9 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
     if ctx.invoked_subcommand is not None:
         return
     with _component_dependencies("{{primary_component}}"):
+{%- if primary_component == "web" %}
+        _ = importlib.import_module("uvicorn")
+{%- endif %}
         from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
     {{ "raise typer.Exit(code=main())" if primary_component in ["gui", "tui"] else "main()" }}
@@ -537,6 +547,7 @@ def web() -> None:  # pragma: no cover
     A missing dependency is reported by ``_component_dependencies`` below.
     """
     with _component_dependencies("web"):
+        _ = importlib.import_module("uvicorn")
         from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()

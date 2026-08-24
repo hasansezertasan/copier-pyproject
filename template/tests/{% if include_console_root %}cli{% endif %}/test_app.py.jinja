@@ -12,10 +12,17 @@
 from __future__ import annotations
 
 import importlib
+{% if include_web -%}
+import sys
+{% endif -%}
 from importlib.metadata import Distribution, PackageNotFoundError
-
+{% if include_web -%}
+from typing import NoReturn
+{% endif %}
 import pytest
-
+{% if include_web -%}
+import uvicorn
+{% endif %}
 from {{github_repo_name}}.cli.app import app
 
 # Import the module object (not the re-exported callable) so the monkeypatch
@@ -136,6 +143,57 @@ def test_missing_component_dependency_is_actionable(
     assert "web" in err
     assert "uvicorn" in err
     assert "uv sync" in err
+{% endif %}
+{%- if include_web %}
+
+_RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+
+
+def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
+    """Simulate an application import bug after the web dependency preflight.
+
+    Raises:
+        ModuleNotFoundError: Always, standing in for an application import bug.
+    """
+    raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+
+
+def test_web_launcher_reports_missing_deferred_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The web launcher translates a missing lazy ``uvicorn`` import.
+
+    Given:
+        - The generated environment cannot import ``uvicorn``.
+    When:
+        - The public web launcher starts the web component.
+    Then:
+        - The command exits 1 and reports how to synchronize the environment,
+          without exposing the underlying ``ModuleNotFoundError`` traceback.
+    """
+    monkeypatch.setitem(sys.modules, "uvicorn", None)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["web"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "uvicorn" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+
+
+def test_web_launcher_preserves_runtime_import_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An import failure during server execution is not called a stale venv."""
+    monkeypatch.setattr(uvicorn, "run", _raise_runtime_import_error)
+
+    with pytest.raises(ModuleNotFoundError, match="user_plugin"):
+        app(["web"])
+
+    assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
 {%- else -%}
 """Test cases for the {{github_repo_name}} Typer root."""
@@ -143,14 +201,20 @@ def test_missing_component_dependency_is_actionable(
 from __future__ import annotations
 
 import importlib
+{% if include_web -%}
+import sys
+{% endif -%}
 {% if include_cli -%}
 from importlib.metadata import Distribution, PackageNotFoundError
 {% endif -%}
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING{% if include_web %}, NoReturn{% endif %}
 
 import pytest
 {% if need_import_guard -%}
 import typer
+{% endif -%}
+{% if include_web -%}
+import uvicorn
 {% endif -%}
 from typer.testing import CliRunner
 
@@ -296,5 +360,56 @@ def test_missing_component_dependency_is_actionable(
     assert "web" in err
     assert "uvicorn" in err
     assert "uv sync" in err
+{% endif %}
+{%- if include_web %}
+
+_RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+
+
+def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
+    """Simulate an application import bug after the web dependency preflight.
+
+    Raises:
+        ModuleNotFoundError: Always, standing in for an application import bug.
+    """
+    raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+
+
+def test_web_launcher_reports_missing_deferred_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The web launcher translates a missing lazy ``uvicorn`` import.
+
+    Given:
+        - The generated environment cannot import ``uvicorn``.
+    When:
+        - The public web launcher starts the web component.
+    Then:
+        - The command exits 1 and reports how to synchronize the environment,
+          without exposing the underlying ``ModuleNotFoundError`` traceback.
+    """
+    monkeypatch.setitem(sys.modules, "uvicorn", None)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "web" in result.output
+    assert "uvicorn" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_web_launcher_preserves_runtime_import_errors(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An import failure during server execution is not called a stale venv."""
+    monkeypatch.setattr(uvicorn, "run", _raise_runtime_import_error)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert isinstance(result.exception, ModuleNotFoundError)
+    assert result.exception.name == "user_plugin"
+    assert "uv sync" not in result.output
 {%- endif %}
 {%- endif %}
