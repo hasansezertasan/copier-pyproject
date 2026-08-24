@@ -315,7 +315,13 @@ redis_cli:
 worker_broker_spec:
   type: json
   when: false
-  default: >-
+  # A literal block scalar (`|-`), not folded (`>-`), and deliberately so: the
+  # continuation lines below are *more indented* than the opening `{{`, which
+  # makes a folded scalar's round-trip non-idempotent — yamlfmt re-emits it with
+  # a disambiguating blank line, which re-parses into another one, so every hook
+  # run appended one more. `|-` has no folding ambiguity and yields a
+  # byte-identical value (Jinja ignores the internal newlines either way).
+  default: |-
     {{
       (
         {
