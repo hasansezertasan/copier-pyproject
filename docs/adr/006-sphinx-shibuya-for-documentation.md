@@ -68,8 +68,8 @@ Specifics:
   approach keeps the CLI reference uniform with the worker/web generators (all
   shell the live app into `docs/_generated/`) and adds no extra extension.
 - **tox:** `docs-build` runs `sphinx-build -b html docs docs/_build/html`;
-  `docs-server` runs `sphinx-autobuild`. Both set `extras = ["all"]` (see
-  Consequences — autodoc must import the package and its optional dependencies).
+  `docs-server` runs `sphinx-autobuild`. Both install the package itself (see
+  Consequences — autodoc must import the package and its runtime dependencies).
 - **CI deploy:** the `deploy-docs` job and `gh-pages.yml` build with `sphinx-build`
   and publish with `ghp-import -n -p -f docs/_build/html`. `ghp-import` is the same
   tool MkDocs invoked under the hood for `gh-deploy`, so the **gh-pages-branch
@@ -98,11 +98,13 @@ unchanged here; only its build/publish commands moved from MkDocs to Sphinx.
 ## Consequences
 
 - **Docs build installs the package, not just the docs group.** MkDocs deployed
-  with `--only-group docs`; autodoc must *import* the package and any optional
-  dependencies of the modules it documents. The tox envs therefore set
-  `extras = ["all"]`, and the CI steps run
-  `uv run --no-default-groups --extra all --group docs sphinx-build …`. Without the
-  extras, `.. automodule:: pkg.web.app` would fail to import its framework.
+  with `--only-group docs`; autodoc must *import* the package and the
+  dependencies of the modules it documents. The tox `docs-*` envs therefore
+  install the project, and the CI steps run
+  `uv run --no-default-groups --group docs sphinx-build …` (which also installs
+  it). Without the package, `.. automodule:: pkg.web.app` would fail to import
+  its framework. An enabled component's runtime deps are core `dependencies`,
+  not an extra, so nothing further is needed — see ADR-028.
 - **`mkdocs.yml.jinja` and the four `*.md.jinja` pages are removed**, replaced by
   `docs/conf.py.jinja` and `docs/{index,installation,usage,modules}.rst.jinja`.
 - **`check-yaml --unsafe` is dropped from `prek.toml`.** The `--unsafe` flag existed
