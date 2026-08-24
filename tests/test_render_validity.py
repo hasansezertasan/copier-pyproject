@@ -398,3 +398,54 @@ def test_ci_reruns_when_a_pr_leaves_draft(render: Callable[..., Path]) -> None:
     """
     triggers = _ci_workflow(render())[True]["pull_request"]["types"]
     assert triggers == ["opened", "synchronize", "reopened", "ready_for_review"]
+
+
+def test_documentation_examples_are_rendered_and_checked(
+    render: Callable[..., Path],
+) -> None:
+    """Docs examples are literal-included modules covered by every quality gate."""
+    root = render()
+    example = root / "docs" / "examples" / "version_lookup.py"
+    assert example.is_file()
+    assert "def version_lookup()" in example.read_text(encoding="utf-8")
+
+    usage = (root / "docs" / "usage.rst").read_text(encoding="utf-8")
+    assert ".. literalinclude:: examples/version_lookup.py" in usage
+
+    test = (root / "tests" / "test_docs_examples.py").read_text(encoding="utf-8")
+    assert "test_all_documentation_examples_are_importable" in test
+    assert "test_version_lookup_example_uses_the_installed_distribution" in test
+    assert 'EXAMPLES_DIR.rglob("*.py")' in test
+
+    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
+    parsed_pyproject = tomllib.loads(pyproject)
+    sdist_include = parsed_pyproject["tool"]["hatch"]["build"]["targets"]["sdist"][
+        "include"
+    ]
+    assert "/docs/examples" in sdist_include
+    for checker_scope in (
+        'files = ["src", "docs/examples"]',
+        'include = ["src/example", "docs/examples"]',
+        'include = ["src", "tests", "docs/examples"]',
+        'project-includes = ["src", "docs/examples"]',
+        '"docs/examples",',
+    ):
+        assert checker_scope in pyproject
+    assert '[tool.tox.env.docs-doctest]' in pyproject
+    assert '"docs-doctest",' in pyproject
+    assert '"sphinx.ext.doctest",' in (root / "docs" / "conf.py").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_docs_off_omits_documentation_examples_and_checks(
+    render: Callable[..., Path],
+) -> None:
+    """The docs toggle owns the complete tested-examples subsystem."""
+    root = render(include_docs=False)
+    assert not (root / "docs" / "examples").exists()
+    assert not (root / "docs" / "version_lookup.py").exists()
+    assert not (root / "tests" / "test_docs_examples.py").exists()
+    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
+    assert "docs/examples" not in pyproject
+    assert "docs-doctest" not in pyproject

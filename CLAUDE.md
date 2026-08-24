@@ -380,8 +380,8 @@ above — never a multi-line block here.
    - Add the runtime dependency to the core `dependencies` list under the
      component's `{% if include_xxx %}` guard — **not** an optional extra: the
      component's console script imports it unconditionally, so `pip install
-     <pkg>` must pull it. (`all` stays empty; it exists only so the `dev`
-     group's `<pkg>[all]` resolves.)
+     <pkg>` must pull it. Generated projects declare **no**
+     `[project.optional-dependencies]` at all ([ADR-028](docs/adr/028-no-empty-all-extra.md)).
    - Add the entry point if applicable. If the component is runnable, fold it
      into the console-script precedence in `primary_component` (`copier.yml`); a
      non-primary component gets a `<pkg> <name>` **subcommand** (add a lazy

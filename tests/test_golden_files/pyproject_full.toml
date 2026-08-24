@@ -88,13 +88,6 @@ dependencies = [
     "pydantic-settings>=2.0.0",
 ]
 
-[project.optional-dependencies]
-# Runnable-component and settings deps are core (see ``dependencies`` above), so
-# no per-component extras remain. ``all`` is kept (empty) because the ``dev``
-# dependency-group installs ``example[all]``.
-all = []
-
-
 [project.urls]
 changelog = "https://github.com/octocat/example/blob/main/CHANGELOG.md"
 documentation = "https://octocat.github.io/example"
@@ -111,7 +104,6 @@ example = "example.__main__:main"
 
 [dependency-groups]
 dev = [
-  "example[all]",
   "tox==4.58.0",
   "tox-uv==1.36.0",
   "debugpy==1.8.21",
@@ -241,7 +233,13 @@ allow-direct-references = true
 # The package uses a src layout, so the source tree lives under /src (not
 # /example); including /src ships the actual modules -- and, for
 # C-extension projects, the .pyx/.pxd sources needed to compile from the sdist.
-include = ["/README.md", "LICENSE", "/src", "/tests"]
+include = [
+  "/README.md",
+  "LICENSE",
+  "/src",
+  "/tests",
+  "/docs/examples",
+]
 
 
 [tool.hatch.build.targets.wheel.hooks.custom]
@@ -390,7 +388,7 @@ fix = true
 output-format = "full"
 preview = true
 show-fixes = true
-src = ["src", "tests", "examples", "scripts"]
+src = ["src", "tests", "examples", "docs/examples", "scripts"]
 target-version = "py310"
 unsafe-fixes = true
 
@@ -460,6 +458,9 @@ convention = "pep257"
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
 "examples/**/*.py" = ["INP001"]
+# Documentation examples are importable modules tested by
+# ``tests/test_docs_examples.py``; they are not application packages.
+"docs/examples/**/*.py" = ["INP001"]
 # The Sphinx config is a standalone module, not part of an importable package.
 "docs/conf.py" = ["INP001"]
 # The docs warning-allowlist gate is a standalone script (not an importable
@@ -486,7 +487,7 @@ parenthesize-tuple-in-subscript = true
 
 
 [tool.mypy]
-files = ["src"]
+files = ["src", "docs/examples"]
 pretty = true
 python_version = "3.10"
 strict = true
@@ -494,7 +495,7 @@ strict = true
 
 [tool.basedpyright]
 exclude = [".venv"]
-include = ["src/example"]
+include = ["src/example", "docs/examples"]
 pythonVersion = "3.10"
 venv = ".venv"
 # venvPath is the directory *containing* the venv, not the venv itself; ".venv"
@@ -512,7 +513,7 @@ reportImplicitStringConcatenation = "none"
 
 
 [tool.ty.src]
-include = ["src", "tests"]
+include = ["src", "tests", "docs/examples"]
 respect-ignore-files = false
 
 
@@ -526,11 +527,11 @@ error-on-warning = true
 
 [tool.pyrefly]
 python-version = "3.10"
-project-includes = ["src"]
+project-includes = ["src", "docs/examples"]
 
 [tool.pylint.main]
 # pylint runs as an always-on gate that deliberately overlaps ruff's PL* rules.
-# Its canonical invocation is `pylint src`, so it never descends into tests; this
+# Its canonical invocation is `pylint src docs/examples`, so it never descends into tests; this
 # ignore-paths is a defensive scope guard for broader invocations (`pylint .`,
 # filename-passing hooks). Tests are linted by ruff, not pylint.
 ignore-paths = ["^tests/.*$"]
@@ -549,9 +550,10 @@ disable = [
   "missing-class-docstring",    # C0115
   "missing-function-docstring", # C0116
   "too-few-public-methods",     # R0903 — trips dataclasses / config / Protocol classes
-  # C0415 — components (cli->tui/gui/web, and each component's own
-  # optional-dependency probe) are deliberately lazy-imported so import-linter's
-  # layering contract holds and optional extras aren't required at import time.
+  # C0415 — the cli->tui/gui/web dispatch, and each component's own heavy or
+  # platform-conditional import (tkinter, textual, uvicorn, the worker's uvloop
+  # probe), are deliberately lazy so import-linter's layering contract holds and
+  # a framework is only imported when the code path that needs it actually runs.
   "import-outside-toplevel",
   # W0706 — the generated TUI entry point explicitly re-raises
   # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the
@@ -583,6 +585,9 @@ datas = "datas"
 # ``tox -e worker`` when a broker is up (e.g. inside the devcontainer).
 env_list = [
     "style",
+    # Inline ``>>>`` snippets are part of the tested-documentation contract,
+    # so run them in the default CI ``tox run`` invocation.
+    "docs-doctest",
     "cli",
     "3.14",
     "3.13",
@@ -615,7 +620,6 @@ env_tmp_dir = "{toxworkdir}/tmp/{envname}"
 # `coverage run` plus `parallel = true` writes per-env data files that the CI
 # `coverage combine` step merges.
 set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
-extras = ["all"]
 
 # The compiled extension makes each wheel ABI-specific. Distributing as an sdist
 # lets every environment compile it against its own interpreter, producing a
@@ -685,10 +689,12 @@ commands = [
     "zuban",
     "check",
     "src",
+    "docs/examples",
   ],
   [
     "pylint",
     "src",
+    "docs/examples",
   ],
   [
     "python",
@@ -739,10 +745,6 @@ commands = [
 # resolve pytest and other test-only imports.
 dependency_groups = ["style", "test"]
 description = "Run Checkers, Linters and Formatters"
-# Optional components (web/gui/tui/mcp/worker) are only importable when their
-# extra is installed; without this, pylint/mypy/etc. see import-error for any
-# optional component present in this render.
-extras = ["all"]
 runner = "uv-venv-runner"
 
 
@@ -762,7 +764,6 @@ commands = [
     ["sphinx-build", "-w", "docs/_build/warnings.txt", "-b", "html", "docs", "docs/_build/html"],
     ["python", "docs/check_warnings.py"],
 ]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Build Docs"
 runner = "uv-venv-runner"
@@ -781,9 +782,20 @@ set_env = { PYTHONUNBUFFERED = "1" }
 # rewrites it on every Sphinx build, so watching it would make each rebuild
 # trigger the next in an endless live-reload loop.
 commands = [["sphinx-autobuild", "--ignore", "*/_generated/*", "docs", "docs/_build/html"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Start the live-reloading docs server"
+runner = "uv-venv-runner"
+set_env = { PYTHONUNBUFFERED = "1" }
+
+
+[tool.tox.env.docs-doctest]
+# ``literalinclude`` keeps complete examples in tested Python modules; this
+# separate builder executes the occasional ``>>>`` snippet that belongs inline
+# with prose.
+commands = [["sphinx-build", "-b", "doctest", "docs", "docs/_build/doctest"]]
+extras = ["all"]
+dependency_groups = ["docs"]
+description = "Run documentation doctests"
 runner = "uv-venv-runner"
 set_env = { PYTHONUNBUFFERED = "1" }
 
@@ -792,7 +804,6 @@ set_env = { PYTHONUNBUFFERED = "1" }
 # On-demand link checker. Also run weekly (non-blocking) by docs-linkcheck.yml.
 # Hits the network, so it is deliberately not part of the `style` env or PR CI.
 commands = [["sphinx-build", "-b", "linkcheck", "docs", "docs/_build/linkcheck"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Check documentation for broken links"
 runner = "uv-venv-runner"
@@ -853,7 +864,6 @@ commands = [
   ],
 ]
 description = "Run worker broker integration tests against a real broker."
-extras = ["all"]
 dependency_groups = ["test"]
 runner = "uv-venv-runner"
 # tox passes only an allowlisted set of environment variables into the test
