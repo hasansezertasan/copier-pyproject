@@ -171,7 +171,13 @@ allow-direct-references = true
 # The package uses a src layout, so the source tree lives under /src (not
 # /example); including /src ships the actual modules -- and, for
 # C-extension projects, the .pyx/.pxd sources needed to compile from the sdist.
-include = ["/README.md", "LICENSE", "/src", "/tests"]
+include = [
+  "/README.md",
+  "LICENSE",
+  "/src",
+  "/tests",
+  "/docs/examples",
+]
 
 
 [tool.commitizen]

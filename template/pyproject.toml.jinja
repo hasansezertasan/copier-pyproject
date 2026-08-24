@@ -336,7 +336,15 @@ allow-direct-references = true
 # The package uses a src layout, so the source tree lives under /src (not
 # /{{github_repo_name}}); including /src ships the actual modules -- and, for
 # C-extension projects, the .pyx/.pxd sources needed to compile from the sdist.
-include = ["/README.md", "LICENSE", "/src", "/tests"]
+include = [
+  "/README.md",
+  "LICENSE",
+  "/src",
+  "/tests",
+{%- if include_docs %}
+  "/docs/examples",
+{%- endif %}
+]
 {% if include_c_extensions %}
 
 [tool.hatch.build.targets.wheel.hooks.custom]

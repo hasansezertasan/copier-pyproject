@@ -317,6 +317,11 @@ def test_documentation_examples_are_rendered_and_checked(
     assert 'EXAMPLES_DIR.rglob("*.py")' in test
 
     pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
+    parsed_pyproject = tomllib.loads(pyproject)
+    sdist_include = parsed_pyproject["tool"]["hatch"]["build"]["targets"]["sdist"][
+        "include"
+    ]
+    assert "/docs/examples" in sdist_include
     for checker_scope in (
         'files = ["src", "docs/examples"]',
         'include = ["src/example", "docs/examples"]',
@@ -338,7 +343,8 @@ def test_docs_off_omits_documentation_examples_and_checks(
     """The docs toggle owns the complete tested-examples subsystem."""
     root = render(include_docs=False)
     assert not (root / "docs" / "examples").exists()
+    assert not (root / "docs" / "version_lookup.py").exists()
     assert not (root / "tests" / "test_docs_examples.py").exists()
-    assert '"docs/examples",' not in (root / "pyproject.toml").read_text(
-        encoding="utf-8"
-    )
+    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
+    assert "docs/examples" not in pyproject
+    assert "docs-doctest" not in pyproject
