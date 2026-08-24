@@ -58,3 +58,11 @@ def test_conftest_auto_marks_web(render: Callable[..., Path]) -> None:
     conftest = (project / "tests" / "conftest.py").read_text(encoding="utf-8")
     assert "pytest_collection_modifyitems" in conftest
     assert '"web"' in conftest
+
+
+def test_conftest_marks_root_level_tests_as_core(
+    render: Callable[..., Path],
+) -> None:
+    project = render(preset="library")
+    conftest = (project / "tests" / "conftest.py").read_text(encoding="utf-8")
+    assert 'else "core"' in conftest

@@ -8,9 +8,11 @@ coverage gate. Designed to compose with #159 (asymmetric matrix + draft skip).
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from typing import Any, Callable
 
+import pytest
 import yaml
 
 
@@ -85,15 +87,30 @@ def test_matrix_asymmetric_without_c_extensions(render: Callable[..., Path]) -> 
     ci = _ci(render, preset="library")
     include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
     by_os = {row["os"]: row["tox_args"] for row in include}
-    assert by_os["ubuntu-latest"] == ""
+    assert by_os["ubuntu-latest"] == "-e 3.14,3.13,3.12,3.11,3.10"
     assert by_os["macos-latest"] == "-e py"
     assert by_os["windows-latest"] == "-e py"
+
+
+def test_matrix_keeps_installed_cli_check_on_every_os(
+    render: Callable[..., Path],
+) -> None:
+    ci = _ci(render, preset="tool")
+    job = ci["jobs"]["cli-installed"]
+    assert job["strategy"]["matrix"]["os"] == [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest",
+    ]
+    assert "tox run -e cli" in _job_run(job)
 
 
 def test_matrix_full_grid_with_c_extensions(render: Callable[..., Path]) -> None:
     ci = _ci(render, preset="library", include_c_extensions=True)
     include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
-    assert all(row["tox_args"] == "" for row in include)
+    assert all(
+        row["tox_args"] == "-e 3.14,3.13,3.12,3.11,3.10" for row in include
+    )
 
 
 # --- Task 4: coverage decomposition -------------------------------------------
@@ -180,6 +197,54 @@ def test_coverage_report_has_draft_guard(render: Callable[..., Path]) -> None:
     cond = ci["jobs"]["coverage-report"]["if"]
     assert "github.event.pull_request.draft != true" in cond
     assert "!cancelled()" in cond
+
+
+def test_ready_for_review_restarts_draft_skipped_ci(
+    render: Callable[..., Path],
+) -> None:
+    ci = _ci(render, preset="library")
+    pull_request = ci[True]["pull_request"]
+    assert pull_request["types"] == [
+        "opened",
+        "synchronize",
+        "reopened",
+        "ready_for_review",
+    ]
+
+
+@pytest.mark.parametrize("preset", ["library", "tool", "full"])
+def test_every_ci_job_has_falsy_safe_draft_guard(
+    render: Callable[..., Path], preset: str
+) -> None:
+    ci = _ci(render, preset=preset)
+    for name, job in ci["jobs"].items():
+        condition = str(job.get("if", ""))
+        assert "github.event.pull_request.draft != true" in condition, name
+
+
+def test_composed_job_conditions_keep_existing_guards(
+    render: Callable[..., Path],
+) -> None:
+    ci = _ci(render, preset="full")
+    assert ci["jobs"]["check"]["if"] == (
+        "${{ always() && github.event.pull_request.draft != true }}"
+    )
+    assert ci["jobs"]["sonar"]["if"] == (
+        "${{ github.event.pull_request.head.repo.fork != true && "
+        "github.event.pull_request.draft != true }}"
+    )
+
+
+def test_style_sweeps_non_linux_mypy_platforms(
+    render: Callable[..., Path],
+) -> None:
+    project = render(preset="library")
+    data = tomllib.loads(
+        (project / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    commands = data["tool"]["tox"]["env"]["style"]["commands"]
+    assert ["mypy", "--platform", "win32"] in commands
+    assert ["mypy", "--platform", "darwin"] in commands
 
 
 def test_coverage_report_scopes_out_skipped_components(render: Callable[..., Path]) -> None:

@@ -54,6 +54,6 @@ def pytest_collection_modifyitems(
             rel = item.path.relative_to(tests_root)
         except ValueError:  # pragma: no cover - defensive: items are under tests/
             continue
-        top = rel.parts[0] if len(rel.parts) > 1 else None
-        if top in _COMPONENT_DIRS:
-            item.add_marker(top)
+        component = rel.parts[0] if len(rel.parts) > 1 else "core"
+        if component in _COMPONENT_DIRS:
+            item.add_marker(component)

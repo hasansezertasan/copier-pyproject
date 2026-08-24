@@ -6,8 +6,8 @@ Proposed (2026-08). Generalizes the single `integration` marker from
 [ADR-008](008-worker-broker-testing-strategy.md) to a per-component scheme, and
 **supersedes in part** [ADR-026](026-combined-cross-matrix-coverage-and-tokenless-html-host.md):
 its single **union** coverage gate is decomposed into N per-component gates.
-Sibling to [issue #159](https://github.com/hasansezertasan/copier-pyproject/issues/159)
-(asymmetric matrix + draft-PR skip), with which it composes.
+Its matrix and draft policy are defined by
+[ADR-029](029-asymmetric-ci-matrix-and-draft-pr-skip.md).
 
 ## Context
 
@@ -31,8 +31,9 @@ two coarsenesses remained:
 
 `[tool.pytest.ini_options] markers` registers one marker per enabled component
 (`core`, `cli`, `web`, `gui`, `tui`, `mcp`, `worker`) alongside `integration`. A
-root `tests/conftest.py` `pytest_collection_modifyitems` hook applies
-`pytest.mark.<dir>` from each test's top-level `tests/<dir>/`, so no per-test
+root `tests/conftest.py` `pytest_collection_modifyitems` hook applies `core` to
+root-level tests and `pytest.mark.<dir>` from each test's top-level
+`tests/<dir>/`, so no per-test
 decoration or per-package `__init__.py` edit is needed and new files are covered
 automatically. The recognised directory set is rendered from the enabled toggles.
 
@@ -92,19 +93,20 @@ otherwise makes coverage discover a skipped component's unexecuted files and
 report them at ~0%, which would misreport the combined number on a path-filtered
 PR.
 
-### Interaction with #159
+### Matrix and draft policy
 
-The per-component jobs carry #159's asymmetric matrix `include` (full interpreter
-sweep on Linux, one representative interpreter elsewhere; full grid under
-`include_c_extensions`) and compose the draft-skip guard into each job's `if` via
-the falsy-safe `github.event.pull_request.draft != true`. The two changes are
-order-independent.
+The per-component jobs use ADR-029's asymmetric matrix (full interpreter sweep on
+Linux, one representative interpreter elsewhere; full grid under
+`include_c_extensions`) and compose its draft guard into each job's `if`. Style
+and installed-CLI checks are separate jobs so component marker arguments reach
+pytest only.
 
 ## Consequences
 
 - **More jobs on a full run.** A `core` change fans out to `(1 core + N components)`
   × OS jobs versus ADR-026's single 3-OS job; the win is on component-scoped PRs,
-  which skip the rest. #159's asymmetric matrix blunts the off-Linux per-job cost.
+  which skip the rest. ADR-029's asymmetric matrix blunts the off-Linux per-job
+  cost.
 - **Coverage-scope patterns are the load-bearing risk.** `--include`/`--omit` must
   match both layouts; verify via `tox run` (installed wheel), never editable
   `pytest`. The root `conftest.py`'s defensive `except ValueError` branch carries a

@@ -530,6 +530,18 @@ commands = [
     "--python-version",
     "3.14",
   ],
+  # Style runs once on Linux, so explicitly sweep platform-gated branches that
+  # mypy would otherwise prune as unreachable on the host platform.
+  [
+    "mypy",
+    "--platform",
+    "win32",
+  ],
+  [
+    "mypy",
+    "--platform",
+    "darwin",
+  ],
   [
     "basedpyright",
   ],

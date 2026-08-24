@@ -276,7 +276,7 @@ Detail (jobs, gating, security posture) in `docs/template-architecture.md`.
 
 | Workflow | Purpose | ADR |
 | --- | --- | --- |
-| `ci.yml` | `changes` path-filter → per-component `test-*` + scoped `coverage-*` gates + central `coverage-report`; packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md), [028](docs/adr/028-per-component-markers-and-path-filtered-ci.md) |
+| `ci.yml` | `changes` path-filter → per-component `test-*` + scoped `coverage-*` gates + central `coverage-report`; asymmetric matrix, draft skip, style/CLI, packaging/worker-integration guards | [007](docs/adr/007-standalone-executable-toggles.md), [008](docs/adr/008-worker-broker-testing-strategy.md), [028](docs/adr/028-per-component-markers-and-path-filtered-ci.md), [029](docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md) |
 | `release.yml` | release-please → build / pypi-publish / executables / docker / docs / sbom / issue-notify | [002](docs/adr/002-release-please-for-release-automation.md), [010](docs/adr/010-pr-docs-previews-and-released-issue-notifications.md) |
 | `check-pr-title.yml` | PR title vs Conventional Commits | — |
 | `check-linked-issues.yml` | require a linked issue (`no-issue` bypasses) | — |

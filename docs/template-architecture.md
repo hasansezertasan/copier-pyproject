@@ -578,8 +578,17 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      running `tox run -- -m "<component> …"`. `core` (deps, shared `core/`,
      package-root modules, root `conftest.py`, root tests) forces the full
      fan-out. `worker-integration` carries the same gate. Markers are auto-applied
-     by `tests/conftest.py` from each test's top-level `tests/<dir>/`; the default
+     by `tests/conftest.py`: root-level tests become `core`, while tests in a
+     component directory use the top-level `tests/<dir>/`; the default
      local `tox run` is unchanged (everything minus `integration`).
+   - **Asymmetric matrix + draft policy**
+     ([ADR-029](adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md)): component
+     tests run all supported interpreters on Ubuntu and one representative
+     interpreter on macOS/Windows; C-extension renders keep the full grid.
+     `style` runs once on Linux and sweeps mypy's win32/darwin platform axis.
+     An `include_cli` render gets a dedicated three-OS `cli-installed` job, so
+     the real console script is checked without receiving pytest marker args.
+     Every `ci.yml` job is draft-gated, and `ready_for_review` starts a fresh run.
    - **Per-component coverage gates**
      ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md), decomposing
      [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):
@@ -591,7 +600,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `coverage-core` instead `--omit`s every component). The union principle is
      preserved *within* each component (its cross-OS cells), not across all code —
      so a path-skipped, unchanged component keeps the `check` gate green. A central
-     non-gating `coverage-report` job (`if: !cancelled()`) merges whatever ran,
+     non-gating `coverage-report` job (`if: !cancelled() && draft != true`) merges whatever ran,
      renders combined HTML/XML, and handles Codecov/smokeshow. `relative_files =
      true` (pyproject) lets cross-runner paths merge, complementing the
      `[tool.coverage.paths]` remap. When `include_sonarcloud`, the `coverage-xml`
