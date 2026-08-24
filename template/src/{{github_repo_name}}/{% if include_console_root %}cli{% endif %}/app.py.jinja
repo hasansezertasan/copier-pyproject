@@ -110,18 +110,21 @@ def _component_dependencies(
     try:
         yield
     except ModuleNotFoundError as exc:
-        if exc.name is None or not any(
-            exc.name == dependency or exc.name.startswith(f"{dependency}.")
+        if exc.name is None:
+            raise
+        missing = str(exc.name)
+        if not any(
+            missing == dependency or missing.startswith(f"{dependency}.")
             for dependency in dependencies
         ):
             raise
         # An out-of-sync environment is an expected, user-facing error, so log
         # without the traceback that logging.exception would add.
         logger.error(  # noqa: TRY400
-            "Missing dependency %r for the %s component", exc.name, component
+            "Missing dependency %r for the %s component", missing, component
         )
         message = _STALE_ENVIRONMENT.format(
-            component=component, missing=exc.name, project=PROJECT_NAME
+            component=component, missing=missing, project=PROJECT_NAME
         )
         _ = sys.stderr.write(message + "\n")
         raise SystemExit(1) from None
@@ -440,19 +443,22 @@ def _component_dependencies(
     try:
         yield
     except ModuleNotFoundError as exc:
-        if exc.name is None or not any(
-            exc.name == dependency or exc.name.startswith(f"{dependency}.")
+        if exc.name is None:
+            raise
+        missing = str(exc.name)
+        if not any(
+            missing == dependency or missing.startswith(f"{dependency}.")
             for dependency in dependencies
         ):
             raise
         # An out-of-sync environment is an expected, user-facing error, so log
         # without the traceback that logging.exception would add.
         logger.error(  # noqa: TRY400
-            "Missing dependency %r for the %s component", exc.name, component
+            "Missing dependency %r for the %s component", missing, component
         )
         typer.echo(
             _STALE_ENVIRONMENT.format(
-                component=component, missing=exc.name, project=PROJECT_NAME
+                component=component, missing=missing, project=PROJECT_NAME
             ),
             err=True,
         )
