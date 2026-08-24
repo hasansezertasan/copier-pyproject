@@ -10,6 +10,14 @@
 {#- The minimal-launcher Typer root (no ``include_cli``) also lazy-imports the
     primary component from its default callback, so it needs the guard too. -#}
 {%- set need_import_guard = launcher_components or not include_cli -%}
+{%- if include_worker -%}
+{%- set worker_dependency = {
+    "kafka": "aiokafka",
+    "nats": "nats",
+    "rabbitmq": "aio_pika",
+    "redis": "redis",
+}[worker_broker] -%}
+{%- endif -%}
 {% if include_cli and cli_framework == "argparse" -%}
 """CLI application for the project.
 
@@ -60,28 +68,53 @@ _METADATA_MISSING = f"Error: Package '{PROJECT_NAME}' metadata not found. Is the
 # extra" -- it means this environment is out of sync with the installed metadata.
 # That happens after a ``copier update`` enables a component, or in a stale venv.
 _STALE_ENVIRONMENT = "Error: The {component} component requires the '{missing}' package, which is not installed. Component dependencies ship with '{project}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+{%- if include_tui %}
+_TUI_DEPENDENCIES = ("textual", "typing_extensions")
+{%- endif %}
+{%- if include_gui %}
+_GUI_DEPENDENCIES = ("tkinter",)
+{%- endif %}
+{%- if include_web %}
+_WEB_DEPENDENCIES = ("{{web_framework}}", "uvicorn")
+{%- endif %}
+{%- if include_mcp %}
+_MCP_DEPENDENCIES = ("mcp",)
+{%- endif %}
+{%- if include_worker %}
+_WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{worker_dependency}}")
+{%- endif %}
 
 
 @contextlib.contextmanager
-def _component_dependencies(component: str) -> Generator[None, None, None]:
+def _component_dependencies(
+    component: str, *dependencies: str
+) -> Generator[None, None, None]:
     """Translate a missing component dependency into an actionable CLI error.
 
-    Wraps a launcher subcommand's lazy import so a bare ``ModuleNotFoundError``
-    from a stale environment becomes a message naming the component, the missing
-    module, and the fix.
+    Wraps a launcher subcommand's lazy import so a ``ModuleNotFoundError`` for a
+    known dependency becomes a message naming the component, missing module, and
+    fix.
 
     Args:
         component: Human name of the component being launched (e.g. ``"web"``).
+        *dependencies: Known import module roots used by the component.
 
     Yields:
         ``None``; the caller performs the import inside the block.
 
     Raises:
+        ModuleNotFoundError: Propagating a missing module that is not one of the
+            component's known dependencies.
         SystemExit: With code 1 if a dependency of ``component`` is missing.
     """
     try:
         yield
     except ModuleNotFoundError as exc:
+        if exc.name is None or not any(
+            exc.name == dependency or exc.name.startswith(f"{dependency}.")
+            for dependency in dependencies
+        ):
+            raise
         # An out-of-sync environment is an expected, user-facing error, so log
         # without the traceback that logging.exception would add.
         logger.error(  # noqa: TRY400
@@ -165,7 +198,7 @@ def interactive() -> None:  # pragma: no cover
         SystemExit: Propagating the TUI's exit code, or code 1 if a dependency of
             the TUI is missing from this environment.
     """
-    with _component_dependencies("TUI"):
+    with _component_dependencies("TUI", *_TUI_DEPENDENCIES):
         from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -183,7 +216,7 @@ def gui() -> None:  # pragma: no cover
         SystemExit: Propagating the GUI's exit code, or code 1 if a dependency of
             the GUI is missing from this environment.
     """
-    with _component_dependencies("GUI"):
+    with _component_dependencies("GUI", *_GUI_DEPENDENCIES):
         from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -199,7 +232,7 @@ def web() -> None:  # pragma: no cover
 
     A missing dependency is reported by ``_component_dependencies`` below.
     """
-    with _component_dependencies("web"):
+    with _component_dependencies("web", *_WEB_DEPENDENCIES):
         _ = importlib.import_module("uvicorn")
         from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
@@ -216,7 +249,7 @@ def mcp() -> None:  # pragma: no cover
 
     A missing dependency is reported by ``_component_dependencies`` below.
     """
-    with _component_dependencies("MCP"):
+    with _component_dependencies("MCP", *_MCP_DEPENDENCIES):
         from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
@@ -232,7 +265,7 @@ def worker() -> None:  # pragma: no cover
 
     A missing dependency is reported by ``_component_dependencies`` below.
     """
-    with _component_dependencies("worker"):
+    with _component_dependencies("worker", *_WORKER_DEPENDENCIES):
         from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
@@ -365,28 +398,53 @@ logger = get_logger()
 # extra" -- it means this environment is out of sync with the installed metadata.
 # That happens after a ``copier update`` enables a component, or in a stale venv.
 _STALE_ENVIRONMENT = "Error: The {component} component requires the '{missing}' package, which is not installed. Component dependencies ship with '{project}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+{%- if include_tui %}
+_TUI_DEPENDENCIES = ("textual", "typing_extensions")
+{%- endif %}
+{%- if include_gui %}
+_GUI_DEPENDENCIES = ("tkinter",)
+{%- endif %}
+{%- if include_web %}
+_WEB_DEPENDENCIES = ("{{web_framework}}", "uvicorn")
+{%- endif %}
+{%- if include_mcp %}
+_MCP_DEPENDENCIES = ("mcp",)
+{%- endif %}
+{%- if include_worker %}
+_WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{worker_dependency}}")
+{%- endif %}
 
 
 @contextlib.contextmanager
-def _component_dependencies(component: str) -> Generator[None, None, None]:
+def _component_dependencies(
+    component: str, *dependencies: str
+) -> Generator[None, None, None]:
     """Translate a missing component dependency into an actionable CLI error.
 
-    Wraps a launcher command's lazy import so a bare ``ModuleNotFoundError`` from
-    a stale environment becomes a message naming the component, the missing
-    module, and the fix.
+    Wraps a launcher command's lazy import so a ``ModuleNotFoundError`` for a
+    known dependency becomes a message naming the component, missing module, and
+    fix.
 
     Args:
         component: Human name of the component being launched (e.g. ``"web"``).
+        *dependencies: Known import module roots used by the component.
 
     Yields:
         ``None``; the caller performs the import inside the block.
 
     Raises:
+        ModuleNotFoundError: Propagating a missing module that is not one of the
+            component's known dependencies.
         typer.Exit: With code 1 if a dependency of ``component`` is missing.
     """
     try:
         yield
     except ModuleNotFoundError as exc:
+        if exc.name is None or not any(
+            exc.name == dependency or exc.name.startswith(f"{dependency}.")
+            for dependency in dependencies
+        ):
+            raise
         # An out-of-sync environment is an expected, user-facing error, so log
         # without the traceback that logging.exception would add.
         logger.error(  # noqa: TRY400
@@ -422,7 +480,7 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
     """
     if ctx.invoked_subcommand is not None:
         return
-    with _component_dependencies("{{primary_component}}"):
+    with _component_dependencies("{{primary_component}}", *_{{primary_component | upper}}_DEPENDENCIES):
 {%- if primary_component == "web" %}
         _ = importlib.import_module("uvicorn")
 {%- endif %}
@@ -510,7 +568,7 @@ def interactive() -> None:  # pragma: no cover
         typer.Exit: Propagating the TUI's exit code, or code 1 if a dependency of
             the TUI is missing from this environment.
     """
-    with _component_dependencies("TUI"):
+    with _component_dependencies("TUI", *_TUI_DEPENDENCIES):
         from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
@@ -529,7 +587,7 @@ def gui() -> None:  # pragma: no cover
         typer.Exit: Propagating the GUI's exit code, or code 1 if a dependency of
             the GUI is missing from this environment.
     """
-    with _component_dependencies("GUI"):
+    with _component_dependencies("GUI", *_GUI_DEPENDENCIES):
         from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
@@ -546,7 +604,7 @@ def web() -> None:  # pragma: no cover
 
     A missing dependency is reported by ``_component_dependencies`` below.
     """
-    with _component_dependencies("web"):
+    with _component_dependencies("web", *_WEB_DEPENDENCIES):
         _ = importlib.import_module("uvicorn")
         from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
@@ -564,7 +622,7 @@ def mcp() -> None:  # pragma: no cover
 
     A missing dependency is reported by ``_component_dependencies`` below.
     """
-    with _component_dependencies("MCP"):
+    with _component_dependencies("MCP", *_MCP_DEPENDENCIES):
         from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
@@ -581,7 +639,7 @@ def worker() -> None:  # pragma: no cover
 
     A missing dependency is reported by ``_component_dependencies`` below.
     """
-    with _component_dependencies("worker"):
+    with _component_dependencies("worker", *_WORKER_DEPENDENCIES):
         from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
