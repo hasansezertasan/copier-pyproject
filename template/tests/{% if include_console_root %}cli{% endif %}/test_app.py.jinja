@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 import importlib
-{% if include_web -%}
+{% if include_web or include_tui -%}
 import sys
 {% endif -%}
 from importlib.metadata import Distribution, PackageNotFoundError
@@ -25,12 +25,12 @@ import uvicorn
 {% endif %}
 from {{github_repo_name}}.cli.app import app
 
-{% if include_web -%}
+{%- if include_web %}
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
     from types import ModuleType
-{% endif %}
+{%- endif %}
 
 # Import the module object (not the re-exported callable) so the monkeypatch
 # below patches ``Distribution`` where the commands look it up.
@@ -150,8 +150,28 @@ def test_missing_component_dependency_is_actionable(
     assert "web" in err
     assert "uvicorn" in err
     assert "uv sync" in err
-{% endif %}
+{%- endif %}
+{%- if include_tui %}
+
+
+def test_tui_launcher_reports_missing_deferred_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The TUI launcher translates a missing lazy ``textual`` import."""
+    monkeypatch.setitem(sys.modules, "textual", None)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["interactive"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "TUI" in err
+    assert "textual" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+{%- endif %}
 {%- if include_web %}
+
 
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
 
@@ -240,7 +260,7 @@ def test_web_launcher_preserves_runtime_import_errors(
 from __future__ import annotations
 
 import importlib
-{% if include_web -%}
+{% if include_web or include_tui -%}
 import sys
 {% endif -%}
 {% if include_cli -%}
@@ -407,8 +427,27 @@ def test_missing_component_dependency_is_actionable(
     assert "web" in err
     assert "uvicorn" in err
     assert "uv sync" in err
-{% endif %}
+{%- endif %}
+{%- if include_tui %}
+
+
+def test_tui_launcher_reports_missing_deferred_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The TUI launcher translates a missing lazy ``textual`` import."""
+    monkeypatch.setitem(sys.modules, "textual", None)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "tui" %}"interactive"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "tui" in result.output.lower()
+    assert "textual" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+{%- endif %}
 {%- if include_web %}
+
 
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
 

@@ -35,7 +35,7 @@ import argparse
 {% if need_import_guard -%}
 import contextlib
 {% endif -%}
-{% if include_web -%}
+{% if include_web or include_tui -%}
 import importlib
 {% endif -%}
 import platform
@@ -202,6 +202,7 @@ def interactive() -> None:  # pragma: no cover
             the TUI is missing from this environment.
     """
     with _component_dependencies("TUI", *_TUI_DEPENDENCIES):
+        _ = importlib.import_module("textual")
         from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -363,7 +364,7 @@ from __future__ import annotations
 {% if need_import_guard -%}
 import contextlib
 {% endif -%}
-{% if include_web -%}
+{% if include_web or include_tui -%}
 import importlib
 {% endif -%}
 {% if include_cli -%}
@@ -489,6 +490,8 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
     with _component_dependencies("{{primary_component}}", *_{{primary_component | upper}}_DEPENDENCIES):
 {%- if primary_component == "web" %}
         _ = importlib.import_module("uvicorn")
+{%- elif primary_component == "tui" %}
+        _ = importlib.import_module("textual")
 {%- endif %}
         from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
@@ -575,6 +578,7 @@ def interactive() -> None:  # pragma: no cover
             the TUI is missing from this environment.
     """
     with _component_dependencies("TUI", *_TUI_DEPENDENCIES):
+        _ = importlib.import_module("textual")
         from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
