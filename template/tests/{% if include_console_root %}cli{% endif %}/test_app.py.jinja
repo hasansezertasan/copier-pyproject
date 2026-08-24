@@ -17,13 +17,20 @@ import sys
 {% endif -%}
 from importlib.metadata import Distribution, PackageNotFoundError
 {% if include_web -%}
-from typing import NoReturn
+from typing import TYPE_CHECKING, NoReturn
 {% endif %}
 import pytest
 {% if include_web -%}
 import uvicorn
 {% endif %}
 from {{github_repo_name}}.cli.app import app
+
+{% if include_web -%}
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from importlib.machinery import ModuleSpec
+    from types import ModuleType
+{% endif %}
 
 # Import the module object (not the re-exported callable) so the monkeypatch
 # below patches ``Distribution`` where the commands look it up.
@@ -134,7 +141,7 @@ def test_missing_component_dependency_is_actionable(
     """
     with (
         pytest.raises(SystemExit) as excinfo,
-        cli_app._component_dependencies("web"),  # noqa: SLF001
+        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
     ):
         raise ModuleNotFoundError(_MISSING_MODULE_MESSAGE, name="uvicorn")
 
@@ -147,6 +154,24 @@ def test_missing_component_dependency_is_actionable(
 {%- if include_web %}
 
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+
+
+class _ApplicationImportFailureFinder:
+    """Simulate an unrelated import bug while loading the web application."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Raise the nested application error when the web module is imported.
+
+        Raises:
+            ModuleNotFoundError: When the generated web module is requested.
+        """
+        del path, target
+        if fullname == "{{github_repo_name}}.web.app":
+            raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+        return None
 
 
 def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
@@ -182,6 +207,20 @@ def test_web_launcher_reports_missing_deferred_dependency(
     assert "uvicorn" in err
     assert "uv sync" in err
     assert "Traceback" not in err
+
+
+def test_web_launcher_preserves_import_time_application_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An unrelated failure while importing the app keeps its diagnostics."""
+    finder = _ApplicationImportFailureFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "{{github_repo_name}}.web.app", raising=False)
+
+    with pytest.raises(ModuleNotFoundError, match="user_plugin"):
+        app(["web"])
+
+    assert "uv sync" not in capsys.readouterr().err
 
 
 def test_web_launcher_preserves_runtime_import_errors(
@@ -221,7 +260,15 @@ from typer.testing import CliRunner
 from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
+{%- if include_web %}
+    from collections.abc import Sequence
+    from importlib.machinery import ModuleSpec
+    from types import ModuleType
+
     from typer.testing import Result
+{%- else %}
+    from typer.testing import Result
+{%- endif %}
 
 
 # The cli ``__init__`` re-exports the Typer ``app`` object, which shadows the
@@ -351,7 +398,7 @@ def test_missing_component_dependency_is_actionable(
     """
     with (
         pytest.raises(typer.Exit) as excinfo,
-        cli_app._component_dependencies("web"),  # noqa: SLF001
+        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
     ):
         raise ModuleNotFoundError(_MISSING_MODULE_MESSAGE, name="uvicorn")
 
@@ -364,6 +411,24 @@ def test_missing_component_dependency_is_actionable(
 {%- if include_web %}
 
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+
+
+class _ApplicationImportFailureFinder:
+    """Simulate an unrelated import bug while loading the web application."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Raise the nested application error when the web module is imported.
+
+        Raises:
+            ModuleNotFoundError: When the generated web module is requested.
+        """
+        del path, target
+        if fullname == "{{github_repo_name}}.web.app":
+            raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+        return None
 
 
 def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
@@ -398,6 +463,21 @@ def test_web_launcher_reports_missing_deferred_dependency(
     assert "uvicorn" in result.output
     assert "uv sync" in result.output
     assert "Traceback" not in result.output
+
+
+def test_web_launcher_preserves_import_time_application_errors(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An unrelated failure while importing the app keeps its diagnostics."""
+    finder = _ApplicationImportFailureFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "{{github_repo_name}}.web.app", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert isinstance(result.exception, ModuleNotFoundError)
+    assert result.exception.name == "user_plugin"
+    assert "uv sync" not in result.output
 
 
 def test_web_launcher_preserves_runtime_import_errors(
