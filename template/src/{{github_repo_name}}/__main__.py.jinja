@@ -16,42 +16,53 @@ import/``main`` binding here directly. With no runnable component enabled,
 ``main()`` exits non-zero with an explanatory message.
 """
 {%- if include_console_root %}
-{#- The console root is the Typer variant unless an explicit ``include_cli`` +
-    ``argparse`` choice makes it standard-library only; mirror the same condition
-    cli/app.py.jinja branches on so the guard below exists exactly when the root
-    has a third-party dependency of its own. -#}
-{%- set console_root_needs_typer = not (include_cli and cli_framework == "argparse") %}
-{%- if console_root_needs_typer %}
+{#- Third-party modules the console root imports at *module scope*, before the
+    component-dependency guard inside ``cli/app.py`` can run:
+      * ``typer`` -- the root itself, unless an explicit ``include_cli`` +
+        ``argparse`` choice makes it standard-library only (mirror the condition
+        cli/app.py.jinja branches on).
+      * ``pydantic`` / ``pydantic_settings`` -- pulled in transitively by
+        ``core.logging_setup`` -> ``core.config`` when ``include_pydantic_settings``.
+    The guard below is emitted exactly when this list is non-empty. -#}
+{%- set root_dependencies = [] %}
+{%- if not (include_cli and cli_framework == "argparse") %}{% set _ = root_dependencies.append("typer") %}{% endif %}
+{%- if include_pydantic_settings %}{% set _ = root_dependencies.append("pydantic") %}{% set _ = root_dependencies.append("pydantic_settings") %}{% endif %}
+{%- if root_dependencies %}
 
 import sys
 from collections.abc import Callable
 
-# ``typer`` is the console root's *own* dependency, imported at the top of
-# ``cli.app`` -- i.e. before the component-dependency guard inside that module
-# can run. A ``copier update`` that turns a single-component project into a
-# multi-component one adds both this root and that dependency at once, so an
+# Each of these ships as a core dependency of this package, so a missing one
+# never means "install an extra" -- it means this environment is out of sync with
+# the installed metadata. A ``copier update`` that adds the shared launcher (or
+# enables settings) adds both the code and its dependency at once, so an
 # environment that has not been re-synced would otherwise fail here with a bare
 # ``ModuleNotFoundError`` before any launcher code executes.
-_MISSING_CONSOLE_ROOT = "Error: The {{github_repo_name}} command requires the 'typer' package, which is not installed. It ships with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+_ROOT_DEPENDENCIES = ({{ root_dependencies | map('tojson') | join(', ') }}{% if root_dependencies | length == 1 %},{% endif %})
+_MISSING_ROOT_DEPENDENCY = "Error: The {{github_repo_name}} command requires the '{missing}' package, which is not installed. It ships with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
 
 
-def _load_console_root() -> Callable[[], object]:
+def _load_console_root() -> Callable[[], None]:
     """Import the console root, reporting its own missing dependency actionably.
 
     Returns:
-        Callable[[], object]: The console-root application.
+        Callable[[], None]: The console-root application. Both roots are
+            zero-argument callables: the argparse ``app`` defaults its ``argv``,
+            and ``typer.Typer.__call__`` takes ``*args``.
 
     Raises:
-        ModuleNotFoundError: Propagating a missing module other than ``typer``,
-            so an unrelated import defect keeps its diagnostic context.
-        SystemExit: With code 1 when ``typer`` is missing from this environment.
+        ModuleNotFoundError: Propagating a missing module that is not exactly one
+            of the root's own dependencies, so an unrelated import defect keeps
+            its diagnostic context.
+        SystemExit: With code 1 when one of them is missing from this environment.
     """
     try:
         from {{github_repo_name}}.cli import app  # noqa: PLC0415
     except ModuleNotFoundError as exc:
-        if exc.name != "typer":
+        missing = exc.name
+        if missing is None or missing not in _ROOT_DEPENDENCIES:
             raise
-        _ = sys.stderr.write(_MISSING_CONSOLE_ROOT + "\n")
+        _ = sys.stderr.write(_MISSING_ROOT_DEPENDENCY.format(missing=missing) + "\n")
         raise SystemExit(1) from None
     return app
 
@@ -61,7 +72,7 @@ def _load_console_root() -> Callable[[], object]:
 # under headless CI. tests/test_main.py pins the import wiring and callability.
 def main() -> None:  # pragma: no cover
     """Run the {{github_repo_name}} console root (primary + component subcommands)."""
-    _ = _load_console_root()()
+    _load_console_root()()
 {%- else %}
 
 from {{github_repo_name}}.cli import app
