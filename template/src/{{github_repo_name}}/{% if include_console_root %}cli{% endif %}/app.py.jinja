@@ -109,7 +109,8 @@ def _component_dependencies(
 
     Args:
         component: Human name of the component being launched (e.g. ``"web"``).
-        *dependencies: Known import module roots used by the component.
+        *dependencies: Import module names owned by the component, matched
+            exactly.
         hint: Remediation sentence appended to the error. Defaults to the
             out-of-sync-environment ``uv sync`` hint, which is right for every
             component whose dependency is a real distribution.
@@ -118,20 +119,22 @@ def _component_dependencies(
         ``None``; the caller performs the import inside the block.
 
     Raises:
-        ModuleNotFoundError: Propagating a missing module that is not one of the
-            component's known dependencies.
+        ModuleNotFoundError: Propagating a missing module that is not exactly one
+            of the component's known dependencies.
         SystemExit: With code 1 if a dependency of ``component`` is missing.
     """
     try:
         yield
     except ModuleNotFoundError as exc:
-        if exc.name is None:
-            raise
-        missing = str(exc.name)
-        if not any(
-            missing == dependency or missing.startswith(f"{dependency}.")
-            for dependency in dependencies
-        ):
+        missing = exc.name
+        # Exact matches only. A failure *below* an installed dependency's
+        # namespace -- a typo'd ``from <dep>.user_plugin import X`` in a
+        # customized component -- is an application defect, not a stale
+        # environment, and suppressing its traceback to recommend ``uv sync``
+        # would send the reader down the wrong path. Every real missing-dependency
+        # failure names a root: the preflights import the root directly, and a
+        # ``from <dep> import X`` on an absent distribution reports ``<dep>``.
+        if missing is None or missing not in dependencies:
             raise
         # An out-of-sync environment is an expected, user-facing error, so log
         # without the traceback that logging.exception would add.
@@ -467,7 +470,8 @@ def _component_dependencies(
 
     Args:
         component: Human name of the component being launched (e.g. ``"web"``).
-        *dependencies: Known import module roots used by the component.
+        *dependencies: Import module names owned by the component, matched
+            exactly.
         hint: Remediation sentence appended to the error. Defaults to the
             out-of-sync-environment ``uv sync`` hint, which is right for every
             component whose dependency is a real distribution.
@@ -476,20 +480,22 @@ def _component_dependencies(
         ``None``; the caller performs the import inside the block.
 
     Raises:
-        ModuleNotFoundError: Propagating a missing module that is not one of the
-            component's known dependencies.
+        ModuleNotFoundError: Propagating a missing module that is not exactly one
+            of the component's known dependencies.
         typer.Exit: With code 1 if a dependency of ``component`` is missing.
     """
     try:
         yield
     except ModuleNotFoundError as exc:
-        if exc.name is None:
-            raise
-        missing = str(exc.name)
-        if not any(
-            missing == dependency or missing.startswith(f"{dependency}.")
-            for dependency in dependencies
-        ):
+        missing = exc.name
+        # Exact matches only. A failure *below* an installed dependency's
+        # namespace -- a typo'd ``from <dep>.user_plugin import X`` in a
+        # customized component -- is an application defect, not a stale
+        # environment, and suppressing its traceback to recommend ``uv sync``
+        # would send the reader down the wrong path. Every real missing-dependency
+        # failure names a root: the preflights import the root directly, and a
+        # ``from <dep> import X`` on an absent distribution reports ``<dep>``.
+        if missing is None or missing not in dependencies:
             raise
         # An out-of-sync environment is an expected, user-facing error, so log
         # without the traceback that logging.exception would add.

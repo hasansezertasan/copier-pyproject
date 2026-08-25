@@ -53,6 +53,7 @@ class _MissingDistribution:
 # Bound to a name so the raises in the guard tests stay single statements (EM101).
 _MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
 _NAMELESS_MODULE_MESSAGE = "nameless import failure"
+_SUBMODULE_MESSAGE = "No module named 'uvicorn.user_plugin'"
 
 
 {% endif -%}
@@ -173,6 +174,34 @@ def test_nameless_module_error_is_not_translated(
         cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
     ):
         raise ModuleNotFoundError(_NAMELESS_MODULE_MESSAGE)
+
+    assert "uv sync" not in capsys.readouterr().err
+
+
+def test_submodule_of_a_dependency_is_not_translated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A bad import *below* an installed dependency keeps its own diagnostics.
+
+    Given:
+        - A customized component importing a name that does not exist under an
+          installed dependency (``from uvicorn.user_plugin import X``), so the
+          error names ``uvicorn.user_plugin`` rather than ``uvicorn``.
+    When:
+        - It is raised inside the component-dependency guard.
+    Then:
+        - The original error propagates: this is an application defect, and
+          recommending ``uv sync`` for it would send the reader down the wrong
+          path.
+
+    Raises:
+        ModuleNotFoundError: The application defect under test.
+    """
+    with (
+        pytest.raises(ModuleNotFoundError, match="user_plugin"),
+        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+    ):
+        raise ModuleNotFoundError(_SUBMODULE_MESSAGE, name="uvicorn.user_plugin")
 
     assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
@@ -436,6 +465,7 @@ class _MissingDistribution:
 # Bound to a name so the raises in the guard tests stay single statements (EM101).
 _MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
 _NAMELESS_MODULE_MESSAGE = "nameless import failure"
+_SUBMODULE_MESSAGE = "No module named 'uvicorn.user_plugin'"
 
 
 {% endif -%}
@@ -576,6 +606,34 @@ def test_nameless_module_error_is_not_translated(
         cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
     ):
         raise ModuleNotFoundError(_NAMELESS_MODULE_MESSAGE)
+
+    assert "uv sync" not in capsys.readouterr().err
+
+
+def test_submodule_of_a_dependency_is_not_translated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A bad import *below* an installed dependency keeps its own diagnostics.
+
+    Given:
+        - A customized component importing a name that does not exist under an
+          installed dependency (``from uvicorn.user_plugin import X``), so the
+          error names ``uvicorn.user_plugin`` rather than ``uvicorn``.
+    When:
+        - It is raised inside the component-dependency guard.
+    Then:
+        - The original error propagates: this is an application defect, and
+          recommending ``uv sync`` for it would send the reader down the wrong
+          path.
+
+    Raises:
+        ModuleNotFoundError: The application defect under test.
+    """
+    with (
+        pytest.raises(ModuleNotFoundError, match="user_plugin"),
+        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+    ):
+        raise ModuleNotFoundError(_SUBMODULE_MESSAGE, name="uvicorn.user_plugin")
 
     assert "uv sync" not in capsys.readouterr().err
 {%- endif %}

@@ -543,8 +543,12 @@ missing known dependency module means the environment is out of sync with the
 installed package: a `copier update` that enabled a component without a re-sync,
 or a stale venv. That is why the hint is `uv sync` and never
 `pip install pkg[<extra>]`. Each launcher passes its dependency module roots to
-the guard; unrelated application import failures retain their original
-diagnostics. The guard is emitted only when the root actually lazy-imports
+the guard, and the match is **exact**: a failure below an installed
+dependency's namespace (a typo'd `from <dep>.user_plugin import X` in a
+customized component) is an application defect, so it propagates with its
+traceback intact rather than being relabelled as a stale environment. Every real
+missing-dependency failure names a root — the preflights import the root
+directly, and `from <dep> import X` on an absent distribution reports `<dep>`. The guard is emitted only when the root actually lazy-imports
 something (derived from `primary_component`, so a CLI-only project renders
 without it) and covers the minimal launcher's default callback too.
 
@@ -563,13 +567,16 @@ package (`python3-tk`, `python3-tkinter`, and — because Homebrew's bare
 unguarded — on an interpreter built without tk-dev the pure-Python package still
 ships and `_tkinter` is the name that actually fails.
 
-`typer` is the console root's own dependency and is imported at the top of
-`cli/app.py` — before that module's guard can run — so `__main__.py` loads the
-root through a small `_load_console_root()` that translates a missing `typer`
-into the same actionable message. This is the exact `copier update` case that
-adds the shared launcher and its dependency to a project at once, leaving an
-unsynced environment. Any other `ModuleNotFoundError` propagates unchanged, and
-the argparse root (standard-library only) needs no such guard.
+Some third-party modules are imported at the console root's *module* scope,
+before that guard exists: `typer` by `cli/app.py` itself, and — when
+`include_pydantic_settings` — `pydantic`/`pydantic_settings` pulled in
+transitively via `core.logging_setup` → `core.config`. `__main__.py` therefore
+loads the root through a small `_load_console_root()` that translates any of
+them into the same actionable message and re-raises anything else unchanged.
+This is the `copier update` case that adds the shared launcher (or enables
+settings) and its dependency at once, leaving an unsynced environment. The
+`_ROOT_DEPENDENCIES` tuple is generated from the enabled toggles, so a pure
+argparse root with no settings renders without the guard.
 
 ## Devcontainer Structure
 
