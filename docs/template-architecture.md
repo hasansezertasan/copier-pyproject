@@ -557,7 +557,10 @@ the missing dependency into a bare traceback or a generic
 that is *not* a distribution: it is a standard-library extension module, so the
 GUI launcher passes the guard a different `hint=` naming the platform's Tk
 package (`python3-tk`, `python3-tkinter`, `brew install python-tk`) instead of
-suggesting `uv sync`, which cannot install it.
+suggesting `uv sync`, which cannot install it. Its allowlist covers both
+`tkinter` and the `_tkinter` C extension that `tkinter/__init__.py` imports
+unguarded — on an interpreter built without tk-dev the pure-Python package still
+ships and `_tkinter` is the name that actually fails.
 
 `typer` is the console root's own dependency and is imported at the top of
 `cli/app.py` — before that module's guard can run — so `__main__.py` loads the
