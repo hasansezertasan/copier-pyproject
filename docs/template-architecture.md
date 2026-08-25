@@ -548,6 +548,17 @@ diagnostics. The guard is emitted only when the root actually lazy-imports
 something (derived from `primary_component`, so a CLI-only project renders
 without it) and covers the minimal launcher's default callback too.
 
+Components whose dependency is imported *lazily inside* the component (rather
+than at its module scope) are preflighted inside the guard before the component
+module is imported — `uvicorn` for web, `textual` for the TUI, `tkinter` for the
+GUI — because `main()` runs after the guard has closed and would otherwise turn
+the missing dependency into a bare traceback or a generic
+`GuiDisplayError`/`TuiDisplayError` fallback. `tkinter` is the one dependency
+that is *not* a distribution: it is a standard-library extension module, so the
+GUI launcher passes the guard a different `hint=` naming the platform's Tk
+package (`python3-tk`, `python3-tkinter`, `brew install python-tk`) instead of
+suggesting `uv sync`, which cannot install it.
+
 ## Devcontainer Structure
 
 The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
