@@ -536,47 +536,41 @@ Each launcher command wraps its lazy component import in a private
 `_component_dependencies(component, *dependencies)` context manager, so a
 missing known dependency exits 1 with a message naming the component, the
 missing module, and `uv sync` — instead of a bare `ModuleNotFoundError`
-traceback. Because every component's runtime dependency is a core `dependency`
-(there are **no** per-component extras — `[project.optional-dependencies]`
-carries only an empty `all`, kept so the `dev` group's `pkg[all]` resolves), a
-missing known dependency module means the environment is out of sync with the
-installed package: a `copier update` that enabled a component without a re-sync,
-or a stale venv. That is why the hint is `uv sync` and never
-`pip install pkg[<extra>]`. Each launcher passes its dependency module roots to
-the guard, and the match is **exact**: a failure below an installed
-dependency's namespace (a typo'd `from <dep>.user_plugin import X` in a
-customized component) is an application defect, so it propagates with its
-traceback intact rather than being relabelled as a stale environment. Every real
-missing-dependency failure names a root — the preflights import the root
-directly, and `from <dep> import X` on an absent distribution reports `<dep>`. The guard is emitted only when the root actually lazy-imports
-something (derived from `primary_component`, so a CLI-only project renders
-without it) and covers the minimal launcher's default callback too.
+traceback. The match is **exact**, so an application import defect (a typo'd
+`from <dep>.user_plugin import X`) propagates with its traceback intact. The
+guard is emitted only when the root actually lazy-imports something (derived
+from `primary_component`, so a CLI-only project renders without it) and covers
+the minimal launcher's default callback too.
 
-Components whose dependency is imported *lazily inside* the component (rather
-than at its module scope) are preflighted inside the guard before the component
-module is imported — `uvicorn` for web, `textual` for the TUI, `tkinter` for the
-GUI — because `main()` runs after the guard has closed and would otherwise turn
-the missing dependency into a bare traceback or a generic
-`GuiDisplayError`/`TuiDisplayError` fallback. `tkinter` is the one dependency
-that is *not* a distribution: it is a standard-library extension module, so the
-GUI launcher passes the guard a different `hint=` naming the platform's Tk
-package (`python3-tk`, `python3-tkinter`, and — because Homebrew's bare
-`python-tk` aliases the newest Python's formula — a `python-tk@X.Y` pinned to
-`sys.version_info`) instead of suggesting `uv sync`, which cannot install it. Its allowlist covers both
-`tkinter` and the `_tkinter` C extension that `tkinter/__init__.py` imports
-unguarded — on an interpreter built without tk-dev the pure-Python package still
-ships and `_tkinter` is the name that actually fails.
+Dependencies the component imports *later* than that block — `uvicorn` (used
+when the web app calls `uvicorn.run()`), `textual`, `tkinter` (imported only
+when the GUI draws), and `faststream.<broker>` (a guarded re-export that raises
+a nameless `ImportError`) — are imported eagerly by a `_preflight(module)` helper
+inside the guard, which names the module when the interpreter does not. The GUI
+passes a different `hint=` naming the platform's Tk package (`python3-tk`,
+`python3-tkinter`, or a `python-tk@X.Y` pinned to `sys.version_info`), because
+`tkinter` is a standard-library extension module that no dependency sync can
+install; its allowlist covers the `_tkinter` C extension too. The worker's
+allowlist names `faststream.<broker>` rather than the broker client, and MCP
+needs no preflight.
 
-Some third-party modules are imported at the console root's *module* scope,
-before that guard exists: `typer` by `cli/app.py` itself, and — when
-`include_pydantic_settings` — `pydantic`/`pydantic_settings` pulled in
-transitively via `core.logging_setup` → `core.config`. `__main__.py` therefore
-loads the root through a small `_load_console_root()` that translates any of
-them into the same actionable message and re-raises anything else unchanged.
-This is the `copier update` case that adds the shared launcher (or enables
-settings) and its dependency at once, leaving an unsynced environment. The
-`_ROOT_DEPENDENCIES` tuple is generated from the enabled toggles, so a pure
-argparse root with no settings renders without the guard.
+`__main__.py` additionally loads the root through `_load_console_root()`, which
+applies the same translation to the modules imported at the root's *module*
+scope: `typer`, plus `pydantic`/`pydantic_settings` via `core.logging_setup` →
+`core.config` when `include_pydantic_settings`. `root_dependencies` is computed
+from the enabled toggles, so a pure argparse root with no settings renders
+without that guard.
+
+`launcher_components`, `need_import_guard`, `launched_components`,
+`component_label`, `component_preflight`, `preflight_used` and
+`root_dependencies` are `when: false` computed variables in `copier.yml`, read by
+`cli/app.py.jinja`, `__main__.py.jinja` and both test modules so the four cannot
+drift.
+
+The rationale — why the hint is `uv sync` and never `pip install pkg[<extra>]`,
+why matching is exact, why some dependencies need an eager import, and why Tk is
+special — is recorded in
+[ADR-028](adr/028-actionable-component-dependency-guard.md).
 
 ## Devcontainer Structure
 

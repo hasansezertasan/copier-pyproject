@@ -1,23 +1,8 @@
-{#- Components this module launches via a lazy import: every enabled non-primary
-    runnable component. Derived from ``primary_component`` (ADR-019); used to
-    decide whether the stale-environment import guard is needed at all. -#}
-{%- set launcher_components = [] -%}
-{%- if include_tui and primary_component != 'tui' %}{% set _ = launcher_components.append("tui") %}{% endif -%}
-{%- if include_gui and primary_component != 'gui' %}{% set _ = launcher_components.append("gui") %}{% endif -%}
-{%- if include_web and primary_component != 'web' %}{% set _ = launcher_components.append("web") %}{% endif -%}
-{%- if include_mcp and primary_component != 'mcp' %}{% set _ = launcher_components.append("mcp") %}{% endif -%}
-{%- if include_worker and primary_component != 'worker' %}{% set _ = launcher_components.append("worker") %}{% endif -%}
-{#- The minimal-launcher Typer root (no ``include_cli``) also lazy-imports the
-    primary component from its default callback, so it needs the guard too. -#}
-{%- set need_import_guard = launcher_components or not include_cli -%}
-{%- if include_worker -%}
-{%- set worker_dependency = {
-    "kafka": "aiokafka",
-    "nats": "nats",
-    "rabbitmq": "aio_pika",
-    "redis": "redis",
-}[worker_broker] -%}
-{%- endif -%}
+{#- Every derived fact this module needs -- ``launcher_components``,
+    ``need_import_guard``, ``component_label``, ``component_preflight`` and
+    ``preflight_used`` -- is computed in ``copier.yml`` from ``primary_component``
+    (ADR-019), so this module and its test module cannot drift on whether the
+    guard is emitted or on what each component's preflight and label are. -#}
 {% if include_cli and cli_framework == "argparse" -%}
 """CLI application for the project.
 
@@ -35,7 +20,7 @@ import argparse
 {% if need_import_guard -%}
 import contextlib
 {% endif -%}
-{% if include_web or include_tui or include_gui -%}
+{% if preflight_used -%}
 import importlib
 {% endif -%}
 import platform
@@ -93,7 +78,41 @@ _WEB_DEPENDENCIES = ("{{web_framework}}", "uvicorn")
 _MCP_DEPENDENCIES = ("mcp",)
 {%- endif %}
 {%- if include_worker %}
-_WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{worker_dependency}}")
+# The broker *client* (``aiokafka``, ``aio_pika``, ...) is deliberately absent:
+# ``{{ worker_broker_spec.module }}`` re-exports it behind faststream's own guard,
+# which raises a nameless ``ImportError``, so the client's own
+# ``ModuleNotFoundError`` never reaches this allowlist. The broker module is
+# listed instead, and ``_preflight`` is what gives that failure a name.
+_WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{ worker_broker_spec.module }}")
+{%- endif %}
+{%- if preflight_used %}
+
+
+def _preflight(module: str) -> None:
+    """Import a component dependency eagerly, so the guard below can classify it.
+
+    Two kinds of dependency never reach the guard in a usable form. ``uvicorn``
+    and Tkinter are imported at *call* time -- after the guarded block has closed
+    -- and ``faststream.<broker>`` is a guarded re-export that raises a plain,
+    *nameless* ``ImportError`` when the broker extra is absent, which exact-name
+    matching cannot classify. Importing here, and supplying the module name when
+    the interpreter does not, puts both back in reach of the guard.
+
+    Args:
+        module: Import module name to import eagerly.
+
+    Raises:
+        ModuleNotFoundError: Naming ``module`` when it cannot be imported.
+    """
+    try:
+        _ = importlib.import_module(module)
+    except ModuleNotFoundError:
+        # Already carries a name, and it is the more precise one: an interpreter
+        # built without tk-dev fails ``import tkinter`` naming the ``_tkinter`` C
+        # extension, which is what the reader needs to see.
+        raise
+    except ImportError as exc:
+        raise ModuleNotFoundError(str(exc), name=module) from None
 {%- endif %}
 
 
@@ -105,7 +124,8 @@ def _component_dependencies(
 
     Wraps a launcher subcommand's lazy import so a ``ModuleNotFoundError`` for a
     known dependency becomes a message naming the component, missing module, and
-    fix.
+    fix. Dependencies the component imports later than this block are imported
+    eagerly by ``_preflight`` above instead.
 
     Args:
         component: Human name of the component being launched (e.g. ``"web"``).
@@ -131,9 +151,10 @@ def _component_dependencies(
         # namespace -- a typo'd ``from <dep>.user_plugin import X`` in a
         # customized component -- is an application defect, not a stale
         # environment, and suppressing its traceback to recommend ``uv sync``
-        # would send the reader down the wrong path. Every real missing-dependency
-        # failure names a root: the preflights import the root directly, and a
-        # ``from <dep> import X`` on an absent distribution reports ``<dep>``.
+        # would send the reader down the wrong path. A genuine missing dependency
+        # reaching *this* block always names a root, because the component
+        # imports it as ``from <dep> import X`` at module scope; the awkward
+        # cases (deferred and guarded imports) go through ``_preflight``.
         if missing is None or missing not in dependencies:
             raise
         # An out-of-sync environment is an expected, user-facing error, so log
@@ -219,8 +240,8 @@ def interactive() -> None:  # pragma: no cover
         SystemExit: Propagating the TUI's exit code, or code 1 if a dependency of
             the TUI is missing from this environment.
     """
-    with _component_dependencies("TUI", *_TUI_DEPENDENCIES):
-        _ = importlib.import_module("textual")
+    with _component_dependencies("{{ component_label['tui'] }}", *_TUI_DEPENDENCIES):
+        _preflight("{{ component_preflight['tui'] }}")
         from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -238,11 +259,11 @@ def gui() -> None:  # pragma: no cover
         SystemExit: Propagating the GUI's exit code, or code 1 if a dependency of
             the GUI is missing from this environment.
     """
-    with _component_dependencies("GUI", *_GUI_DEPENDENCIES, hint=_TK_HINT):
+    with _component_dependencies("{{ component_label['gui'] }}", *_GUI_DEPENDENCIES, hint=_TK_HINT):
         # ``gui.app`` imports Tkinter only when it draws the window, i.e. after
-        # this guard has closed, so preflight it here to keep a Tk-less
-        # interpreter an actionable error rather than a GuiDisplayError fallback.
-        _ = importlib.import_module("tkinter")
+        # this guard has closed, so import it here to keep a Tk-less interpreter
+        # an actionable error rather than a GuiDisplayError fallback.
+        _preflight("{{ component_preflight['gui'] }}")
         from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -256,10 +277,11 @@ def web() -> None:  # pragma: no cover
     Launch the web server:
         {{github_repo_name}} web
 
-    A missing dependency is reported by ``_component_dependencies`` below.
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    with _component_dependencies("web", *_WEB_DEPENDENCIES):
-        _ = importlib.import_module("uvicorn")
+    with _component_dependencies("{{ component_label['web'] }}", *_WEB_DEPENDENCIES):
+        _preflight("{{ component_preflight['web'] }}")
         from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
@@ -273,9 +295,10 @@ def mcp() -> None:  # pragma: no cover
     Launch the MCP server:
         {{github_repo_name}} mcp
 
-    A missing dependency is reported by ``_component_dependencies`` below.
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    with _component_dependencies("MCP", *_MCP_DEPENDENCIES):
+    with _component_dependencies("{{ component_label['mcp'] }}", *_MCP_DEPENDENCIES):
         from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
@@ -289,9 +312,15 @@ def worker() -> None:  # pragma: no cover
     Launch the worker:
         {{github_repo_name}} worker
 
-    A missing dependency is reported by ``_component_dependencies`` below.
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    with _component_dependencies("worker", *_WORKER_DEPENDENCIES):
+    with _component_dependencies("{{ component_label['worker'] }}", *_WORKER_DEPENDENCIES):
+        # ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+        # faststream's own import guard, which raises a *nameless* ``ImportError``
+        # when the extra is absent; ``_preflight`` supplies the module name so the
+        # guard above can classify it.
+        _preflight("{{ component_preflight['worker'] }}")
         from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
@@ -386,7 +415,7 @@ from __future__ import annotations
 {% if need_import_guard -%}
 import contextlib
 {% endif -%}
-{% if include_web or include_tui or include_gui -%}
+{% if preflight_used -%}
 import importlib
 {% endif -%}
 {% if include_cli -%}
@@ -454,7 +483,41 @@ _WEB_DEPENDENCIES = ("{{web_framework}}", "uvicorn")
 _MCP_DEPENDENCIES = ("mcp",)
 {%- endif %}
 {%- if include_worker %}
-_WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{worker_dependency}}")
+# The broker *client* (``aiokafka``, ``aio_pika``, ...) is deliberately absent:
+# ``{{ worker_broker_spec.module }}`` re-exports it behind faststream's own guard,
+# which raises a nameless ``ImportError``, so the client's own
+# ``ModuleNotFoundError`` never reaches this allowlist. The broker module is
+# listed instead, and ``_preflight`` is what gives that failure a name.
+_WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{ worker_broker_spec.module }}")
+{%- endif %}
+{%- if preflight_used %}
+
+
+def _preflight(module: str) -> None:
+    """Import a component dependency eagerly, so the guard below can classify it.
+
+    Two kinds of dependency never reach the guard in a usable form. ``uvicorn``
+    and Tkinter are imported at *call* time -- after the guarded block has closed
+    -- and ``faststream.<broker>`` is a guarded re-export that raises a plain,
+    *nameless* ``ImportError`` when the broker extra is absent, which exact-name
+    matching cannot classify. Importing here, and supplying the module name when
+    the interpreter does not, puts both back in reach of the guard.
+
+    Args:
+        module: Import module name to import eagerly.
+
+    Raises:
+        ModuleNotFoundError: Naming ``module`` when it cannot be imported.
+    """
+    try:
+        _ = importlib.import_module(module)
+    except ModuleNotFoundError:
+        # Already carries a name, and it is the more precise one: an interpreter
+        # built without tk-dev fails ``import tkinter`` naming the ``_tkinter`` C
+        # extension, which is what the reader needs to see.
+        raise
+    except ImportError as exc:
+        raise ModuleNotFoundError(str(exc), name=module) from None
 {%- endif %}
 
 
@@ -466,7 +529,8 @@ def _component_dependencies(
 
     Wraps a launcher command's lazy import so a ``ModuleNotFoundError`` for a
     known dependency becomes a message naming the component, missing module, and
-    fix.
+    fix. Dependencies the component imports later than this block are imported
+    eagerly by ``_preflight`` above instead.
 
     Args:
         component: Human name of the component being launched (e.g. ``"web"``).
@@ -492,9 +556,10 @@ def _component_dependencies(
         # namespace -- a typo'd ``from <dep>.user_plugin import X`` in a
         # customized component -- is an application defect, not a stale
         # environment, and suppressing its traceback to recommend ``uv sync``
-        # would send the reader down the wrong path. Every real missing-dependency
-        # failure names a root: the preflights import the root directly, and a
-        # ``from <dep> import X`` on an absent distribution reports ``<dep>``.
+        # would send the reader down the wrong path. A genuine missing dependency
+        # reaching *this* block always names a root, because the component
+        # imports it as ``from <dep> import X`` at module scope; the awkward
+        # cases (deferred and guarded imports) go through ``_preflight``.
         if missing is None or missing not in dependencies:
             raise
         # An out-of-sync environment is an expected, user-facing error, so log
@@ -529,15 +594,12 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
     """
     if ctx.invoked_subcommand is not None:
         return
-    with _component_dependencies("{{primary_component}}", *_{{primary_component | upper}}_DEPENDENCIES{% if primary_component == "gui" %}, hint=_TK_HINT{% endif %}):
-{%- if primary_component == "web" %}
-        _ = importlib.import_module("uvicorn")
-{%- elif primary_component == "tui" %}
-        _ = importlib.import_module("textual")
-{%- elif primary_component == "gui" %}
-        # Preflight Tkinter: ``gui.app`` imports it only when it draws the
-        # window, after this guard has closed.
-        _ = importlib.import_module("tkinter")
+    with _component_dependencies("{{ component_label[primary_component] }}", *_{{primary_component | upper}}_DEPENDENCIES{% if primary_component == "gui" %}, hint=_TK_HINT{% endif %}):
+{%- if primary_component in component_preflight %}
+        # Imported eagerly so this guard can classify its absence -- the component
+        # itself imports it too late, or behind a third-party import guard. See
+        # ``_preflight``.
+        _preflight("{{ component_preflight[primary_component] }}")
 {%- endif %}
         from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
@@ -623,8 +685,8 @@ def interactive() -> None:  # pragma: no cover
         typer.Exit: Propagating the TUI's exit code, or code 1 if a dependency of
             the TUI is missing from this environment.
     """
-    with _component_dependencies("TUI", *_TUI_DEPENDENCIES):
-        _ = importlib.import_module("textual")
+    with _component_dependencies("{{ component_label['tui'] }}", *_TUI_DEPENDENCIES):
+        _preflight("{{ component_preflight['tui'] }}")
         from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
@@ -643,11 +705,11 @@ def gui() -> None:  # pragma: no cover
         typer.Exit: Propagating the GUI's exit code, or code 1 if a dependency of
             the GUI is missing from this environment.
     """
-    with _component_dependencies("GUI", *_GUI_DEPENDENCIES, hint=_TK_HINT):
+    with _component_dependencies("{{ component_label['gui'] }}", *_GUI_DEPENDENCIES, hint=_TK_HINT):
         # ``gui.app`` imports Tkinter only when it draws the window, i.e. after
-        # this guard has closed, so preflight it here to keep a Tk-less
-        # interpreter an actionable error rather than a GuiDisplayError fallback.
-        _ = importlib.import_module("tkinter")
+        # this guard has closed, so import it here to keep a Tk-less interpreter
+        # an actionable error rather than a GuiDisplayError fallback.
+        _preflight("{{ component_preflight['gui'] }}")
         from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
@@ -662,10 +724,11 @@ def web() -> None:  # pragma: no cover
     Launch the web server:
         {{github_repo_name}} web
 
-    A missing dependency is reported by ``_component_dependencies`` below.
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    with _component_dependencies("web", *_WEB_DEPENDENCIES):
-        _ = importlib.import_module("uvicorn")
+    with _component_dependencies("{{ component_label['web'] }}", *_WEB_DEPENDENCIES):
+        _preflight("{{ component_preflight['web'] }}")
         from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
@@ -680,9 +743,10 @@ def mcp() -> None:  # pragma: no cover
     Launch the MCP server:
         {{github_repo_name}} mcp
 
-    A missing dependency is reported by ``_component_dependencies`` below.
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    with _component_dependencies("MCP", *_MCP_DEPENDENCIES):
+    with _component_dependencies("{{ component_label['mcp'] }}", *_MCP_DEPENDENCIES):
         from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
@@ -697,9 +761,15 @@ def worker() -> None:  # pragma: no cover
     Launch the worker:
         {{github_repo_name}} worker
 
-    A missing dependency is reported by ``_component_dependencies`` below.
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    with _component_dependencies("worker", *_WORKER_DEPENDENCIES):
+    with _component_dependencies("{{ component_label['worker'] }}", *_WORKER_DEPENDENCIES):
+        # ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+        # faststream's own import guard, which raises a *nameless* ``ImportError``
+        # when the extra is absent; ``_preflight`` supplies the module name so the
+        # guard above can classify it.
+        _preflight("{{ component_preflight['worker'] }}")
         from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()

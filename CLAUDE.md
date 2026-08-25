@@ -193,7 +193,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 
 | Toggle | One-line | ADR |
 | --- | --- | --- |
-| `include_cli` | CLI — the `pkg` console root (`cli_framework` = typer or stdlib argparse) | [019](docs/adr/019-components-as-cli-subcommands.md), [020](docs/adr/020-cli-framework-choice.md) |
+| `include_cli` | CLI — the `pkg` console root (`cli_framework` = typer or stdlib argparse) | [019](docs/adr/019-components-as-cli-subcommands.md), [020](docs/adr/020-cli-framework-choice.md), [028](docs/adr/028-actionable-component-dependency-guard.md) |
 | `include_web` | Web app (FastAPI/Litestar, `web_framework`) + Dockerfile | — |
 | `include_gui` | Tkinter GUI | — |
 | `include_tui` | Textual TUI | — |

@@ -1,20 +1,15 @@
-{#- Mirrors ``root_dependencies`` in ``__main__.py.jinja``: the third-party
-    modules the console root imports at module scope, before the guard inside
-    ``cli/app.py`` can run. -#}
-{%- set root_dependencies = [] -%}
-{%- if include_console_root -%}
-{%- if not (include_cli and cli_framework == "argparse") %}{% set _ = root_dependencies.append("typer") %}{% endif -%}
-{%- if include_pydantic_settings %}{% set _ = root_dependencies.append("pydantic") %}{% set _ = root_dependencies.append("pydantic_settings") %}{% endif -%}
-{%- endif -%}
-{%- set has_component = include_cli or include_gui or include_tui
-    or include_web or include_mcp or include_worker -%}
+{#- ``root_dependencies`` (the third-party modules the console root imports at
+    module scope, before the guard inside ``cli/app.py`` can run) is computed in
+    ``copier.yml``, so this module and ``__main__.py.jinja`` cannot drift on which
+    ones are guarded. ``is_app`` is likewise the shared "any runnable component
+    is enabled" predicate. -#}
 """Tests for the package's runnable entrypoint (``python -m {{github_repo_name}}``)."""
 
 import importlib
 {%- if root_dependencies %}
 import sys
 {%- endif %}
-{%- if root_dependencies or not has_component %}
+{%- if root_dependencies or not is_app %}
 
 import pytest
 {%- endif %}
@@ -42,13 +37,14 @@ def test_main_is_callable() -> None:
     # The console root (CLI or shared launcher) wires ``app`` into __main__;
     # assert it resolved.
     assert hasattr(main_module, "app")
-{%- elif include_gui or include_tui or include_web or include_mcp or include_worker %}
+{#- No console root, so ``is_app`` here means a single non-CLI component. -#}
+{%- elif is_app %}
     # Every non-CLI component is dispatched through an imported ``_entry``
     # callable; assert the wiring imported it (guards the if/elif precedence).
     # Read from the module namespace to avoid a private-member-access lint.
     assert callable(vars(main_module)["_entry"])
 {%- endif %}
-{%- if not has_component %}
+{%- if not is_app %}
 
 
 def test_main_exits_loudly_when_no_component() -> None:

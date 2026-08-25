@@ -1,22 +1,18 @@
-{#- Mirrors ``need_import_guard`` in cli/app.py.jinja: the module only defines the
-    component-dependency guard when it lazy-imports at least one component. -#}
-{%- set has_launcher = (include_tui and primary_component != 'tui')
-    or (include_gui and primary_component != 'gui')
-    or (include_web and primary_component != 'web')
-    or (include_mcp and primary_component != 'mcp')
-    or (include_worker and primary_component != 'worker') -%}
-{%- set need_import_guard = has_launcher or not include_cli -%}
+{#- ``need_import_guard`` (whether ``cli/app.py`` defines the component-dependency
+    guard at all), ``preflight_used`` (which components render a ``_preflight``
+    call) and ``component_preflight`` are computed in ``copier.yml``, so this
+    module and ``cli/app.py.jinja`` cannot drift on what is emitted. -#}
 {% if include_cli and cli_framework == "argparse" -%}
 """Test cases for the {{github_repo_name}} argparse root."""
 
 from __future__ import annotations
 
 import importlib
-{% if include_web or include_tui or include_gui -%}
+{% if include_web or include_tui or include_gui or include_worker -%}
 import sys
 {% endif -%}
 from importlib.metadata import Distribution, PackageNotFoundError
-{% if include_web or include_gui -%}
+{% if include_web or include_gui or include_worker -%}
 from typing import TYPE_CHECKING{% if include_web %}, NoReturn{% endif %}
 {% endif %}
 import pytest
@@ -24,7 +20,7 @@ import pytest
 import uvicorn
 {% endif %}
 from {{github_repo_name}}.cli.app import app
-{% if include_web or include_gui %}
+{% if include_web or include_gui or include_worker %}
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
@@ -141,7 +137,7 @@ def test_missing_component_dependency_is_actionable(
     """
     with (
         pytest.raises(SystemExit) as excinfo,
-        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
     ):
         raise ModuleNotFoundError(_MISSING_MODULE_MESSAGE, name="uvicorn")
 
@@ -171,7 +167,7 @@ def test_nameless_module_error_is_not_translated(
     """
     with (
         pytest.raises(ModuleNotFoundError, match="nameless"),
-        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
     ):
         raise ModuleNotFoundError(_NAMELESS_MODULE_MESSAGE)
 
@@ -199,7 +195,7 @@ def test_submodule_of_a_dependency_is_not_translated(
     """
     with (
         pytest.raises(ModuleNotFoundError, match="user_plugin"),
-        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
     ):
         raise ModuleNotFoundError(_SUBMODULE_MESSAGE, name="uvicorn.user_plugin")
 
@@ -407,13 +403,78 @@ def test_web_launcher_preserves_runtime_import_errors(
 
     assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
+{%- if include_worker %}
+
+
+_BROKER_EXTRA_MESSAGE = "please install dependencies for the broker"
+
+
+class _BrokerExtraMissingFinder:
+    """Simulate ``faststream`` installed without its ``{{worker_broker}}`` extra.
+
+    ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+    faststream's own import guard, which raises a plain ``ImportError`` carrying
+    *no* module name -- so the component-dependency guard's exact-name matching
+    can never classify it, and only the eager ``_preflight`` import can. Reproduced
+    with a finder rather than by patching ``sys.modules``, which would yield a
+    *named* ``ModuleNotFoundError`` and so test a different failure entirely.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the broker import the way a missing broker extra does.
+
+        Raises:
+            ImportError: Naming no module, when the broker module is imported.
+        """
+        del path, target
+        if fullname == "{{ worker_broker_spec.module }}":
+            raise ImportError(_BROKER_EXTRA_MESSAGE)
+        return None
+
+
+def test_worker_launcher_reports_missing_broker_extra(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A nameless broker-extra ``ImportError`` still gets the actionable message.
+
+    Given:
+        - ``faststream`` imports, but its ``{{worker_broker}}`` extra is absent, so
+          the broker re-export raises a plain ``ImportError`` naming no module --
+          the shape the guard's name matching cannot classify.
+    When:
+        - The public worker launcher starts the worker component.
+    Then:
+        - The command exits 1 naming the worker, the broker module and ``uv sync``,
+          rather than dumping faststream's own traceback.
+    """
+    finder = _BrokerExtraMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    # Drop the parent too, so the import starts from scratch exactly as it would
+    # in a fresh interpreter: ``faststream`` resolves normally, then the broker
+    # submodule hits the finder.
+    monkeypatch.delitem(sys.modules, "faststream", raising=False)
+    monkeypatch.delitem(sys.modules, "{{ worker_broker_spec.module }}", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["worker"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "worker" in err
+    assert "{{ worker_broker_spec.module }}" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+{%- endif %}
 {%- else -%}
 """Test cases for the {{github_repo_name}} Typer root."""
 
 from __future__ import annotations
 
 import importlib
-{% if include_web or include_tui or include_gui -%}
+{% if include_web or include_tui or include_gui or include_worker -%}
 import sys
 {% endif -%}
 {% if include_cli -%}
@@ -433,7 +494,7 @@ from typer.testing import CliRunner
 from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
-{%- if include_web or include_gui %}
+{%- if include_web or include_gui or include_worker %}
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
     from types import ModuleType
@@ -573,7 +634,7 @@ def test_missing_component_dependency_is_actionable(
     """
     with (
         pytest.raises(typer.Exit) as excinfo,
-        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
     ):
         raise ModuleNotFoundError(_MISSING_MODULE_MESSAGE, name="uvicorn")
 
@@ -603,7 +664,7 @@ def test_nameless_module_error_is_not_translated(
     """
     with (
         pytest.raises(ModuleNotFoundError, match="nameless"),
-        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
     ):
         raise ModuleNotFoundError(_NAMELESS_MODULE_MESSAGE)
 
@@ -631,7 +692,7 @@ def test_submodule_of_a_dependency_is_not_translated(
     """
     with (
         pytest.raises(ModuleNotFoundError, match="user_plugin"),
-        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
     ):
         raise ModuleNotFoundError(_SUBMODULE_MESSAGE, name="uvicorn.user_plugin")
 
@@ -836,5 +897,69 @@ def test_web_launcher_preserves_runtime_import_errors(
     assert isinstance(result.exception, ModuleNotFoundError)
     assert result.exception.name == "user_plugin"
     assert "uv sync" not in result.output
+{%- endif %}
+{%- if include_worker %}
+
+
+_BROKER_EXTRA_MESSAGE = "please install dependencies for the broker"
+
+
+class _BrokerExtraMissingFinder:
+    """Simulate ``faststream`` installed without its ``{{worker_broker}}`` extra.
+
+    ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+    faststream's own import guard, which raises a plain ``ImportError`` carrying
+    *no* module name -- so the component-dependency guard's exact-name matching
+    can never classify it, and only the eager ``_preflight`` import can. Reproduced
+    with a finder rather than by patching ``sys.modules``, which would yield a
+    *named* ``ModuleNotFoundError`` and so test a different failure entirely.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the broker import the way a missing broker extra does.
+
+        Raises:
+            ImportError: Naming no module, when the broker module is imported.
+        """
+        del path, target
+        if fullname == "{{ worker_broker_spec.module }}":
+            raise ImportError(_BROKER_EXTRA_MESSAGE)
+        return None
+
+
+def test_worker_launcher_reports_missing_broker_extra(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A nameless broker-extra ``ImportError`` still gets the actionable message.
+
+    Given:
+        - ``faststream`` imports, but its ``{{worker_broker}}`` extra is absent, so
+          the broker re-export raises a plain ``ImportError`` naming no module --
+          the shape the guard's name matching cannot classify.
+    When:
+        - The public worker launcher starts the worker component.
+    Then:
+        - The command exits 1 naming the worker, the broker module and ``uv sync``,
+          rather than dumping faststream's own traceback.
+    """
+    finder = _BrokerExtraMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    # Drop the parent too, so the import starts from scratch exactly as it would
+    # in a fresh interpreter: ``faststream`` resolves normally, then the broker
+    # submodule hits the finder.
+    monkeypatch.delitem(sys.modules, "faststream", raising=False)
+    monkeypatch.delitem(sys.modules, "{{ worker_broker_spec.module }}", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "worker" %}"worker"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ImportError)
+    assert "worker" in result.output
+    assert "{{ worker_broker_spec.module }}" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
 {%- endif %}
 {%- endif %}
