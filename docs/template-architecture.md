@@ -559,6 +559,14 @@ GUI launcher passes the guard a different `hint=` naming the platform's Tk
 package (`python3-tk`, `python3-tkinter`, `brew install python-tk`) instead of
 suggesting `uv sync`, which cannot install it.
 
+`typer` is the console root's own dependency and is imported at the top of
+`cli/app.py` — before that module's guard can run — so `__main__.py` loads the
+root through a small `_load_console_root()` that translates a missing `typer`
+into the same actionable message. This is the exact `copier update` case that
+adds the shared launcher and its dependency to a project at once, leaving an
+unsynced environment. Any other `ModuleNotFoundError` propagates unchanged, and
+the argparse root (standard-library only) needs no such guard.
+
 ## Devcontainer Structure
 
 The `.devcontainer/docker-compose.yml.jinja` consolidates all services:

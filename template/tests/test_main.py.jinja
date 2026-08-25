@@ -1,7 +1,16 @@
+{#- Mirrors ``console_root_needs_typer`` in ``__main__.py.jinja``: the console
+    root guards its own ``typer`` import only when it is the Typer variant. -#}
+{%- set console_root_needs_typer = include_console_root
+    and not (include_cli and cli_framework == "argparse") -%}
+{%- set has_component = include_cli or include_gui or include_tui
+    or include_web or include_mcp or include_worker -%}
 """Tests for the package's runnable entrypoint (``python -m {{github_repo_name}}``)."""
 
 import importlib
-{%- if not (include_cli or include_gui or include_tui or include_web or include_mcp or include_worker) %}
+{%- if console_root_needs_typer %}
+import sys
+{%- endif %}
+{%- if console_root_needs_typer or not has_component %}
 
 import pytest
 {%- endif %}
@@ -13,15 +22,19 @@ def test_main_is_callable() -> None:
     Every standalone-executable build (launcher / freezer / compiler — see
     ADR-007) targets ``{{github_repo_name}}.__main__:main``, so this pins the
     contract that the symbol exists and is callable for whichever component is
-    enabled. Importing the module also executes the top-level ``from ... import``
-    for the selected component, so a broken import in the active branch fails
-    here. The module is imported (not executed as ``__main__``), so a runnable
+    enabled, and that the active branch's component import actually resolves.
+    The module is imported (not executed as ``__main__``), so a runnable
     component's blocking ``main()`` (server loop, mainloop, ...) is never invoked.
     """
     main_module = importlib.import_module("{{github_repo_name}}.__main__")
 
     assert callable(main_module.main)
-{%- if include_console_root %}
+{%- if console_root_needs_typer %}
+    # The Typer console root is resolved through ``_load_console_root`` (so a
+    # missing ``typer`` stays actionable rather than a bare traceback); calling
+    # it here performs the same import ``main()`` would and pins the wiring.
+    assert callable(vars(main_module)["_load_console_root"]())
+{%- elif include_console_root %}
     # The console root (CLI or shared launcher) wires ``app`` into __main__;
     # assert it resolved.
     assert hasattr(main_module, "app")
@@ -31,7 +44,7 @@ def test_main_is_callable() -> None:
     # Read from the module namespace to avoid a private-member-access lint.
     assert callable(vars(main_module)["_entry"])
 {%- endif %}
-{%- if not (include_cli or include_gui or include_tui or include_web or include_mcp or include_worker) %}
+{%- if not has_component %}
 
 
 def test_main_exits_loudly_when_no_component() -> None:
@@ -46,4 +59,60 @@ def test_main_exits_loudly_when_no_component() -> None:
 
     with pytest.raises(SystemExit):
         main_module.main()
+{%- endif %}
+{%- if console_root_needs_typer %}
+
+
+def test_console_root_reports_missing_launcher_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A missing ``typer`` is reported actionably, not as a bare traceback.
+
+    Given:
+        - An environment out of sync with the installed package, so the console
+          root's own ``typer`` dependency cannot be imported -- what a ``copier
+          update`` that adds the shared launcher leaves behind until ``uv sync``.
+    When:
+        - ``__main__`` loads the console root, as bare ``{{github_repo_name}}`` does.
+    Then:
+        - It exits 1 with a message naming ``typer`` and ``uv sync``, and no
+          traceback.
+    """
+    main_module = importlib.import_module("{{github_repo_name}}.__main__")
+    monkeypatch.setitem(sys.modules, "typer", None)
+    monkeypatch.delitem(sys.modules, "{{github_repo_name}}.cli", raising=False)
+    monkeypatch.delitem(sys.modules, "{{github_repo_name}}.cli.app", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        _ = vars(main_module)["_load_console_root"]()
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "typer" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+
+
+def test_console_root_preserves_unrelated_import_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A missing module other than ``typer`` keeps its own diagnostics.
+
+    Given:
+        - Loading the console root fails for an unrelated reason (here the
+          ``cli`` package itself), which is an application defect rather than an
+          out-of-sync environment.
+    When:
+        - ``__main__`` loads the console root.
+    Then:
+        - The original ``ModuleNotFoundError`` propagates and is never relabelled
+          as something ``uv sync`` would fix.
+    """
+    main_module = importlib.import_module("{{github_repo_name}}.__main__")
+    monkeypatch.setitem(sys.modules, "{{github_repo_name}}.cli", None)
+
+    with pytest.raises(ModuleNotFoundError, match=r"{{github_repo_name}}\.cli"):
+        _ = vars(main_module)["_load_console_root"]()
+
+    assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
