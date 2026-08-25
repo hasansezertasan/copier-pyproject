@@ -1,9 +1,9 @@
 {#- Every derived fact this module needs -- ``launcher_components``,
-    ``need_import_guard``, ``component_label``, ``component_preflight`` and
-    ``preflight_used`` -- is computed in ``copier.yml`` from ``primary_component``
-    (ADR-019), so this module and its test module cannot drift on whether the
-    guard is emitted or on what each component's preflight and label are. -#}
-{% if include_cli and cli_framework == "argparse" -%}
+    ``need_import_guard``, ``component_label``, ``component_preflight``,
+    ``preflight_used`` and ``root_uses_typer`` -- is computed in ``copier.yml``
+    from ``primary_component`` (ADR-019), so this module, its test module and the
+    ``typer`` dependency in ``pyproject.toml`` cannot drift. -#}
+{% if not root_uses_typer -%}
 """CLI application for the project.
 
 A dependency-free ``argparse`` root for the ``{{github_repo_name}}`` command. It

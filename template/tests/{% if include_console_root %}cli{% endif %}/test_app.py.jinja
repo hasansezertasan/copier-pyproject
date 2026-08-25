@@ -2,7 +2,7 @@
     guard at all), ``preflight_used`` (which components render a ``_preflight``
     call) and ``component_preflight`` are computed in ``copier.yml``, so this
     module and ``cli/app.py.jinja`` cannot drift on what is emitted. -#}
-{% if include_cli and cli_framework == "argparse" -%}
+{% if not root_uses_typer -%}
 """Test cases for the {{github_repo_name}} argparse root."""
 
 from __future__ import annotations
