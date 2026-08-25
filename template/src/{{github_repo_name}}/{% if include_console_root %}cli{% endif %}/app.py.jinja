@@ -72,8 +72,10 @@ _SYNC_HINT = f"Component dependencies ship with '{PROJECT_NAME}', so this usuall
 {%- if include_gui %}
 # ``tkinter`` is the one exception to the comment above: it is a standard-library
 # extension module, not a distribution, so ``uv sync`` cannot install it. Missing
-# means this interpreter was built without Tk -- a system-level fix.
-_TK_HINT = "'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk`), or use a Python build that includes Tk."  # noqa: E501
+# means this interpreter was built without Tk -- a system-level fix. Homebrew's
+# ``python-tk`` is an alias for the newest Python's formula, so the bare name
+# would install Tk for the wrong interpreter; pin it to the running version.
+_TK_HINT = f"'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}`), or use a Python build that includes Tk."  # noqa: E501
 {%- endif %}
 {%- if include_tui %}
 _TUI_DEPENDENCIES = ("textual", "typing_extensions")
@@ -386,6 +388,11 @@ import importlib
 {% endif -%}
 {% if include_cli -%}
 import platform
+{% endif -%}
+{% if include_gui -%}
+import sys
+{% endif -%}
+{% if include_cli -%}
 from importlib.metadata import Distribution, PackageNotFoundError
 {% endif -%}
 {% if need_import_guard -%}
@@ -423,8 +430,10 @@ _SYNC_HINT = f"Component dependencies ship with '{PROJECT_NAME}', so this usuall
 {%- if include_gui %}
 # ``tkinter`` is the one exception to the comment above: it is a standard-library
 # extension module, not a distribution, so ``uv sync`` cannot install it. Missing
-# means this interpreter was built without Tk -- a system-level fix.
-_TK_HINT = "'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk`), or use a Python build that includes Tk."  # noqa: E501
+# means this interpreter was built without Tk -- a system-level fix. Homebrew's
+# ``python-tk`` is an alias for the newest Python's formula, so the bare name
+# would install Tk for the wrong interpreter; pin it to the running version.
+_TK_HINT = f"'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}`), or use a Python build that includes Tk."  # noqa: E501
 {%- endif %}
 {%- if include_tui %}
 _TUI_DEPENDENCIES = ("textual", "typing_extensions")

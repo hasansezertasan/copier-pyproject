@@ -556,8 +556,9 @@ the missing dependency into a bare traceback or a generic
 `GuiDisplayError`/`TuiDisplayError` fallback. `tkinter` is the one dependency
 that is *not* a distribution: it is a standard-library extension module, so the
 GUI launcher passes the guard a different `hint=` naming the platform's Tk
-package (`python3-tk`, `python3-tkinter`, `brew install python-tk`) instead of
-suggesting `uv sync`, which cannot install it. Its allowlist covers both
+package (`python3-tk`, `python3-tkinter`, and — because Homebrew's bare
+`python-tk` aliases the newest Python's formula — a `python-tk@X.Y` pinned to
+`sys.version_info`) instead of suggesting `uv sync`, which cannot install it. Its allowlist covers both
 `tkinter` and the `_tkinter` C extension that `tkinter/__init__.py` imports
 unguarded — on an interpreter built without tk-dev the pure-Python package still
 ships and `_tkinter` is the name that actually fails.
