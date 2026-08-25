@@ -224,6 +224,35 @@ def test_gui_launcher_reports_missing_tkinter(
     assert "python3-tk" in err
     assert "uv sync" not in err
     assert "Traceback" not in err
+
+
+def test_gui_launcher_reports_missing_tk_extension(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A build with the ``tkinter`` package but no ``_tkinter`` is also covered.
+
+    Given:
+        - An interpreter built without tk-dev: the pure-Python ``tkinter``
+          package still ships, but the C extension its ``__init__`` imports
+          unguarded does not -- so the failure names ``_tkinter``, not
+          ``tkinter``.
+    When:
+        - The public GUI launcher starts the GUI component.
+    Then:
+        - The same actionable Tk message is shown, not a bare traceback.
+    """
+    monkeypatch.setitem(sys.modules, "_tkinter", None)
+    monkeypatch.delitem(sys.modules, "tkinter", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["gui"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "GUI" in err
+    assert "_tkinter" in err
+    assert "python3-tk" in err
+    assert "Traceback" not in err
 {%- endif %}
 {%- if include_web %}
 
@@ -555,6 +584,34 @@ def test_gui_launcher_reports_missing_tkinter(
     assert "tkinter" in result.output
     assert "python3-tk" in result.output
     assert "uv sync" not in result.output
+    assert "Traceback" not in result.output
+
+
+def test_gui_launcher_reports_missing_tk_extension(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A build with the ``tkinter`` package but no ``_tkinter`` is also covered.
+
+    Given:
+        - An interpreter built without tk-dev: the pure-Python ``tkinter``
+          package still ships, but the C extension its ``__init__`` imports
+          unguarded does not -- so the failure names ``_tkinter``, not
+          ``tkinter``.
+    When:
+        - The public GUI launcher starts the GUI component.
+    Then:
+        - The same actionable Tk message is shown, not a bare traceback.
+    """
+    monkeypatch.setitem(sys.modules, "_tkinter", None)
+    monkeypatch.delitem(sys.modules, "tkinter", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "gui" %}"gui"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "gui" in result.output.lower()
+    assert "_tkinter" in result.output
+    assert "python3-tk" in result.output
     assert "Traceback" not in result.output
 {%- endif %}
 {%- if include_web %}

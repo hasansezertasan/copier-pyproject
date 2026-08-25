@@ -79,7 +79,10 @@ _TK_HINT = "'tkinter' is part of the Python standard library but ships as a sepa
 _TUI_DEPENDENCIES = ("textual", "typing_extensions")
 {%- endif %}
 {%- if include_gui %}
-_GUI_DEPENDENCIES = ("tkinter",)
+# ``_tkinter`` is the C extension ``tkinter/__init__.py`` imports unguarded, and
+# it is the name that actually fails on an interpreter built without tk-dev (the
+# pure-Python ``tkinter`` package still ships), so both belong in the allowlist.
+_GUI_DEPENDENCIES = ("tkinter", "_tkinter")
 {%- endif %}
 {%- if include_web %}
 _WEB_DEPENDENCIES = ("{{web_framework}}", "uvicorn")
@@ -427,7 +430,10 @@ _TK_HINT = "'tkinter' is part of the Python standard library but ships as a sepa
 _TUI_DEPENDENCIES = ("textual", "typing_extensions")
 {%- endif %}
 {%- if include_gui %}
-_GUI_DEPENDENCIES = ("tkinter",)
+# ``_tkinter`` is the C extension ``tkinter/__init__.py`` imports unguarded, and
+# it is the name that actually fails on an interpreter built without tk-dev (the
+# pure-Python ``tkinter`` package still ships), so both belong in the allowlist.
+_GUI_DEPENDENCIES = ("tkinter", "_tkinter")
 {%- endif %}
 {%- if include_web %}
 _WEB_DEPENDENCIES = ("{{web_framework}}", "uvicorn")
