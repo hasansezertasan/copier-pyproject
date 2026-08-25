@@ -404,6 +404,21 @@ preflight_used:
   type: json
   when: false
   default: "{{ (['tui' if 'tui' in launched_components else none, 'gui' if 'gui' in launched_components else none, 'web' if 'web' in launched_components else none, 'worker' if 'worker' in launched_components else none] | select | list) | tojson }}"
+# True when the console root is the *Typer* root rather than the standard-library
+# argparse one. `cli_framework` is only asked when `include_cli`, but a stored
+# `argparse` answer is **retained** across a `copier update` that turns the CLI
+# off while ≥2 non-CLI components keep the shared launcher — so
+# `cli_framework == "typer"` is NOT a safe proxy for "the root imports typer".
+# It was one, and the mismatch shipped a project whose launcher imported `typer`
+# while `[project] dependencies` never declared it: broken at launch even in a
+# fully synced environment, with the guard recommending a `uv sync` that could
+# not help. Single source for the `cli/app.py` branch, the `typer` runtime
+# dependency in `pyproject.toml`, and `root_dependencies` above — these three
+# must agree.
+root_uses_typer:
+  type: bool
+  when: false
+  default: "{{ include_console_root and not (include_cli and cli_framework == 'argparse') }}"
 # Third-party modules the console root imports at *module scope*, before the
 # component-dependency guard inside `cli/app.py` can run:
 #   * `typer` — the root itself, unless an explicit `include_cli` + `argparse`
@@ -415,7 +430,7 @@ preflight_used:
 root_dependencies:
   type: json
   when: false
-  default: "{{ (((['typer'] if not (include_cli and cli_framework == 'argparse') else []) + (['pydantic', 'pydantic_settings'] if include_pydantic_settings else [])) if include_console_root else []) | tojson }}"
+  default: "{{ (((['typer'] if root_uses_typer else []) + (['pydantic', 'pydantic_settings'] if include_pydantic_settings else [])) if include_console_root else []) | tojson }}"
 # Single source of truth for which prebuilt binary the brew/scoop packaging
 # references when several executable toggles are enabled. Precedence
 # freezer > compiler > launcher (freezer/compiler are self-contained; launcher

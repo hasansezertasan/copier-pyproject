@@ -109,7 +109,10 @@ requires-python = ">=3.10"
 # unconditionally when enabled.
 {% endif -%}
 dependencies = [
-{%- if include_console_root and cli_framework == "typer" %}
+{#- ``root_uses_typer``, not ``cli_framework == "typer"``: a stored ``argparse``
+    answer survives a ``copier update`` that disables the CLI while ≥2 non-CLI
+    components keep the shared launcher, and that launcher is the Typer one. -#}
+{%- if root_uses_typer %}
     "typer>=0.20.0",
 {%- endif %}
 {%- if include_tui %}
