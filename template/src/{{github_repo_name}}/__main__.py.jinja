@@ -16,6 +16,53 @@ import/``main`` binding here directly. With no runnable component enabled,
 ``main()`` exits non-zero with an explanatory message.
 """
 {%- if include_console_root %}
+{#- The console root is the Typer variant unless an explicit ``include_cli`` +
+    ``argparse`` choice makes it standard-library only; mirror the same condition
+    cli/app.py.jinja branches on so the guard below exists exactly when the root
+    has a third-party dependency of its own. -#}
+{%- set console_root_needs_typer = not (include_cli and cli_framework == "argparse") %}
+{%- if console_root_needs_typer %}
+
+import sys
+from collections.abc import Callable
+
+# ``typer`` is the console root's *own* dependency, imported at the top of
+# ``cli.app`` -- i.e. before the component-dependency guard inside that module
+# can run. A ``copier update`` that turns a single-component project into a
+# multi-component one adds both this root and that dependency at once, so an
+# environment that has not been re-synced would otherwise fail here with a bare
+# ``ModuleNotFoundError`` before any launcher code executes.
+_MISSING_CONSOLE_ROOT = "Error: The {{github_repo_name}} command requires the 'typer' package, which is not installed. It ships with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+
+
+def _load_console_root() -> Callable[[], object]:
+    """Import the console root, reporting its own missing dependency actionably.
+
+    Returns:
+        Callable[[], object]: The console-root application.
+
+    Raises:
+        ModuleNotFoundError: Propagating a missing module other than ``typer``,
+            so an unrelated import defect keeps its diagnostic context.
+        SystemExit: With code 1 when ``typer`` is missing from this environment.
+    """
+    try:
+        from {{github_repo_name}}.cli import app  # noqa: PLC0415
+    except ModuleNotFoundError as exc:
+        if exc.name != "typer":
+            raise
+        _ = sys.stderr.write(_MISSING_CONSOLE_ROOT + "\n")
+        raise SystemExit(1) from None
+    return app
+
+
+# The dispatchers below carry `# pragma: no cover`: invoking them launches the
+# blocking component (CLI loop, GUI mainloop, server, ...), which cannot run
+# under headless CI. tests/test_main.py pins the import wiring and callability.
+def main() -> None:  # pragma: no cover
+    """Run the {{github_repo_name}} console root (primary + component subcommands)."""
+    _ = _load_console_root()()
+{%- else %}
 
 from {{github_repo_name}}.cli import app
 
@@ -26,6 +73,7 @@ from {{github_repo_name}}.cli import app
 def main() -> None:  # pragma: no cover
     """Run the {{github_repo_name}} console root (primary + component subcommands)."""
     app()
+{%- endif %}
 {%- elif include_gui %}
 
 import sys
