@@ -16,17 +16,11 @@ import/``main`` binding here directly. With no runnable component enabled,
 ``main()`` exits non-zero with an explanatory message.
 """
 {%- if include_console_root %}
-{#- Third-party modules the console root imports at *module scope*, before the
-    component-dependency guard inside ``cli/app.py`` can run:
-      * ``typer`` -- the root itself, unless an explicit ``include_cli`` +
-        ``argparse`` choice makes it standard-library only (mirror the condition
-        cli/app.py.jinja branches on).
-      * ``pydantic`` / ``pydantic_settings`` -- pulled in transitively by
-        ``core.logging_setup`` -> ``core.config`` when ``include_pydantic_settings``.
-    The guard below is emitted exactly when this list is non-empty. -#}
-{%- set root_dependencies = [] %}
-{%- if not (include_cli and cli_framework == "argparse") %}{% set _ = root_dependencies.append("typer") %}{% endif %}
-{%- if include_pydantic_settings %}{% set _ = root_dependencies.append("pydantic") %}{% set _ = root_dependencies.append("pydantic_settings") %}{% endif %}
+{#- ``root_dependencies`` -- the third-party modules the console root imports at
+    *module scope*, before the component-dependency guard inside ``cli/app.py``
+    can run -- is computed in ``copier.yml``, which is also where
+    ``tests/test_main.py`` reads it from. The guard below is emitted exactly when
+    that list is non-empty. -#}
 {%- if root_dependencies %}
 
 import sys
