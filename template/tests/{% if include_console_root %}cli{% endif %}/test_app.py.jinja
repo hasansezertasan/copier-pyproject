@@ -16,15 +16,15 @@ import importlib
 import sys
 {% endif -%}
 from importlib.metadata import Distribution, PackageNotFoundError
-{% if include_web -%}
-from typing import TYPE_CHECKING, NoReturn
+{% if include_web or include_gui -%}
+from typing import TYPE_CHECKING{% if include_web %}, NoReturn{% endif %}
 {% endif %}
 import pytest
 {% if include_web -%}
 import uvicorn
 {% endif %}
 from {{github_repo_name}}.cli.app import app
-{% if include_web %}
+{% if include_web or include_gui %}
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
@@ -207,6 +207,33 @@ def _homebrew_tk_formula() -> str:
     return f"python-tk@{sys.version_info.major}.{sys.version_info.minor}"
 
 
+_TK_EXTENSION_MESSAGE = "No module named '_tkinter'"
+
+
+class _TkExtensionMissingFinder:
+    """Simulate a Python built without tk-dev.
+
+    The pure-Python ``tkinter`` package ships, so the import proceeds far enough
+    to run its unguarded ``import _tkinter`` and fail naming the C extension.
+    Reproduced with a finder rather than by patching ``sys.modules`` so the test
+    is identical on runners that have no ``tkinter`` package at all.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail a ``tkinter`` import the way a missing C extension does.
+
+        Raises:
+            ModuleNotFoundError: Naming ``_tkinter`` when ``tkinter`` is imported.
+        """
+        del path, target
+        if fullname == "tkinter":
+            raise ModuleNotFoundError(_TK_EXTENSION_MESSAGE, name="_tkinter")
+        return None
+
+
 def test_gui_launcher_reports_missing_tkinter(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -253,7 +280,8 @@ def test_gui_launcher_reports_missing_tk_extension(
     Then:
         - The same actionable Tk message is shown, not a bare traceback.
     """
-    monkeypatch.setitem(sys.modules, "_tkinter", None)
+    finder = _TkExtensionMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "tkinter", raising=False)
 
     with pytest.raises(SystemExit) as excinfo:
@@ -376,7 +404,7 @@ from typer.testing import CliRunner
 from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
-{%- if include_web %}
+{%- if include_web or include_gui %}
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
     from types import ModuleType
@@ -581,6 +609,33 @@ def _homebrew_tk_formula() -> str:
     return f"python-tk@{sys.version_info.major}.{sys.version_info.minor}"
 
 
+_TK_EXTENSION_MESSAGE = "No module named '_tkinter'"
+
+
+class _TkExtensionMissingFinder:
+    """Simulate a Python built without tk-dev.
+
+    The pure-Python ``tkinter`` package ships, so the import proceeds far enough
+    to run its unguarded ``import _tkinter`` and fail naming the C extension.
+    Reproduced with a finder rather than by patching ``sys.modules`` so the test
+    is identical on runners that have no ``tkinter`` package at all.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail a ``tkinter`` import the way a missing C extension does.
+
+        Raises:
+            ModuleNotFoundError: Naming ``_tkinter`` when ``tkinter`` is imported.
+        """
+        del path, target
+        if fullname == "tkinter":
+            raise ModuleNotFoundError(_TK_EXTENSION_MESSAGE, name="_tkinter")
+        return None
+
+
 def test_gui_launcher_reports_missing_tkinter(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -626,7 +681,8 @@ def test_gui_launcher_reports_missing_tk_extension(
     Then:
         - The same actionable Tk message is shown, not a bare traceback.
     """
-    monkeypatch.setitem(sys.modules, "_tkinter", None)
+    finder = _TkExtensionMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "tkinter", raising=False)
 
     result: Result = runner.invoke(app, [{% if primary_component != "gui" %}"gui"{% endif %}])
