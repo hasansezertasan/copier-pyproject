@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 import importlib
-{% if include_web or include_tui -%}
+{% if include_web or include_tui or include_gui -%}
 import sys
 {% endif -%}
 from importlib.metadata import Distribution, PackageNotFoundError
@@ -24,14 +24,12 @@ import pytest
 import uvicorn
 {% endif %}
 from {{github_repo_name}}.cli.app import app
-
-{%- if include_web %}
+{% if include_web %}
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
     from types import ModuleType
-{%- endif %}
-
+{% endif %}
 # Import the module object (not the re-exported callable) so the monkeypatch
 # below patches ``Distribution`` where the commands look it up.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
@@ -52,8 +50,9 @@ class _MissingDistribution:
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = subcommands.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = subcommands.append("worker") %}{% endif -%}
 {% if need_import_guard -%}
-# Bound to a name so the raise in the guard test stays a single statement (EM101).
+# Bound to a name so the raises in the guard tests stay single statements (EM101).
 _MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
+_NAMELESS_MODULE_MESSAGE = "nameless import failure"
 
 
 {% endif -%}
@@ -150,6 +149,32 @@ def test_missing_component_dependency_is_actionable(
     assert "web" in err
     assert "uvicorn" in err
     assert "uv sync" in err
+
+
+def test_nameless_module_error_is_not_translated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An import failure carrying no module name propagates untouched.
+
+    Given:
+        - A ``ModuleNotFoundError`` without a ``name``, so the guard cannot tell
+          whether the failure involves one of the component's dependencies.
+    When:
+        - It is raised inside the component-dependency guard.
+    Then:
+        - The original error propagates instead of being relabelled as an
+          out-of-sync environment.
+
+    Raises:
+        ModuleNotFoundError: The nameless failure under test.
+    """
+    with (
+        pytest.raises(ModuleNotFoundError, match="nameless"),
+        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+    ):
+        raise ModuleNotFoundError(_NAMELESS_MODULE_MESSAGE)
+
+    assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
 {%- if include_tui %}
 
@@ -168,6 +193,36 @@ def test_tui_launcher_reports_missing_deferred_dependency(
     assert "TUI" in err
     assert "textual" in err
     assert "uv sync" in err
+    assert "Traceback" not in err
+{%- endif %}
+{%- if include_gui %}
+
+
+def test_gui_launcher_reports_missing_tkinter(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A Tk-less interpreter gets a system-level hint, not ``uv sync``.
+
+    Given:
+        - An interpreter built without Tk, which ``gui.app`` only discovers when
+          it draws the window -- after the launcher's guard would have closed.
+    When:
+        - The public GUI launcher starts the GUI component.
+    Then:
+        - The command exits 1 naming ``tkinter`` and a platform Tk package;
+          ``uv sync`` is *not* suggested, because Tk is not a distribution.
+    """
+    monkeypatch.setitem(sys.modules, "tkinter", None)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["gui"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "GUI" in err
+    assert "tkinter" in err
+    assert "python3-tk" in err
+    assert "uv sync" not in err
     assert "Traceback" not in err
 {%- endif %}
 {%- if include_web %}
@@ -260,7 +315,7 @@ def test_web_launcher_preserves_runtime_import_errors(
 from __future__ import annotations
 
 import importlib
-{% if include_web or include_tui -%}
+{% if include_web or include_tui or include_gui -%}
 import sys
 {% endif -%}
 {% if include_cli -%}
@@ -309,8 +364,9 @@ class _MissingDistribution:
 
 
 {% if need_import_guard -%}
-# Bound to a name so the raise in the guard test stays a single statement (EM101).
+# Bound to a name so the raises in the guard tests stay single statements (EM101).
 _MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
+_NAMELESS_MODULE_MESSAGE = "nameless import failure"
 
 
 {% endif -%}
@@ -427,6 +483,32 @@ def test_missing_component_dependency_is_actionable(
     assert "web" in err
     assert "uvicorn" in err
     assert "uv sync" in err
+
+
+def test_nameless_module_error_is_not_translated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An import failure carrying no module name propagates untouched.
+
+    Given:
+        - A ``ModuleNotFoundError`` without a ``name``, so the guard cannot tell
+          whether the failure involves one of the component's dependencies.
+    When:
+        - It is raised inside the component-dependency guard.
+    Then:
+        - The original error propagates instead of being relabelled as an
+          out-of-sync environment.
+
+    Raises:
+        ModuleNotFoundError: The nameless failure under test.
+    """
+    with (
+        pytest.raises(ModuleNotFoundError, match="nameless"),
+        cli_app._component_dependencies("web", "uvicorn"),  # noqa: SLF001
+    ):
+        raise ModuleNotFoundError(_NAMELESS_MODULE_MESSAGE)
+
+    assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
 {%- if include_tui %}
 
@@ -444,6 +526,35 @@ def test_tui_launcher_reports_missing_deferred_dependency(
     assert "tui" in result.output.lower()
     assert "textual" in result.output
     assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+{%- endif %}
+{%- if include_gui %}
+
+
+def test_gui_launcher_reports_missing_tkinter(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A Tk-less interpreter gets a system-level hint, not ``uv sync``.
+
+    Given:
+        - An interpreter built without Tk, which ``gui.app`` only discovers when
+          it draws the window -- after the launcher's guard would have closed.
+    When:
+        - The public GUI launcher starts the GUI component.
+    Then:
+        - The command exits 1 naming ``tkinter`` and a platform Tk package;
+          ``uv sync`` is *not* suggested, because Tk is not a distribution.
+    """
+    monkeypatch.setitem(sys.modules, "tkinter", None)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "gui" %}"gui"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "gui" in result.output.lower()
+    assert "tkinter" in result.output
+    assert "python3-tk" in result.output
+    assert "uv sync" not in result.output
     assert "Traceback" not in result.output
 {%- endif %}
 {%- if include_web %}

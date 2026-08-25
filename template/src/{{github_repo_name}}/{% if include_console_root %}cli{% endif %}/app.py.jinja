@@ -35,7 +35,7 @@ import argparse
 {% if need_import_guard -%}
 import contextlib
 {% endif -%}
-{% if include_web or include_tui -%}
+{% if include_web or include_tui or include_gui -%}
 import importlib
 {% endif -%}
 import platform
@@ -67,7 +67,14 @@ _METADATA_MISSING = f"Error: Package '{PROJECT_NAME}' metadata not found. Is the
 # (there are no per-component extras), so a missing one never means "install the
 # extra" -- it means this environment is out of sync with the installed metadata.
 # That happens after a ``copier update`` enables a component, or in a stale venv.
-_STALE_ENVIRONMENT = "Error: The {component} component requires the '{missing}' package, which is not installed. Component dependencies ship with '{project}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+_MISSING_DEPENDENCY = "Error: The {component} component requires '{missing}', which is not available in this environment. {hint}"  # noqa: E501
+_SYNC_HINT = f"Component dependencies ship with '{PROJECT_NAME}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+{%- if include_gui %}
+# ``tkinter`` is the one exception to the comment above: it is a standard-library
+# extension module, not a distribution, so ``uv sync`` cannot install it. Missing
+# means this interpreter was built without Tk -- a system-level fix.
+_TK_HINT = "'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk`), or use a Python build that includes Tk."  # noqa: E501
+{%- endif %}
 {%- if include_tui %}
 _TUI_DEPENDENCIES = ("textual", "typing_extensions")
 {%- endif %}
@@ -87,7 +94,7 @@ _WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{worker_dependency}}")
 
 @contextlib.contextmanager
 def _component_dependencies(
-    component: str, *dependencies: str
+    component: str, *dependencies: str, hint: str = _SYNC_HINT
 ) -> Generator[None, None, None]:
     """Translate a missing component dependency into an actionable CLI error.
 
@@ -98,6 +105,9 @@ def _component_dependencies(
     Args:
         component: Human name of the component being launched (e.g. ``"web"``).
         *dependencies: Known import module roots used by the component.
+        hint: Remediation sentence appended to the error. Defaults to the
+            out-of-sync-environment ``uv sync`` hint, which is right for every
+            component whose dependency is a real distribution.
 
     Yields:
         ``None``; the caller performs the import inside the block.
@@ -123,8 +133,8 @@ def _component_dependencies(
         logger.error(  # noqa: TRY400
             "Missing dependency %r for the %s component", missing, component
         )
-        message = _STALE_ENVIRONMENT.format(
-            component=component, missing=missing, project=PROJECT_NAME
+        message = _MISSING_DEPENDENCY.format(
+            component=component, missing=missing, hint=hint
         )
         _ = sys.stderr.write(message + "\n")
         raise SystemExit(1) from None
@@ -220,7 +230,11 @@ def gui() -> None:  # pragma: no cover
         SystemExit: Propagating the GUI's exit code, or code 1 if a dependency of
             the GUI is missing from this environment.
     """
-    with _component_dependencies("GUI", *_GUI_DEPENDENCIES):
+    with _component_dependencies("GUI", *_GUI_DEPENDENCIES, hint=_TK_HINT):
+        # ``gui.app`` imports Tkinter only when it draws the window, i.e. after
+        # this guard has closed, so preflight it here to keep a Tk-less
+        # interpreter an actionable error rather than a GuiDisplayError fallback.
+        _ = importlib.import_module("tkinter")
         from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -364,7 +378,7 @@ from __future__ import annotations
 {% if need_import_guard -%}
 import contextlib
 {% endif -%}
-{% if include_web or include_tui -%}
+{% if include_web or include_tui or include_gui -%}
 import importlib
 {% endif -%}
 {% if include_cli -%}
@@ -401,7 +415,14 @@ logger = get_logger()
 # (there are no per-component extras), so a missing one never means "install the
 # extra" -- it means this environment is out of sync with the installed metadata.
 # That happens after a ``copier update`` enables a component, or in a stale venv.
-_STALE_ENVIRONMENT = "Error: The {component} component requires the '{missing}' package, which is not installed. Component dependencies ship with '{project}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+_MISSING_DEPENDENCY = "Error: The {component} component requires '{missing}', which is not available in this environment. {hint}"  # noqa: E501
+_SYNC_HINT = f"Component dependencies ship with '{PROJECT_NAME}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+{%- if include_gui %}
+# ``tkinter`` is the one exception to the comment above: it is a standard-library
+# extension module, not a distribution, so ``uv sync`` cannot install it. Missing
+# means this interpreter was built without Tk -- a system-level fix.
+_TK_HINT = "'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk`), or use a Python build that includes Tk."  # noqa: E501
+{%- endif %}
 {%- if include_tui %}
 _TUI_DEPENDENCIES = ("textual", "typing_extensions")
 {%- endif %}
@@ -421,7 +442,7 @@ _WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{worker_dependency}}")
 
 @contextlib.contextmanager
 def _component_dependencies(
-    component: str, *dependencies: str
+    component: str, *dependencies: str, hint: str = _SYNC_HINT
 ) -> Generator[None, None, None]:
     """Translate a missing component dependency into an actionable CLI error.
 
@@ -432,6 +453,9 @@ def _component_dependencies(
     Args:
         component: Human name of the component being launched (e.g. ``"web"``).
         *dependencies: Known import module roots used by the component.
+        hint: Remediation sentence appended to the error. Defaults to the
+            out-of-sync-environment ``uv sync`` hint, which is right for every
+            component whose dependency is a real distribution.
 
     Yields:
         ``None``; the caller performs the import inside the block.
@@ -458,9 +482,7 @@ def _component_dependencies(
             "Missing dependency %r for the %s component", missing, component
         )
         typer.echo(
-            _STALE_ENVIRONMENT.format(
-                component=component, missing=missing, project=PROJECT_NAME
-            ),
+            _MISSING_DEPENDENCY.format(component=component, missing=missing, hint=hint),
             err=True,
         )
         raise typer.Exit(code=1) from None
@@ -476,8 +498,7 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
 
     Runs when ``{{github_repo_name}}`` is invoked with no subcommand; a named
     subcommand always takes precedence.
-
-{%- if primary_component in ["gui", "tui"] %}
+{% if primary_component in ["gui", "tui"] %}
     Raises:
         typer.Exit: Propagating the primary component's exit code, or code 1 if a
             dependency of the component is missing from this environment.
@@ -487,11 +508,15 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
     """
     if ctx.invoked_subcommand is not None:
         return
-    with _component_dependencies("{{primary_component}}", *_{{primary_component | upper}}_DEPENDENCIES):
+    with _component_dependencies("{{primary_component}}", *_{{primary_component | upper}}_DEPENDENCIES{% if primary_component == "gui" %}, hint=_TK_HINT{% endif %}):
 {%- if primary_component == "web" %}
         _ = importlib.import_module("uvicorn")
 {%- elif primary_component == "tui" %}
         _ = importlib.import_module("textual")
+{%- elif primary_component == "gui" %}
+        # Preflight Tkinter: ``gui.app`` imports it only when it draws the
+        # window, after this guard has closed.
+        _ = importlib.import_module("tkinter")
 {%- endif %}
         from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
@@ -597,7 +622,11 @@ def gui() -> None:  # pragma: no cover
         typer.Exit: Propagating the GUI's exit code, or code 1 if a dependency of
             the GUI is missing from this environment.
     """
-    with _component_dependencies("GUI", *_GUI_DEPENDENCIES):
+    with _component_dependencies("GUI", *_GUI_DEPENDENCIES, hint=_TK_HINT):
+        # ``gui.app`` imports Tkinter only when it draws the window, i.e. after
+        # this guard has closed, so preflight it here to keep a Tk-less
+        # interpreter an actionable error rather than a GuiDisplayError fallback.
+        _ = importlib.import_module("tkinter")
         from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
