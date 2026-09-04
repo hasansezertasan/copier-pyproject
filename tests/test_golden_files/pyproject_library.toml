@@ -190,6 +190,12 @@ name = "cz_conventional_commits"
 [tool.pytest.ini_options]
 # addopts = "-rXs --strict-config --strict-markers"
 addopts = "-v --tb=short"
+# One marker per component, auto-applied by tests/conftest.py from each test's
+# top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
+# jobs (issue #160, ADR-028); `integration` (ADR-008) is one axis of the scheme.
+markers = [
+  "core: core/shared component tests",
+]
 asyncio_mode = "auto"
 filterwarnings = [
   "error",
@@ -527,6 +533,18 @@ commands = [
     "mypy",
     "--python-version",
     "3.14",
+  ],
+  # Style runs once on Linux, so explicitly sweep platform-gated branches that
+  # mypy would otherwise prune as unreachable on the host platform.
+  [
+    "mypy",
+    "--platform",
+    "win32",
+  ],
+  [
+    "mypy",
+    "--platform",
+    "darwin",
   ],
   [
     "basedpyright",

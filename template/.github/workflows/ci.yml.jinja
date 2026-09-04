@@ -6,9 +6,101 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    # Every job below is draft-gated, so leaving draft must explicitly start a
+    # fresh run; `ready_for_review` is not part of GitHub's default event types.
+    types: [opened, synchronize, reopened, ready_for_review]
 jobs:
+  changes:
+    name: Detect changed components
+    # Draft-skip composes with #159 and is falsy-safe on push/workflow_dispatch
+    # (no pull_request context => the expression is not 'true', so it runs).
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # dorny/paths-filter fetches the changed-file list via the REST API on
+      # `pull_request` events (git diff is only used for push/other events, even
+      # with a checkout), so it needs `pull-requests: read`.
+      pull-requests: read
+    outputs:
+      core: {% raw %}${{ steps.filter.outputs.core }}{% endraw %}
+{%- if include_console_root %}
+      cli: {% raw %}${{ steps.filter.outputs.cli }}{% endraw %}
+{%- endif %}
+{%- if include_web %}
+      web: {% raw %}${{ steps.filter.outputs.web }}{% endraw %}
+{%- endif %}
+{%- if include_gui %}
+      gui: {% raw %}${{ steps.filter.outputs.gui }}{% endraw %}
+{%- endif %}
+{%- if include_tui %}
+      tui: {% raw %}${{ steps.filter.outputs.tui }}{% endraw %}
+{%- endif %}
+{%- if include_mcp %}
+      mcp: {% raw %}${{ steps.filter.outputs.mcp }}{% endraw %}
+{%- endif %}
+{%- if include_worker %}
+      worker: {% raw %}${{ steps.filter.outputs.worker }}{% endraw %}
+{%- endif %}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d  # v4.0.3
+        with:
+          # `core` underpins every component (deps, shared core/, package-root
+          # modules, the root conftest, root-level tests), so a change here
+          # forces the full fan-out — mirrors the import-linter layering
+          # (ADR-014). Each component filter watches only its own src+tests tree.
+          filters: |
+            core:
+              - '.github/workflows/ci.yml'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'tox.ini'
+              - 'src/{{github_repo_name}}/*.py'
+              - 'src/{{github_repo_name}}/core/**'
+              - 'src/{{github_repo_name}}/utils/**'
+              - 'tests/conftest.py'
+              - 'tests/core/**'
+              - 'tests/test_*.py'
+{%- if include_console_root %}
+            cli:
+              - 'src/{{github_repo_name}}/cli/**'
+              - 'tests/cli/**'
+{%- endif %}
+{%- if include_web %}
+            web:
+              - 'src/{{github_repo_name}}/web/**'
+              - 'tests/web/**'
+{%- endif %}
+{%- if include_gui %}
+            gui:
+              - 'src/{{github_repo_name}}/gui/**'
+              - 'tests/gui/**'
+{%- endif %}
+{%- if include_tui %}
+            tui:
+              - 'src/{{github_repo_name}}/tui/**'
+              - 'tests/tui/**'
+{%- endif %}
+{%- if include_mcp %}
+            mcp:
+              - 'src/{{github_repo_name}}/mcp/**'
+              - 'tests/mcp/**'
+{%- endif %}
+{%- if include_worker %}
+            worker:
+              - 'src/{{github_repo_name}}/worker/**'
+              - 'tests/worker/**'
+{%- endif %}
   hooks:
     name: Run prek hooks
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -37,13 +129,140 @@ jobs:
         uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654  # v4.2.4
       - name: Run prek hooks
         run: uv run --locked --group prek prek run --all-files --show-diff-on-failure
-  ci:
+  style:
+    name: Run style and type checks
+    # Keep style in one Linux job rather than repeating it for every component.
+    # The tox env itself sweeps mypy's Python-version and platform axes.
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Run style and type checks
+        run: uv run --locked tox run -e style
+{%- if include_docs %}
+  docs-doctest:
+    name: Test documentation examples
+    # Component test jobs override tox's default env list, so keep doctests in
+    # their own job to preserve the generated project's documented examples.
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Run documentation doctests
+        run: uv run --locked tox run -e docs-doctest
+{%- endif %}
+{%- if include_cli %}
+  cli-installed:
+    name: Check installed CLI on {% raw %}${{ matrix.os }}{% endraw %}
+    # This is separate from the marker-filtered pytest jobs: forwarding pytest's
+    # `-m` positional argument into the `cli` tox env would invoke the installed
+    # command with invalid arguments instead of its default `version` command.
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
-    name: Run Tests on {% raw %}${{ matrix.os }}{% endraw %}
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Run the installed CLI
+        run: uv run --locked tox run -e cli
+{%- endif %}
+{#- Per-component test jobs (issue #160). `test-core` always runs; each
+    `test-<component>` is path-gated on its own tree with `core` as the escape
+    hatch. The core marker deselects every enabled component (integration tests
+    live under tests/worker and are excluded by `not (worker)`); the worker job
+    additionally drops its integration subset (run in `worker-integration`).
+    The matrix shape mirrors #159 (full interpreter sweep on Linux, one
+    representative interpreter elsewhere; full grid under c-extensions). -#}
+{%- set comp_names = [] %}
+{%- if include_console_root %}{% set _ = comp_names.append('cli') %}{% endif %}
+{%- if include_web %}{% set _ = comp_names.append('web') %}{% endif %}
+{%- if include_gui %}{% set _ = comp_names.append('gui') %}{% endif %}
+{%- if include_tui %}{% set _ = comp_names.append('tui') %}{% endif %}
+{%- if include_mcp %}{% set _ = comp_names.append('mcp') %}{% endif %}
+{%- if include_worker %}{% set _ = comp_names.append('worker') %}{% endif %}
+{%- if comp_names %}{% set core_marker = 'not (' ~ comp_names | join(' or ') ~ ')' %}{% else %}{% set core_marker = '' %}{% endif %}
+{%- set test_jobs = [{'slug': 'core', 'marker': core_marker, 'gated': False}] %}
+{%- for c in comp_names %}{% set _ = test_jobs.append({'slug': c, 'marker': c ~ (' and not integration' if c == 'worker' else ''), 'gated': True}) %}{% endfor %}
+{%- set all_python_envs = '-e 3.14,3.13,3.12,3.11,3.10' %}
+{% for job in test_jobs %}
+  test-{{ job.slug }}:
+    name: Test {{ job.slug }} on {% raw %}${{ matrix.os }}{% endraw %}
+    needs: changes
+{%- if job.gated %}
+    if: >-
+      {% raw %}${{ github.event.pull_request.draft != true &&
+      (needs.changes.outputs.{% endraw %}{{ job.slug }}{% raw %} == 'true' ||
+      needs.changes.outputs.core == 'true') }}{% endraw %}
+{%- else %}
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+{%- endif %}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+{%- if include_c_extensions %}
+          - {os: ubuntu-latest, tox_args: "{{ all_python_envs }}"}
+          - {os: macos-latest, tox_args: "{{ all_python_envs }}"}
+          - {os: windows-latest, tox_args: "{{ all_python_envs }}"}
+{%- else %}
+          - {os: ubuntu-latest, tox_args: "{{ all_python_envs }}"}
+          - {os: macos-latest, tox_args: "-e py"}
+          - {os: windows-latest, tox_args: "-e py"}
+{%- endif %}
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -91,38 +310,94 @@ jobs:
         if: steps.setup-uv.outputs.cache-hit == 'true'
         run: echo "Cache was restored"
       - name: Run the tests
-        run: uv run --locked tox run
+        # `matrix.tox_args` selects the interpreter sweep (#159); the posargs
+        # after `--` select this component's marked tests (issue #160).
+        # `matrix.tox_args` is a workflow-defined (trusted) context, used inline
+        # like `matrix.os` in the System Info step — not untrusted GitHub context.
+        run: uv run --locked tox run {% raw %}${{ matrix.tox_args }}{% endraw %}{% if job.marker %} -- -m "{{ job.marker }}"{% endif %}
+
       - name: Store coverage data
         # Combine this cell's per-interpreter data and hand the raw `.coverage`
-        # off (under a per-OS name) to the `coverage-combine` job, which merges
-        # every OS × interpreter cell into the single authoritative report and
-        # enforces the one `fail_under` gate. The per-cell `coverage report` here
-        # stays for fast per-OS feedback but does NOT gate (`--fail-under=0`): a
-        # line covered on one OS yet version/OS-gated off on another only balances
-        # in the union, so the gate must measure the union, not each cell. See
-        # ADR-026.
+        # off (under a per-component, per-OS name) to this component's
+        # `coverage-{{ job.slug }}` gate job, which merges its OS cells and
+        # enforces the scoped `fail_under` gate. The per-cell `coverage report`
+        # here stays for fast feedback but does NOT gate (`--fail-under=0`): a
+        # line covered on one OS yet version/OS-gated off on another only
+        # balances in the per-component union. See ADR-028 (decomposes ADR-026).
         run: |
           uv run coverage combine
           uv run coverage report --show-missing --fail-under=0
-          mv .coverage ".coverage.{% raw %}${{ matrix.os }}{% endraw %}"
+          mv .coverage ".coverage.{{ job.slug }}.{% raw %}${{ matrix.os }}{% endraw %}"
       - name: Upload coverage data
         # `include-hidden-files` is required for upload-artifact to pick up the
-        # dotfile `.coverage.*`. Downloaded and merged by `coverage-combine`.
+        # dotfile `.coverage.*`. Downloaded and merged by `coverage-{{ job.slug }}`.
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
-          name: coverage-{% raw %}${{ matrix.os }}{% endraw %}
-          path: .coverage.{% raw %}${{ matrix.os }}{% endraw %}
+          name: coverage-{{ job.slug }}-{% raw %}${{ matrix.os }}{% endraw %}
+          path: .coverage.{{ job.slug }}.{% raw %}${{ matrix.os }}{% endraw %}
           include-hidden-files: true
-  coverage-combine:
-    name: Combine coverage across the matrix
-    needs: ci
+{% endfor %}
+{#- Per-component coverage gates (ADR-028, decomposes ADR-026's single union
+    gate). Each gate merges its component's OS cells (preserving ADR-026's
+    cross-OS union WITHIN a component) and enforces `fail_under=99` scoped to
+    that subtree, so a skipped (unchanged) component needs no gate. `source_pkgs`
+    measures both `src/<pkg>` and `tests`, so each scope spans src + tests.
+    Component gates pass only `--include`, so the pyproject `[tool.coverage.report]
+    omit` (`_version.py`, the worker integration file) still applies; the core
+    gate passes `--omit` (which overrides config omit) so it re-adds `_version.py`
+    and omits every component's src+tests subtree. Patterns are `*/`-anchored to
+    match both the editable `src/` and installed `site-packages/` layouts. -#}
+{% for job in test_jobs %}
+  coverage-{{ job.slug }}:
+    name: Coverage gate ({{ job.slug }})
+    needs: [changes, test-{{ job.slug }}]
+    if: >-
+      {% raw %}${{ !cancelled() && github.event.pull_request.draft != true{% endraw %}{% if job.gated %} &&
+      {% raw %}(needs.changes.outputs.{% endraw %}{{ job.slug }}{% raw %} == 'true' ||
+      needs.changes.outputs.core == 'true'){% endraw %}{% endif %} {% raw %}}}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      - name: Download {{ job.slug }} coverage data
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        with:
+          pattern: coverage-{{ job.slug }}-*
+          merge-multiple: true
+      - name: Combine and gate the {{ job.slug }} subtree
+        # `--locked --only-group test` pins the SAME coverage version that produced
+        # the `.coverage.*` data files (no unpinned drift), without building the
+        # project. `relative_files` (pyproject) lets cross-runner paths merge.
+        run: |
+          uv run --locked --only-group test coverage combine
+          uv run --locked --only-group test coverage report --show-missing {% if job.slug == 'core' %}--omit="*/_version.py{% for c in comp_names %},*/{{github_repo_name}}/{{c}}/*,*/tests/{{c}}/*{% endfor %}"{% else %}--include="*/{{github_repo_name}}/{{job.slug}}/*,*/tests/{{job.slug}}/*"{% endif %} --fail-under=99
+{% endfor %}
+  coverage-report:
+    name: Combine coverage and publish
+    # Central non-gating publish (gating lives in the per-component jobs above).
+    # Renders combined HTML/XML from whatever component gates ran and uploads to
+    # Codecov + (optionally) smokeshow. `if: !cancelled()` so it runs even when a
+    # component is path-skipped; downloads all present `coverage-*-*` artifacts.
+    needs: [changes, coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}]
+    # `!cancelled()` still publishes when a component gate failed, but must ALSO
+    # carry the draft guard: on a draft PR every dependency is *skipped* (not
+    # cancelled), so without it this job would run with zero coverage artifacts
+    # and `coverage combine` would fail with "No data to combine".
+    if: {% raw %}${{ !cancelled() && github.event.pull_request.draft != true }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
     env:
       # The `secrets` context is unavailable in `if:`, so surface CODECOV_TOKEN as
-      # a presence flag — never expose the value job-wide. See the `ci` job.
+      # a presence flag — never expose the value job-wide.
       CODECOV_TOKEN_SET: {% raw %}${{ secrets.CODECOV_TOKEN != '' }}{% endraw %}
       REPO_IS_PUBLIC: {% raw %}${{ !github.event.repository.private }}{% endraw %}
     steps:
@@ -132,33 +407,46 @@ jobs:
           persist-credentials: false
       - name: Setup uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
-      - name: Download per-cell coverage data
+      - name: Download all coverage data
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
         with:
-          pattern: coverage-*
+          pattern: coverage-*-*
           merge-multiple: true
-      - name: Combine, gate, and render the report
-        # The single place the `fail_under = 99` gate is enforced — over the union
-        # of every OS × interpreter cell, not each cell independently.
-        # `relative_files` (pyproject `[tool.coverage.run]`) lets paths from
-        # different runners merge. `--locked --only-group test` pins the SAME
-        # coverage version that produced the `.coverage.*` data files (rather than
-        # an unpinned resolve that could drift), without building the project.
+      - name: Combine and render (non-gating)
+        # `--fail-under=0`: gating is done per component above; this job only
+        # publishes. On a path-filtered PR the skipped components never ran, but
+        # `source_pkgs` still makes coverage discover their (unexecuted) files and
+        # report them at ~0%, which would misrepresent the combined number in
+        # Codecov/smokeshow. So omit every component that did NOT run this time
+        # (derived from the `changes` outputs — `core` forces the full report).
+        # The `changes` booleans are workflow-derived (trusted), passed via env.
+        env:
+          CHANGED_CORE: {% raw %}${{ needs.changes.outputs.core }}{% endraw %}
+{%- for c in comp_names %}
+          CHANGED_{{ c | upper }}: {% raw %}${{ needs.changes.outputs.{% endraw %}{{ c }}{% raw %} }}{% endraw %}
+{%- endfor %}
         run: |
           uv run --locked --only-group test coverage combine
-          uv run --locked --only-group test coverage report --show-missing --fail-under=99
-          uv run --locked --only-group test coverage html
-          uv run --locked --only-group test coverage xml
+          # `--omit` on the CLI overrides the pyproject omit, so re-add the always
+          # -omitted files, then append each component that was skipped this run.
+          omit="*/_version.py{% if include_worker %},*/worker/test_integration.py{% endif %}"
+{%- for c in comp_names %}
+          if [ "$CHANGED_CORE" != "true" ] && [ "$CHANGED_{{ c | upper }}" != "true" ]; then
+            omit="$omit,*/{{github_repo_name}}/{{c}}/*,*/tests/{{c}}/*"
+          fi
+{%- endfor %}
+          uv run --locked --only-group test coverage report --show-missing --omit="$omit" --fail-under=0
+          uv run --locked --only-group test coverage html --omit="$omit"
+          uv run --locked --only-group test coverage xml --omit="$omit"
       - name: Upload combined HTML report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: coverage-html
           path: htmlcov
       - name: Upload coverage to Codecov
-        # Single authoritative upload for the whole fan-out. Uploads when the token
-        # is set or the repo is public (tokenless); only a private repo with no
-        # token falls through to the visible skip below. Best-effort
-        # (`fail_ci_if_error` defaults to false), so a rate-limit never breaks CI.
+        # Uploads when the token is set or the repo is public (tokenless); only a
+        # private repo with no token falls through to the visible skip below.
+        # Best-effort (`fail_ci_if_error` defaults to false).
         if: {% raw %}${{ env.CODECOV_TOKEN_SET == 'true' || env.REPO_IS_PUBLIC == 'true' }}{% endraw %}
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f  # v7.0.0
         with:
@@ -203,6 +491,7 @@ jobs:
 {%- endif %}
 {%- if include_launcher %}
   build-launcher-check:
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     name: Build Launcher (PyCrucible) on {% raw %}${{ matrix.os }}{% endraw %}
     strategy:
       fail-fast: false
@@ -257,6 +546,7 @@ jobs:
 {%- endif %}
 {%- if include_freezer %}
   build-freezer-check:
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     name: Build Freezer (PyInstaller) on {% raw %}${{ matrix.os }}{% endraw %}
     strategy:
       fail-fast: false
@@ -312,6 +602,7 @@ jobs:
 {%- endif %}
 {%- if include_compiler %}
   build-compiler-check:
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
     name: Build Compiler (Nuitka) on {% raw %}${{ matrix.os }}{% endraw %}
     strategy:
       fail-fast: false
@@ -381,9 +672,16 @@ jobs:
     # Ubuntu-only: the real {{worker_broker}} runs in a Linux container — a
     # GitHub Actions service for redis/nats (below), an in-test testcontainer for
     # kafka/rabbitmq — and container support is Linux-runner-only. Runs only the
-    # `integration`-marked tests (deselected from the default matrix in the `ci`
-    # job) against a real {{worker_broker}} — the one thing that exercises the real
+    # `integration`-marked tests (deselected from the default `test-*` jobs)
+    # against a real {{worker_broker}} — the one thing that exercises the real
     # driver and serialization the in-memory unit tests stub out. See ADR-008.
+    # Path-gated like the component test jobs (issue #160): skips the container
+    # spin-up on PRs that touch neither the worker tree nor shared core.
+    needs: changes
+    if: >-
+      {% raw %}${{ github.event.pull_request.draft != true &&
+      (needs.changes.outputs.worker == 'true' ||
+      needs.changes.outputs.core == 'true') }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -440,14 +738,14 @@ jobs:
 {%- if include_sonarcloud %}
   sonar:
     name: SonarCloud Scan
-    needs: coverage-combine
+    needs: coverage-report
     # Opt-in and non-blocking, mirroring the Codecov upload: forks never receive
     # secrets and SonarCloud has no tokenless fallback, so skip fork PRs entirely;
     # on same-repo runs, the scan step is gated on the SONAR_TOKEN presence flag
     # (the `secrets` context is unavailable in `if:`) and records a visible skip
     # instead of failing when the secret is unset. Not wired into the `check`
     # aggregation gate — quality reporting is best-effort, not merge-blocking.
-    if: {% raw %}${{ github.event.pull_request.head.repo.fork != true }}{% endraw %}
+    if: {% raw %}${{ github.event.pull_request.head.repo.fork != true && github.event.pull_request.draft != true }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -477,8 +775,8 @@ jobs:
         run: echo "::notice::SONAR_TOKEN secret is not set — skipping the SonarCloud scan. See docs/maintaining/setup.rst (Repository setup) to enable it."
 {%- endif %}
   check:
-    if: always()
-    needs: [ci, coverage-combine, hooks{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
+    if: {% raw %}${{ always() && github.event.pull_request.draft != true }}{% endraw %}
+    needs: [changes, test-core{% for c in comp_names %}, test-{{ c }}{% endfor %}, coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}, coverage-report, hooks, style{% if include_docs %}, docs-doctest{% endif %}{% if include_cli %}, cli-installed{% endif %}{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}

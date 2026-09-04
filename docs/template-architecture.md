@@ -93,13 +93,13 @@ Optional components (all boolean):
 - `include_sourcery` - Sourcery AI-refactoring config (`.sourcery.yaml`)
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
 - `include_all_contributors` - all-contributors config (`.all-contributorsrc`) + README section
-- `include_smokeshow` - publish the combined coverage HTML report to a tokenless ephemeral URL via `smokeshow` (a step in the `coverage-combine` CI job; public repos only, `default: false`; see [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md))
+- `include_smokeshow` - publish the combined coverage HTML report to a tokenless ephemeral URL via `smokeshow` (a step in the `coverage-report` CI job; public repos only, `default: false`; see [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md))
 
   These are opt-in integrations kept as toggles (not always-on) precisely to
   preserve the self-contained "green on first push, zero external accounts"
   default: each is off in the base `library`/`tool`/`web` presets (only the `full`
   preset seeds them on), so a plain project never pays for them unasked. `include_smokeshow` needs no account at all (a
-  tokenless public-repo-only coverage-HTML mirror in the `coverage-combine` job —
+  tokenless public-repo-only coverage-HTML mirror in the `coverage-report` job —
   [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md));
   `include_sourcery` (config-only, external App) and
   `include_sonarcloud` (needs a SonarCloud org + `SONAR_TOKEN` secret) require
@@ -569,19 +569,49 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 ## CI/CD Workflows
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
-   - **Cross-matrix coverage** ([ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):
-     each matrix cell `coverage combine`s its per-interpreter data, keeps a
-     non-gating `coverage report --fail-under=0` for fast per-OS feedback, and
-     uploads its raw `.coverage.<os>` as a per-OS artifact
-     (`include-hidden-files: true`). A dedicated `coverage-combine` job
-     (`needs: ci`, in the `check` gate) downloads every cell, merges once, and is
-     the **single** place the `fail_under = 99` gate runs — over the **union** of
-     every OS × interpreter cell, not each cell independently. `relative_files =
-     true` (pyproject `[tool.coverage.run]`) lets cross-runner paths merge,
-     complementing the `[tool.coverage.paths]` remap. The combined `coverage.xml`
-     is the single Codecov upload and, when `include_sonarcloud`, the `coverage-xml`
-     artifact the `sonar` job consumes (`sonar` now `needs: coverage-combine`).
-   - Codecov upload (from `coverage-combine`) runs whenever the repo is public
+   - **Per-component jobs + path filtering**
+     ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md)): a
+     `changes` job (`dorny/paths-filter`) emits a boolean per component plus
+     `core`. The test job is split into `test-core` (always runs) and one
+     `test-<component>` per enabled component, each gated on
+     `needs.changes.outputs.<component> == 'true' || …outputs.core == 'true'` and
+     running `tox run -- -m "<component> …"`. `core` (deps, shared `core/`,
+     package-root modules, root `conftest.py`, root tests, and `ci.yml` itself)
+     forces the full fan-out. `worker-integration` carries the same gate. Markers are auto-applied
+     by `tests/conftest.py`: root-level tests become `core`, while tests in a
+     component directory use the top-level `tests/<dir>/`; the default
+     local `tox run` is unchanged (everything minus `integration`).
+   - **Asymmetric matrix + draft policy**
+     ([ADR-029](adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md)): component
+     tests run all supported interpreters on Ubuntu and one representative
+     interpreter on macOS/Windows; C-extension renders keep the full grid.
+     `style` runs once on Linux and sweeps mypy's win32/darwin platform axis.
+     An `include_cli` render gets a dedicated three-OS `cli-installed` job, so
+     the real console script is checked without receiving pytest marker args.
+     Every `ci.yml` job is draft-gated, and `ready_for_review` starts a fresh run.
+   - **Doctests keep their own job.** Because the component `test-*` jobs pass
+     `tox run -- -m …` (which replaces tox's default env list), an
+     `include_docs` render gets a dedicated `docs-doctest` job running
+     `tox run -e docs-doctest`; it is part of the `check` gate
+     ([ADR-028](adr/028-tested-documentation-examples.md)).
+   - **Per-component coverage gates**
+     ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md), decomposing
+     [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):
+     each `test-<component>` cell `coverage combine`s its per-interpreter data,
+     keeps a non-gating `--fail-under=0` report for fast feedback, and uploads
+     `coverage-<component>-<os>` (`include-hidden-files: true`). A
+     `coverage-<component>` job then merges that component's OS cells and enforces
+     `fail_under = 99` **scoped** to the subtree (`--include="*/<pkg>/<c>/*,*/tests/<c>/*"`;
+     `coverage-core` instead `--omit`s every component). The union principle is
+     preserved *within* each component (its cross-OS cells), not across all code —
+     so a path-skipped, unchanged component keeps the `check` gate green. A central
+     non-gating `coverage-report` job (`if: !cancelled() && draft != true`) merges whatever ran,
+     renders combined HTML/XML, and handles Codecov/smokeshow. `relative_files =
+     true` (pyproject) lets cross-runner paths merge, complementing the
+     `[tool.coverage.paths]` remap. When `include_sonarcloud`, the `coverage-xml`
+     artifact the `sonar` job consumes comes from `coverage-report`
+     (`sonar` now `needs: coverage-report`).
+   - Codecov upload (from `coverage-report`) runs whenever the repo is public
      **or** a `CODECOV_TOKEN` secret is set — two job-level presence flags gate it
      because the `secrets` context is unavailable in `if:`: `CODECOV_TOKEN_SET`
      (`secrets.CODECOV_TOKEN != ''`) and `REPO_IS_PUBLIC`
@@ -593,7 +623,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      best-effort (the upload step's `fail_ci_if_error` defaults to false), not
      load-bearing for a green build. Setup is documented in the generated
      project's `docs/maintaining/setup.rst` "Repository setup" guide.
-   - When `include_smokeshow` is set, `coverage-combine` additionally publishes the
+   - When `include_smokeshow` is set, `coverage-report` additionally publishes the
      combined `htmlcov/` to a tokenless ephemeral public URL via
      `smokeshow upload htmlcov` (public repos only) — an account-free browsable
      coverage report alongside Codecov. See ADR-026.
@@ -615,7 +645,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      via testcontainers. The default OS matrix stays broker-free and fast (the
      `integration` marker is deselected by default via the pytest `addopts`); this
      job is the only thing exercising the real driver, and it gates the `check`
-     aggregation job. See [ADR-008](adr/008-worker-broker-testing-strategy.md).
+     aggregation job. It is path-gated like the component test jobs (skips its
+     container spin-up unless the worker tree or shared `core` changed; ADR-028).
+     See [ADR-008](adr/008-worker-broker-testing-strategy.md).
 2. **Release + CD** (`release.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
    (see [ADR-002](adr/002-release-please-for-release-automation.md)). Jobs:
