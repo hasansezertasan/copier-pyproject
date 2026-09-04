@@ -18,8 +18,10 @@ pyrefly, zuban, and pylint scope. It is not part of the package or coverage
 source set: examples document the package rather than constitute product code.
 
 The Sphinx `doctest` extension is enabled, with a `docs-doctest` tox environment
-included in the default CI run for inline `>>>` snippets that cannot use
-`literalinclude`.
+for inline `>>>` snippets that cannot use `literalinclude`. CI runs it in a
+dedicated `docs-doctest` job wired into the `check` gate — the per-component
+`test-*` jobs pass `tox run -- -m <marker>`, which replaces tox's default env
+list, so doctests would otherwise never run.
 
 ## Consequences
 

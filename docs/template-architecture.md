@@ -576,8 +576,8 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `test-<component>` per enabled component, each gated on
      `needs.changes.outputs.<component> == 'true' || …outputs.core == 'true'` and
      running `tox run -- -m "<component> …"`. `core` (deps, shared `core/`,
-     package-root modules, root `conftest.py`, root tests) forces the full
-     fan-out. `worker-integration` carries the same gate. Markers are auto-applied
+     package-root modules, root `conftest.py`, root tests, and `ci.yml` itself)
+     forces the full fan-out. `worker-integration` carries the same gate. Markers are auto-applied
      by `tests/conftest.py`: root-level tests become `core`, while tests in a
      component directory use the top-level `tests/<dir>/`; the default
      local `tox run` is unchanged (everything minus `integration`).
@@ -589,6 +589,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      An `include_cli` render gets a dedicated three-OS `cli-installed` job, so
      the real console script is checked without receiving pytest marker args.
      Every `ci.yml` job is draft-gated, and `ready_for_review` starts a fresh run.
+   - **Doctests keep their own job.** Because the component `test-*` jobs pass
+     `tox run -- -m …` (which replaces tox's default env list), an
+     `include_docs` render gets a dedicated `docs-doctest` job running
+     `tox run -e docs-doctest`; it is part of the `check` gate
+     ([ADR-028](adr/028-tested-documentation-examples.md)).
    - **Per-component coverage gates**
      ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md), decomposing
      [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):

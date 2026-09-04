@@ -190,6 +190,28 @@ def test_core_filter_includes_utils(render: Callable[..., Path]) -> None:
     assert "utils/**" in with_block
 
 
+def test_core_filter_includes_ci_workflow(render: Callable[..., Path]) -> None:
+    # Changes to component job commands and conditions must exercise the full
+    # fan-out, rather than leaving every path-gated component job skipped.
+    ci = _ci(render, preset="library")
+    steps = ci["jobs"]["changes"]["steps"]
+    with_block = next(s for s in steps if s.get("id") == "filter")["with"]["filters"]
+    assert ".github/workflows/ci.yml" in with_block
+
+
+def test_docs_doctest_has_dedicated_ci_job(render: Callable[..., Path]) -> None:
+    # Component jobs pass `-e`, replacing tox's default env list. Keep the docs
+    # environment explicit so inline documentation examples remain gated.
+    ci = _ci(render, preset="library", include_docs=True)
+    assert "tox run -e docs-doctest" in _job_run(ci["jobs"]["docs-doctest"])
+    assert "docs-doctest" in ci["jobs"]["check"]["needs"]
+
+
+def test_docs_doctest_job_omitted_without_docs(render: Callable[..., Path]) -> None:
+    ci = _ci(render, preset="library", include_docs=False)
+    assert "docs-doctest" not in ci["jobs"]
+
+
 def test_coverage_report_has_draft_guard(render: Callable[..., Path]) -> None:
     # On a draft PR all deps are skipped; without the draft guard `!cancelled()`
     # still runs the job with no coverage data and `coverage combine` fails.

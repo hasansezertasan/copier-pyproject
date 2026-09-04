@@ -58,6 +58,7 @@ jobs:
           # (ADR-014). Each component filter watches only its own src+tests tree.
           filters: |
             core:
+              - '.github/workflows/ci.yml'
               - 'pyproject.toml'
               - 'uv.lock'
               - 'tox.ini'
@@ -155,6 +156,35 @@ jobs:
             uv.lock
       - name: Run style and type checks
         run: uv run --locked tox run -e style
+{%- if include_docs %}
+  docs-doctest:
+    name: Test documentation examples
+    # Component test jobs override tox's default env list, so keep doctests in
+    # their own job to preserve the generated project's documented examples.
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Run documentation doctests
+        run: uv run --locked tox run -e docs-doctest
+{%- endif %}
 {%- if include_cli %}
   cli-installed:
     name: Check installed CLI on {% raw %}${{ matrix.os }}{% endraw %}
@@ -746,7 +776,7 @@ jobs:
 {%- endif %}
   check:
     if: {% raw %}${{ always() && github.event.pull_request.draft != true }}{% endraw %}
-    needs: [changes, test-core{% for c in comp_names %}, test-{{ c }}{% endfor %}, coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}, coverage-report, hooks, style{% if include_cli %}, cli-installed{% endif %}{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
+    needs: [changes, test-core{% for c in comp_names %}, test-{{ c }}{% endfor %}, coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}, coverage-report, hooks, style{% if include_docs %}, docs-doctest{% endif %}{% if include_cli %}, cli-installed{% endif %}{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
