@@ -555,8 +555,8 @@ allowlist names `faststream.<broker>` rather than the broker client, and MCP
 needs no preflight.
 
 `__main__.py` additionally loads the root through `_load_console_root()`, which
-applies the same translation to the modules imported at the root's *module*
-scope: `typer`, plus `pydantic`/`pydantic_settings` via `core.logging_setup` →
+preflights and applies the same translation to the modules imported at the root's
+*module* scope: `typer`, plus `pydantic`/`pydantic_settings` via `core.logging_setup` →
 `core.config` when `include_pydantic_settings`. `root_dependencies` is computed
 from the enabled toggles, so a pure argparse root with no settings renders
 without that guard.

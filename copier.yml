@@ -382,11 +382,15 @@ component_label:
   type: json
   when: false
   default: "{{ {'cli': 'CLI', 'tui': 'TUI', 'gui': 'GUI', 'web': 'web', 'mcp': 'MCP', 'worker': 'worker'} | tojson }}"
-# The one dependency per component that a launcher has to import *itself*,
-# because the component's own guarded import cannot reach it:
-#   * `tui`/`web` — `textual`/`uvicorn` are used at call time, after the guarded
-#     block has closed.
-#   * `gui` — `gui.app` imports Tkinter only when it draws the window.
+# A map of component name -> list of dependency modules to import eagerly before
+# the component's entrypoint runs. Needed where:
+#   * `tui` — textual is only imported when the App mounts (after the guarded
+#     block has closed).
+#   * `gui` — tkinter is only imported when the window is created (after the
+#     guarded block has closed).
+#   * `web` — uvicorn is only imported at server run-time (after the guarded
+#     block has closed), and the web framework itself must be preflighted so
+#     nested failures (e.g. starlette) are normalized.
 #   * `worker` — `faststream.<broker>` is a guarded re-export that raises a plain,
 #     *nameless* `ImportError` when the broker extra is absent, which exact-name
 #     matching can never classify.
@@ -395,7 +399,7 @@ component_label:
 component_preflight:
   type: json
   when: false
-  default: "{{ (({'tui': 'textual'} if include_tui else {}) | combine({'gui': 'tkinter'} if include_gui else {}) | combine({'web': 'uvicorn'} if include_web else {}) | combine({'worker': worker_broker_spec.module} if include_worker else {})) | tojson }}"
+  default: "{{ (({'tui': ['textual']} if include_tui else {}) | combine({'gui': ['tkinter']} if include_gui else {}) | combine({'web': [web_framework, 'uvicorn']} if include_web else {}) | combine({'worker': [worker_broker_spec.module]} if include_worker else {})) | tojson }}"
 # The launched components that need their preflight rendered — `launched_components`
 # minus the ones with no entry in `component_preflight` (only `mcp` today).
 # Consumed by `cli/app.py` (whether to emit `_preflight` and import `importlib`)

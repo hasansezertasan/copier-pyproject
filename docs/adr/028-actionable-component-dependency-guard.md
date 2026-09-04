@@ -71,12 +71,13 @@ and (b) carry a module name. Two kinds of dependency satisfy neither:
 `_preflight(module)` imports such a module inside the guarded block and re-raises
 import failures as a `ModuleNotFoundError` naming the module it was asked for.
 This includes nested failures from partially installed dependencies (for
-example, `uvicorn` naming a missing `click`): the component owns the direct
-dependency, and `uv sync` remains the appropriate repair. Because the name is
-supplied by the caller rather than read off the exception, the attribution is
-precise, and the single translation site in `_component_dependencies` keeps
-working unchanged. The sole exception is `tkinter` naming its `_tkinter` C
-extension, whose precise name is preserved for the system-level Tk hint.
+example, `uvicorn` naming a missing `click` or the web framework naming a
+missing `starlette`): the component owns the direct dependency, and `uv sync`
+remains the appropriate repair. Because the name is supplied by the caller rather
+than read off the exception, the attribution is precise, and the single
+translation site in `_component_dependencies` keeps working unchanged. The sole
+exception is `tkinter` naming its `_tkinter` C extension, whose precise name is
+preserved for the system-level Tk hint.
 
 This is why the worker's allowlist names `faststream.<broker>` and **not** the
 broker client (`aiokafka`, `aio_pika`, …): faststream intercepts the client's own
@@ -103,10 +104,11 @@ Some third-party modules are imported at the root's *module* scope, before the
 guard inside `cli/app.py` exists: `typer` by the root itself, and — when
 `include_pydantic_settings` — `pydantic`/`pydantic_settings` pulled in
 transitively via `core.logging_setup` → `core.config`. `__main__.py` loads the
-root through `_load_console_root()`, which applies the same translation and
-re-raises anything else unchanged. `root_dependencies` is computed from the
-enabled toggles, so a pure argparse root with no settings renders without the
-guard.
+root through `_load_console_root()`, which preflights each declared root
+dependency to normalize transitive failures (e.g. `typer` missing `click`),
+applies the same translation, and re-raises anything else unchanged.
+`root_dependencies` is computed from the enabled toggles, so a pure argparse
+root with no settings renders without the guard.
 
 ### Derived facts live in `copier.yml`
 
