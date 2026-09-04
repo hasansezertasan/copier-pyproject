@@ -324,6 +324,7 @@ def test_gui_launcher_reports_missing_tk_extension(
 
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
 _NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
+_NESTED_FRAMEWORK_MESSAGE = "No module named 'starlette'"
 
 
 class _NestedDependencyMissingFinder:
@@ -341,6 +342,24 @@ class _NestedDependencyMissingFinder:
         del path, target
         if fullname == "uvicorn":
             raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
+        return None
+
+
+class _NestedWebFrameworkMissingFinder:
+    """Simulate the web framework installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the framework preflight with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``starlette`` when the web framework is imported.
+        """
+        del path, target
+        if fullname == "{{ web_framework }}":
+            raise ModuleNotFoundError(_NESTED_FRAMEWORK_MESSAGE, name="starlette")
         return None
 
 
@@ -412,6 +431,25 @@ def test_web_launcher_reports_missing_nested_dependency(
     err = capsys.readouterr().err
     assert "web" in err
     assert "uvicorn" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+
+
+def test_web_launcher_reports_missing_nested_framework_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The web launcher attributes a nested framework failure to ``{{ web_framework }}``."""
+    finder = _NestedWebFrameworkMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "{{ web_framework }}", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["web"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "{{ web_framework }}" in err
     assert "uv sync" in err
     assert "Traceback" not in err
 
@@ -856,6 +894,7 @@ def test_gui_launcher_reports_missing_tk_extension(
 
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
 _NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
+_NESTED_FRAMEWORK_MESSAGE = "No module named 'starlette'"
 
 
 class _NestedDependencyMissingFinder:
@@ -873,6 +912,24 @@ class _NestedDependencyMissingFinder:
         del path, target
         if fullname == "uvicorn":
             raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
+        return None
+
+
+class _NestedWebFrameworkMissingFinder:
+    """Simulate the web framework installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the framework preflight with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``starlette`` when the web framework is imported.
+        """
+        del path, target
+        if fullname == "{{ web_framework }}":
+            raise ModuleNotFoundError(_NESTED_FRAMEWORK_MESSAGE, name="starlette")
         return None
 
 
@@ -942,6 +999,24 @@ def test_web_launcher_reports_missing_nested_dependency(
     assert not isinstance(result.exception, ModuleNotFoundError)
     assert "web" in result.output
     assert "uvicorn" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_web_launcher_reports_missing_nested_framework_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The web launcher attributes a nested framework failure to ``{{ web_framework }}``."""
+    finder = _NestedWebFrameworkMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "{{ web_framework }}", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "web" in result.output
+    assert "{{ web_framework }}" in result.output
     assert "uv sync" in result.output
     assert "Traceback" not in result.output
 

@@ -110,8 +110,9 @@ def _preflight(module: str) -> None:
         # An interpreter built without tk-dev fails ``import tkinter`` naming the
         # ``_tkinter`` C extension, which is the useful name for the system-level
         # fix. Other nested failures belong to the dependency being preflighted:
-        # a partially installed uvicorn may name ``click``, but the web launcher's
-        # allowlist intentionally knows only its direct dependency, ``uvicorn``.
+        # a partially installed uvicorn or web framework may name a sub-dependency
+        # like ``click`` or ``starlette``, but the launcher's allowlist
+        # intentionally knows only its direct dependencies.
         if module == "tkinter" and exc.name == "_tkinter":
             raise
         raise ModuleNotFoundError(str(exc), name=module) from None
@@ -245,7 +246,9 @@ def interactive() -> None:  # pragma: no cover
             the TUI is missing from this environment.
     """
     with _component_dependencies("{{ component_label['tui'] }}", *_TUI_DEPENDENCIES):
-        _preflight("{{ component_preflight['tui'] }}")
+{%- for module in component_preflight['tui'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -267,7 +270,9 @@ def gui() -> None:  # pragma: no cover
         # ``gui.app`` imports Tkinter only when it draws the window, i.e. after
         # this guard has closed, so import it here to keep a Tk-less interpreter
         # an actionable error rather than a GuiDisplayError fallback.
-        _preflight("{{ component_preflight['gui'] }}")
+{%- for module in component_preflight['gui'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
@@ -285,7 +290,9 @@ def web() -> None:  # pragma: no cover
     which exit 1 with a message naming the component, the module, and the fix.
     """
     with _component_dependencies("{{ component_label['web'] }}", *_WEB_DEPENDENCIES):
-        _preflight("{{ component_preflight['web'] }}")
+{%- for module in component_preflight['web'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
@@ -324,7 +331,9 @@ def worker() -> None:  # pragma: no cover
         # faststream's own import guard, which raises a *nameless* ``ImportError``
         # when the extra is absent; ``_preflight`` supplies the module name so the
         # guard above can classify it.
-        _preflight("{{ component_preflight['worker'] }}")
+{%- for module in component_preflight['worker'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
@@ -519,8 +528,9 @@ def _preflight(module: str) -> None:
         # An interpreter built without tk-dev fails ``import tkinter`` naming the
         # ``_tkinter`` C extension, which is the useful name for the system-level
         # fix. Other nested failures belong to the dependency being preflighted:
-        # a partially installed uvicorn may name ``click``, but the web launcher's
-        # allowlist intentionally knows only its direct dependency, ``uvicorn``.
+        # a partially installed uvicorn or web framework may name a sub-dependency
+        # like ``click`` or ``starlette``, but the launcher's allowlist
+        # intentionally knows only its direct dependencies.
         if module == "tkinter" and exc.name == "_tkinter":
             raise
         raise ModuleNotFoundError(str(exc), name=module) from None
@@ -607,7 +617,9 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
         # Imported eagerly so this guard can classify its absence -- the component
         # itself imports it too late, or behind a third-party import guard. See
         # ``_preflight``.
-        _preflight("{{ component_preflight[primary_component] }}")
+{%- for module in component_preflight[primary_component] %}
+        _preflight("{{ module }}")
+{%- endfor %}
 {%- endif %}
         from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
@@ -694,7 +706,9 @@ def interactive() -> None:  # pragma: no cover
             the TUI is missing from this environment.
     """
     with _component_dependencies("{{ component_label['tui'] }}", *_TUI_DEPENDENCIES):
-        _preflight("{{ component_preflight['tui'] }}")
+{%- for module in component_preflight['tui'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
@@ -717,7 +731,9 @@ def gui() -> None:  # pragma: no cover
         # ``gui.app`` imports Tkinter only when it draws the window, i.e. after
         # this guard has closed, so import it here to keep a Tk-less interpreter
         # an actionable error rather than a GuiDisplayError fallback.
-        _preflight("{{ component_preflight['gui'] }}")
+{%- for module in component_preflight['gui'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
@@ -736,7 +752,9 @@ def web() -> None:  # pragma: no cover
     which exit 1 with a message naming the component, the module, and the fix.
     """
     with _component_dependencies("{{ component_label['web'] }}", *_WEB_DEPENDENCIES):
-        _preflight("{{ component_preflight['web'] }}")
+{%- for module in component_preflight['web'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
     main()
@@ -777,7 +795,9 @@ def worker() -> None:  # pragma: no cover
         # faststream's own import guard, which raises a *nameless* ``ImportError``
         # when the extra is absent; ``_preflight`` supplies the module name so the
         # guard above can classify it.
-        _preflight("{{ component_preflight['worker'] }}")
+{%- for module in component_preflight['worker'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
