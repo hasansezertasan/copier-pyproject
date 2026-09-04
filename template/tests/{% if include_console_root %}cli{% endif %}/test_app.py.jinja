@@ -323,6 +323,25 @@ def test_gui_launcher_reports_missing_tk_extension(
 
 
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+_NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
+
+
+class _NestedDependencyMissingFinder:
+    """Simulate ``uvicorn`` installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``click`` when ``uvicorn`` is imported.
+        """
+        del path, target
+        if fullname == "uvicorn":
+            raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
+        return None
 
 
 class _ApplicationImportFailureFinder:
@@ -366,6 +385,25 @@ def test_web_launcher_reports_missing_deferred_dependency(
           without exposing the underlying ``ModuleNotFoundError`` traceback.
     """
     monkeypatch.setitem(sys.modules, "uvicorn", None)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["web"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "uvicorn" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+
+
+def test_web_launcher_reports_missing_nested_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The web launcher attributes a nested preflight failure to ``uvicorn``."""
+    finder = _NestedDependencyMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "uvicorn", raising=False)
 
     with pytest.raises(SystemExit) as excinfo:
         app(["web"])
@@ -817,6 +855,25 @@ def test_gui_launcher_reports_missing_tk_extension(
 
 
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+_NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
+
+
+class _NestedDependencyMissingFinder:
+    """Simulate ``uvicorn`` installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``click`` when ``uvicorn`` is imported.
+        """
+        del path, target
+        if fullname == "uvicorn":
+            raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
+        return None
 
 
 class _ApplicationImportFailureFinder:
@@ -860,6 +917,24 @@ def test_web_launcher_reports_missing_deferred_dependency(
           without exposing the underlying ``ModuleNotFoundError`` traceback.
     """
     monkeypatch.setitem(sys.modules, "uvicorn", None)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "web" in result.output
+    assert "uvicorn" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_web_launcher_reports_missing_nested_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The web launcher attributes a nested preflight failure to ``uvicorn``."""
+    finder = _NestedDependencyMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "uvicorn", raising=False)
 
     result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
 
