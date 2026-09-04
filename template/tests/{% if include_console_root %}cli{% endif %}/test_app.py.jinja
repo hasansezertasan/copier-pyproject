@@ -1,15 +1,31 @@
-{% if include_cli and cli_framework == "argparse" -%}
+{#- ``need_import_guard`` (whether ``cli/app.py`` defines the component-dependency
+    guard at all), ``preflight_used`` (which components render a ``_preflight``
+    call) and ``component_preflight`` are computed in ``copier.yml``, so this
+    module and ``cli/app.py.jinja`` cannot drift on what is emitted. -#}
+{% if not root_uses_typer -%}
 """Test cases for the {{github_repo_name}} argparse root."""
 
 from __future__ import annotations
 
 import importlib
+{% if include_web or include_tui or include_gui or include_worker -%}
+import sys
+{% endif -%}
 from importlib.metadata import Distribution, PackageNotFoundError
-
+{% if include_web or include_gui or include_worker -%}
+from typing import TYPE_CHECKING{% if include_web %}, NoReturn{% endif %}
+{% endif %}
 import pytest
-
+{% if include_web -%}
+import uvicorn
+{% endif %}
 from {{github_repo_name}}.cli.app import app
-
+{% if include_web or include_gui or include_worker %}
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from importlib.machinery import ModuleSpec
+    from types import ModuleType
+{% endif %}
 # Import the module object (not the re-exported callable) so the monkeypatch
 # below patches ``Distribution`` where the commands look it up.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
@@ -29,6 +45,14 @@ class _MissingDistribution:
 {%- if include_web and primary_component != 'web' %}{% set _ = subcommands.append("web") %}{% endif -%}
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = subcommands.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = subcommands.append("worker") %}{% endif -%}
+{% if need_import_guard -%}
+# Bound to a name so the raises in the guard tests stay single statements (EM101).
+_MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
+_NAMELESS_MODULE_MESSAGE = "nameless import failure"
+_SUBMODULE_MESSAGE = "No module named 'uvicorn.user_plugin'"
+
+
+{% endif -%}
 def test_help_lists_subcommands(capsys: pytest.CaptureFixture[str]) -> None:
     """``--help`` renders the root usage and exits 0.
 
@@ -90,25 +114,471 @@ def test_command_fails_loudly_when_metadata_missing(
         app([command])
 
     assert excinfo.value.code == 1
+{%- if need_import_guard %}
+
+
+def test_missing_component_dependency_is_actionable(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A missing component dependency exits 1 with a message naming the fix.
+
+    Given:
+        - A launcher subcommand whose lazy import raises ``ModuleNotFoundError``
+          (an environment out of sync with the installed package).
+    When:
+        - The import is performed inside the component-dependency guard.
+    Then:
+        - The command exits 1 and stderr names the component, the missing module,
+          and ``uv sync`` -- instead of dumping a bare ``ModuleNotFoundError``.
+
+    Raises:
+        ModuleNotFoundError: Simulating the missing dependency; the guard converts
+            it into the actionable exit.
+    """
+    with (
+        pytest.raises(SystemExit) as excinfo,
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
+    ):
+        raise ModuleNotFoundError(_MISSING_MODULE_MESSAGE, name="uvicorn")
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "uvicorn" in err
+    assert "uv sync" in err
+
+
+def test_nameless_module_error_is_not_translated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An import failure carrying no module name propagates untouched.
+
+    Given:
+        - A ``ModuleNotFoundError`` without a ``name``, so the guard cannot tell
+          whether the failure involves one of the component's dependencies.
+    When:
+        - It is raised inside the component-dependency guard.
+    Then:
+        - The original error propagates instead of being relabelled as an
+          out-of-sync environment.
+
+    Raises:
+        ModuleNotFoundError: The nameless failure under test.
+    """
+    with (
+        pytest.raises(ModuleNotFoundError, match="nameless"),
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
+    ):
+        raise ModuleNotFoundError(_NAMELESS_MODULE_MESSAGE)
+
+    assert "uv sync" not in capsys.readouterr().err
+
+
+def test_submodule_of_a_dependency_is_not_translated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A bad import *below* an installed dependency keeps its own diagnostics.
+
+    Given:
+        - A customized component importing a name that does not exist under an
+          installed dependency (``from uvicorn.user_plugin import X``), so the
+          error names ``uvicorn.user_plugin`` rather than ``uvicorn``.
+    When:
+        - It is raised inside the component-dependency guard.
+    Then:
+        - The original error propagates: this is an application defect, and
+          recommending ``uv sync`` for it would send the reader down the wrong
+          path.
+
+    Raises:
+        ModuleNotFoundError: The application defect under test.
+    """
+    with (
+        pytest.raises(ModuleNotFoundError, match="user_plugin"),
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
+    ):
+        raise ModuleNotFoundError(_SUBMODULE_MESSAGE, name="uvicorn.user_plugin")
+
+    assert "uv sync" not in capsys.readouterr().err
+{%- endif %}
+{%- if include_tui %}
+
+
+def test_tui_launcher_reports_missing_deferred_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The TUI launcher translates a missing lazy ``textual`` import."""
+    monkeypatch.setitem(sys.modules, "textual", None)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["interactive"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "TUI" in err
+    assert "textual" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+{%- endif %}
+{%- if include_gui %}
+
+
+def _homebrew_tk_formula() -> str:
+    """Return the Homebrew Tk formula this interpreter's version needs.
+
+    Returns:
+        str: e.g. ``"python-tk@3.12"``.
+    """
+    return f"python-tk@{sys.version_info.major}.{sys.version_info.minor}"
+
+
+_TK_EXTENSION_MESSAGE = "No module named '_tkinter'"
+
+
+class _TkExtensionMissingFinder:
+    """Simulate a Python built without tk-dev.
+
+    The pure-Python ``tkinter`` package ships, so the import proceeds far enough
+    to run its unguarded ``import _tkinter`` and fail naming the C extension.
+    Reproduced with a finder rather than by patching ``sys.modules`` so the test
+    is identical on runners that have no ``tkinter`` package at all.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail a ``tkinter`` import the way a missing C extension does.
+
+        Raises:
+            ModuleNotFoundError: Naming ``_tkinter`` when ``tkinter`` is imported.
+        """
+        del path, target
+        if fullname == "tkinter":
+            raise ModuleNotFoundError(_TK_EXTENSION_MESSAGE, name="_tkinter")
+        return None
+
+
+def test_gui_launcher_reports_missing_tkinter(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A Tk-less interpreter gets a system-level hint, not ``uv sync``.
+
+    Given:
+        - An interpreter built without Tk, which ``gui.app`` only discovers when
+          it draws the window -- after the launcher's guard would have closed.
+    When:
+        - The public GUI launcher starts the GUI component.
+    Then:
+        - The command exits 1 naming ``tkinter`` and a platform Tk package;
+          ``uv sync`` is *not* suggested, because Tk is not a distribution.
+    """
+    monkeypatch.setitem(sys.modules, "tkinter", None)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["gui"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "GUI" in err
+    assert "tkinter" in err
+    assert "python3-tk" in err
+    # Homebrew's bare ``python-tk`` aliases the newest Python's formula, so the
+    # hint must name this interpreter's version.
+    assert _homebrew_tk_formula() in err
+    assert "uv sync" not in err
+    assert "Traceback" not in err
+
+
+def test_gui_launcher_reports_missing_tk_extension(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A build with the ``tkinter`` package but no ``_tkinter`` is also covered.
+
+    Given:
+        - An interpreter built without tk-dev: the pure-Python ``tkinter``
+          package still ships, but the C extension its ``__init__`` imports
+          unguarded does not -- so the failure names ``_tkinter``, not
+          ``tkinter``.
+    When:
+        - The public GUI launcher starts the GUI component.
+    Then:
+        - The same actionable Tk message is shown, not a bare traceback.
+    """
+    finder = _TkExtensionMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "tkinter", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["gui"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "GUI" in err
+    assert "_tkinter" in err
+    assert "python3-tk" in err
+    assert "Traceback" not in err
+{%- endif %}
+{%- if include_web %}
+
+
+_RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+_NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
+_NESTED_FRAMEWORK_MESSAGE = "No module named 'starlette'"
+
+
+class _NestedDependencyMissingFinder:
+    """Simulate ``uvicorn`` installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``click`` when ``uvicorn`` is imported.
+        """
+        del path, target
+        if fullname == "uvicorn":
+            raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
+        return None
+
+
+class _NestedWebFrameworkMissingFinder:
+    """Simulate the web framework installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the framework preflight with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``starlette`` when the web framework is imported.
+        """
+        del path, target
+        if fullname == "{{ web_framework }}":
+            raise ModuleNotFoundError(_NESTED_FRAMEWORK_MESSAGE, name="starlette")
+        return None
+
+
+class _ApplicationImportFailureFinder:
+    """Simulate an unrelated import bug while loading the web application."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Raise the nested application error when the web module is imported.
+
+        Raises:
+            ModuleNotFoundError: When the generated web module is requested.
+        """
+        del path, target
+        if fullname == "{{github_repo_name}}.web.app":
+            raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+        return None
+
+
+def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
+    """Simulate an application import bug after the web dependency preflight.
+
+    Raises:
+        ModuleNotFoundError: Always, standing in for an application import bug.
+    """
+    raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+
+
+def test_web_launcher_reports_missing_deferred_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The web launcher translates a missing lazy ``uvicorn`` import.
+
+    Given:
+        - The generated environment cannot import ``uvicorn``.
+    When:
+        - The public web launcher starts the web component.
+    Then:
+        - The command exits 1 and reports how to synchronize the environment,
+          without exposing the underlying ``ModuleNotFoundError`` traceback.
+    """
+    monkeypatch.setitem(sys.modules, "uvicorn", None)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["web"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "uvicorn" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+
+
+def test_web_launcher_reports_missing_nested_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The web launcher attributes a nested preflight failure to ``uvicorn``."""
+    finder = _NestedDependencyMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "uvicorn", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["web"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "uvicorn" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+
+
+def test_web_launcher_reports_missing_nested_framework_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The web launcher attributes a nested framework failure to ``{{ web_framework }}``."""
+    finder = _NestedWebFrameworkMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "{{ web_framework }}", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["web"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "{{ web_framework }}" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+
+
+def test_web_launcher_preserves_import_time_application_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An unrelated failure while importing the app keeps its diagnostics."""
+    finder = _ApplicationImportFailureFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "{{github_repo_name}}.web.app", raising=False)
+
+    with pytest.raises(ModuleNotFoundError, match="user_plugin"):
+        app(["web"])
+
+    assert "uv sync" not in capsys.readouterr().err
+
+
+def test_web_launcher_preserves_runtime_import_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An import failure during server execution is not called a stale venv."""
+    monkeypatch.setattr(uvicorn, "run", _raise_runtime_import_error)
+
+    with pytest.raises(ModuleNotFoundError, match="user_plugin"):
+        app(["web"])
+
+    assert "uv sync" not in capsys.readouterr().err
+{%- endif %}
+{%- if include_worker %}
+
+
+_BROKER_EXTRA_MESSAGE = "please install dependencies for the broker"
+
+
+class _BrokerExtraMissingFinder:
+    """Simulate ``faststream`` installed without its ``{{worker_broker}}`` extra.
+
+    ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+    faststream's own import guard, which raises a plain ``ImportError`` carrying
+    *no* module name -- so the component-dependency guard's exact-name matching
+    can never classify it, and only the eager ``_preflight`` import can. Reproduced
+    with a finder rather than by patching ``sys.modules``, which would yield a
+    *named* ``ModuleNotFoundError`` and so test a different failure entirely.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the broker import the way a missing broker extra does.
+
+        Raises:
+            ImportError: Naming no module, when the broker module is imported.
+        """
+        del path, target
+        if fullname == "{{ worker_broker_spec.module }}":
+            raise ImportError(_BROKER_EXTRA_MESSAGE)
+        return None
+
+
+def test_worker_launcher_reports_missing_broker_extra(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A nameless broker-extra ``ImportError`` still gets the actionable message.
+
+    Given:
+        - ``faststream`` imports, but its ``{{worker_broker}}`` extra is absent, so
+          the broker re-export raises a plain ``ImportError`` naming no module --
+          the shape the guard's name matching cannot classify.
+    When:
+        - The public worker launcher starts the worker component.
+    Then:
+        - The command exits 1 naming the worker, the broker module and ``uv sync``,
+          rather than dumping faststream's own traceback.
+    """
+    finder = _BrokerExtraMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    # Drop the parent too, so the import starts from scratch exactly as it would
+    # in a fresh interpreter: ``faststream`` resolves normally, then the broker
+    # submodule hits the finder.
+    monkeypatch.delitem(sys.modules, "faststream", raising=False)
+    monkeypatch.delitem(sys.modules, "{{ worker_broker_spec.module }}", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["worker"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "worker" in err
+    assert "{{ worker_broker_spec.module }}" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+{%- endif %}
 {%- else -%}
 """Test cases for the {{github_repo_name}} Typer root."""
 
 from __future__ import annotations
 
-{% if include_cli -%}
 import importlib
+{% if include_web or include_tui or include_gui or include_worker -%}
+import sys
+{% endif -%}
+{% if include_cli -%}
 from importlib.metadata import Distribution, PackageNotFoundError
 {% endif -%}
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING{% if include_web %}, NoReturn{% endif %}
 
 import pytest
+{% if need_import_guard -%}
+import typer
+{% endif -%}
+{% if include_web -%}
+import uvicorn
+{% endif -%}
 from typer.testing import CliRunner
 
 from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
+{%- if include_web or include_gui or include_worker %}
+    from collections.abc import Sequence
+    from importlib.machinery import ModuleSpec
+    from types import ModuleType
+
     from typer.testing import Result
-{%- if include_cli %}
+{%- else %}
+    from typer.testing import Result
+{%- endif %}
 
 
 # The cli ``__init__`` re-exports the Typer ``app`` object, which shadows the
@@ -116,6 +586,7 @@ if TYPE_CHECKING:
 # ``import ...app as ...``). importlib returns the real module from sys.modules —
 # the object the monkeypatch below needs to patch.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
+{%- if include_cli %}
 
 
 class _MissingDistribution:
@@ -127,6 +598,14 @@ class _MissingDistribution:
 {%- endif %}
 
 
+{% if need_import_guard -%}
+# Bound to a name so the raises in the guard tests stay single statements (EM101).
+_MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
+_NAMELESS_MODULE_MESSAGE = "nameless import failure"
+_SUBMODULE_MESSAGE = "No module named 'uvicorn.user_plugin'"
+
+
+{% endif -%}
 @pytest.fixture
 def runner() -> CliRunner:
     """Fixture that provides a CLI runner for testing Typer commands."""
@@ -206,5 +685,431 @@ def test_command_fails_loudly_when_metadata_missing(
     result: Result = runner.invoke(app, [command])
 
     assert result.exit_code == 1
+{%- endif %}
+{%- if need_import_guard %}
+
+
+def test_missing_component_dependency_is_actionable(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A missing component dependency exits 1 with a message naming the fix.
+
+    Given:
+        - A launcher command whose lazy import raises ``ModuleNotFoundError`` (an
+          environment out of sync with the installed package).
+    When:
+        - The import is performed inside the component-dependency guard.
+    Then:
+        - The guard raises ``typer.Exit(1)`` and stderr names the component, the
+          missing module, and ``uv sync`` -- instead of dumping a bare
+          ``ModuleNotFoundError``.
+
+    Raises:
+        ModuleNotFoundError: Simulating the missing dependency; the guard converts
+            it into the actionable exit.
+    """
+    with (
+        pytest.raises(typer.Exit) as excinfo,
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
+    ):
+        raise ModuleNotFoundError(_MISSING_MODULE_MESSAGE, name="uvicorn")
+
+    assert excinfo.value.exit_code == 1
+    err = capsys.readouterr().err
+    assert "web" in err
+    assert "uvicorn" in err
+    assert "uv sync" in err
+
+
+def test_nameless_module_error_is_not_translated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An import failure carrying no module name propagates untouched.
+
+    Given:
+        - A ``ModuleNotFoundError`` without a ``name``, so the guard cannot tell
+          whether the failure involves one of the component's dependencies.
+    When:
+        - It is raised inside the component-dependency guard.
+    Then:
+        - The original error propagates instead of being relabelled as an
+          out-of-sync environment.
+
+    Raises:
+        ModuleNotFoundError: The nameless failure under test.
+    """
+    with (
+        pytest.raises(ModuleNotFoundError, match="nameless"),
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
+    ):
+        raise ModuleNotFoundError(_NAMELESS_MODULE_MESSAGE)
+
+    assert "uv sync" not in capsys.readouterr().err
+
+
+def test_submodule_of_a_dependency_is_not_translated(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A bad import *below* an installed dependency keeps its own diagnostics.
+
+    Given:
+        - A customized component importing a name that does not exist under an
+          installed dependency (``from uvicorn.user_plugin import X``), so the
+          error names ``uvicorn.user_plugin`` rather than ``uvicorn``.
+    When:
+        - It is raised inside the component-dependency guard.
+    Then:
+        - The original error propagates: this is an application defect, and
+          recommending ``uv sync`` for it would send the reader down the wrong
+          path.
+
+    Raises:
+        ModuleNotFoundError: The application defect under test.
+    """
+    with (
+        pytest.raises(ModuleNotFoundError, match="user_plugin"),
+        vars(cli_app)["_component_dependencies"]("web", "uvicorn"),
+    ):
+        raise ModuleNotFoundError(_SUBMODULE_MESSAGE, name="uvicorn.user_plugin")
+
+    assert "uv sync" not in capsys.readouterr().err
+{%- endif %}
+{%- if include_tui %}
+
+
+def test_tui_launcher_reports_missing_deferred_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The TUI launcher translates a missing lazy ``textual`` import."""
+    monkeypatch.setitem(sys.modules, "textual", None)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "tui" %}"interactive"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "tui" in result.output.lower()
+    assert "textual" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+{%- endif %}
+{%- if include_gui %}
+
+
+def _homebrew_tk_formula() -> str:
+    """Return the Homebrew Tk formula this interpreter's version needs.
+
+    Returns:
+        str: e.g. ``"python-tk@3.12"``.
+    """
+    return f"python-tk@{sys.version_info.major}.{sys.version_info.minor}"
+
+
+_TK_EXTENSION_MESSAGE = "No module named '_tkinter'"
+
+
+class _TkExtensionMissingFinder:
+    """Simulate a Python built without tk-dev.
+
+    The pure-Python ``tkinter`` package ships, so the import proceeds far enough
+    to run its unguarded ``import _tkinter`` and fail naming the C extension.
+    Reproduced with a finder rather than by patching ``sys.modules`` so the test
+    is identical on runners that have no ``tkinter`` package at all.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail a ``tkinter`` import the way a missing C extension does.
+
+        Raises:
+            ModuleNotFoundError: Naming ``_tkinter`` when ``tkinter`` is imported.
+        """
+        del path, target
+        if fullname == "tkinter":
+            raise ModuleNotFoundError(_TK_EXTENSION_MESSAGE, name="_tkinter")
+        return None
+
+
+def test_gui_launcher_reports_missing_tkinter(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A Tk-less interpreter gets a system-level hint, not ``uv sync``.
+
+    Given:
+        - An interpreter built without Tk, which ``gui.app`` only discovers when
+          it draws the window -- after the launcher's guard would have closed.
+    When:
+        - The public GUI launcher starts the GUI component.
+    Then:
+        - The command exits 1 naming ``tkinter`` and a platform Tk package;
+          ``uv sync`` is *not* suggested, because Tk is not a distribution.
+    """
+    monkeypatch.setitem(sys.modules, "tkinter", None)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "gui" %}"gui"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "gui" in result.output.lower()
+    assert "tkinter" in result.output
+    assert "python3-tk" in result.output
+    # Homebrew's bare ``python-tk`` aliases the newest Python's formula, so the
+    # hint must name this interpreter's version.
+    assert _homebrew_tk_formula() in result.output
+    assert "uv sync" not in result.output
+    assert "Traceback" not in result.output
+
+
+def test_gui_launcher_reports_missing_tk_extension(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A build with the ``tkinter`` package but no ``_tkinter`` is also covered.
+
+    Given:
+        - An interpreter built without tk-dev: the pure-Python ``tkinter``
+          package still ships, but the C extension its ``__init__`` imports
+          unguarded does not -- so the failure names ``_tkinter``, not
+          ``tkinter``.
+    When:
+        - The public GUI launcher starts the GUI component.
+    Then:
+        - The same actionable Tk message is shown, not a bare traceback.
+    """
+    finder = _TkExtensionMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "tkinter", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "gui" %}"gui"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "gui" in result.output.lower()
+    assert "_tkinter" in result.output
+    assert "python3-tk" in result.output
+    assert "Traceback" not in result.output
+{%- endif %}
+{%- if include_web %}
+
+
+_RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+_NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
+_NESTED_FRAMEWORK_MESSAGE = "No module named 'starlette'"
+
+
+class _NestedDependencyMissingFinder:
+    """Simulate ``uvicorn`` installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``click`` when ``uvicorn`` is imported.
+        """
+        del path, target
+        if fullname == "uvicorn":
+            raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
+        return None
+
+
+class _NestedWebFrameworkMissingFinder:
+    """Simulate the web framework installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the framework preflight with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``starlette`` when the web framework is imported.
+        """
+        del path, target
+        if fullname == "{{ web_framework }}":
+            raise ModuleNotFoundError(_NESTED_FRAMEWORK_MESSAGE, name="starlette")
+        return None
+
+
+class _ApplicationImportFailureFinder:
+    """Simulate an unrelated import bug while loading the web application."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Raise the nested application error when the web module is imported.
+
+        Raises:
+            ModuleNotFoundError: When the generated web module is requested.
+        """
+        del path, target
+        if fullname == "{{github_repo_name}}.web.app":
+            raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+        return None
+
+
+def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
+    """Simulate an application import bug after the web dependency preflight.
+
+    Raises:
+        ModuleNotFoundError: Always, standing in for an application import bug.
+    """
+    raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+
+
+def test_web_launcher_reports_missing_deferred_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The web launcher translates a missing lazy ``uvicorn`` import.
+
+    Given:
+        - The generated environment cannot import ``uvicorn``.
+    When:
+        - The public web launcher starts the web component.
+    Then:
+        - The command exits 1 and reports how to synchronize the environment,
+          without exposing the underlying ``ModuleNotFoundError`` traceback.
+    """
+    monkeypatch.setitem(sys.modules, "uvicorn", None)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "web" in result.output
+    assert "uvicorn" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_web_launcher_reports_missing_nested_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The web launcher attributes a nested preflight failure to ``uvicorn``."""
+    finder = _NestedDependencyMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "uvicorn", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "web" in result.output
+    assert "uvicorn" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_web_launcher_reports_missing_nested_framework_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The web launcher attributes a nested framework failure to ``{{ web_framework }}``."""
+    finder = _NestedWebFrameworkMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "{{ web_framework }}", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "web" in result.output
+    assert "{{ web_framework }}" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_web_launcher_preserves_import_time_application_errors(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An unrelated failure while importing the app keeps its diagnostics."""
+    finder = _ApplicationImportFailureFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "{{github_repo_name}}.web.app", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert isinstance(result.exception, ModuleNotFoundError)
+    assert result.exception.name == "user_plugin"
+    assert "uv sync" not in result.output
+
+
+def test_web_launcher_preserves_runtime_import_errors(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An import failure during server execution is not called a stale venv."""
+    monkeypatch.setattr(uvicorn, "run", _raise_runtime_import_error)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "web" %}"web"{% endif %}])
+
+    assert isinstance(result.exception, ModuleNotFoundError)
+    assert result.exception.name == "user_plugin"
+    assert "uv sync" not in result.output
+{%- endif %}
+{%- if include_worker %}
+
+
+_BROKER_EXTRA_MESSAGE = "please install dependencies for the broker"
+
+
+class _BrokerExtraMissingFinder:
+    """Simulate ``faststream`` installed without its ``{{worker_broker}}`` extra.
+
+    ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+    faststream's own import guard, which raises a plain ``ImportError`` carrying
+    *no* module name -- so the component-dependency guard's exact-name matching
+    can never classify it, and only the eager ``_preflight`` import can. Reproduced
+    with a finder rather than by patching ``sys.modules``, which would yield a
+    *named* ``ModuleNotFoundError`` and so test a different failure entirely.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the broker import the way a missing broker extra does.
+
+        Raises:
+            ImportError: Naming no module, when the broker module is imported.
+        """
+        del path, target
+        if fullname == "{{ worker_broker_spec.module }}":
+            raise ImportError(_BROKER_EXTRA_MESSAGE)
+        return None
+
+
+def test_worker_launcher_reports_missing_broker_extra(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A nameless broker-extra ``ImportError`` still gets the actionable message.
+
+    Given:
+        - ``faststream`` imports, but its ``{{worker_broker}}`` extra is absent, so
+          the broker re-export raises a plain ``ImportError`` naming no module --
+          the shape the guard's name matching cannot classify.
+    When:
+        - The public worker launcher starts the worker component.
+    Then:
+        - The command exits 1 naming the worker, the broker module and ``uv sync``,
+          rather than dumping faststream's own traceback.
+    """
+    finder = _BrokerExtraMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    # Drop the parent too, so the import starts from scratch exactly as it would
+    # in a fresh interpreter: ``faststream`` resolves normally, then the broker
+    # submodule hits the finder.
+    monkeypatch.delitem(sys.modules, "faststream", raising=False)
+    monkeypatch.delitem(sys.modules, "{{ worker_broker_spec.module }}", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "worker" %}"worker"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ImportError)
+    assert "worker" in result.output
+    assert "{{ worker_broker_spec.module }}" in result.output
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
 {%- endif %}
 {%- endif %}

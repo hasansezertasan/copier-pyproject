@@ -532,6 +532,46 @@ layer, and the `__main__.py` branch.
 The CLI framework choice (Typer) is recorded in
 [ADR-020](adr/020-cli-framework-choice.md).
 
+Each launcher command wraps its lazy component import in a private
+`_component_dependencies(component, *dependencies)` context manager, so a
+missing known dependency exits 1 with a message naming the component, the
+missing module, and `uv sync` — instead of a bare `ModuleNotFoundError`
+traceback. The match is **exact**, so an application import defect (a typo'd
+`from <dep>.user_plugin import X`) propagates with its traceback intact. The
+guard is emitted only when the root actually lazy-imports something (derived
+from `primary_component`, so a CLI-only project renders without it) and covers
+the minimal launcher's default callback too.
+
+Dependencies the component imports *later* than that block — `uvicorn` (used
+when the web app calls `uvicorn.run()`), `textual`, `tkinter` (imported only
+when the GUI draws), and `faststream.<broker>` (a guarded re-export that raises
+a nameless `ImportError`) — are imported eagerly by a `_preflight(module)` helper
+inside the guard, which names the module when the interpreter does not. The GUI
+passes a different `hint=` naming the platform's Tk package (`python3-tk`,
+`python3-tkinter`, or a `python-tk@X.Y` pinned to `sys.version_info`), because
+`tkinter` is a standard-library extension module that no dependency sync can
+install; its allowlist covers the `_tkinter` C extension too. The worker's
+allowlist names `faststream.<broker>` rather than the broker client, and MCP
+needs no preflight.
+
+`__main__.py` additionally loads the root through `_load_console_root()`, which
+preflights and applies the same translation to the modules imported at the root's
+*module* scope: `typer`, plus `pydantic`/`pydantic_settings` via `core.logging_setup` →
+`core.config` when `include_pydantic_settings`. `root_dependencies` is computed
+from the enabled toggles, so a pure argparse root with no settings renders
+without that guard.
+
+`launcher_components`, `need_import_guard`, `launched_components`,
+`component_label`, `component_preflight`, `preflight_used` and
+`root_dependencies` are `when: false` computed variables in `copier.yml`, read by
+`cli/app.py.jinja`, `__main__.py.jinja` and both test modules so the four cannot
+drift.
+
+The rationale — why the hint is `uv sync` and never `pip install pkg[<extra>]`,
+why matching is exact, why some dependencies need an eager import, and why Tk is
+special — is recorded in
+[ADR-028](adr/028-actionable-component-dependency-guard.md).
+
 ## Devcontainer Structure
 
 The `.devcontainer/docker-compose.yml.jinja` consolidates all services:

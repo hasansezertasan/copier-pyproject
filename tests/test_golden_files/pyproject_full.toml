@@ -268,6 +268,9 @@ filterwarnings = [
   # Starlette's TestClient emits a forward-compat deprecation about httpx/httpx2.
   # It is harmless for tests, so don't let `error` promote it to a failure.
   "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
+  # Starlette's TestClient references anyio.abc.BlockingPortal, deprecated in anyio 4.15+.
+  # The warning originates inside starlette.testclient and is harmless for tests.
+  "ignore:The anyio\\.abc\\.BlockingPortal alias is deprecated:DeprecationWarning",
   # testcontainers applies its own deprecated @wait_container_is_ready decorator at
   # import time. The warning is internal to the library and not actionable here, so
   # don't let `error` promote it to a collection/test failure (ADR-008). The

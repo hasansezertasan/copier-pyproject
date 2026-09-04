@@ -16,6 +16,78 @@ import/``main`` binding here directly. With no runnable component enabled,
 ``main()`` exits non-zero with an explanatory message.
 """
 {%- if include_console_root %}
+{#- ``root_dependencies`` -- the third-party modules the console root imports at
+    *module scope*, before the component-dependency guard inside ``cli/app.py``
+    can run -- is computed in ``copier.yml``, which is also where
+    ``tests/test_main.py`` reads it from. The guard below is emitted exactly when
+    that list is non-empty. -#}
+{%- if root_dependencies %}
+
+import importlib
+import sys
+from collections.abc import Callable
+
+# Each of these ships as a core dependency of this package, so a missing one
+# never means "install an extra" -- it means this environment is out of sync with
+# the installed metadata. A ``copier update`` that adds the shared launcher (or
+# enables settings) adds both the code and its dependency at once, so an
+# environment that has not been re-synced would otherwise fail here with a bare
+# ``ModuleNotFoundError`` before any launcher code executes.
+_ROOT_DEPENDENCIES = ({{ root_dependencies | map('tojson') | join(', ') }}{% if root_dependencies | length == 1 %},{% endif %})
+_MISSING_ROOT_DEPENDENCY = "Error: The {{github_repo_name}} command requires the '{missing}' package, which is not installed. It ships with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+
+
+def _preflight(module: str) -> None:
+    """Import a root dependency eagerly, attributing nested failures to it.
+
+    Args:
+        module: Import module name to verify eagerly.
+
+    Raises:
+        ModuleNotFoundError: Naming ``module`` when it cannot be imported.
+    """
+    try:
+        _ = importlib.import_module(module)
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(str(exc), name=module) from None
+    except ImportError as exc:
+        raise ModuleNotFoundError(str(exc), name=module) from None
+
+
+def _load_console_root() -> Callable[[], None]:
+    """Import the console root, reporting its own missing dependency actionably.
+
+    Returns:
+        Callable[[], None]: The console-root application. Both roots are
+            zero-argument callables: the argparse ``app`` defaults its ``argv``,
+            and ``typer.Typer.__call__`` takes ``*args``.
+
+    Raises:
+        ModuleNotFoundError: Propagating a missing module that is not exactly one
+            of the root's own dependencies, so an unrelated import defect keeps
+            its diagnostic context.
+        SystemExit: With code 1 when one of them is missing from this environment.
+    """
+    try:
+        for dependency in _ROOT_DEPENDENCIES:
+            _preflight(dependency)
+        from {{github_repo_name}}.cli import app  # noqa: PLC0415
+    except ModuleNotFoundError as exc:
+        missing = exc.name
+        if missing is None or missing not in _ROOT_DEPENDENCIES:
+            raise
+        _ = sys.stderr.write(_MISSING_ROOT_DEPENDENCY.format(missing=missing) + "\n")
+        raise SystemExit(1) from None
+    return app
+
+
+# The dispatchers below carry `# pragma: no cover`: invoking them launches the
+# blocking component (CLI loop, GUI mainloop, server, ...), which cannot run
+# under headless CI. tests/test_main.py pins the import wiring and callability.
+def main() -> None:  # pragma: no cover
+    """Run the {{github_repo_name}} console root (primary + component subcommands)."""
+    _load_console_root()()
+{%- else %}
 
 from {{github_repo_name}}.cli import app
 
@@ -26,6 +98,7 @@ from {{github_repo_name}}.cli import app
 def main() -> None:  # pragma: no cover
     """Run the {{github_repo_name}} console root (primary + component subcommands)."""
     app()
+{%- endif %}
 {%- elif include_gui %}
 
 import sys
