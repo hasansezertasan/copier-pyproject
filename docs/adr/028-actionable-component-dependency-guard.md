@@ -68,11 +68,15 @@ and (b) carry a module name. Two kinds of dependency satisfy neither:
   carrying **no** module name and advising `pip install "faststream[<broker>]"` —
   advice that bypasses this project's lockfile.
 
-`_preflight(module)` imports such a module inside the guarded block and, when the
-interpreter reports no name, re-raises as a `ModuleNotFoundError` naming the
-module it was asked for. Because that name is supplied by the caller rather than
-read off the exception, the attribution is precise, and the single translation
-site in `_component_dependencies` keeps working unchanged.
+`_preflight(module)` imports such a module inside the guarded block and re-raises
+import failures as a `ModuleNotFoundError` naming the module it was asked for.
+This includes nested failures from partially installed dependencies (for
+example, `uvicorn` naming a missing `click`): the component owns the direct
+dependency, and `uv sync` remains the appropriate repair. Because the name is
+supplied by the caller rather than read off the exception, the attribution is
+precise, and the single translation site in `_component_dependencies` keeps
+working unchanged. The sole exception is `tkinter` naming its `_tkinter` C
+extension, whose precise name is preserved for the system-level Tk hint.
 
 This is why the worker's allowlist names `faststream.<broker>` and **not** the
 broker client (`aiokafka`, `aio_pika`, …): faststream intercepts the client's own

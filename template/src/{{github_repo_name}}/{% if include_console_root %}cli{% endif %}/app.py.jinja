@@ -106,11 +106,15 @@ def _preflight(module: str) -> None:
     """
     try:
         _ = importlib.import_module(module)
-    except ModuleNotFoundError:
-        # Already carries a name, and it is the more precise one: an interpreter
-        # built without tk-dev fails ``import tkinter`` naming the ``_tkinter`` C
-        # extension, which is what the reader needs to see.
-        raise
+    except ModuleNotFoundError as exc:
+        # An interpreter built without tk-dev fails ``import tkinter`` naming the
+        # ``_tkinter`` C extension, which is the useful name for the system-level
+        # fix. Other nested failures belong to the dependency being preflighted:
+        # a partially installed uvicorn may name ``click``, but the web launcher's
+        # allowlist intentionally knows only its direct dependency, ``uvicorn``.
+        if module == "tkinter" and exc.name == "_tkinter":
+            raise
+        raise ModuleNotFoundError(str(exc), name=module) from None
     except ImportError as exc:
         raise ModuleNotFoundError(str(exc), name=module) from None
 {%- endif %}
@@ -511,11 +515,15 @@ def _preflight(module: str) -> None:
     """
     try:
         _ = importlib.import_module(module)
-    except ModuleNotFoundError:
-        # Already carries a name, and it is the more precise one: an interpreter
-        # built without tk-dev fails ``import tkinter`` naming the ``_tkinter`` C
-        # extension, which is what the reader needs to see.
-        raise
+    except ModuleNotFoundError as exc:
+        # An interpreter built without tk-dev fails ``import tkinter`` naming the
+        # ``_tkinter`` C extension, which is the useful name for the system-level
+        # fix. Other nested failures belong to the dependency being preflighted:
+        # a partially installed uvicorn may name ``click``, but the web launcher's
+        # allowlist intentionally knows only its direct dependency, ``uvicorn``.
+        if module == "tkinter" and exc.name == "_tkinter":
+            raise
+        raise ModuleNotFoundError(str(exc), name=module) from None
     except ImportError as exc:
         raise ModuleNotFoundError(str(exc), name=module) from None
 {%- endif %}
