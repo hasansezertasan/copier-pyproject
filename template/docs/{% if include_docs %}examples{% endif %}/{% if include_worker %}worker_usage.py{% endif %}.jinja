@@ -1,0 +1,25 @@
+"""Worker message models and destination constants."""
+
+from __future__ import annotations
+
+from {{github_repo_name}}.worker.app import (
+    REQUESTS_DESTINATION,
+    RESPONSES_DESTINATION,
+    VersionRequest,
+    VersionResponse,
+)
+
+
+def build_sample_request(request_id: str = "demo-1") -> VersionRequest:
+    """Construct a sample version request."""
+    return VersionRequest(request_id=request_id)
+
+
+def build_sample_response(request_id: str = "demo-1") -> VersionResponse:
+    """Construct a sample version response."""
+    return VersionResponse(
+        request_id=request_id,
+        version="0.1.0",
+        python_version="3.12.0",
+        platform="Linux",
+    )

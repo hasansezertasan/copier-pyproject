@@ -1,0 +1,19 @@
+"""Programmatic MCP tool invocation."""
+
+from __future__ import annotations
+
+import asyncio
+
+from {{github_repo_name}}.mcp.app import call_tool, list_tools
+
+
+def available_tools() -> list[str]:
+    """Return the names of all registered MCP tools."""
+    tools = asyncio.run(list_tools())
+    return [t.name for t in tools]
+
+
+def invoke_version_tool() -> str:
+    """Call the ``version`` tool and return its text result."""
+    contents = asyncio.run(call_tool("version", {}))
+    return contents[0].text

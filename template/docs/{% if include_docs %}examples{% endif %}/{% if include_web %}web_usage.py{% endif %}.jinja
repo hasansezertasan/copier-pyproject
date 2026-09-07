@@ -1,0 +1,10 @@
+"""Programmatic access to the web application."""
+
+from __future__ import annotations
+
+from {{github_repo_name}}.web.app import resolve_bind
+
+
+def default_bind() -> tuple[str, int]:
+    """Return the default ``(host, port)`` the web server listens on."""
+    return resolve_bind()

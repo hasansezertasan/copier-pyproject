@@ -1,0 +1,10 @@
+"""Headless TUI information retrieval."""
+
+from __future__ import annotations
+
+from {{github_repo_name}}.tui.app import build_info_message
+
+
+def tui_info() -> str:
+    """Return the info message without starting the TUI."""
+    return build_info_message()

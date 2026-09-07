@@ -1,0 +1,20 @@
+"""CLI argument parsing."""
+
+from __future__ import annotations
+{% if cli_framework == "argparse" %}
+import argparse
+
+from {{github_repo_name}}.cli.app import build_parser
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    """Parse CLI arguments without executing a command."""
+    return build_parser().parse_args(argv)
+{%- else %}
+from {{github_repo_name}}.cli.app import app
+
+
+def cli_app_name() -> str:
+    """Return the registered CLI application name."""
+    return app.info.name or ""
+{%- endif %}

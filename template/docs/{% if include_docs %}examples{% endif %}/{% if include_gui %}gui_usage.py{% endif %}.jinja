@@ -1,0 +1,10 @@
+"""Headless GUI information retrieval."""
+
+from __future__ import annotations
+
+from {{github_repo_name}}.gui.app import build_info_message
+
+
+def gui_info() -> str:
+    """Return the info message without opening a window."""
+    return build_info_message()
