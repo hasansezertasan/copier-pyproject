@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 {% if cli_framework == "argparse" %}
-import argparse
+from typing import TYPE_CHECKING
 
 from {{github_repo_name}}.cli.app import build_parser
+
+if TYPE_CHECKING:
+    import argparse
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
