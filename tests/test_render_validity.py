@@ -259,7 +259,14 @@ def test_docs_off_drops_sphinx_subsystem_but_keeps_setup_guide(
     # The maintainer setup guide always ships; only its Pages step is gated.
     setup = root / "docs" / "maintaining" / "setup.rst"
     assert setup.is_file()
-    assert "GitHub Pages" not in setup.read_text(encoding="utf-8")
+    setup_text = setup.read_text(encoding="utf-8")
+    assert "GitHub Pages" not in setup_text
+    assert "Optional post-launch integrations" in setup_text
+    assert "GitHub social preview" in setup_text
+    assert "Repology packaging status" in setup_text
+    assert "vertical-allrepos/example.svg" in setup_text
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "optional post-launch integrations" in readme
 
     # The repo-setup skill drops its docs-only Pages/deploy-docs guidance.
     skill = (root / ".claude" / "skills" / "repo-setup" / "SKILL.md").read_text(
