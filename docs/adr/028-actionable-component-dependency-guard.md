@@ -81,9 +81,9 @@ preserved for the system-level Tk hint.
 
 This is why the worker's allowlist names `faststream.<broker>` and **not** the
 broker client (`aiokafka`, `aio_pika`, …): faststream intercepts the client's own
-`ModuleNotFoundError`, so a client entry would be dead. MCP needs no preflight —
-`mcp/app.py` imports `mcp` at module scope, so the guarded import already reports
-it by name.
+`ModuleNotFoundError`, so a client entry would be dead. MCP does need a preflight
+— `mcp` has transitive dependencies (e.g. `anyio`) whose import errors surface as
+nested failures with unhelpful names; the preflight normalizes them to `mcp`.
 
 ### Tk gets a different hint
 

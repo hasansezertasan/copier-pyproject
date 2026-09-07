@@ -551,8 +551,9 @@ passes a different `hint=` naming the platform's Tk package (`python3-tk`,
 `python3-tkinter`, or a `python-tk@X.Y` pinned to `sys.version_info`), because
 `tkinter` is a standard-library extension module that no dependency sync can
 install; its allowlist covers the `_tkinter` C extension too. The worker's
-allowlist names `faststream.<broker>` rather than the broker client, and MCP
-needs no preflight.
+allowlist names `faststream.<broker>` rather than the broker client. MCP is
+preflighted too — its transitive dependencies (e.g. `anyio`) can surface nested
+failures with unhelpful names that the preflight normalizes to `mcp`.
 
 `__main__.py` additionally loads the root through `_load_console_root()`, which
 preflights and applies the same translation to the modules imported at the root's
