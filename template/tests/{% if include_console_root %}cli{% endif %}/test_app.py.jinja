@@ -8,11 +8,11 @@
 from __future__ import annotations
 
 import importlib
-{% if include_web or include_tui or include_gui or include_worker -%}
+{% if include_web or include_tui or include_gui or include_mcp or include_worker -%}
 import sys
 {% endif -%}
 from importlib.metadata import Distribution, PackageNotFoundError
-{% if include_web or include_gui or include_worker -%}
+{% if include_web or include_gui or include_mcp or include_worker -%}
 from typing import TYPE_CHECKING{% if include_web %}, NoReturn{% endif %}
 {% endif %}
 import pytest
@@ -20,7 +20,7 @@ import pytest
 import uvicorn
 {% endif %}
 from {{github_repo_name}}.cli.app import app
-{% if include_web or include_gui or include_worker %}
+{% if include_web or include_gui or include_mcp or include_worker %}
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
@@ -355,7 +355,7 @@ class _NestedWebFrameworkMissingFinder:
         """Fail the framework preflight with the nested dependency's name.
 
         Raises:
-            ModuleNotFoundError: Naming ``starlette`` when the web framework is imported.
+            ModuleNotFoundError: Naming ``starlette`` on framework import.
         """
         del path, target
         if fullname == "{{ web_framework }}":
@@ -479,6 +479,48 @@ def test_web_launcher_preserves_runtime_import_errors(
 
     assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
+{%- if include_mcp %}
+
+
+_NESTED_MCP_DEP_MESSAGE = "No module named 'anyio'"
+
+
+class _NestedMcpDependencyMissingFinder:
+    """Simulate ``mcp`` installed without a mandatory sub-dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``anyio`` when ``mcp`` is imported.
+        """
+        del path, target
+        if fullname == "mcp":
+            raise ModuleNotFoundError(_NESTED_MCP_DEP_MESSAGE, name="anyio")
+        return None
+
+
+def test_mcp_launcher_reports_missing_nested_dependency(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The MCP launcher attributes a nested preflight failure to ``mcp``."""
+    finder = _NestedMcpDependencyMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "mcp", raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app(["mcp"])
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "MCP" in err
+    assert "mcp" in err
+    assert "uv sync" in err
+    assert "Traceback" not in err
+{%- endif %}
 {%- if include_worker %}
 
 
@@ -550,7 +592,7 @@ def test_worker_launcher_reports_missing_broker_extra(
 from __future__ import annotations
 
 import importlib
-{% if include_web or include_tui or include_gui or include_worker -%}
+{% if include_web or include_tui or include_gui or include_mcp or include_worker -%}
 import sys
 {% endif -%}
 {% if include_cli -%}
@@ -570,7 +612,7 @@ from typer.testing import CliRunner
 from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
-{%- if include_web or include_gui or include_worker %}
+{%- if include_web or include_gui or include_mcp or include_worker %}
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
     from types import ModuleType
@@ -925,7 +967,7 @@ class _NestedWebFrameworkMissingFinder:
         """Fail the framework preflight with the nested dependency's name.
 
         Raises:
-            ModuleNotFoundError: Naming ``starlette`` when the web framework is imported.
+            ModuleNotFoundError: Naming ``starlette`` on framework import.
         """
         del path, target
         if fullname == "{{ web_framework }}":
@@ -1047,6 +1089,46 @@ def test_web_launcher_preserves_runtime_import_errors(
     assert isinstance(result.exception, ModuleNotFoundError)
     assert result.exception.name == "user_plugin"
     assert "uv sync" not in result.output
+{%- endif %}
+{%- if include_mcp %}
+
+
+_NESTED_MCP_DEP_MESSAGE = "No module named 'anyio'"
+
+
+class _NestedMcpDependencyMissingFinder:
+    """Simulate ``mcp`` installed without a mandatory sub-dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``anyio`` when ``mcp`` is imported.
+        """
+        del path, target
+        if fullname == "mcp":
+            raise ModuleNotFoundError(_NESTED_MCP_DEP_MESSAGE, name="anyio")
+        return None
+
+
+def test_mcp_launcher_reports_missing_nested_dependency(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The MCP launcher attributes a nested preflight failure to ``mcp``."""
+    finder = _NestedMcpDependencyMissingFinder()
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    monkeypatch.delitem(sys.modules, "mcp", raising=False)
+
+    result: Result = runner.invoke(app, [{% if primary_component != "mcp" %}"mcp"{% endif %}])
+
+    assert result.exit_code == 1
+    assert not isinstance(result.exception, ModuleNotFoundError)
+    assert "mcp" in result.output.lower()
+    assert "uv sync" in result.output
+    assert "Traceback" not in result.output
 {%- endif %}
 {%- if include_worker %}
 

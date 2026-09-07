@@ -400,20 +400,21 @@ component_label:
 #   * `worker` — `faststream.<broker>` is a guarded re-export that raises a plain,
 #     *nameless* `ImportError` when the broker extra is absent, which exact-name
 #     matching can never classify.
-# `mcp` is deliberately absent: `mcp.app` imports `mcp` at module scope, so the
-# guarded import already reports it by name.
+#   * `mcp` — `mcp` itself is named by the guarded import, but a nested dep
+#     (anyio, httpx, …) missing would name *that* module instead; the preflight
+#     normalizes it to the top-level name.
 component_preflight:
   type: json
   when: false
-  default: "{{ (({'tui': ['textual']} if include_tui else {}) | combine({'gui': ['tkinter']} if include_gui else {}) | combine({'web': [web_framework, 'uvicorn']} if include_web else {}) | combine({'worker': [worker_broker_spec.module]} if include_worker else {})) | tojson }}"
+  default: "{{ (({'tui': ['textual']} if include_tui else {}) | combine({'gui': ['tkinter']} if include_gui else {}) | combine({'web': [web_framework, 'uvicorn']} if include_web else {}) | combine({'mcp': ['mcp']} if include_mcp else {}) | combine({'worker': [worker_broker_spec.module]} if include_worker else {})) | tojson }}"
 # The launched components that need their preflight rendered — `launched_components`
-# minus the ones with no entry in `component_preflight` (only `mcp` today).
+# that have an entry in `component_preflight`.
 # Consumed by `cli/app.py` (whether to emit `_preflight` and import `importlib`)
 # and by its test module (which preflight regressions to render).
 preflight_used:
   type: json
   when: false
-  default: "{{ (['tui' if 'tui' in launched_components else none, 'gui' if 'gui' in launched_components else none, 'web' if 'web' in launched_components else none, 'worker' if 'worker' in launched_components else none] | select | list) | tojson }}"
+  default: "{{ (['tui' if 'tui' in launched_components else none, 'gui' if 'gui' in launched_components else none, 'web' if 'web' in launched_components else none, 'mcp' if 'mcp' in launched_components else none, 'worker' if 'worker' in launched_components else none] | select | list) | tojson }}"
 # True when the console root is the *Typer* root rather than the standard-library
 # argparse one. `cli_framework` is only asked when `include_cli`, but a stored
 # `argparse` answer is **retained** across a `copier update` that turns the CLI

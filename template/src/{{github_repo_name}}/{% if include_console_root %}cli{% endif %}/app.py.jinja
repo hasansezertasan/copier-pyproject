@@ -310,6 +310,9 @@ def mcp() -> None:  # pragma: no cover
     which exit 1 with a message naming the component, the module, and the fix.
     """
     with _component_dependencies("{{ component_label['mcp'] }}", *_MCP_DEPENDENCIES):
+{%- for module in component_preflight['mcp'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
@@ -773,6 +776,9 @@ def mcp() -> None:  # pragma: no cover
     which exit 1 with a message naming the component, the module, and the fix.
     """
     with _component_dependencies("{{ component_label['mcp'] }}", *_MCP_DEPENDENCIES):
+{%- for module in component_preflight['mcp'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
         from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()

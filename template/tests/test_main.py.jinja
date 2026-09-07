@@ -112,20 +112,29 @@ def test_console_root_reports_missing_launcher_dependency(
     assert "Traceback" not in err
 
 
+_NESTED_ROOT_DEP_MESSAGE = "No module named 'transitive_dep'"
+
+
 class _NestedRootDependencyMissingFinder:
     """Simulate a root dependency installed without a mandatory sub-dependency."""
 
-    def __init__(self, target_module: str, nested_missing: str) -> None:
+    def __init__(self, target_module: str) -> None:
         self._target = target_module
-        self._missing = nested_missing
 
     def find_spec(
-        self, fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+        self,
+        fullname: str,
+        path: Sequence[str] | None,
+        target: ModuleType | None = None,
     ) -> ModuleSpec | None:
-        """Fail the preflight import with the nested dependency's name."""
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``transitive_dep`` when the root is imported.
+        """
         del path, target
         if fullname == self._target:
-            raise ModuleNotFoundError(f"No module named '{self._missing}'", name=self._missing)
+            raise ModuleNotFoundError(_NESTED_ROOT_DEP_MESSAGE, name="transitive_dep")
         return None
 
 
@@ -135,7 +144,7 @@ def test_console_root_reports_missing_nested_root_dependency(
 ) -> None:
     """A nested failure while preflighting a root dependency is attributed to it."""
     main_module = importlib.import_module("{{github_repo_name}}.__main__")
-    finder = _NestedRootDependencyMissingFinder(dependency, "transitive_dep")
+    finder = _NestedRootDependencyMissingFinder(dependency)
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, dependency, raising=False)
     prefix = "{{github_repo_name}}."
