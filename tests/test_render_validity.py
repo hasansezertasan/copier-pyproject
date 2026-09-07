@@ -355,3 +355,32 @@ def test_docs_off_omits_documentation_examples_and_checks(
     pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
     assert "docs/examples" not in pyproject
     assert "docs-doctest" not in pyproject
+
+
+# --- stray empty-basename dotfile guard (#251) ---
+
+STRAY_SUFFIXES = frozenset({
+    ".cfg", ".ini", ".md", ".py", ".rst", ".toml", ".txt", ".yaml", ".yml",
+})
+
+
+def _find_stray_dotfiles(root: Path) -> list[Path]:
+    """Files whose entire name is a bare source extension (e.g. ``.rst``).
+
+    These are the artifact of a conditional filename with the extension outside
+    the ``{% if %}`` block — the false-toggle path yields an empty basename and
+    only the extension survives (#248, #250).
+    """
+    return sorted(
+        p.relative_to(root)
+        for p in root.rglob(".*")
+        if p.is_file() and p.name in STRAY_SUFFIXES
+    )
+
+
+@pytest.mark.parametrize("preset", PRESETS)
+def test_no_stray_empty_basename_files(
+    render: Callable[..., Path], preset: str
+) -> None:
+    strays = _find_stray_dotfiles(render(preset=preset))
+    assert strays == [], f"stray empty-basename files in {preset!r} preset: {strays}"
