@@ -8,13 +8,24 @@ from {{github_repo_name}}.cli.app import build_parser
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    """Parse CLI arguments without executing a command."""
+    """Parse CLI arguments without executing a command.
+
+    Args:
+        argv: Argument vector to parse.
+
+    Returns:
+        argparse.Namespace: The parsed arguments.
+    """
     return build_parser().parse_args(argv)
 {%- else %}
 from {{github_repo_name}}.cli.app import app
 
 
 def cli_app_name() -> str:
-    """Return the registered CLI application name."""
+    """Return the registered CLI application name.
+
+    Returns:
+        str: The Typer application name.
+    """
     return app.info.name or ""
 {%- endif %}

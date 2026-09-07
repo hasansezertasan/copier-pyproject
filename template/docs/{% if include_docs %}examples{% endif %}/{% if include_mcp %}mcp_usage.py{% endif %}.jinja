@@ -8,12 +8,20 @@ from {{github_repo_name}}.mcp.app import call_tool, list_tools
 
 
 def available_tools() -> list[str]:
-    """Return the names of all registered MCP tools."""
+    """Return the names of all registered MCP tools.
+
+    Returns:
+        list[str]: Tool names exposed by the MCP server.
+    """
     tools = asyncio.run(list_tools())
     return [t.name for t in tools]
 
 
 def invoke_version_tool() -> str:
-    """Call the ``version`` tool and return its text result."""
+    """Call the ``version`` tool and return its text result.
+
+    Returns:
+        str: The version string from the MCP tool response.
+    """
     contents = asyncio.run(call_tool("version", {}))
     return contents[0].text

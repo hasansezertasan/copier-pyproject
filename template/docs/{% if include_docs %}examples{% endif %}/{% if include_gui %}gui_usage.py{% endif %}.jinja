@@ -6,5 +6,9 @@ from {{github_repo_name}}.gui.app import build_info_message
 
 
 def gui_info() -> str:
-    """Return the info message without opening a window."""
+    """Return the info message without opening a window.
+
+    Returns:
+        str: A multi-line project information summary.
+    """
     return build_info_message()

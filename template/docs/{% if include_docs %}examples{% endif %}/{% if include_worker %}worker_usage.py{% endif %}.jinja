@@ -2,21 +2,30 @@
 
 from __future__ import annotations
 
-from {{github_repo_name}}.worker.app import (
-    REQUESTS_DESTINATION,
-    RESPONSES_DESTINATION,
-    VersionRequest,
-    VersionResponse,
-)
+from {{github_repo_name}}.worker.app import VersionRequest, VersionResponse
 
 
 def build_sample_request(request_id: str = "demo-1") -> VersionRequest:
-    """Construct a sample version request."""
+    """Construct a sample version request.
+
+    Args:
+        request_id: Unique request identifier.
+
+    Returns:
+        VersionRequest: A populated request model.
+    """
     return VersionRequest(request_id=request_id)
 
 
 def build_sample_response(request_id: str = "demo-1") -> VersionResponse:
-    """Construct a sample version response."""
+    """Construct a sample version response.
+
+    Args:
+        request_id: Original request identifier.
+
+    Returns:
+        VersionResponse: A populated response model.
+    """
     return VersionResponse(
         request_id=request_id,
         version="0.1.0",
