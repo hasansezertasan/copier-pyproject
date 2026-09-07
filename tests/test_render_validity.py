@@ -360,7 +360,8 @@ def test_docs_off_omits_documentation_examples_and_checks(
 # --- stray empty-basename dotfile guard (#251) ---
 
 STRAY_SUFFIXES = frozenset({
-    ".cfg", ".ini", ".md", ".py", ".rst", ".toml", ".txt", ".yaml", ".yml",
+    ".cfg", ".ini", ".json", ".md", ".properties", ".pxd", ".py", ".pyi",
+    ".pyx", ".rst", ".spec", ".toml", ".txt", ".yaml", ".yml",
 })
 
 
@@ -384,3 +385,11 @@ def test_no_stray_empty_basename_files(
 ) -> None:
     strays = _find_stray_dotfiles(render(preset=preset))
     assert strays == [], f"stray empty-basename files in {preset!r} preset: {strays}"
+
+
+def test_no_stray_empty_basename_files_docs_off(
+    render: Callable[..., Path],
+) -> None:
+    """Docs-off exercises the false branch of docs-only conditional filenames."""
+    strays = _find_stray_dotfiles(render(include_docs=False))
+    assert strays == [], f"stray empty-basename files with docs off: {strays}"
