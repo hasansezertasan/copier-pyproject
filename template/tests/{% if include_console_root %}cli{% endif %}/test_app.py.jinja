@@ -1,7 +1,171 @@
 {#- ``need_import_guard`` (whether ``cli/app.py`` defines the component-dependency
     guard at all), ``preflight_used`` (which components render a ``_preflight``
     call) and ``component_preflight`` are computed in ``copier.yml``, so this
-    module and ``cli/app.py.jinja`` cannot drift on what is emitted. -#}
+    module and ``cli/app.py.jinja`` cannot drift on what is emitted.
+
+    The shared test constants, Finder stubs, and helper functions are identical in
+    both the argparse and Typer branches, so they are defined once as Jinja macros
+    and expanded in each branch to avoid source-level duplication. -#}
+{%- macro _guard_test_constants() -%}
+# Bound to a name so the raises in the guard tests stay single statements (EM101).
+_MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
+_NAMELESS_MODULE_MESSAGE = "nameless import failure"
+_SUBMODULE_MESSAGE = "No module named 'uvicorn.user_plugin'"
+{%- endmacro -%}
+{%- macro _gui_test_helpers() -%}
+def _homebrew_tk_formula() -> str:
+    """Return the Homebrew Tk formula this interpreter's version needs.
+
+    Returns:
+        str: e.g. ``"python-tk@3.12"``.
+    """
+    return f"python-tk@{sys.version_info.major}.{sys.version_info.minor}"
+
+
+_TK_EXTENSION_MESSAGE = "No module named '_tkinter'"
+
+
+class _TkExtensionMissingFinder:
+    """Simulate a Python built without tk-dev.
+
+    The pure-Python ``tkinter`` package ships, so the import proceeds far enough
+    to run its unguarded ``import _tkinter`` and fail naming the C extension.
+    Reproduced with a finder rather than by patching ``sys.modules`` so the test
+    is identical on runners that have no ``tkinter`` package at all.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail a ``tkinter`` import the way a missing C extension does.
+
+        Raises:
+            ModuleNotFoundError: Naming ``_tkinter`` when ``tkinter`` is imported.
+        """
+        del path, target
+        if fullname == "tkinter":
+            raise ModuleNotFoundError(_TK_EXTENSION_MESSAGE, name="_tkinter")
+        return None
+{%- endmacro -%}
+{%- macro _web_test_helpers() -%}
+_RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
+_NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
+_NESTED_FRAMEWORK_MESSAGE = "No module named 'starlette'"
+
+
+class _NestedDependencyMissingFinder:
+    """Simulate ``uvicorn`` installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``click`` when ``uvicorn`` is imported.
+        """
+        del path, target
+        if fullname == "uvicorn":
+            raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
+        return None
+
+
+class _NestedWebFrameworkMissingFinder:
+    """Simulate the web framework installed without a mandatory dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the framework preflight with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``starlette`` on framework import.
+        """
+        del path, target
+        if fullname == "{{ web_framework }}":
+            raise ModuleNotFoundError(_NESTED_FRAMEWORK_MESSAGE, name="starlette")
+        return None
+
+
+class _ApplicationImportFailureFinder:
+    """Simulate an unrelated import bug while loading the web application."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Raise the nested application error when the web module is imported.
+
+        Raises:
+            ModuleNotFoundError: When the generated web module is requested.
+        """
+        del path, target
+        if fullname == "{{github_repo_name}}.web.app":
+            raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+        return None
+
+
+def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
+    """Simulate an application import bug after the web dependency preflight.
+
+    Raises:
+        ModuleNotFoundError: Always, standing in for an application import bug.
+    """
+    raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+{%- endmacro -%}
+{%- macro _mcp_test_helpers() -%}
+_NESTED_MCP_DEP_MESSAGE = "No module named 'anyio'"
+
+
+class _NestedMcpDependencyMissingFinder:
+    """Simulate ``mcp`` installed without a mandatory sub-dependency."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the preflight import with the nested dependency's name.
+
+        Raises:
+            ModuleNotFoundError: Naming ``anyio`` when ``mcp`` is imported.
+        """
+        del path, target
+        if fullname == "mcp":
+            raise ModuleNotFoundError(_NESTED_MCP_DEP_MESSAGE, name="anyio")
+        return None
+{%- endmacro -%}
+{%- macro _worker_test_helpers() -%}
+_BROKER_EXTRA_MESSAGE = "please install dependencies for the broker"
+
+
+class _BrokerExtraMissingFinder:
+    """Simulate ``faststream`` installed without its ``{{worker_broker}}`` extra.
+
+    ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+    faststream's own import guard, which raises a plain ``ImportError`` carrying
+    *no* module name -- so the component-dependency guard's exact-name matching
+    can never classify it, and only the eager ``_preflight`` import can. Reproduced
+    with a finder rather than by patching ``sys.modules``, which would yield a
+    *named* ``ModuleNotFoundError`` and so test a different failure entirely.
+    """
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the broker import the way a missing broker extra does.
+
+        Raises:
+            ImportError: Naming no module, when the broker module is imported.
+        """
+        del path, target
+        if fullname == "{{ worker_broker_spec.module }}":
+            raise ImportError(_BROKER_EXTRA_MESSAGE)
+        return None
+{%- endmacro -%}
 {% if not root_uses_typer -%}
 """Test cases for the {{github_repo_name}} argparse root."""
 
@@ -46,10 +210,7 @@ class _MissingDistribution:
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = subcommands.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = subcommands.append("worker") %}{% endif -%}
 {% if need_import_guard -%}
-# Bound to a name so the raises in the guard tests stay single statements (EM101).
-_MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
-_NAMELESS_MODULE_MESSAGE = "nameless import failure"
-_SUBMODULE_MESSAGE = "No module named 'uvicorn.user_plugin'"
+{{ _guard_test_constants() }}
 
 
 {% endif -%}
@@ -223,40 +384,7 @@ def test_tui_launcher_reports_missing_deferred_dependency(
 {%- if include_gui %}
 
 
-def _homebrew_tk_formula() -> str:
-    """Return the Homebrew Tk formula this interpreter's version needs.
-
-    Returns:
-        str: e.g. ``"python-tk@3.12"``.
-    """
-    return f"python-tk@{sys.version_info.major}.{sys.version_info.minor}"
-
-
-_TK_EXTENSION_MESSAGE = "No module named '_tkinter'"
-
-
-class _TkExtensionMissingFinder:
-    """Simulate a Python built without tk-dev.
-
-    The pure-Python ``tkinter`` package ships, so the import proceeds far enough
-    to run its unguarded ``import _tkinter`` and fail naming the C extension.
-    Reproduced with a finder rather than by patching ``sys.modules`` so the test
-    is identical on runners that have no ``tkinter`` package at all.
-    """
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail a ``tkinter`` import the way a missing C extension does.
-
-        Raises:
-            ModuleNotFoundError: Naming ``_tkinter`` when ``tkinter`` is imported.
-        """
-        del path, target
-        if fullname == "tkinter":
-            raise ModuleNotFoundError(_TK_EXTENSION_MESSAGE, name="_tkinter")
-        return None
+{{ _gui_test_helpers() }}
 
 
 def test_gui_launcher_reports_missing_tkinter(
@@ -322,72 +450,7 @@ def test_gui_launcher_reports_missing_tk_extension(
 {%- if include_web %}
 
 
-_RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
-_NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
-_NESTED_FRAMEWORK_MESSAGE = "No module named 'starlette'"
-
-
-class _NestedDependencyMissingFinder:
-    """Simulate ``uvicorn`` installed without a mandatory dependency."""
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail the preflight import with the nested dependency's name.
-
-        Raises:
-            ModuleNotFoundError: Naming ``click`` when ``uvicorn`` is imported.
-        """
-        del path, target
-        if fullname == "uvicorn":
-            raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
-        return None
-
-
-class _NestedWebFrameworkMissingFinder:
-    """Simulate the web framework installed without a mandatory dependency."""
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail the framework preflight with the nested dependency's name.
-
-        Raises:
-            ModuleNotFoundError: Naming ``starlette`` on framework import.
-        """
-        del path, target
-        if fullname == "{{ web_framework }}":
-            raise ModuleNotFoundError(_NESTED_FRAMEWORK_MESSAGE, name="starlette")
-        return None
-
-
-class _ApplicationImportFailureFinder:
-    """Simulate an unrelated import bug while loading the web application."""
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Raise the nested application error when the web module is imported.
-
-        Raises:
-            ModuleNotFoundError: When the generated web module is requested.
-        """
-        del path, target
-        if fullname == "{{github_repo_name}}.web.app":
-            raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
-        return None
-
-
-def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
-    """Simulate an application import bug after the web dependency preflight.
-
-    Raises:
-        ModuleNotFoundError: Always, standing in for an application import bug.
-    """
-    raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+{{ _web_test_helpers() }}
 
 
 def test_web_launcher_reports_missing_deferred_dependency(
@@ -482,25 +545,7 @@ def test_web_launcher_preserves_runtime_import_errors(
 {%- if include_mcp %}
 
 
-_NESTED_MCP_DEP_MESSAGE = "No module named 'anyio'"
-
-
-class _NestedMcpDependencyMissingFinder:
-    """Simulate ``mcp`` installed without a mandatory sub-dependency."""
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail the preflight import with the nested dependency's name.
-
-        Raises:
-            ModuleNotFoundError: Naming ``anyio`` when ``mcp`` is imported.
-        """
-        del path, target
-        if fullname == "mcp":
-            raise ModuleNotFoundError(_NESTED_MCP_DEP_MESSAGE, name="anyio")
-        return None
+{{ _mcp_test_helpers() }}
 
 
 def test_mcp_launcher_reports_missing_nested_dependency(
@@ -524,33 +569,7 @@ def test_mcp_launcher_reports_missing_nested_dependency(
 {%- if include_worker %}
 
 
-_BROKER_EXTRA_MESSAGE = "please install dependencies for the broker"
-
-
-class _BrokerExtraMissingFinder:
-    """Simulate ``faststream`` installed without its ``{{worker_broker}}`` extra.
-
-    ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
-    faststream's own import guard, which raises a plain ``ImportError`` carrying
-    *no* module name -- so the component-dependency guard's exact-name matching
-    can never classify it, and only the eager ``_preflight`` import can. Reproduced
-    with a finder rather than by patching ``sys.modules``, which would yield a
-    *named* ``ModuleNotFoundError`` and so test a different failure entirely.
-    """
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail the broker import the way a missing broker extra does.
-
-        Raises:
-            ImportError: Naming no module, when the broker module is imported.
-        """
-        del path, target
-        if fullname == "{{ worker_broker_spec.module }}":
-            raise ImportError(_BROKER_EXTRA_MESSAGE)
-        return None
+{{ _worker_test_helpers() }}
 
 
 def test_worker_launcher_reports_missing_broker_extra(
@@ -641,10 +660,7 @@ class _MissingDistribution:
 
 
 {% if need_import_guard -%}
-# Bound to a name so the raises in the guard tests stay single statements (EM101).
-_MISSING_MODULE_MESSAGE = "No module named 'uvicorn'"
-_NAMELESS_MODULE_MESSAGE = "nameless import failure"
-_SUBMODULE_MESSAGE = "No module named 'uvicorn.user_plugin'"
+{{ _guard_test_constants() }}
 
 
 {% endif -%}
@@ -837,40 +853,7 @@ def test_tui_launcher_reports_missing_deferred_dependency(
 {%- if include_gui %}
 
 
-def _homebrew_tk_formula() -> str:
-    """Return the Homebrew Tk formula this interpreter's version needs.
-
-    Returns:
-        str: e.g. ``"python-tk@3.12"``.
-    """
-    return f"python-tk@{sys.version_info.major}.{sys.version_info.minor}"
-
-
-_TK_EXTENSION_MESSAGE = "No module named '_tkinter'"
-
-
-class _TkExtensionMissingFinder:
-    """Simulate a Python built without tk-dev.
-
-    The pure-Python ``tkinter`` package ships, so the import proceeds far enough
-    to run its unguarded ``import _tkinter`` and fail naming the C extension.
-    Reproduced with a finder rather than by patching ``sys.modules`` so the test
-    is identical on runners that have no ``tkinter`` package at all.
-    """
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail a ``tkinter`` import the way a missing C extension does.
-
-        Raises:
-            ModuleNotFoundError: Naming ``_tkinter`` when ``tkinter`` is imported.
-        """
-        del path, target
-        if fullname == "tkinter":
-            raise ModuleNotFoundError(_TK_EXTENSION_MESSAGE, name="_tkinter")
-        return None
+{{ _gui_test_helpers() }}
 
 
 def test_gui_launcher_reports_missing_tkinter(
@@ -934,72 +917,7 @@ def test_gui_launcher_reports_missing_tk_extension(
 {%- if include_web %}
 
 
-_RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
-_NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
-_NESTED_FRAMEWORK_MESSAGE = "No module named 'starlette'"
-
-
-class _NestedDependencyMissingFinder:
-    """Simulate ``uvicorn`` installed without a mandatory dependency."""
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail the preflight import with the nested dependency's name.
-
-        Raises:
-            ModuleNotFoundError: Naming ``click`` when ``uvicorn`` is imported.
-        """
-        del path, target
-        if fullname == "uvicorn":
-            raise ModuleNotFoundError(_NESTED_DEPENDENCY_MESSAGE, name="click")
-        return None
-
-
-class _NestedWebFrameworkMissingFinder:
-    """Simulate the web framework installed without a mandatory dependency."""
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail the framework preflight with the nested dependency's name.
-
-        Raises:
-            ModuleNotFoundError: Naming ``starlette`` on framework import.
-        """
-        del path, target
-        if fullname == "{{ web_framework }}":
-            raise ModuleNotFoundError(_NESTED_FRAMEWORK_MESSAGE, name="starlette")
-        return None
-
-
-class _ApplicationImportFailureFinder:
-    """Simulate an unrelated import bug while loading the web application."""
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Raise the nested application error when the web module is imported.
-
-        Raises:
-            ModuleNotFoundError: When the generated web module is requested.
-        """
-        del path, target
-        if fullname == "{{github_repo_name}}.web.app":
-            raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
-        return None
-
-
-def _raise_runtime_import_error(*_args: object, **_kwargs: object) -> NoReturn:
-    """Simulate an application import bug after the web dependency preflight.
-
-    Raises:
-        ModuleNotFoundError: Always, standing in for an application import bug.
-    """
-    raise ModuleNotFoundError(_RUNTIME_MISSING_MODULE, name="user_plugin")
+{{ _web_test_helpers() }}
 
 
 def test_web_launcher_reports_missing_deferred_dependency(
@@ -1093,25 +1011,7 @@ def test_web_launcher_preserves_runtime_import_errors(
 {%- if include_mcp %}
 
 
-_NESTED_MCP_DEP_MESSAGE = "No module named 'anyio'"
-
-
-class _NestedMcpDependencyMissingFinder:
-    """Simulate ``mcp`` installed without a mandatory sub-dependency."""
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail the preflight import with the nested dependency's name.
-
-        Raises:
-            ModuleNotFoundError: Naming ``anyio`` when ``mcp`` is imported.
-        """
-        del path, target
-        if fullname == "mcp":
-            raise ModuleNotFoundError(_NESTED_MCP_DEP_MESSAGE, name="anyio")
-        return None
+{{ _mcp_test_helpers() }}
 
 
 def test_mcp_launcher_reports_missing_nested_dependency(
@@ -1133,33 +1033,7 @@ def test_mcp_launcher_reports_missing_nested_dependency(
 {%- if include_worker %}
 
 
-_BROKER_EXTRA_MESSAGE = "please install dependencies for the broker"
-
-
-class _BrokerExtraMissingFinder:
-    """Simulate ``faststream`` installed without its ``{{worker_broker}}`` extra.
-
-    ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
-    faststream's own import guard, which raises a plain ``ImportError`` carrying
-    *no* module name -- so the component-dependency guard's exact-name matching
-    can never classify it, and only the eager ``_preflight`` import can. Reproduced
-    with a finder rather than by patching ``sys.modules``, which would yield a
-    *named* ``ModuleNotFoundError`` and so test a different failure entirely.
-    """
-
-    @staticmethod
-    def find_spec(
-        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
-    ) -> ModuleSpec | None:
-        """Fail the broker import the way a missing broker extra does.
-
-        Raises:
-            ImportError: Naming no module, when the broker module is imported.
-        """
-        del path, target
-        if fullname == "{{ worker_broker_spec.module }}":
-            raise ImportError(_BROKER_EXTRA_MESSAGE)
-        return None
+{{ _worker_test_helpers() }}
 
 
 def test_worker_launcher_reports_missing_broker_extra(
