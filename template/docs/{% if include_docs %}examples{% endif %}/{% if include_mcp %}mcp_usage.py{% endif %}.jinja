@@ -1,27 +1,14 @@
-"""Programmatic MCP tool invocation."""
+"""MCP server metadata."""
 
 from __future__ import annotations
 
-import asyncio
-
-from {{github_repo_name}}.mcp.app import call_tool, list_tools
+from {{github_repo_name}}.mcp.app import server
 
 
-def available_tools() -> list[str]:
-    """Return the names of all registered MCP tools.
+def server_name() -> str:
+    """Return the MCP server's registered name.
 
     Returns:
-        list[str]: Tool names exposed by the MCP server.
+        str: The name passed to :class:`mcp.server.Server`.
     """
-    tools = asyncio.run(list_tools())
-    return [t.name for t in tools]
-
-
-def invoke_version_tool() -> str:
-    """Call the ``version`` tool and return its text result.
-
-    Returns:
-        str: The version string from the MCP tool response.
-    """
-    contents = asyncio.run(call_tool("version", {}))
-    return str(contents[0].text)
+    return server.name
