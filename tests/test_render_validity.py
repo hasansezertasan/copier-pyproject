@@ -357,6 +357,42 @@ def test_docs_off_omits_documentation_examples_and_checks(
     assert "docs-doctest" not in pyproject
 
 
+_COMPONENT_EXAMPLES: list[tuple[dict[str, Any], str, str]] = [
+    ({"include_cli": True}, "cli_usage.py", "docs/usage.rst"),
+    (
+        {"include_web": True, "web_framework": "fastapi"},
+        "web_usage.py",
+        "docs/web-interface.rst",
+    ),
+    ({"include_gui": True}, "gui_usage.py", "docs/usage.rst"),
+    ({"include_tui": True}, "tui_usage.py", "docs/usage.rst"),
+    ({"include_mcp": True}, "mcp_usage.py", "docs/usage.rst"),
+    (
+        {"include_worker": True, "worker_broker": "redis"},
+        "worker_usage.py",
+        "docs/worker-interface.rst",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("overrides", "example_file", "rst_page"),
+    _COMPONENT_EXAMPLES,
+    ids=[t[1].removesuffix(".py") for t in _COMPONENT_EXAMPLES],
+)
+def test_per_component_documentation_examples(
+    render: Callable[..., Path],
+    overrides: dict[str, Any],
+    example_file: str,
+    rst_page: str,
+) -> None:
+    """Each enabled component renders its docs example and literalinclude."""
+    root = render(**overrides)
+    assert (root / "docs" / "examples" / example_file).is_file()
+    page = (root / rst_page).read_text(encoding="utf-8")
+    assert f".. literalinclude:: examples/{example_file}" in page
+
+
 # --- stray empty-basename dotfile guard (#251) ---
 
 STRAY_SUFFIXES = frozenset({

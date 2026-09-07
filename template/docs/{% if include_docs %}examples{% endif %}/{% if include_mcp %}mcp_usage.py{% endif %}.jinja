@@ -1,0 +1,14 @@
+"""MCP server metadata."""
+
+from __future__ import annotations
+
+from {{github_repo_name}}.mcp.app import server
+
+
+def server_name() -> str:
+    """Return the MCP server's registered name.
+
+    Returns:
+        str: The name passed to :class:`mcp.server.Server`.
+    """
+    return server.name

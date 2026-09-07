@@ -29,6 +29,12 @@ To use ``{{github_repo_name}}`` as a command-line tool:
 
    {{github_repo_name}} version
    {{github_repo_name}} info
+
+Or invoke it programmatically from Python:
+
+.. literalinclude:: examples/cli_usage.py
+   :language: python
+   :caption: examples/cli_usage.py
 {%- endif %}
 {%- if include_web %}
 
@@ -51,6 +57,12 @@ To launch the GUI application:
 .. code-block:: sh
 
    {{github_repo_name}}{% if primary_component != 'gui' %} gui{% endif %}
+
+Retrieve the info message without opening a window:
+
+.. literalinclude:: examples/gui_usage.py
+   :language: python
+   :caption: examples/gui_usage.py
 {%- endif %}
 {%- if include_tui %}
 
@@ -62,6 +74,12 @@ To launch the terminal user interface:
 .. code-block:: sh
 
    {{github_repo_name}}{% if primary_component != 'tui' %} interactive{% endif %}
+
+Retrieve the info message without starting the TUI:
+
+.. literalinclude:: examples/tui_usage.py
+   :language: python
+   :caption: examples/tui_usage.py
 {%- endif %}
 {%- if include_mcp %}
 
@@ -73,6 +91,12 @@ To run the Model Context Protocol server:
 .. code-block:: sh
 
    {{github_repo_name}}{% if primary_component != 'mcp' %} mcp{% endif %}
+
+Access the server metadata programmatically:
+
+.. literalinclude:: examples/mcp_usage.py
+   :language: python
+   :caption: examples/mcp_usage.py
 {%- endif %}
 {%- if include_worker %}
 

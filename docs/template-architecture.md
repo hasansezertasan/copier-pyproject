@@ -593,7 +593,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `tox run -- -m …` (which replaces tox's default env list), an
      `include_docs` render gets a dedicated `docs-doctest` job running
      `tox run -e docs-doctest`; it is part of the `check` gate
-     ([ADR-028](adr/028-tested-documentation-examples.md)).
+     ([ADR-028](adr/028-tested-documentation-examples.md)). Per-component
+     examples (`cli_usage.py`, `web_usage.py`, …) are Jinja-gated on their
+     toggle and `literalinclude`d into the corresponding `usage.rst` section;
+     `tests/test_docs_examples.py` rglobs every `docs/examples/*.py` and
+     imports them all, so a broken import fails the suite.
    - **Per-component coverage gates**
      ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md), decomposing
      [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):

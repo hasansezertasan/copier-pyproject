@@ -16,6 +16,12 @@ and status codes (including the ``503`` returned when the package metadata is
 unavailable). It is generated on every docs build directly from the live
 ``app`` object, so it stays in lockstep with the code.
 
+The bind-resolution helper is importable for embedding or testing:
+
+.. literalinclude:: examples/web_usage.py
+   :language: python
+   :caption: examples/web_usage.py
+
 .. literalinclude:: _generated/openapi.yaml
    :language: yaml
    :caption: openapi.yaml
