@@ -393,3 +393,12 @@ def test_no_stray_empty_basename_files_docs_off(
     """Docs-off exercises the false branch of docs-only conditional filenames."""
     strays = _find_stray_dotfiles(render(include_docs=False))
     assert strays == [], f"stray empty-basename files with docs off: {strays}"
+
+
+def test_no_stray_empty_basename_files_homebrew_without_executable(
+    render: Callable[..., Path],
+) -> None:
+    """Homebrew without an executable builder hits the false branch of
+    ``primary_executable``-gated filenames inside the Homebrew bundle."""
+    strays = _find_stray_dotfiles(render(preset="tool", include_homebrew=True))
+    assert strays == [], f"stray empty-basename files (homebrew, no exe): {strays}"
