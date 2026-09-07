@@ -24,4 +24,4 @@ def invoke_version_tool() -> str:
         str: The version string from the MCP tool response.
     """
     contents = asyncio.run(call_tool("version", {}))
-    return contents[0].text
+    return str(contents[0].text)
