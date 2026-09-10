@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.3.0...v1.4.0) (2026-09-10)
+
+
+### 🚀 Features
+
+* **docs:** add per-component documentation examples ([#275](https://github.com/hasansezertasan/copier-pyproject/issues/275)) ([a8a632b](https://github.com/hasansezertasan/copier-pyproject/commit/a8a632b19afe2c5eb6f01fbc44f4a7f38c93919a))
+
+
+### 🧪 Tests
+
+* guard against stray empty-basename files in rendered output ([#278](https://github.com/hasansezertasan/copier-pyproject/issues/278)) ([4617567](https://github.com/hasansezertasan/copier-pyproject/commit/46175670bad9993c85c77d997b3035ab5a620ec6))
+
 ## [1.3.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.2.1...v1.3.0) (2026-09-07)
 
 
