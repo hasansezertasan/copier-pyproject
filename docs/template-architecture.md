@@ -747,11 +747,10 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `id-token: write` so the public Scorecard badge (added to the generated
      README) resolves, uploading SARIF to code-scanning. Public repos only —
      enforced by a job-level visibility gate, since both the publish and the
-     upload fail on private repos and would leave `main` permanently red. Reads
-     the documented `github.event.repository.visibility` (not the undocumented
-     `github.repository_visibility`) and fails **open**: the `schedule` trigger
-     carries no event payload, so an unknowable visibility runs the job rather
-     than silently dropping the scan everywhere.
+     upload fail on private repos and would leave `main` permanently red. Uses
+     the same two-source-coalescing condition as `codeql.yml` above (it shares
+     the payload-less `schedule` trigger), and likewise fails **open** when
+     visibility is unknowable rather than silently dropping the scan.
    - `dependency-review.yml` (`actions/dependency-review-action`): on `pull_request`,
      **fails on high+ severity** vulnerabilities and comments a summary on failure.
      Job-level `if: github.event.repository.visibility == 'public'` — the action needs
