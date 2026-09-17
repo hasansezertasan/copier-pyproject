@@ -746,10 +746,12 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `branch_protection_rule`/push/weekly schedule; `publish_results: true` and
      `id-token: write` so the public Scorecard badge (added to the generated
      README) resolves, uploading SARIF to code-scanning. Public repos only —
-     enforced by job-level `if: github.repository_visibility == 'public'`, since
-     both the publish and the upload fail on private repos and would leave `main`
-     permanently red. The `github` context rather than the event payload, which
-     the `schedule`/`branch_protection_rule` triggers lack.
+     enforced by a job-level visibility gate, since both the publish and the
+     upload fail on private repos and would leave `main` permanently red. Reads
+     the documented `github.event.repository.visibility` (not the undocumented
+     `github.repository_visibility`) and fails **open**: the `schedule` trigger
+     carries no event payload, so an unknowable visibility runs the job rather
+     than silently dropping the scan everywhere.
    - `dependency-review.yml` (`actions/dependency-review-action`): on `pull_request`,
      **fails on high+ severity** vulnerabilities and comments a summary on failure.
      Job-level `if: github.event.repository.visibility == 'public'` — the action needs
@@ -802,7 +804,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      need GitHub Advanced Security, and the action's SARIF upload is neither
      visibility-aware nor `continue-on-error`, so it would fail every run there.
      Both `advanced-security` and `annotations` are therefore driven off
-     `github.repository_visibility`: SARIF on public repos, mutually-exclusive
+     `github.event.repository.visibility`: SARIF on public repos, mutually-exclusive
      inline workflow annotations on private ones — the audit still runs either
      way, only the Security-tab dashboard is lost.
 
