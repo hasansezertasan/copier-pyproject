@@ -748,7 +748,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      README) resolves, uploading SARIF to code-scanning. Public repos only.
    - `dependency-review.yml` (`actions/dependency-review-action`): on `pull_request`,
      **fails on high+ severity** vulnerabilities and comments a summary on failure.
-     Job-level `if: github.repository_visibility == 'public'` — the action needs
+     Job-level `if: github.event.repository.visibility == 'public'` — the action needs
      GitHub Advanced Security on private repos, so it would otherwise fail every
      PR there; skipping keeps private forks green.
    - `check-security.yml.jinja`: an active scanning pass on PR/push to `main` +
