@@ -744,12 +744,19 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    - `codeql.yml`: CodeQL analysis on push/PR to `main` + weekly schedule.
      Job-level visibility gate — code scanning needs GitHub Advanced Security on
      private/internal repos, so it would otherwise fail every run there;
-     skipping keeps private forks green. Reads
-     `github.event.repository.visibility` (documented) rather than
-     `github.repository_visibility` (an undocumented context property), and is
-     written to fail **open**: the `schedule` trigger has no event payload, so
-     when visibility is unknowable the job runs rather than silently disabling
-     the scan everywhere.
+     skipping keeps private forks green. The condition coalesces **two**
+     visibility sources over a `'public'` default — `||` returns the first
+     truthy operand — because neither source covers every trigger on its own:
+     `github.event.repository.visibility` is documented but empty on
+     `schedule` (that event carries no payload), while
+     `github.repository_visibility` is the only source a scheduled run could
+     have but is undocumented (absent from both the contexts and
+     default-environment-variable references, though actionlint models it).
+     Private/internal repos therefore skip on `push`/`pull_request` always, and
+     on `schedule` too if the undocumented property resolves; a public repo
+     always runs either way. Unknown deliberately fails **open** — silently
+     disabling the scan everywhere is a worse failure than the red X the guard
+     removes.
    - `scorecard.yml` (`ossf/scorecard-action`): OpenSSF Scorecard on
      `branch_protection_rule`/push/weekly schedule; `publish_results: true` and
      `id-token: write` so the public Scorecard badge (added to the generated
