@@ -7,8 +7,10 @@
 # code-scanning results if you want the dashboard to gate merges too.
 #
 # Advanced Security / code scanning is free on public repositories; on private
-# repositories it requires GitHub Advanced Security. The SARIF upload step is
-# best-effort and simply no-ops if code scanning is unavailable.
+# repositories it requires GitHub Advanced Security. The action's SARIF upload
+# is unconditional and not best-effort, so on a private repo it would fail every
+# run -- hence the visibility-driven `advanced-security`/`annotations` switch
+# below, which keeps the audit running and only drops the Security-tab dashboard.
 name: zizmor
 on:
   push:
@@ -33,3 +35,11 @@ jobs:
           persist-credentials: false
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054  # v0.6.2
+        with:
+          # `advanced-security` defaults to true and the action uploads SARIF
+          # with no visibility detection and no `continue-on-error`, which fails
+          # every run on a private repo without GHAS. Fall back to inline
+          # workflow annotations there -- same audit, no code-scanning upload.
+          # The two inputs are mutually exclusive per the action's own docs.
+          advanced-security: ${{ github.repository_visibility == 'public' }}
+          annotations: ${{ github.repository_visibility != 'public' }}

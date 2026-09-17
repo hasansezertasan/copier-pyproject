@@ -745,7 +745,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    - `scorecard.yml` (`ossf/scorecard-action`): OpenSSF Scorecard on
      `branch_protection_rule`/push/weekly schedule; `publish_results: true` and
      `id-token: write` so the public Scorecard badge (added to the generated
-     README) resolves, uploading SARIF to code-scanning. Public repos only.
+     README) resolves, uploading SARIF to code-scanning. Public repos only —
+     enforced by job-level `if: github.repository_visibility == 'public'`, since
+     both the publish and the upload fail on private repos and would leave `main`
+     permanently red. The `github` context rather than the event payload, which
+     the `schedule`/`branch_protection_rule` triggers lack.
    - `dependency-review.yml` (`actions/dependency-review-action`): on `pull_request`,
      **fails on high+ severity** vulnerabilities and comments a summary on failure.
      Job-level `if: github.event.repository.visibility == 'public'` — the action needs
@@ -795,7 +799,12 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      design (advanced-security mode never fails on findings); least-privilege
      (`permissions: {}` top-level, `security-events: write` on the job) and itself
      passes the audit it runs. Public repos get code scanning free; private repos
-     need GitHub Advanced Security, and the upload simply no-ops without it.
+     need GitHub Advanced Security, and the action's SARIF upload is neither
+     visibility-aware nor `continue-on-error`, so it would fail every run there.
+     Both `advanced-security` and `annotations` are therefore driven off
+     `github.repository_visibility`: SARIF on public repos, mutually-exclusive
+     inline workflow annotations on private ones — the audit still runs either
+     way, only the Security-tab dashboard is lost.
 
    The hardening conventions every workflow (new or edited) must keep so the gate
    stays green are **agent instructions**, so they live inline in `CLAUDE.md`'s
