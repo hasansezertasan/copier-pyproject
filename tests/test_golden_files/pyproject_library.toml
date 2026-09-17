@@ -288,11 +288,25 @@ type = "layers"
 # `example` console root, whose subcommands launch the other
 # components (web/gui/tui/mcp/worker) via lazy imports — so it sits ABOVE the
 # independent component group, which sits above `core`, which sits above the leaf
-# `utils`. `__metadata__` is left outside the contract as an unconstrained
-# foundation.
+# `utils`.
+#
+# `exhaustive` makes the contract fail when a subpackage of
+# `example` is not named in `layers` — so a new top-level
+# subpackage is a deliberate architecture decision (add it to a layer here)
+# rather than something that silently accretes at the package root. Feature code
+# belongs inside an existing layer; see "Package structure" in `AGENTS.md`. The
+# `exhaustive_ignores` entries are the non-layer foundations: the metadata and
+# hatch-vcs version modules and the `python -m` dispatcher.
+containers = ["example"]
+exhaustive = true
+exhaustive_ignores = [
+  "__main__",
+  "__metadata__",
+  "_version",
+]
 layers = [
-  "example.core",
-  "example.utils",
+  "core",
+  "utils",
 ]
 
 

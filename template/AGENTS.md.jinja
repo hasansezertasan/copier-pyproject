@@ -25,6 +25,60 @@ Guidance for AI coding agents working in this repository.
 | Security policy | `.github/SECURITY.md` |
 | Changelog (owned by release-please) | `CHANGELOG.md` |
 
+## Package Structure
+{%- set il_components = [] -%}
+{%- if include_web %}{% set _ = il_components.append("web") %}{% endif -%}
+{%- if include_gui %}{% set _ = il_components.append("gui") %}{% endif -%}
+{%- if include_tui %}{% set _ = il_components.append("tui") %}{% endif -%}
+{%- if include_mcp %}{% set _ = il_components.append("mcp") %}{% endif -%}
+{%- if include_worker %}{% set _ = il_components.append("worker") %}{% endif %}
+
+**Do not create new top-level subpackages under `src/{{github_repo_name}}/`.**
+New feature code goes inside an existing layer:
+
+| What you are adding | Where it goes |
+| ------------------- | ------------- |
+| Business logic, domain models, app behavior | `core/` |
+| External integrations (APIs, storage, brokers) | `core/` |
+| Config / settings | `core/config.py` |
+| Dependency-free helpers (no internal imports) | `utils/` |
+{%- if include_console_root %}
+| CLI command or subcommand | `cli/app.py` |
+{%- endif %}
+{%- if include_web %}
+| HTTP route or web handler | `web/` |
+{%- endif %}
+{%- if include_gui %}
+| GUI screen or widget | `gui/` |
+{%- endif %}
+{%- if include_tui %}
+| TUI screen or widget | `tui/` |
+{%- endif %}
+{%- if include_mcp %}
+| MCP tool or resource | `mcp/` |
+{%- endif %}
+{%- if include_worker %}
+| Message subscriber / broker handler | `worker/` |
+{%- endif %}
+
+The layering is enforced in CI by import-linter (`[tool.importlinter]` in
+`pyproject.toml`), whose contract is **exhaustive**: a subpackage not listed in
+its `layers` fails `tox run -e style`. `core` may import `utils`; `utils` imports
+nothing internal.
+{%- if il_components | length > 1 %}
+The interface packages ({{ il_components | join('/') }}) may import `core` but
+are independent siblings — they may not import each other.
+{%- elif il_components %}
+`{{ il_components[0] }}` may import `core`.
+{%- endif %}
+{%- if include_console_root and il_components %}
+`cli` sits above them as the orchestrator: it lazy-imports each one to launch it
+as a subcommand.
+{%- endif %}
+
+Adding a top-level subpackage is an architecture change: propose it first, and if
+agreed, add it to the import-linter contract in the same PR.
+
 ## Key Conventions
 
 - Source lives in `src/{{github_repo_name}}/`; tests mirror it under `tests/`.
