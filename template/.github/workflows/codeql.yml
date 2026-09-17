@@ -10,11 +10,14 @@ on:
 jobs:
   analyze:
     name: Analyze
-    # Code scanning needs GitHub Advanced Security on private repos; without it
-    # every run gets a permanent red X. Free on public repos, so skip elsewhere.
-    # `github.repository_visibility` (not the event payload) so the `schedule`
-    # trigger resolves it too.
-    if: github.repository_visibility == 'public'
+    # Code scanning needs GitHub Advanced Security on private/internal repos;
+    # without it every run leaves a permanent red X. Free on public repos.
+    # The `schedule` trigger has no event payload, so visibility is unknowable
+    # there -- fail OPEN (run anyway) rather than silently disabling CodeQL
+    # everywhere. Deliberately not `github.repository_visibility`: that context
+    # property is undocumented.
+    if: >-
+      !github.event.repository.visibility || github.event.repository.visibility == 'public'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

@@ -742,10 +742,14 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    (`task-completed-check.yml`).
 7. **Supply-chain security** (always included, static workflows):
    - `codeql.yml`: CodeQL analysis on push/PR to `main` + weekly schedule.
-     Job-level `if: github.repository_visibility == 'public'` — code scanning
-     needs GitHub Advanced Security on private repos, so it would otherwise fail
-     every run there; skipping keeps private forks green. Uses the `github`
-     context rather than the event payload so the `schedule` trigger resolves it.
+     Job-level visibility gate — code scanning needs GitHub Advanced Security on
+     private/internal repos, so it would otherwise fail every run there;
+     skipping keeps private forks green. Reads
+     `github.event.repository.visibility` (documented) rather than
+     `github.repository_visibility` (an undocumented context property), and is
+     written to fail **open**: the `schedule` trigger has no event payload, so
+     when visibility is unknowable the job runs rather than silently disabling
+     the scan everywhere.
    - `scorecard.yml` (`ossf/scorecard-action`): OpenSSF Scorecard on
      `branch_protection_rule`/push/weekly schedule; `publish_results: true` and
      `id-token: write` so the public Scorecard badge (added to the generated
