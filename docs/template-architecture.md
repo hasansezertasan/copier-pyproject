@@ -240,7 +240,14 @@ lazy-import those components to launch them — see ADR-019), all layered above
 is true (see the entry-points section below), not only when `include_cli` is set.
 The component layers are Jinja-conditional on the enabled toggles (omitted when
 none are enabled, leaving a `core > utils` contract), so no `ignore_imports` is
-needed.
+needed. The contract is **exhaustive** (`containers = ["{{pkg}}"]`,
+`exhaustive = true`): a subpackage of `{{pkg}}` that is not named in `layers`
+breaks the contract, so a new top-level subpackage cannot silently accrete at the
+package root — the fix is to place the code inside an existing layer, or to add
+the new layer deliberately. `exhaustive_ignores` carries the non-layer
+foundations (`__main__`, `__metadata__`, `_version`, and `_c_extension` when
+`include_c_extensions`). The generated `AGENTS.md` documents the matching
+placement table for AI agents.
 Delivered via the `style` group + a `lint-imports` command run from **both** the
 tox `style` env and a prek `local` `system` hook (`uv run --locked --group style
 lint-imports`) — the same dual-run, single-version-source pattern as

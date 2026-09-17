@@ -35,17 +35,33 @@ own higher layer captures its legitimate orchestration imports without any
 `ignore_imports`. Two separate `independence` + `layers` contracts would be
 redundant. It also degrades gracefully: with 0–1 components a dedicated
 `independence` contract is degenerate, whereas this becomes a valid `core > utils`
-contract. `__metadata__` is left outside the contract as an unconstrained
-foundation. The only import boundary import-linter cannot forbid is `cli -> mcp`
+contract. `__metadata__` is left outside the layer stack as an unconstrained
+foundation (via `exhaustive_ignores` — see below). The only import boundary import-linter cannot forbid is `cli -> mcp`
 / `cli -> worker` — but `cli` legitimately sits above them as the top-level
 entry point, so this is harmless.
 
-### 2. `utils` below `core`
+### 2. The contract is exhaustive
+
+`containers = ["<pkg>"]` + `exhaustive = true` makes the contract break on any
+subpackage of the root package that is not named in `layers`. This closes the
+gap that motivated it: AI coding agents (and hurried humans) add a feature by
+creating a new top-level package — `src/<pkg>/data/`, `src/<pkg>/marketplace/` —
+which the non-exhaustive contract happily ignored, because an unlisted module is
+simply unconstrained. Prose in `AGENTS.md` alone does not hold; a failing
+`style` run does. `exhaustive_ignores` lists the non-layer foundations
+(`__main__`, `__metadata__`, `_version`, `_c_extension`). Adding a genuinely new
+layer stays possible — it just has to be declared here, which is the intended
+friction.
+
+The `layers` entries are therefore spelled relative to the container (`core`,
+not `<pkg>.core`); `exhaustive` is only supported for contracts with containers.
+
+### 3. `utils` below `core`
 
 Matches current reality (`core` does not import `utils`; `utils` is a
 dependency-free leaf) and encodes the conventional "utils = leaf helpers" model.
 
-### 3. Both the tox `style` env and prek (via a `local` `system` hook)
+### 4. Both the tox `style` env and prek (via a `local` `system` hook)
 
 import-linter needs the installed package and a whole-import-graph build (via
 `grimp`). The tox `style` env installs the project, so `lint-imports` resolves
@@ -77,7 +93,8 @@ type checkers on the fast gate — it is worth running on the prek gate too, as 
 ## Consequences
 
 - Cross-component imports and upward imports into `core`/`utils` now fail CI's
-  `style` job (and local `tox -e style`).
+  `style` job (and local `tox -e style`), as does an undeclared new top-level
+  subpackage.
 - The contract config is Jinja-conditional on the enabled components, so a
   component's contract coverage is only exercised when that component is
   generated — verify by generating with components enabled (per CLAUDE.md's

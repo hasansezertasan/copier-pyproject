@@ -78,6 +78,37 @@ def test_preset_pyproject_is_valid_toml(
     _assert_pyproject_is_toml(render(preset=preset))
 
 
+@pytest.mark.parametrize("preset", PRESETS)
+def test_import_linter_contract_covers_every_subpackage(
+    render: Callable[..., Path], preset: str
+) -> None:
+    """Every rendered subpackage is declared in the exhaustive layers contract.
+
+    The contract is ``exhaustive`` (ADR-014), so ``lint-imports`` breaks on a
+    subpackage missing from ``layers`` — which is the point for a *new* package,
+    but would be a template bug for one this repo ships. Checked here because a
+    real ``lint-imports`` run needs the project installed.
+    """
+    root = render(preset=preset)
+    pyproject = tomllib.loads(
+        (root / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    contract = pyproject["tool"]["importlinter"]["contracts"][0]
+    assert contract["exhaustive"] is True
+    assert contract["containers"] == [PKG]
+    declared = {
+        name.strip()
+        for layer in contract["layers"]
+        for name in layer.split("|")
+    } | set(contract["exhaustive_ignores"])
+    rendered = {
+        path.name
+        for path in (root / "src" / PKG).iterdir()
+        if path.is_dir() and (path / "__init__.py").is_file()
+    }
+    assert rendered <= declared, f"undeclared subpackages: {rendered - declared}"
+
+
 @pytest.mark.parametrize("broker", WORKER_BROKERS)
 def test_worker_broker_render_is_structurally_valid(
     render: Callable[..., Path], broker: str

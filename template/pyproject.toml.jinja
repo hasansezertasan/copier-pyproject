@@ -521,23 +521,40 @@ type = "layers"
 # `{{github_repo_name}}` console root, whose subcommands launch the other
 # components (web/gui/tui/mcp/worker) via lazy imports — so it sits ABOVE the
 # independent component group, which sits above `core`, which sits above the leaf
-# `utils`. `__metadata__` is left outside the contract as an unconstrained
-# foundation.
+# `utils`.
+#
+# `exhaustive` makes the contract fail when a subpackage of
+# `{{github_repo_name}}` is not named in `layers` — so a new top-level
+# subpackage is a deliberate architecture decision (add it to a layer here)
+# rather than something that silently accretes at the package root. Feature code
+# belongs inside an existing layer; see "Package structure" in `AGENTS.md`. The
+# `exhaustive_ignores` entries are the non-layer foundations: the metadata and
+# hatch-vcs version modules and the `python -m` dispatcher.
+containers = ["{{github_repo_name}}"]
+exhaustive = true
+exhaustive_ignores = [
+  "__main__",
+  "__metadata__",
+  "_version",
+{%- if include_c_extensions %}
+  "_c_extension",
+{%- endif %}
+]
 layers = [
 {%- if include_console_root %}
-  "{{github_repo_name}}.cli",
+  "cli",
 {%- endif %}
 {%- set il_components = [] -%}
-{%- if include_web %}{% set _ = il_components.append(github_repo_name ~ ".web") %}{% endif -%}
-{%- if include_gui %}{% set _ = il_components.append(github_repo_name ~ ".gui") %}{% endif -%}
-{%- if include_tui %}{% set _ = il_components.append(github_repo_name ~ ".tui") %}{% endif -%}
-{%- if include_mcp %}{% set _ = il_components.append(github_repo_name ~ ".mcp") %}{% endif -%}
-{%- if include_worker %}{% set _ = il_components.append(github_repo_name ~ ".worker") %}{% endif -%}
+{%- if include_web %}{% set _ = il_components.append("web") %}{% endif -%}
+{%- if include_gui %}{% set _ = il_components.append("gui") %}{% endif -%}
+{%- if include_tui %}{% set _ = il_components.append("tui") %}{% endif -%}
+{%- if include_mcp %}{% set _ = il_components.append("mcp") %}{% endif -%}
+{%- if include_worker %}{% set _ = il_components.append("worker") %}{% endif -%}
 {%- if il_components %}
   "{{ il_components | join(' | ') }}",
 {%- endif %}
-  "{{github_repo_name}}.core",
-  "{{github_repo_name}}.utils",
+  "core",
+  "utils",
 ]
 
 
