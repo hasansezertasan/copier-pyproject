@@ -10,6 +10,11 @@ on:
 jobs:
   analyze:
     name: Analyze
+    # Code scanning needs GitHub Advanced Security on private repos; without it
+    # every run gets a permanent red X. Free on public repos, so skip elsewhere.
+    # `github.repository_visibility` (not the event payload) so the `schedule`
+    # trigger resolves it too.
+    if: github.repository_visibility == 'public'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
