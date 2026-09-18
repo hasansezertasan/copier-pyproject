@@ -38,8 +38,11 @@ jobs:
         with:
           # `advanced-security` defaults to true and the action uploads SARIF
           # with no visibility detection and no `continue-on-error`, which fails
-          # every run on a private repo without GHAS. Fall back to inline
-          # workflow annotations there -- same audit, no code-scanning upload.
-          # The two inputs are mutually exclusive per the action's own docs.
-          advanced-security: ${{ github.repository_visibility == 'public' }}
-          annotations: ${{ github.repository_visibility != 'public' }}
+          # every run on a private/internal repo without GHAS. Fall back to
+          # inline workflow annotations there -- same audit, no code-scanning
+          # upload. The two inputs are mutually exclusive per the action's docs.
+          # This workflow only runs on `push`/`pull_request`, which always carry
+          # the event payload, so no fallback for an unknown visibility is
+          # needed (unlike scorecard.yml, which also runs on `schedule`).
+          advanced-security: ${{ github.event.repository.visibility == 'public' }}
+          annotations: ${{ github.event.repository.visibility != 'public' }}
