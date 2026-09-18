@@ -65,6 +65,10 @@ PRESETS = ("library", "tool", "web", "full")
 # Committed derived artifact: the real file set each preset renders (#164).
 TREE_PAGE = REPO_ROOT / "docs" / "generated-project-trees.md"
 
+# Copier writes this into every render; the watch loop uses it as the marker
+# that an existing output directory is a previous render and safe to replace.
+ANSWERS_FILE = ".copier-answers.yml"
+
 # Scratch render target for the authoring watch loop (#184), gitignored.
 WATCH_OUT = REPO_ROOT / ".watch-render"
 WATCH_PATHS = (REPO_ROOT / "template", REPO_ROOT / "copier.yml", DATA_FILE)
@@ -160,27 +164,39 @@ def regenerate(workdir: Path) -> list[Path]:
 
 
 def _scratch(out: Path) -> Path:
-    """Reject a ``--out`` whose deletion would take the sources with it.
+    """Resolve ``--out`` and refuse any target a rebake must not delete.
 
-    Every rebake ``rmtree``s the target, so it must be neither an ancestor of
-    the sources (``--out .`` would wipe the working tree) nor a descendant of a
-    watched one (``--out template/rendered`` would delete part of the template
-    *and* retrigger the watcher with its own writes). The repo root is only
-    checked in the ancestor direction — the default ``.watch-render/`` lives
-    inside it.
+    Every rebake ``rmtree``s the target, so two rules apply:
+
+    1. It may not touch a watched source in either direction — an ancestor
+       (``--out .``) would wipe the working tree, a descendant
+       (``--out template/rendered``) would delete template files *and* retrigger
+       the watcher with its own writes.
+    2. It must be absent, empty, or a previous render of ours (it carries a
+       ``.copier-answers.yml``). This is the rule that matters: it is what stops
+       ``--out docs``, ``--out tools`` or any mistyped path from deleting work
+       this tool never created, inside the repo or out of it. Path taxonomy
+       alone cannot get that right — "do not delete what I did not render" can.
     """
     resolved = out.resolve()
     sources = tuple(path.resolve() for path in WATCH_PATHS)
-    holds_sources = any(
-        path == resolved or path.is_relative_to(resolved)
-        for path in (REPO_ROOT, *sources)
-    )
-    inside_sources = any(resolved.is_relative_to(path) for path in sources)
-    if holds_sources or inside_sources:
+    if any(
+        resolved.is_relative_to(path) or path.is_relative_to(resolved)
+        for path in sources
+    ):
         raise SystemExit(
             f"refusing to render into {resolved}: it holds or sits inside the "
             "template sources (every rebake deletes the output directory)"
         )
+    if resolved.exists():
+        if not resolved.is_dir():
+            raise SystemExit(f"refusing to render into {resolved}: not a directory")
+        if any(resolved.iterdir()) and not (resolved / ANSWERS_FILE).exists():
+            raise SystemExit(
+                f"refusing to render into {resolved}: it is not empty and carries "
+                f"no {ANSWERS_FILE}, so it is not a previous render (every rebake "
+                "deletes the output directory)"
+            )
     return resolved
 
 

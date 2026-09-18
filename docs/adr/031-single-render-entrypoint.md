@@ -101,7 +101,12 @@ now spelled `--data preset=full` instead of a hand-listed toggle set (with
 
 `watch` re-renders into the gitignored `.watch-render/` on every save under
 `template/`, `copier.yml` and `.example-input.yml`, printing a per-rebake status
-line and surviving a failed render. `watchfiles` is not a dependency of the
+line and surviving a failed render. Because each rebake `rmtree`s its target,
+`--out` is validated first: never a path touching a watched source (either
+direction), and never a directory that is non-empty without a
+`.copier-answers.yml`. The second rule is the load-bearing one — "do not delete
+what this tool did not render" is checkable, whereas enumerating which
+directories are precious (`docs/`, `tools/`, someone's `~/notes`) is not. `watchfiles` is not a dependency of the
 script — `mise run watch` supplies it with `uv run --with watchfiles` — so no
 consumer pays for a dependency only the loop needs.
 
