@@ -162,16 +162,24 @@ def regenerate(workdir: Path) -> list[Path]:
 def _scratch(out: Path) -> Path:
     """Reject a ``--out`` whose deletion would take the sources with it.
 
-    Every rebake ``rmtree``s the target, so ``--out .`` or ``--out template``
-    would wipe the working tree. Refuse any path that *is* or *contains* the
-    repo root or a watched source.
+    Every rebake ``rmtree``s the target, so it must be neither an ancestor of
+    the sources (``--out .`` would wipe the working tree) nor a descendant of a
+    watched one (``--out template/rendered`` would delete part of the template
+    *and* retrigger the watcher with its own writes). The repo root is only
+    checked in the ancestor direction — the default ``.watch-render/`` lives
+    inside it.
     """
     resolved = out.resolve()
-    guarded = (REPO_ROOT, *(path.resolve() for path in WATCH_PATHS))
-    if any(path == resolved or path.is_relative_to(resolved) for path in guarded):
+    sources = tuple(path.resolve() for path in WATCH_PATHS)
+    holds_sources = any(
+        path == resolved or path.is_relative_to(resolved)
+        for path in (REPO_ROOT, *sources)
+    )
+    inside_sources = any(resolved.is_relative_to(path) for path in sources)
+    if holds_sources or inside_sources:
         raise SystemExit(
-            f"refusing to render into {resolved}: it holds the template sources "
-            "(every rebake deletes the output directory)"
+            f"refusing to render into {resolved}: it holds or sits inside the "
+            "template sources (every rebake deletes the output directory)"
         )
     return resolved
 
@@ -221,13 +229,14 @@ def _answers(pairs: Sequence[str]) -> dict[str, Any]:
     data: dict[str, Any] = {}
     for pair in pairs:
         key, sep, value = pair.partition("=")
-        if not sep:
+        if not sep or not key:
             raise SystemExit(f"--data expects key=value, got {pair!r}")
         data[key] = yaml.safe_load(value)  # so true/false/123 keep their types
     return data
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Dispatch the ``render`` / ``regenerate`` / ``watch`` subcommands."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
 

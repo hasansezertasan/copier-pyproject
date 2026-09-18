@@ -19,11 +19,14 @@ jobs:
       fail-fast: false
       matrix:
         scenario:
-          # Bare template — only the always-on core/utils modules. The base
-          # data-file uses the `library` preset (which seeds examples/), so this
-          # scenario turns examples back off to keep a true core-only render.
+          # Bare template — only the always-on core/utils modules, and the
+          # `library` bracket of the generate-and-run guard (issue #183). The
+          # preset is spelled out rather than inherited from the data-file so
+          # the bracket survives an edit to .example-input.yml; examples/ is
+          # turned back off to keep a true core-only render (the `full-preset`
+          # scenario below covers it, since `full` seeds include_examples).
           - name: minimal
-            data: --data include_examples=false
+            data: --data preset=library --data include_examples=false
           # The `full` preset itself — the other bracket of the generate-and-run
           # guard (issue #183): `minimal` is the bare `library` shape, this is
           # every toggle `preset_map` seeds (ADR-016), with the two axis picks

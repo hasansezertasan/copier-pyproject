@@ -451,8 +451,10 @@ Subcommands:
   produces, captured from a real render instead of typed by hand. Run it when a
   change adds or removes a generated file and commit the diff;
   `tests/test_doc_trees.py` fails in the blocking `render-tests` job when the
-  page is stale. Future derived artifacts (schemas, references) plug in here and
-  inherit the same guard.
+  page is stale. `artifact-drift.yml` re-runs it weekly (schedule +
+  `workflow_dispatch`, non-blocking) to catch the drift a PR check cannot see —
+  an unpinned copier release changing what the template emits. Future derived
+  artifacts (schemas, references) plug in here and inherit both guards.
 - `watch [--out DIR] [--data k=v]…` — authoring loop, watches `template/`,
   `copier.yml` and `.example-input.yml`, renders into the gitignored
   `.watch-render/`, prints a per-rebake status line, and keeps going when a

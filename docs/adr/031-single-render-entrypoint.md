@@ -67,16 +67,22 @@ exactly that diff. `example/` stays gitignored and stays a pure smoke-test
 target of the same entrypoint — a diff-based guard cannot apply to an untracked
 tree, which answers #181's open question.
 
-### 3. The drift guard runs where the drift originates — on the PR
+### 3. Two drift guards, one per direction of drift
 
-`tests/test_doc_trees.py` asserts the committed page equals a fresh render, in
-the existing blocking `render-tests` job. #181 proposed a weekly non-blocking
-`artifact-drift.yml` mirroring `gitignore-drift.yml`; that posture is right for
-cobo (upstream `github/gitignore` changes with no PR here, and `cobo update`
-hits the network) and wrong here: this artifact only ever drifts because *this
-repo* changed, and the renders it needs already run on every PR. Catching it on
-the PR that causes it beats catching it up to a week later on a cron nobody
-watches, so no new workflow is added.
+The artifact can go stale two ways, and each gets the check that fits it:
+
+- **This repo changed** (a toggle gains or loses a file) —
+  `tests/test_doc_trees.py` asserts the committed page equals a fresh render, in
+  the existing **blocking** `render-tests` job. It costs nothing extra (that job
+  already renders every preset) and fails on the PR that causes the drift, not a
+  week later.
+- **The toolchain changed underneath us** — the render path installs copier
+  unpinned, so a new copier release can change what the template emits with no
+  commit here at all. That is the same upstream-drift shape cobo's weekly check
+  exists for, and a PR-time check cannot see it, so `artifact-drift.yml` runs
+  `regenerate` + `git diff` on a **weekly schedule + `workflow_dispatch`**,
+  non-blocking, never on `pull_request` — the posture of `gitignore-drift.yml`
+  (ADR-012) and `docs-linkcheck` (ADR-011).
 
 Golden files (ADR-024) are deliberately **not** folded into `regenerate`: they
 are already gated by the same job, and `--force-regen` is their documented
@@ -108,7 +114,10 @@ consumer pays for a dependency only the loop needs.
   preset renders must run `mise run regenerate` or fail `render-tests`.
 - `regenerate` is the extension point for future derived artifacts (an AsyncAPI
   schema, a CLI reference) — they plug in there rather than growing a second
-  generator, and inherit the same drift guard.
+  generator, and inherit both drift guards for free.
+- One more weekly cron to keep an eye on (`artifact-drift.yml`). It renders and
+  diffs, so it costs a few CI minutes a week and fails only on a real upstream
+  change; a failure is fixed by `mise run regenerate`.
 - The `full` preset is now exercised by the heaviest CI scenario, so a
   toggle-interaction break in the kitchen sink fails against the offending diff.
   Its cost is one existing matrix cell, not a new job.
