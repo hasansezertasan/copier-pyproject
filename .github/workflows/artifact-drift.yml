@@ -1,0 +1,43 @@
+---
+name: Artifact Drift Check
+# The committed derived artifacts (docs/generated-project-trees.md — ADR-031)
+# are guarded on every PR by tests/test_doc_trees.py, which catches drift caused
+# by a change in THIS repo. This workflow covers the other direction: the render
+# toolchain is unpinned, so a new copier release can change what the template
+# emits with no commit here at all — the same upstream-drift shape cobo's weekly
+# gitignore check exists for (ADR-012). Weekly schedule + workflow_dispatch,
+# never on pull_request and not in any gate: a failure is a maintenance signal
+# (run `mise run regenerate` and commit the diff), not a merge blocker.
+"on":
+  workflow_dispatch:
+  schedule:
+    # Weekly, Monday 07:30 UTC — just after the gitignore drift check.
+    - cron: "30 7 * * 1"
+permissions: {}
+jobs:
+  artifact-drift:
+    name: Check generated artifact drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+          # Copier renders from a git ref, so it needs the repo's history.
+          fetch-depth: 0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
+      - name: Regenerate the derived artifacts
+        # The single render entrypoint (ADR-031); uv resolves copier from the
+        # script's PEP 723 metadata.
+        run: uv run tools/render.py regenerate
+      - name: Fail on drift
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::Generated artifacts are stale - run 'mise run regenerate' and commit the diff"
+            git --no-pager diff --stat
+            exit 1
+          fi

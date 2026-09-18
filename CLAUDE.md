@@ -59,21 +59,20 @@ Key architecture:
 
 ### Testing the Template
 
+Every render goes through `tools/render.py` ([ADR-031](docs/adr/031-single-render-entrypoint.md)),
+never a bare `copier copy`. It already applies `.example-input.yml`, `--defaults`
+and overwrite; there is no root Python project, so `uv run` resolves copier from
+the script's own PEP 723 metadata.
+
 ```bash
-# Install dependencies
-uv sync
+# Render into a scratch dir
+uv run tools/render.py render /tmp/test-project
 
-# Test rendering with example inputs (dry run)
-copier copy --data-file .example-input.yml --defaults . /tmp/test-project
+# (Re)generate the example project
+mise run example
 
-# Actually generate the example project
-copier copy --data-file .example-input.yml --defaults . example/
-
-# Force regenerate (overwrites existing)
-copier copy --data-file .example-input.yml --defaults . example/ --force
-
-# Test with specific features enabled
-copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=kafka --defaults --trust . /tmp/test-worker --force
+# Render with specific features enabled
+uv run tools/render.py render /tmp/test-worker --data include_worker=true --data worker_broker=kafka
 ```
 
 #### Render-and-inspect harness (`tests/`, [ADR-024](docs/adr/024-render-and-inspect-template-test-suite.md))
@@ -88,6 +87,23 @@ project, so deps come from an ephemeral uv env:
 mise run test                # or: uv run --with pytest --with pytest-regressions --with copier pytest tests/
 mise run test-golden-update  # regenerate golden files (review the diff), then commit
 ```
+
+#### The single render entrypoint (`tools/render.py`, [ADR-031](docs/adr/031-single-render-entrypoint.md))
+
+**Never add another `copier copy` invocation.** `tools/render.py` is the only
+place the template is rendered — the `render` fixture, `template-ci.yml`, the
+mise tasks and the committed docs artifacts all call it. A new consumer imports
+`render()` or calls the CLI.
+
+```bash
+uv run tools/render.py render /tmp/x --data preset=full  # one-off render
+mise run regenerate   # rewrite docs/generated-project-trees.md (commit the diff)
+mise run watch        # re-render .watch-render/ on every save, authoring aid
+```
+
+`docs/generated-project-trees.md` is a **committed derived artifact** (the real
+file set each preset renders): change what a preset renders → run `mise run
+regenerate` or `tests/test_doc_trees.py` fails.
 
 ### Working with Generated Projects
 
@@ -262,6 +278,10 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   gates on `git diff`, not hook exit codes — taplo used to rewrite files and
   exit 0) plus `tox -e style`'s check-mode taplo/ruff-format
   ([ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)).
+- **One render entrypoint.** `tools/render.py` is the only place `copier.run_copy`
+  is called (harness fixture, CI matrix, docs artifacts, watch loop, mise tasks);
+  adding a second `copier copy` spelling is the drift this replaced
+  ([ADR-031](docs/adr/031-single-render-entrypoint.md)).
 - **Verify zizmor changes with the prek hook** (`prek run zizmor --all-files`),
   not a bare `uvx zizmor` — the two can pin versions with different
   `dangerous-triggers` behavior; the prek hook is what gates.
@@ -490,15 +510,20 @@ ADR-026's single union gate.
 
 Always test changes by:
 
-1. Regenerating the example: `copier copy --data-file .example-input.yml --defaults . example/ --force`
-2. Running style checks: `cd example && uv run --locked tox run -e style`
-3. Running tests: `cd example && uv run --locked tox run`
+1. Running the render harness: `mise run test`
+2. Regenerating the example: `mise run example`
+3. Running style checks: `cd example && uv run --locked tox run -e style`
+4. Running tests: `cd example && uv run --locked tox run`
+
+If the change adds or removes a generated file, also run `mise run regenerate`
+and commit the `docs/generated-project-trees.md` diff (`tests/test_doc_trees.py`
+fails otherwise).
 
 For features with choices (like `worker_broker`), test multiple combinations:
 
 ```bash
-copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=kafka --defaults --trust . /tmp/test-kafka --force
-copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=rabbitmq --defaults --trust . /tmp/test-rabbitmq --force
+uv run tools/render.py render /tmp/test-kafka --data include_worker=true --data worker_broker=kafka
+uv run tools/render.py render /tmp/test-rabbitmq --data include_worker=true --data worker_broker=rabbitmq
 ```
 
 ## Copier-Specific Behavior

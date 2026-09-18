@@ -19,15 +19,23 @@ jobs:
       fail-fast: false
       matrix:
         scenario:
-          # Bare template — only the always-on core/utils modules. The base
-          # data-file uses the `library` preset (which seeds examples/), so this
-          # scenario turns examples back off to keep a true core-only render.
+          # Bare template — only the always-on core/utils modules, and the
+          # `library` bracket of the generate-and-run guard (issue #183). The
+          # preset is spelled out rather than inherited from the data-file so
+          # the bracket survives an edit to .example-input.yml; examples/ is
+          # turned back off to keep a true core-only render (the `full-preset`
+          # scenario below covers it, since `full` seeds include_examples).
           - name: minimal
-            data: --data include_examples=false
-          # Kitchen sink with FastAPI + Redis worker + pydantic settings.
-          - name: full-fastapi-redis
+            data: --data preset=library --data include_examples=false
+          # The `full` preset itself — the other bracket of the generate-and-run
+          # guard (issue #183): `minimal` is the bare `library` shape, this is
+          # every toggle `preset_map` seeds (ADR-016), with the two axis picks
+          # (web framework, broker) the preset leaves to a follow-up question.
+          # Spelled as the preset, not a hand-listed toggle set, so a component
+          # added to `full` is covered here without editing this matrix.
+          - name: full-preset
             data: >-
-              --data include_cli=true --data include_web=true --data web_framework=fastapi --data include_gui=true --data include_tui=true --data include_mcp=true --data include_worker=true --data worker_broker=redis --data include_pydantic_settings=true
+              --data preset=full --data web_framework=fastapi --data worker_broker=redis
           # Exercise the other web framework and broker branches.
           - name: litestar-kafka
             data: >-
@@ -81,10 +89,15 @@ jobs:
         with:
           enable-cache: true
       - name: Render template
-        # uvx provides copier without mise; the later `uv run` steps execute in
-        # ../rendered, where a mise shim would not resolve the repo's tools.
+        # tools/render.py is the single render entrypoint (ADR-031) — the same
+        # module the pytest harness, the committed docs artifacts, and the
+        # authoring watch loop call, so this matrix cannot render a shape no
+        # other consumer can reproduce. `uv run` resolves copier from the
+        # script's PEP 723 metadata without mise; the later `uv run` steps
+        # execute in ../rendered, where a mise shim would not resolve the repo's
+        # tools.
         run: >
-          uvx copier copy --data-file .example-input.yml ${{ matrix.scenario.data }} --defaults --vcs-ref=HEAD . ../rendered
+          uv run tools/render.py render ../rendered ${{ matrix.scenario.data }}
 
       - name: Audit rendered workflows with zizmor
         # The template's workflows are *.jinja and cannot be scanned directly, so

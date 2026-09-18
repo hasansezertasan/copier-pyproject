@@ -1,11 +1,15 @@
-"""Render harness for the copier-pyproject template.
+"""Render harness fixtures for the copier-pyproject template.
 
-Renders the template with Copier's Python API into a temporary directory and
-exposes a ``render`` fixture that returns the rendered project root.
+The rendering itself lives in ``tools/render.py`` — the single render
+entrypoint every consumer shares (ADR-031). This module only wraps it in a
+``tmp_path``-scoped fixture; it deliberately holds no ``copier`` call of its
+own, so the harness, CI, the committed docs artifacts, and the authoring watch
+loop cannot drift apart.
 
-Note: with ``vcs_ref="HEAD"`` Copier renders from this repo's git tree and
-includes uncommitted working-tree changes (it emits a ``DirtyLocalWarning``),
-so the tests reflect the current working copy of ``copier.yml`` / ``template/``.
+Note: ``tools.render.render`` renders from this repo's git tree at ``HEAD`` and
+includes uncommitted working-tree changes (Copier emits a
+``DirtyLocalWarning``), so the tests reflect the current working copy of
+``copier.yml`` / ``template/``.
 """
 
 from __future__ import annotations
@@ -13,21 +17,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-import copier
 import pytest
+
+from tools.render import IDENTITY, render as render_project
 
 if TYPE_CHECKING:
     from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-
-# Required questions (no defaults) — supplied so renders stay non-interactive.
-IDENTITY = {
-    "github_user": "octocat",
-    "github_repo_name": "example",
-    "author_full_name": "Octo Cat",
-    "author_email": "octo@example.com",
-}
+__all__ = ["IDENTITY", "render"]
 
 
 @pytest.fixture
@@ -40,16 +37,6 @@ def render(tmp_path: Path) -> Callable[..., Path]:
     """
 
     def _render(**answers: Any) -> Path:
-        dst = tmp_path / "rendered"
-        copier.run_copy(
-            str(REPO_ROOT),
-            str(dst),
-            data={**IDENTITY, **answers},
-            defaults=True,
-            overwrite=True,
-            vcs_ref="HEAD",
-            quiet=True,
-        )
-        return dst
+        return render_project(tmp_path / "rendered", **answers)
 
     return _render

@@ -130,6 +130,22 @@ Once the plugin is installed the skills are auto-discovered; no explicit invocat
 `preset` (`library`), so the template can be rendered non-interactively (e.g.
 `mise run example`); every other toggle follows from the preset's defaults.
 
+## Working on the template
+
+Every render goes through one entrypoint, `tools/render.py`
+([ADR-031](docs/adr/031-single-render-entrypoint.md)) — the test harness, CI, the
+mise tasks and the generated docs all call it:
+
+- Render once: `uv run tools/render.py render /tmp/x --data preset=full`
+- Render the example project: `mise run example`
+- Re-render on every save while editing: `mise run watch`
+- Render tests: `mise run test` (golden files: `mise run test-golden-update`)
+- Rewrite the committed derived artifacts: `mise run regenerate`
+
+[`docs/generated-project-trees.md`](docs/generated-project-trees.md) is generated
+by that last command — the exact file set each preset produces, so the documented
+structure cannot drift from what the template actually renders.
+
 ## Release automation
 
 Release automation is standardized on [release-please](https://github.com/googleapis/release-please) (see [ADR-002](docs/adr/002-release-please-for-release-automation.md)). A single unified workflow, `.github/workflows/release.yml`, orchestrates the whole release:
