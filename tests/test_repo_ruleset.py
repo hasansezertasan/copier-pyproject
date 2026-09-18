@@ -74,6 +74,7 @@ def test_ruleset_status_contexts_non_web(render: Callable[..., Path]) -> None:
         "Check PR task list",
         "Dependency audit (pip-audit)",
         "Secret scan (gitleaks)",
+        "Static analysis (semgrep)",
     ]
 
 

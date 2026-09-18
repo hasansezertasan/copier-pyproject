@@ -16,8 +16,8 @@ FILTER_REGEX_EXCLUDE: (^|/)CHANGELOG\.md$
 # mostly enables linters prek/tox do not already cover, never duplicating them:
 #   * actionlint / yamllint / markdownlint / editorconfig-checker -> prek
 #   * Python (ruff + type-checkers + vulture) -> tox `style`
-#   * secrets / vuln / SAST -> check-security.yml (gitleaks, pip-audit, trivy),
-#     plus CodeQL and Scorecard
+#   * secrets / vuln / SAST -> check-security.yml (gitleaks, pip-audit, semgrep,
+#     trivy), plus CodeQL and Scorecard
 # The one deliberate overlap is SPELL_CSPELL, scoped to prose (.md): a deeper,
 # dictionary-driven spell-check that complements prek's fast `typos` gate (it does
 # not replace it), with findings surfaced in the Security tab.
