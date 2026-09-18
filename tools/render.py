@@ -163,6 +163,30 @@ def regenerate(workdir: Path) -> list[Path]:
     return [TREE_PAGE]
 
 
+def _is_our_render(path: Path) -> bool:
+    """Whether ``path`` is a project this checkout rendered.
+
+    The bare presence of ``.copier-answers.yml`` proves only "some Copier
+    template made this" — a real project scaffolded from *this* template would
+    qualify, and the watch loop would delete the user's work. Copier records the
+    template it rendered from in ``_src_path``; :func:`render` always passes the
+    local :data:`REPO_ROOT`, so a project scaffolded from the GitHub URL (or any
+    other template) fails this check. A malformed or unreadable answers file is
+    not ours either.
+    """
+    try:
+        answers = yaml.safe_load((path / ANSWERS_FILE).read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+    src = (answers or {}).get("_src_path")
+    if not isinstance(src, str):
+        return False
+    try:
+        return Path(src).expanduser().resolve() == REPO_ROOT
+    except OSError:  # pragma: no cover - resolve() on a pathological value
+        return False
+
+
 def _scratch(out: Path) -> Path:
     """Resolve ``--out`` and refuse any target a rebake must not delete.
 
@@ -172,8 +196,8 @@ def _scratch(out: Path) -> Path:
        (``--out .``) would wipe the working tree, a descendant
        (``--out template/rendered``) would delete template files *and* retrigger
        the watcher with its own writes.
-    2. It must be absent, empty, or a previous render of ours (it carries a
-       ``.copier-answers.yml``). This is the rule that matters: it is what stops
+    2. It must be absent, empty, or a previous render *of this checkout*
+       (:func:`_is_our_render`). This is the rule that matters: it is what stops
        ``--out docs``, ``--out tools`` or any mistyped path from deleting work
        this tool never created, inside the repo or out of it. Path taxonomy
        alone cannot get that right — "do not delete what I did not render" can.
@@ -191,11 +215,11 @@ def _scratch(out: Path) -> Path:
     if resolved.exists():
         if not resolved.is_dir():
             raise SystemExit(f"refusing to render into {resolved}: not a directory")
-        if any(resolved.iterdir()) and not (resolved / ANSWERS_FILE).exists():
+        if any(resolved.iterdir()) and not _is_our_render(resolved):
             raise SystemExit(
-                f"refusing to render into {resolved}: it is not empty and carries "
-                f"no {ANSWERS_FILE}, so it is not a previous render (every rebake "
-                "deletes the output directory)"
+                f"refusing to render into {resolved}: it is not empty and was not "
+                "rendered from this template checkout (every rebake deletes the "
+                "output directory)"
             )
     return resolved
 
