@@ -424,7 +424,49 @@ The two docs-push jobs (`gh-pages.yml` `deploy`, `release.yml`
 `ghp-import` push. `.nojekyll` is emitted by the `sphinx.ext.githubpages`
 extension at build time (so `_static/` is served), not by the deploy step.
 
+## Rendering the template (`tools/render.py`, ADR-031)
+
+Every consumer that renders the template calls one module — there is no second
+`copier copy` spelling anywhere in the repo ([ADR-031](adr/031-single-render-entrypoint.md)):
+
+| Consumer | How it renders |
+| --- | --- |
+| render harness (ADR-024) | the `render` fixture in `tests/conftest.py` wraps `tools.render.render` |
+| `template-ci.yml` render matrix | `uv run tools/render.py render ../rendered --data …` |
+| `mise run example` | `uv run tools/render.py render example` |
+| `mise run regenerate` | `regenerate()` — rewrites the committed derived artifacts |
+| `mise run watch` | `watch()` — re-renders `.watch-render/` on every save |
+
+`tools/render.py` carries PEP 723 metadata, so `uv run tools/render.py …`
+resolves copier itself — no root Python project, no mise shim. Answers layer
+`IDENTITY` (a neutral `octocat`/`example` pair, used by the harness so golden
+files do not move with a maintainer's own inputs) → `--data-file` (defaults to
+`.example-input.yml` on the CLI) → explicit `--data key=value` pairs.
+
+Subcommands:
+
+- `render DST [--data k=v]… [--data-file F] [--ref REF]` — one render.
+- `regenerate` — rewrites every committed derived artifact. Today that is
+  `docs/generated-project-trees.md`, the exact file set each of the four presets
+  produces, captured from a real render instead of typed by hand. Run it when a
+  change adds or removes a generated file and commit the diff;
+  `tests/test_doc_trees.py` fails in the blocking `render-tests` job when the
+  page is stale. Future derived artifacts (schemas, references) plug in here and
+  inherit the same guard.
+- `watch [--out DIR] [--data k=v]…` — authoring loop, watches `template/`,
+  `copier.yml` and `.example-input.yml`, renders into the gitignored
+  `.watch-render/`, prints a per-rebake status line, and keeps going when a
+  render fails. Needs `watchfiles`, which `mise run watch` supplies with
+  `uv run --with watchfiles`; it is never wired into CI.
+
+`example/` stays gitignored — a pure smoke-test target of the same entrypoint,
+not a drift-checked artifact (an untracked tree has no diff to check).
+
 ## Generated Project Structure
+
+See [`generated-project-trees.md`](generated-project-trees.md) for the generated,
+always-current file list per preset; the prose below explains what the modules
+do.
 
 Root modules in `src/{{github_repo_name}}/`:
 

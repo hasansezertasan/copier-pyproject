@@ -17,9 +17,19 @@ yamlfmt = "latest"
 yamllint = "latest"
 
 
+# Every task below renders through tools/render.py — the single render
+# entrypoint (ADR-031). Do not add a task that calls `copier copy` directly.
 [tasks.example]
 description = "Generate an example project from the template"
-run = "copier copy --trust --force --defaults --vcs-ref=HEAD --data-file=.example-input.yml . example"
+run = "uv run tools/render.py render example"
+
+[tasks.regenerate]
+description = "Rewrite the committed derived artifacts (docs/generated-project-trees.md)"
+run = "uv run tools/render.py regenerate"
+
+[tasks.watch]
+description = "Re-render a scratch project into .watch-render/ on every template change"
+run = "uv run --with watchfiles tools/render.py watch"
 
 [tasks.test]
 description = "Run the render-and-inspect harness (ADR-024)"
