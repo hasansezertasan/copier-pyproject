@@ -23,29 +23,15 @@ _SYNC_HINT = f"Component dependencies ship with '{PROJECT_NAME}', so this usuall
 # would install Tk for the wrong interpreter; pin it to the running version.
 _TK_HINT = f"'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}`), or use a Python build that includes Tk."  # noqa: E501
 {%- endif %}
-{%- if include_tui %}
-_TUI_DEPENDENCIES = ("textual", "typing_extensions")
-{%- endif %}
-{%- if include_gui %}
-# ``_tkinter`` is the C extension ``tkinter/__init__.py`` imports unguarded, and
-# it is the name that actually fails on an interpreter built without tk-dev (the
-# pure-Python ``tkinter`` package still ships), so both belong in the allowlist.
-_GUI_DEPENDENCIES = ("tkinter", "_tkinter")
-{%- endif %}
-{%- if include_web %}
-_WEB_DEPENDENCIES = ("{{web_framework}}", "uvicorn")
-{%- endif %}
-{%- if include_mcp %}
-_MCP_DEPENDENCIES = ("mcp",)
-{%- endif %}
-{%- if include_worker %}
-# The broker *client* (``aiokafka``, ``aio_pika``, ...) is deliberately absent:
-# ``{{ worker_broker_spec.module }}`` re-exports it behind faststream's own guard,
-# which raises a nameless ``ImportError``, so the client's own
-# ``ModuleNotFoundError`` never reaches this allowlist. The broker module is
-# listed instead, and ``_preflight`` is what gives that failure a name.
-_WORKER_DEPENDENCIES = ("faststream", "pydantic", "{{ worker_broker_spec.module }}")
-{%- endif %}
+{#- The allowlists come from ``component_dependencies`` in ``copier.yml``, the
+    single source shared with ``__main__.py``'s sole-component guard -- see
+    ADR-028. ``gui`` carries ``_tkinter`` beside ``tkinter`` because that C
+    extension is the name that actually fails on an interpreter built without
+    tk-dev; ``worker`` carries ``faststream.<broker>`` rather than the broker
+    client, which faststream re-exports behind its own nameless import guard. -#}
+{%- for component in launched_components | sort %}
+_{{ component | upper }}_DEPENDENCIES = ({{ component_dependencies[component] | map('tojson') | join(', ') }}{% if component_dependencies[component] | length == 1 %},{% endif %})
+{%- endfor %}
 {%- endmacro -%}
 {%- macro _preflight_fn() -%}
 

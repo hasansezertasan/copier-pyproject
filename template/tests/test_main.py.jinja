@@ -1,22 +1,43 @@
+{#- Emit a module-name tuple in the exact byte form ruff-format produces
+    (ADR-030): one line when it fits in 88 columns, otherwise one element per
+    line with a trailing comma. Mirrors the macro in ``__main__.py.jinja``. -#}
+{%- macro _dep_tuple(name, modules) -%}
+{%- set _joined = modules | map('tojson') | join(', ') -%}
+{%- set _tail = ',' if modules | length == 1 else '' -%}
+{%- if (name ~ ' = (' ~ _joined ~ _tail ~ ')') | length <= 88 -%}
+{{ name }} = ({{ _joined }}{{ _tail }})
+{%- else -%}
+{{ name }} = (
+{%- for module in modules %}
+    {{ module | tojson }},
+{%- endfor %}
+)
+{%- endif -%}
+{%- endmacro -%}
 {#- ``root_dependencies`` (the third-party modules the console root imports at
-    module scope, before the guard inside ``cli/app.py`` can run) is computed in
-    ``copier.yml``, so this module and ``__main__.py.jinja`` cannot drift on which
-    ones are guarded. ``is_app`` is likewise the shared "any runnable component
-    is enabled" predicate. -#}
+    module scope, before the guard inside ``cli/app.py`` can run) and
+    ``sole_component``/``sole_component_dependencies`` (the single component
+    ``__main__`` binds directly when there is no console root, and the modules
+    its guard matches) are computed in ``copier.yml``, so this module and
+    ``__main__.py.jinja`` cannot drift on which ones are guarded. ``is_app`` is
+    likewise the shared "any runnable component is enabled" predicate. -#}
 """Tests for the package's runnable entrypoint (``python -m {{github_repo_name}}``)."""
 
 from __future__ import annotations
 
 import importlib
-{%- if root_dependencies %}
+{%- if sole_component %}
+import re
+{%- endif %}
+{%- if root_dependencies or sole_component %}
 import sys
 from typing import TYPE_CHECKING
 {%- endif %}
-{%- if root_dependencies or not is_app %}
+{%- if root_dependencies or sole_component or not is_app %}
 
 import pytest
 {%- endif %}
-{%- if root_dependencies %}
+{%- if root_dependencies or sole_component %}
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -47,12 +68,13 @@ def test_main_is_callable() -> None:
     # The console root (CLI or shared launcher) wires ``app`` into __main__;
     # assert it resolved.
     assert hasattr(main_module, "app")
-{#- No console root, so ``is_app`` here means a single non-CLI component. -#}
-{%- elif is_app %}
-    # Every non-CLI component is dispatched through an imported ``_entry``
-    # callable; assert the wiring imported it (guards the if/elif precedence).
-    # Read from the module namespace to avoid a private-member-access lint.
-    assert callable(vars(main_module)["_entry"])
+{#- No console root, so ``sole_component`` names the single non-CLI component. -#}
+{%- elif sole_component %}
+    # The component is resolved through ``_load_component`` (so a missing
+    # dependency stays actionable rather than a bare traceback at the ADR-007
+    # standalone-executable entrypoint); calling it here performs the same import
+    # ``main()`` would and pins the if/elif precedence.
+    assert callable(vars(main_module)["_load_component"]())
 {%- endif %}
 {%- if not is_app %}
 
@@ -181,6 +203,130 @@ def test_console_root_preserves_unrelated_import_errors(
 
     with pytest.raises(ModuleNotFoundError, match=r"{{github_repo_name}}\.cli"):
         _ = vars(main_module)["_load_console_root"]()
+
+    assert "uv sync" not in capsys.readouterr().err
+{%- endif %}
+{%- if sole_component %}
+
+
+{{ _dep_tuple("_SOLE_DEPENDENCIES", sole_component_dependencies) }}
+{%- if sole_component == "gui" %}
+# The two modules whose absence is a *system* problem rather than a stale
+# dependency sync, so the guard must answer them with the Tk hint instead.
+_TK_MODULES = ("tkinter", "_tkinter")
+{%- endif %}
+
+
+class _DependencyMissingFinder:
+    """Fail one module's import the way an out-of-sync environment does.
+
+    Driven through ``sys.meta_path`` rather than by patching ``sys.modules`` so
+    the scenario reproduces identically whether or not the runner actually has
+    the module installed -- which matters most for ``_tkinter``, reached only
+    through ``tkinter``'s own unguarded import of it.
+    """
+
+    def __init__(self, trigger: str, missing: str) -> None:
+        self._trigger = trigger
+        self._missing = missing
+
+    def find_spec(
+        self,
+        fullname: str,
+        path: Sequence[str] | None,
+        target: ModuleType | None = None,
+    ) -> ModuleSpec | None:
+        """Fail the triggering import, naming the module that is missing.
+
+        Raises:
+            ModuleNotFoundError: Naming ``missing`` when ``trigger`` is imported.
+        """
+        del path, target
+        if fullname == self._trigger:
+            message = f"No module named {self._missing!r}"
+            raise ModuleNotFoundError(message, name=self._missing)
+        return None
+
+
+@pytest.mark.parametrize("dependency", _SOLE_DEPENDENCIES)
+def test_sole_component_reports_missing_dependency(
+    dependency: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A missing dependency is reported actionably, not as a bare traceback.
+
+    This project enables exactly one runnable component, so there is no console
+    root to route through and ``__main__`` binds
+    ``{{github_repo_name}}.{{sole_component}}.app`` directly -- the ADR-007
+    standalone-executable entrypoint, whose user has no CLI to fall back on.
+    Every module parametrized here is reached by that import: the component's
+    own dependencies, plus the settings stack ``core.logging_setup`` ->
+    ``core.config`` pulls in at module scope.
+
+    Given:
+        - An environment out of sync with the installed package, so one of those
+          modules cannot be imported -- what a ``copier update`` that enabled
+          this component leaves behind until ``uv sync``.
+    When:
+        - ``__main__`` loads the component, as bare ``{{github_repo_name}}`` and
+          ``python -m {{github_repo_name}}`` both do.
+    Then:
+        - It exits 1 with a message naming the component, the module, and the
+          fix that actually applies, and no traceback.
+    """
+    main_module = importlib.import_module("{{github_repo_name}}.__main__")
+{%- if sole_component == "gui" %}
+    # ``_tkinter`` is never imported under its own name: ``tkinter/__init__.py``
+    # imports it unguarded, which is how a Tk-less interpreter fails.
+    trigger = "tkinter" if dependency == "_tkinter" else dependency
+{%- else %}
+    trigger = dependency
+{%- endif %}
+    finder = _DependencyMissingFinder(trigger, dependency)
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+    for cached in (trigger, dependency):
+        monkeypatch.delitem(sys.modules, cached, raising=False)
+    # Drop the package's own modules so the guarded import chain runs again.
+    prefix = "{{github_repo_name}}."
+    for cached in [name for name in sys.modules if name.startswith(prefix)]:
+        monkeypatch.delitem(sys.modules, cached, raising=False)
+
+    with pytest.raises(SystemExit) as excinfo:
+        _ = vars(main_module)["_load_component"]()
+
+    assert excinfo.value.code == 1
+    err = capsys.readouterr().err
+    assert "{{ component_label[sole_component] }}" in err
+    assert dependency in err
+    assert "Traceback" not in err
+{%- if sole_component == "gui" %}
+    # Tk is a system package, so ``uv sync`` is the wrong advice for it.
+    assert ("python3-tk" if dependency in _TK_MODULES else "uv sync") in err
+{%- else %}
+    assert "uv sync" in err
+{%- endif %}
+
+
+def test_sole_component_preserves_unrelated_import_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A missing module that is not a component dependency keeps its diagnostics.
+
+    Given:
+        - Loading the component fails for an unrelated reason (here its own
+          ``app`` module), which is an application defect rather than an
+          out-of-sync environment.
+    When:
+        - ``__main__`` loads the component.
+    Then:
+        - The original ``ModuleNotFoundError`` propagates and is never relabelled
+          as something ``uv sync`` would fix.
+    """
+    main_module = importlib.import_module("{{github_repo_name}}.__main__")
+    component_module = "{{github_repo_name}}.{{sole_component}}.app"
+    monkeypatch.setitem(sys.modules, component_module, None)
+
+    with pytest.raises(ModuleNotFoundError, match=re.escape(component_module)):
+        _ = vars(main_module)["_load_component"]()
 
     assert "uv sync" not in capsys.readouterr().err
 {%- endif %}

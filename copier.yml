@@ -442,6 +442,47 @@ root_dependencies:
   type: json
   when: false
   default: "{{ (((['typer'] if root_uses_typer else []) + (['pydantic', 'pydantic_settings'] if include_pydantic_settings else [])) if include_console_root else []) | tojson }}"
+# A map of component name -> the third-party modules that component owns,
+# matched *exactly* by the dependency guards. Single source for the guard
+# allowlists in `cli/app.py` (launcher subcommands and the minimal launcher's
+# default callback) and in `__main__.py` (the sole-component branches, which
+# have no console root to route through) -- two files that must never disagree
+# about what a component's dependencies are.
+#
+# `gui` lists `_tkinter` beside `tkinter`: on an interpreter built without
+# tk-dev the pure-Python package still ships and the C extension is the name
+# that actually fails. `worker` lists `faststream.<broker>` rather than the
+# broker client, because faststream re-exports the client behind its own
+# nameless import guard -- see ADR-028.
+component_dependencies:
+  type: json
+  when: false
+  default: "{{ (({'tui': ['textual', 'typing_extensions']} if include_tui else {}) | combine({'gui': ['tkinter', '_tkinter']} if include_gui else {}) | combine({'web': [web_framework, 'uvicorn']} if include_web else {}) | combine({'mcp': ['mcp']} if include_mcp else {}) | combine({'worker': ['faststream', 'pydantic', worker_broker_spec.module]} if include_worker else {})) | tojson }}"
+# The single runnable component that `__main__.py` binds *directly*, with no
+# console root in between (ADR-019: `include_console_root` is false, so there is
+# no `cli/` package and no launcher to route through). This is the ADR-007
+# standalone-executable entrypoint. Empty for a library, and empty whenever a
+# console root exists.
+sole_component:
+  type: str
+  when: false
+  default: "{{ primary_component if (primary_component and not include_console_root) else '' }}"
+# The modules the sole-component `__main__` guard matches exactly: the
+# component's own dependencies plus the settings stack that
+# `core.logging_setup` -> `core.config` pulls in at module scope, which the
+# direct `from <pkg>.<component>.app import main` reaches before any guard the
+# component itself could carry.
+sole_component_dependencies:
+  type: json
+  when: false
+  default: "{{ (((component_dependencies[sole_component] + (['pydantic', 'pydantic_settings'] if include_pydantic_settings else [])) | unique | list) if sole_component else []) | tojson }}"
+# The modules that same guard must import *eagerly*: the settings stack (so a
+# nested failure is attributed to it rather than to a sub-dependency) followed
+# by the component's own deferred/guarded imports from `component_preflight`.
+sole_component_preflight:
+  type: json
+  when: false
+  default: "{{ ((((['pydantic', 'pydantic_settings'] if include_pydantic_settings else []) + component_preflight[sole_component]) | unique | list) if sole_component else []) | tojson }}"
 # Single source of truth for which prebuilt binary the brew/scoop packaging
 # references when several executable toggles are enabled. Precedence
 # freezer > compiler > launcher (freezer/compiler are self-contained; launcher

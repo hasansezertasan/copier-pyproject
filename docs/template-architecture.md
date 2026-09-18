@@ -634,15 +634,34 @@ preflights and applies the same translation to the modules imported at the root'
 from the enabled toggles, so a pure argparse root with no settings renders
 without that guard.
 
+A project with exactly **one** runnable component has no console root at all, so
+`__main__.py` binds that component directly — the ADR-007 standalone-executable
+entrypoint. It renders a sibling `_load_component()` with the same preflight,
+exact-match rule and hints, covering the component's own dependencies *and* the
+settings stack the import chain reaches through `core.logging_setup` →
+`core.config`. Because that merged allowlist mixes real distributions with
+`tkinter`, the hint is picked per *module*: the Tk hint for `tkinter`/`_tkinter`,
+`uv sync` for everything else. The five per-component `elif` branches
+`__main__.py` used to carry are now one block parameterized by `sole_component`.
+
+A library consumer's own `import <pkg>.web.app` stays **unguarded** and raises a
+plain `ModuleNotFoundError` — deliberately: they are already reading a traceback
+in their own code, where the failing import and its caller are both visible, and
+a module-scope guard would run on every successful import forever.
+
 `launcher_components`, `need_import_guard`, `launched_components`,
-`component_label`, `component_preflight`, `preflight_used` and
-`root_dependencies` are `when: false` computed variables in `copier.yml`, read by
-`cli/app.py.jinja`, `__main__.py.jinja` and both test modules so the four cannot
-drift.
+`component_label`, `component_dependencies`, `component_preflight`,
+`preflight_used`, `root_dependencies`, `sole_component`,
+`sole_component_dependencies` and `sole_component_preflight` are `when: false`
+computed variables in `copier.yml`, read by `cli/app.py.jinja`,
+`__main__.py.jinja` and both test modules so the four cannot drift. The two
+guards live in different files and never coexist in one project, so
+`component_dependencies` is the only thing that can catch them disagreeing about
+what a component depends on.
 
 The rationale — why the hint is `uv sync` and never `pip install pkg[<extra>]`,
-why matching is exact, why some dependencies need an eager import, and why Tk is
-special — is recorded in
+why matching is exact, why some dependencies need an eager import, why Tk is
+special, and why direct library imports are out of scope — is recorded in
 [ADR-028](adr/028-actionable-component-dependency-guard.md).
 
 ## Devcontainer Structure

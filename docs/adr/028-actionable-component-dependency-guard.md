@@ -17,10 +17,10 @@ got a bare `ModuleNotFoundError` traceback with no hint about the fix.
 Two facts about this template constrain what the fix can say.
 
 **There are no per-component extras to name.** Every component's runtime
-dependency is a core `dependency` under its Jinja toggle;
-`[project.optional-dependencies]` carries only an empty `all`, kept so the `dev`
-group's `<pkg>[all]` resolves. So `pip install <pkg>[<extra>]` can never be the
-right advice — the extra does not exist. A missing dependency module means the
+dependency is a core `dependency` under its Jinja toggle; generated projects
+declare no `[project.optional-dependencies]` at all (see
+[the no-empty-`all` decision](028-no-empty-all-extra.md)). So
+`pip install <pkg>[<extra>]` can never be the right advice — the extra does not exist. A missing dependency module means the
 *environment* is out of sync with the installed metadata: a `copier update` that
 enabled a component without a re-sync, or a stale venv. The honest remedy is
 `uv sync`.
@@ -110,14 +110,68 @@ applies the same translation, and re-raises anything else unchanged.
 `root_dependencies` is computed from the enabled toggles, so a pure argparse
 root with no settings renders without the guard.
 
+### Guard the sole-component entrypoint too
+
+A project that enables exactly *one* runnable component has no console root
+(`include_console_root` is false, so no `cli/` package is rendered) and
+`__main__.py` binds that component directly. This is the ADR-007
+standalone-executable entrypoint — what PyCrucible, PyInstaller and Nuitka all
+target — and it was the one boundary the guard did not cover: the direct
+`from <pkg>.<component>.app import main` reaches the component's own third-party
+imports *and*, through `core.logging_setup` → `core.config`, the settings stack,
+all before any guard existed. A stale environment therefore failed with a bare
+traceback at exactly the boundary whose user is least equipped to read one — a
+frozen binary's user has no CLI to fall back on. A GUI-only project, the shape
+where a Tk-less interpreter is most likely, additionally got none of the Tk hint
+machinery.
+
+`_load_console_root()` could not be reused: it exists to import the *shared
+launcher*, and these projects have none. `__main__.py` now renders a sibling
+`_load_component()` for them, applying the same preflight, the same exact-match
+rule and the same hints. Because the merged allowlist mixes real distributions
+with `tkinter`, the hint is chosen per *module* rather than per component:
+`_TK_HINT` for `tkinter`/`_tkinter`, `_SYNC_HINT` for everything else.
+
+The five near-identical `elif include_<component>` branches collapsed into one
+block parameterized by `sole_component`; the summary line and whether `main()`
+returns an exit code are the only per-component differences left. See issue #268.
+
+### Direct library imports stay unguarded
+
+`import <pkg>.web.app` in a consumer's own code still raises a bare
+`ModuleNotFoundError`, and that is deliberate — the first motivating case of
+issue #172, resolved here as out of scope rather than left open.
+
+Guarding it would mean wrapping every component's *module scope*, which buys
+little and costs real things:
+
+- The reader is already in a traceback in their own code, with the failing
+  import and the frame that triggered it both visible. That is a better
+  diagnostic than a one-line message, not a worse one, and `uv sync` is not
+  necessarily the fix for *their* environment — they installed this package as a
+  dependency of something else.
+- A module-scope guard runs on the success path of every import, for every
+  consumer, forever.
+- Component modules are the part of a generated project an adopter edits most.
+  A `try:`/`except ImportError:` wrapper around each one's imports is exactly
+  the kind of scaffolding that gets in the way.
+
+The guard therefore covers *entrypoints* — the two places where this package
+chose to launch something and owns the error surface — and nothing else.
+
 ### Derived facts live in `copier.yml`
 
 `launcher_components`, `need_import_guard`, `launched_components`,
-`component_label`, `component_preflight`, `preflight_used` and
-`root_dependencies` are `when: false` computed variables. `cli/app.py.jinja`,
-`__main__.py.jinja` and both test modules read them, so the four files cannot
-drift on whether a guard is emitted, what a component's preflight module is, or
-how it labels itself in an error message. Earlier revisions kept these as
+`component_label`, `component_dependencies`, `component_preflight`,
+`preflight_used`, `root_dependencies`, `sole_component`,
+`sole_component_dependencies` and `sole_component_preflight` are `when: false`
+computed variables. `cli/app.py.jinja`, `__main__.py.jinja` and both test
+modules read them, so the four files cannot drift on whether a guard is emitted,
+what a component's dependencies and preflight modules are, or how it labels
+itself in an error message. `component_dependencies` matters most: the launcher
+guard and the sole-component guard are rendered into *different files* and only
+one of them ever exists in a given project, so nothing but a shared source would
+catch them disagreeing. Earlier revisions kept these as
 per-file Jinja headers synchronized only by a `{#- Mirrors … -#}` comment.
 
 ## Consequences
@@ -146,10 +200,8 @@ per-file Jinja headers synchronized only by a `{#- Mirrors … -#}` comment.
   need is real, and `_preflight` covers it at the boundary that already
   lazy-imports.
 - **Guarding every component's module scope**, so a library consumer doing
-  `import <pkg>.web.app` directly also gets the message. Out of scope here: it
-  needs a decision about the sole-component `__main__` entrypoints
-  ([ADR-007](007-standalone-executable-toggles.md)), which reach the same
-  `core.config` chain unguarded. Tracked separately.
+  `import <pkg>.web.app` directly also gets the message. Rejected — see
+  "Direct library imports stay unguarded" above.
 - **Letting faststream's own `ImportError` through.** Its message is actionable
   but recommends `pip install "faststream[<broker>]"`, which contradicts the
   lockfile-managed install this template ships.
