@@ -152,8 +152,28 @@ def regenerate(workdir: Path) -> list[Path]:
     fails when a committed artifact no longer matches one. New derived artifacts
     plug in here rather than growing a second generator.
     """
-    TREE_PAGE.write_text(tree_page(workdir), encoding="utf-8")
+    # newline="\n": the repo is LF-everywhere (.gitattributes, EditorConfig), and
+    # the drift test reads back through universal newlines, so a default-newline
+    # write would silently emit CRLF on Windows and still pass.
+    TREE_PAGE.write_text(tree_page(workdir), encoding="utf-8", newline="\n")
     return [TREE_PAGE]
+
+
+def _scratch(out: Path) -> Path:
+    """Reject a ``--out`` whose deletion would take the sources with it.
+
+    Every rebake ``rmtree``s the target, so ``--out .`` or ``--out template``
+    would wipe the working tree. Refuse any path that *is* or *contains* the
+    repo root or a watched source.
+    """
+    resolved = out.resolve()
+    guarded = (REPO_ROOT, *(path.resolve() for path in WATCH_PATHS))
+    if any(path == resolved or path.is_relative_to(resolved) for path in guarded):
+        raise SystemExit(
+            f"refusing to render into {resolved}: it holds the template sources "
+            "(every rebake deletes the output directory)"
+        )
+    return resolved
 
 
 def watch(out: Path, **answers: Any) -> int:
@@ -172,12 +192,18 @@ def watch(out: Path, **answers: Any) -> int:
         )
         return 1
 
+    out = _scratch(out)
+
     def rebake() -> None:
         shutil.rmtree(out, ignore_errors=True)
         try:
             render(out, data_file=DATA_FILE, quiet=False, **answers)
-        except Exception as exc:  # noqa: BLE001 - keep the loop alive on any render error
-            print(f"[watch] FAILED: {exc}", flush=True)
+        except Exception as exc:  # noqa: BLE001 - deliberately broad: see below
+            # A template bug surfaces as *anything* copier/Jinja raises, including
+            # an AttributeError from inside a template expression — exactly what
+            # the author needs to see. Narrowing this kills the loop on the
+            # mistakes it exists to report.
+            print(f"[watch] FAILED {out}: {exc}", flush=True)
         else:
             print(f"[watch] rebaked -> {out}", flush=True)
 

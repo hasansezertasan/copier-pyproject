@@ -59,21 +59,20 @@ Key architecture:
 
 ### Testing the Template
 
+Every render goes through `tools/render.py` ([ADR-031](docs/adr/031-single-render-entrypoint.md)),
+never a bare `copier copy`. It already applies `.example-input.yml`, `--defaults`
+and overwrite; there is no root Python project, so `uv run` resolves copier from
+the script's own PEP 723 metadata.
+
 ```bash
-# Install dependencies
-uv sync
+# Render into a scratch dir
+uv run tools/render.py render /tmp/test-project
 
-# Test rendering with example inputs (dry run)
-copier copy --data-file .example-input.yml --defaults . /tmp/test-project
+# (Re)generate the example project
+mise run example
 
-# Actually generate the example project
-copier copy --data-file .example-input.yml --defaults . example/
-
-# Force regenerate (overwrites existing)
-copier copy --data-file .example-input.yml --defaults . example/ --force
-
-# Test with specific features enabled
-copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=kafka --defaults --trust . /tmp/test-worker --force
+# Render with specific features enabled
+uv run tools/render.py render /tmp/test-worker --data include_worker=true --data worker_broker=kafka
 ```
 
 #### Render-and-inspect harness (`tests/`, [ADR-024](docs/adr/024-render-and-inspect-template-test-suite.md))
@@ -511,15 +510,20 @@ ADR-026's single union gate.
 
 Always test changes by:
 
-1. Regenerating the example: `copier copy --data-file .example-input.yml --defaults . example/ --force`
-2. Running style checks: `cd example && uv run --locked tox run -e style`
-3. Running tests: `cd example && uv run --locked tox run`
+1. Running the render harness: `mise run test`
+2. Regenerating the example: `mise run example`
+3. Running style checks: `cd example && uv run --locked tox run -e style`
+4. Running tests: `cd example && uv run --locked tox run`
+
+If the change adds or removes a generated file, also run `mise run regenerate`
+and commit the `docs/generated-project-trees.md` diff (`tests/test_doc_trees.py`
+fails otherwise).
 
 For features with choices (like `worker_broker`), test multiple combinations:
 
 ```bash
-copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=kafka --defaults --trust . /tmp/test-kafka --force
-copier copy --data-file .example-input.yml --data include_worker=true --data worker_broker=rabbitmq --defaults --trust . /tmp/test-rabbitmq --force
+uv run tools/render.py render /tmp/test-kafka --data include_worker=true --data worker_broker=kafka
+uv run tools/render.py render /tmp/test-rabbitmq --data include_worker=true --data worker_broker=rabbitmq
 ```
 
 ## Copier-Specific Behavior
