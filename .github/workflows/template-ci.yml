@@ -60,6 +60,14 @@ jobs:
           # include_cli, so this only validates rendering, not a binary launch.
           - name: web-freezer
             data: --data include_web=true --data web_framework=fastapi --data include_freezer=true
+          # The external-integration and repo-settings toggles no other scenario
+          # renders (.cspell.yml, .mega-linter.yml, settings.yml, ruleset-sync.yml,
+          # the homebrew/scoop dispatch workflows), with an explicitly non-ASCII
+          # author so the .cspell.yml author tokens stay guarded (issue #213)
+          # whatever .example-input.yml's own name happens to be.
+          - name: integrations
+            data: >-
+              --data include_cli=true --data include_megalinter=true --data include_repo_settings=true --data include_repo_ruleset=true --data include_homebrew=true --data include_scoop=true --data include_all_contributors=true --data include_sourcery=true --data include_sonarcloud=true --data include_smokeshow=true --data author_full_name="Ada Löveláce"
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
@@ -100,6 +108,28 @@ jobs:
             exit 1
           fi
           uv run --group prek prek run zizmor --all-files --show-diff-on-failure
+      - name: Verify rendered files are formatter-canonical
+        # A generated file shipped in a form the generated project's OWN fixing
+        # hooks would rewrite fails that project's `hooks` CI job on its very
+        # first push, and shows up as spurious drift on every `copier update`.
+        # Nothing else here catches that: the zizmor step above and `tox -e
+        # style` below run only *checking* tools (ADR-024's render harness
+        # asserts rendered YAML is parseable, not canonical). See issue #213.
+        #
+        # Runs the rendered project's own fixing hooks, then asserts the
+        # worktree is unchanged — `git diff`, not the hooks' exit codes, is the
+        # gate, because a fixing hook that silently rewrites a file and still
+        # exits 0 would sail through an exit-code-only check. Same shape as the
+        # zizmor step above: these hooks are `builtin` or the yamlfmt binary, so
+        # nothing has to install the generated project. The remaining fixers are
+        # covered by `tox -e style` in check mode (ruff-format --check, taplo
+        # --check). Relies on the `git init`/`git add -A` done above.
+        working-directory: ../rendered
+        run: |
+          for hook in yamlfmt end-of-file-fixer trailing-whitespace; do
+            uv run --group prek prek run "$hook" --all-files --show-diff-on-failure
+          done
+          git diff --exit-code
       - name: Style checks
         working-directory: ../rendered
         run: uv run tox run -e style

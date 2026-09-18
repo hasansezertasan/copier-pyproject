@@ -10,9 +10,7 @@
     # spin-up on PRs that touch neither the worker tree nor shared core.
     needs: changes
     if: >-
-      ${{ github.event.pull_request.draft != true &&
-      (needs.changes.outputs.worker == 'true' ||
-      needs.changes.outputs.core == 'true') }}
+      ${{ github.event.pull_request.draft != true && (needs.changes.outputs.worker == 'true' || needs.changes.outputs.core == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -30,10 +28,7 @@
         ports:
           - 6379:6379
         options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 5
     env:
       REDIS_URL: redis://localhost:6379
     steps:

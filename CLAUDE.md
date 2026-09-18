@@ -226,7 +226,9 @@ release-please-managed `CHANGELOG.md` (no seed file), Codecov upload, Renovate
 ([ADR-004](docs/adr/004-commitizen-as-commit-helper-not-release-tool.md)),
 cobo-managed `.gitignore` ([ADR-012](docs/adr/012-cobo-for-gitignore-generation.md)),
 prek hooks (incl. blocking `zizmor` and `detect-secrets` with a committed
-`.secrets.baseline`), the tox `style` env as the sole lint/build
+`.secrets.baseline`), the `.github/yamlfmt.yml` + `.taplo.toml` formatter configs
+([ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)),
+the tox `style` env as the sole lint/build
 orchestrator ([ADR-003](docs/adr/003-tox-as-canonical-lint-runner.md)),
 editorconfig-checker, ghalint, `SUPPORT.md`, `.gitattributes`, `.git_archival.txt`,
 and `AGENTS.md`/`CLAUDE.md` onboarding files.
@@ -248,6 +250,18 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
 - **Do not hand-edit inside the cobo-sealed `.gitignore` fence** (`# >>> cobo:begin`
   … `# <<< cobo:end sha256=…`) — it breaks the sha256. Regenerate with
   `cobo update && cobo sync` ([ADR-012](docs/adr/012-cobo-for-gitignore-generation.md)).
+- **Generated files must be formatter-canonical.** Not merely valid YAML/TOML —
+  already in the exact byte form the *generated* project's own formatters emit
+  (yamlfmt, taplo, ruff-format, the prek builtins), or the adopter's first
+  `prek run --all-files` rewrites them and every `copier update` shows drift they
+  never caused. So: folded `>-` scalars on one line, no comment trailing a YAML
+  sequence, TOML arrays 2-space one-per-line with a trailing comma, one space
+  before a trailing comment, and `{%- … %}` whitespace control so a conditional
+  block never leaves >2 blank lines or a blank line at EOF. Guarded per scenario
+  by template-ci's "Verify rendered files are formatter-canonical" step (which
+  gates on `git diff`, not hook exit codes — taplo used to rewrite files and
+  exit 0) plus `tox -e style`'s check-mode taplo/ruff-format
+  ([ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)).
 - **Verify zizmor changes with the prek hook** (`prek run zizmor --all-files`),
   not a bare `uvx zizmor` — the two can pin versions with different
   `dangerous-triggers` behavior; the prek hook is what gates.

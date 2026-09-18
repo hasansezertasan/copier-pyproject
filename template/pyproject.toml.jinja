@@ -12,52 +12,87 @@ maintainers = [
 dynamic = ["version"]
 keywords = [
 {%- for keyword in package_keywords.split(",") if keyword.strip() %}
-    "{{ keyword.strip() }}",
+  "{{ keyword.strip() }}",
 {%- endfor %}
-    "command-line", "cli", "package", "metadata", "pypi", "python",
-    "template", "copier", "scaffold", "boilerplate", "uv", "hatch",
-    "tox", "pytest", "ruff", "mypy", "basedpyright",
-    "type-hints", "typed", "modern-python",
-    "ci-cd", "github-actions", "automation",{% if include_docs %} "sphinx",{% endif %}
-    "prek", "linting", "testing", "coverage", "release-automation",
+  "command-line",
+  "cli",
+  "package",
+  "metadata",
+  "pypi",
+  "python",
+  "template",
+  "copier",
+  "scaffold",
+  "boilerplate",
+  "uv",
+  "hatch",
+  "tox",
+  "pytest",
+  "ruff",
+  "mypy",
+  "basedpyright",
+  "type-hints",
+  "typed",
+  "modern-python",
+  "ci-cd",
+  "github-actions",
+  "automation",
+{%- if include_docs %}
+  "sphinx",
+{%- endif %}
+  "prek",
+  "linting",
+  "testing",
+  "coverage",
+  "release-automation",
 {%- if include_cli and cli_framework == "typer" %}
-    "typer",
+  "typer",
 {%- endif %}
 {%- if include_web %}
 {%- if web_framework == "fastapi" %}
-    "fastapi",
+  "fastapi",
 {%- endif %}
 {%- if web_framework == "litestar" %}
-    "litestar",
+  "litestar",
 {%- endif %}
-    "docker",
+  "docker",
 {%- endif %}
 {%- if include_tui %}
-    "textual", "tui",
+  "textual",
+  "tui",
 {%- endif %}
 {%- if include_mcp %}
-    "mcp", "model-context-protocol",
+  "mcp",
+  "model-context-protocol",
 {%- endif %}
 {%- if include_worker %}
-    "faststream", "message-queue", "{{worker_broker}}",
+  "faststream",
+  "message-queue",
+  "{{worker_broker}}",
 {%- endif %}
 {%- if include_pydantic_settings %}
-    "pydantic",
+  "pydantic",
 {%- endif %}
 {%- if include_c_extensions %}
-    "cython", "c-extensions", "performance",
+  "cython",
+  "c-extensions",
+  "performance",
 {%- endif %}
 {%- if include_launcher or include_compiler or include_freezer %}
-    "standalone", "executable",
+  "standalone",
+  "executable",
 {%- endif %}
 {%- if include_launcher %}
-    "pycrucible", "launcher",
+  "pycrucible",
+  "launcher",
 {%- endif %}
 {%- if include_compiler %}
-    "nuitka", "compiler",
+  "nuitka",
+  "compiler",
 {%- endif %}
 {%- if include_freezer %}
-    "pyinstaller", "freezer",
+  "pyinstaller",
+  "freezer",
 {%- endif %}
 ]
 # TODO @{{github_user}}: Fill in the missing classifiers...
@@ -84,20 +119,24 @@ classifiers = [
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development",
   "Typing :: Typed",
-{% if include_cli %}
+{%- if include_cli %}
   "Topic :: Utilities",
-{% endif %}
-{% if include_web %}
-{% if web_framework == "fastapi" %}  "Framework :: FastAPI",{% endif %}
-{% if web_framework == "litestar" %}  "Framework :: Litestar",{% endif %}
+{%- endif %}
+{%- if include_web %}
+{%- if web_framework == "fastapi" %}
+  "Framework :: FastAPI",
+{%- endif %}
+{%- if web_framework == "litestar" %}
+  "Framework :: Litestar",
+{%- endif %}
   "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
-{% endif %}
-{% if include_tui %}
+{%- endif %}
+{%- if include_tui %}
   "Topic :: Terminals",
-{% endif %}
-{% if include_c_extensions %}
+{%- endif %}
+{%- if include_c_extensions %}
   "Topic :: Software Development :: Compilers",
-{% endif %}
+{%- endif %}
 ]
 requires-python = ">=3.10"
 {% if is_app or include_pydantic_settings -%}
@@ -110,30 +149,30 @@ requires-python = ">=3.10"
 {% endif -%}
 dependencies = [
 {%- if include_console_root and cli_framework == "typer" %}
-    "typer>=0.20.0",
+  "typer>=0.20.0",
 {%- endif %}
 {%- if include_tui %}
-    "textual>=0.50.0",
-    "typing-extensions>=4.4.0",
+  "textual>=0.50.0",
+  "typing-extensions>=4.4.0",
 {%- endif %}
 {%- if include_web %}
 {%- if web_framework == "fastapi" %}
-    "fastapi[all]>=0.123.5",
+  "fastapi[all]>=0.123.5",
 {%- endif %}
 {%- if web_framework == "litestar" %}
-    "litestar[standard]>=2.0.0",
+  "litestar[standard]>=2.0.0",
 {%- endif %}
 {%- endif %}
 {%- if include_mcp %}
-    "mcp>=1.0.0,<2",  # TODO @{{github_user}}: mcp 2.0.0 is a breaking API rewrite (input_schema, new Server API); migrate mcp/app.py before relaxing this cap
+  "mcp>=1.0.0,<2", # TODO @{{github_user}}: mcp 2.0.0 is a breaking API rewrite (input_schema, new Server API); migrate mcp/app.py before relaxing this cap
 {%- endif %}
 {%- if include_worker %}
-    "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0",
-    "pydantic>=2.0.0",
-    "uvloop>=0.19.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation == 'CPython'",
+  "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0",
+  "pydantic>=2.0.0",
+  "uvloop>=0.19.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation == 'CPython'",
 {%- endif %}
 {%- if include_pydantic_settings %}
-    "pydantic-settings>=2.0.0",
+  "pydantic-settings>=2.0.0",
 {%- endif %}
 ]
 
@@ -162,18 +201,14 @@ source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
     precedence order itself lives in ``copier.yml``'s ``primary_component``
     (empty for a library). #}
 {%- set _primary = primary_component or none %}
-{%- set _console = [] %}
-{%- set _gui = [] %}
-{%- if _primary == "gui" and not include_console_root %}{% set _ = _gui.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}
-{%- elif _primary %}{% set _ = _console.append((github_repo_name, github_repo_name ~ ".__main__:main")) %}{% endif %}
-{% if _console %}
-[project.scripts]
-{% for name, target in _console %}{{ name }} = "{{ target }}"
-{% endfor %}{% endif %}
-{% if _gui %}
-[project.gui-scripts]
-{% for name, target in _gui %}{{ name }} = "{{ target }}"
-{% endfor %}{% endif %}
+{%- if _primary == "gui" and not include_console_root %}{% set _script_table = "project.gui-scripts" %}
+{%- elif _primary %}{% set _script_table = "project.scripts" %}
+{%- else %}{% set _script_table = none %}{% endif %}
+{%- if _script_table %}
+
+[{{ _script_table }}]
+{{github_repo_name}} = "{{github_repo_name}}.__main__:main"
+{%- endif %}
 
 
 [dependency-groups]
@@ -227,41 +262,41 @@ test = [
 ]
 {%- if include_docs %}
 docs = [
-    "sphinx==8.1.3",
-    "shibuya==2026.7.12",
-    "sphinx-autobuild==2024.10.3",  # 2025.x drops Python 3.10 (requires-python >= 3.11)
-    "sphinx-copybutton==0.5.2",
-    "sphinx-design==0.6.1",  # 0.7.0 drops Python 3.10 (requires-python >= 3.11)
-    "sphinx-togglebutton==0.4.5",
-    "sphinx-paramlinks==0.6.0",
-    "auto-pytabs[sphinx]==0.5.0",
-    "myst-parser==4.0.1",
-    # Per-page "last updated" footer sourced from git commit dates (ADR-027);
-    # offline, no network. Works from full history (docs CI checks out depth 0).
-    "sphinx-last-updated-by-git==0.3.8",
-    # PEP 440 version parsing/sorting used by tools/build_docs.py to order
-    # published versions and pick the `latest` alias (ADR-027). Also a Sphinx
-    # transitive dependency; pinned here for the explicit direct use.
-    "packaging>=24.0",
+  "sphinx==8.1.3",
+  "shibuya==2026.7.12",
+  "sphinx-autobuild==2024.10.3", # 2025.x drops Python 3.10 (requires-python >= 3.11)
+  "sphinx-copybutton==0.5.2",
+  "sphinx-design==0.6.1", # 0.7.0 drops Python 3.10 (requires-python >= 3.11)
+  "sphinx-togglebutton==0.4.5",
+  "sphinx-paramlinks==0.6.0",
+  "auto-pytabs[sphinx]==0.5.0",
+  "myst-parser==4.0.1",
+  # Per-page "last updated" footer sourced from git commit dates (ADR-027);
+  # offline, no network. Works from full history (docs CI checks out depth 0).
+  "sphinx-last-updated-by-git==0.3.8",
+  # PEP 440 version parsing/sorting used by tools/build_docs.py to order
+  # published versions and pick the `latest` alias (ADR-027). Also a Sphinx
+  # transitive dependency; pinned here for the explicit direct use.
+  "packaging>=24.0",
 {%- if include_pydantic_settings %}
-    # Renders the Configuration reference (docs/configuration.rst) directly from
-    # the live ``core.config`` Settings model so documented fields/types/
-    # defaults/env-var names never drift from the source.
-    "autodoc-pydantic==2.2.0",
+  # Renders the Configuration reference (docs/configuration.rst) directly from
+  # the live ``core.config`` Settings model so documented fields/types/
+  # defaults/env-var names never drift from the source.
+  "autodoc-pydantic==2.2.0",
 {%- endif %}
 {%- if include_worker %}
-    # ``faststream docs gen`` (run from conf.py) emits the worker's AsyncAPI
-    # schema for the "Worker message interface" page; the CLI extra provides the
-    # ``faststream`` entry point and PyYAML the ``--yaml`` serializer.
-    "faststream[cli]>=0.5.0",
-    "pyyaml>=6.0",
+  # ``faststream docs gen`` (run from conf.py) emits the worker's AsyncAPI
+  # schema for the "Worker message interface" page; the CLI extra provides the
+  # ``faststream`` entry point and PyYAML the ``--yaml`` serializer.
+  "faststream[cli]>=0.5.0",
+  "pyyaml>=6.0",
 {%- endif %}
 {%- if include_web and web_framework == "fastapi" and not include_worker %}
-    # ``app.openapi()`` (dumped from conf.py for the "Web API interface" page)
-    # has no first-party YAML exporter; PyYAML serializes it. Litestar needs no
-    # docs dep here — its CLI ships with the main ``litestar`` dependency. (When
-    # ``include_worker`` is set, pyyaml is already pulled in above.)
-    "pyyaml>=6.0",
+  # ``app.openapi()`` (dumped from conf.py for the "Web API interface" page)
+  # has no first-party YAML exporter; PyYAML serializes it. Litestar needs no
+  # docs dep here — its CLI ships with the main ``litestar`` dependency. (When
+  # ``include_worker`` is set, pyyaml is already pulled in above.)
+  "pyyaml>=6.0",
 {%- endif %}
 ]
 {%- endif %}
@@ -271,7 +306,9 @@ tool = [
   "cython>=3.0.0",
 {%- endif %}
 {%- if include_profiling %}
-  "py-spy>=0.4.0", "scalene>=1.5.0", "snakeviz>=2.2.0",
+  "py-spy>=0.4.0",
+  "scalene>=1.5.0",
+  "snakeviz>=2.2.0",
 {%- endif %}
 {%- if include_launcher %}
   "pycrucible>=0.4.6",
@@ -287,7 +324,7 @@ tool = [
   # "copier==9.11.0",
 ]
 prek = [
-    "prek==0.4.12",
+  "prek==0.4.12",
 ]
 
 
@@ -603,8 +640,8 @@ author = "{{author_full_name}} <{{author_email}}>"
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
+{%- if include_pydantic_settings %}
 
-{% if include_pydantic_settings %}
 [tool.ruff.lint.flake8-type-checking]
 # Pydantic evaluates annotations at runtime, so imports used only in model
 # field annotations (e.g. `pathlib.Path`) must NOT be moved into a
@@ -613,7 +650,7 @@ runtime-evaluated-base-classes = [
   "pydantic.BaseModel",
   "pydantic_settings.BaseSettings",
 ]
-{% endif %}
+{%- endif %}
 
 
 [tool.ruff.lint.mccabe]
@@ -731,11 +768,11 @@ ignore-patterns = ['.*\.pyi$']
 # Only formatter-owned checks, the docstring family, and too-few-public-methods
 # are disabled so pylint is usable out of the box; everything else stays on.
 disable = [
-  "line-too-long",              # C0301 — ruff-format owns line length
-  "missing-module-docstring",   # C0114
-  "missing-class-docstring",    # C0115
+  "line-too-long", # C0301 — ruff-format owns line length
+  "missing-module-docstring", # C0114
+  "missing-class-docstring", # C0115
   "missing-function-docstring", # C0116
-  "too-few-public-methods",     # R0903 — trips dataclasses / config / Protocol classes
+  "too-few-public-methods", # R0903 — trips dataclasses / config / Protocol classes
   # C0415 — the cli->tui/gui/web dispatch, and each component's own heavy or
   # platform-conditional import (tkinter, textual, uvicorn, the worker's uvloop
   # probe), are deliberately lazy so import-linter's layering contract holds and
@@ -770,20 +807,20 @@ datas = "datas"
 # The worker is covered by its pytest TestBroker suite; run it on demand with
 # ``tox -e worker`` when a broker is up (e.g. inside the devcontainer).
 env_list = [
-    "style",
+  "style",
 {%- if include_docs %}
-    # Inline ``>>>`` snippets are part of the tested-documentation contract,
-    # so run them in the default CI ``tox run`` invocation.
-    "docs-doctest",
+  # Inline ``>>>`` snippets are part of the tested-documentation contract,
+  # so run them in the default CI ``tox run`` invocation.
+  "docs-doctest",
 {%- endif %}
 {%- if include_cli %}
-    "cli",
+  "cli",
 {%- endif %}
-    "3.14",
-    "3.13",
-    "3.12",
-    "3.11",
-    "3.10"
+  "3.14",
+  "3.13",
+  "3.12",
+  "3.11",
+  "3.10",
 ]
 requires = ["tox>=4"]
 
@@ -900,16 +937,18 @@ commands = [
     "lint",
     "*.toml",
   ],
-  # NOTE: kept in fix mode (not `--check`) because the rendered TOML is not yet
-  # guaranteed taplo-formatted across every component combination. The `*.toml`
+  # A strict `--check` gate, not fix mode: a generated file that taplo would
+  # rewrite fails its own CI on first push and drifts on every `copier update`.
+  # `.taplo.toml` disables array auto expand/collapse so the shipped layout is
+  # the canonical one regardless of which components are enabled. The `*.toml`
   # glob is non-recursive, so it scopes taplo to this project's own root TOML
-  # (pyproject/prek/mise) without walking vendored `.tox`/`.venv`/site-packages
-  # trees — no `.taplo.toml` exclude config needed. Making this a strict
-  # `--check` gate is a follow-up that first requires the generated
-  # pyproject/prek to be clean.
+  # (pyproject/prek/mise/taplo) without walking vendored `.tox`/`.venv`/
+  # site-packages trees — no `.taplo.toml` exclude config needed.
   [
     "taplo",
     "format",
+    "--check",
+    "--diff",
     "*.toml",
   ],
   [
@@ -945,16 +984,17 @@ commands = [["prek", "run", "--all-files"]]
 dependency_groups = ["prek"]
 description = "Run prek hooks"
 runner = "uv-venv-runner"
+{%- if include_docs %}
 
-{% if include_docs %}
+
 [tool.tox.env.docs-build]
 # Write the warning stream to a file (`-w`) instead of `-W` turning the first
 # warning into a hard error, then let docs/check_warnings.py own the pass/fail:
 # it diffs the emitted warnings against the docs/expected_warnings.txt allowlist,
 # failing on both unexpected new warnings and expected ones that vanished.
 commands = [
-    ["sphinx-build", "-w", "docs/_build/warnings.txt", "-b", "html", "docs", "docs/_build/html"],
-    ["python", "docs/check_warnings.py"],
+  ["sphinx-build", "-w", "docs/_build/warnings.txt", "-b", "html", "docs", "docs/_build/html"],
+  ["python", "docs/check_warnings.py"],
 ]
 dependency_groups = ["docs"]
 description = "Build Docs"
