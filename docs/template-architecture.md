@@ -364,6 +364,27 @@ The tox `style` env is the *single* lint/type-check orchestrator for a generated
 project — there is no Pants or Trunk config to drift against it (both were
 removed; see [ADR-003](adr/003-tox-as-canonical-lint-runner.md)).
 
+**Formatter-canonical output**
+([ADR-030](adr/030-generated-files-must-be-formatter-canonical.md)). Every
+shipped file is emitted in the exact form the generated project's own formatters
+produce, not merely in a valid one — otherwise the adopter's first
+`prek run --all-files` rewrites it, that project's `hooks` CI job fails, and each
+`copier update` carries drift nobody authored. Two shipped configs make the
+hand-written layout the canonical one instead of letting width-driven reflow
+decide it: `.github/yamlfmt.yml` sets `retain_line_breaks_single: true` (the
+basic formatter otherwise drops every blank line, including the deliberate
+between-job structure of a 1,300-line `ci.yml`), and `.taplo.toml` sets
+`array_auto_expand`/`array_auto_collapse`/`align_comments` to `false` (so a
+generated file's canonical form does not depend on which components are enabled,
+and a Renovate bump of one pin cannot break the gate on a line nothing touched).
+The `style` env's taplo runs `--check --diff` rather than fix mode — in fix mode
+it repaired its own input and exited 0, so the drift was invisible. The
+matrixed guard is this repo's own `.github/workflows/template-ci.yml`: its
+`render` job runs the rendered project's `yamlfmt`/`end-of-file-fixer`/
+`trailing-whitespace` hooks per scenario and then asserts `git diff
+--exit-code`, so a fixing hook that rewrites a file and still exits 0 is caught
+too.
+
 **editorconfig-checker** enforces `.editorconfig` (the source of truth) on the
 axes no other tool owns — indent style/size and charset on config/markup files.
 It is delivered via the uv `style` group (PyPI wrapper, command `ec`), invoked

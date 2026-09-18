@@ -243,9 +243,7 @@ jobs:
     needs: changes
 {%- if job.gated %}
     if: >-
-      {% raw %}${{ github.event.pull_request.draft != true &&
-      (needs.changes.outputs.{% endraw %}{{ job.slug }}{% raw %} == 'true' ||
-      needs.changes.outputs.core == 'true') }}{% endraw %}
+      {% raw %}${{ github.event.pull_request.draft != true && (needs.changes.outputs.{% endraw %}{{ job.slug }}{% raw %} == 'true' || needs.changes.outputs.core == 'true') }}{% endraw %}
 {%- else %}
     if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
 {%- endif %}
@@ -352,9 +350,7 @@ jobs:
     name: Coverage gate ({{ job.slug }})
     needs: [changes, test-{{ job.slug }}]
     if: >-
-      {% raw %}${{ !cancelled() && github.event.pull_request.draft != true{% endraw %}{% if job.gated %} &&
-      {% raw %}(needs.changes.outputs.{% endraw %}{{ job.slug }}{% raw %} == 'true' ||
-      needs.changes.outputs.core == 'true'){% endraw %}{% endif %} {% raw %}}}{% endraw %}
+      {% raw %}${{ !cancelled() && github.event.pull_request.draft != true{% endraw %}{% if job.gated %}{% raw %} && (needs.changes.outputs.{% endraw %}{{ job.slug }}{% raw %} == 'true' || needs.changes.outputs.core == 'true'){% endraw %}{% endif %}{% raw %} }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -679,9 +675,7 @@ jobs:
     # spin-up on PRs that touch neither the worker tree nor shared core.
     needs: changes
     if: >-
-      {% raw %}${{ github.event.pull_request.draft != true &&
-      (needs.changes.outputs.worker == 'true' ||
-      needs.changes.outputs.core == 'true') }}{% endraw %}
+      {% raw %}${{ github.event.pull_request.draft != true && (needs.changes.outputs.worker == 'true' || needs.changes.outputs.core == 'true') }}{% endraw %}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -697,21 +691,19 @@ jobs:
     # `worker_broker_spec.ci_service` — see ADR-008 / issue #169.
     services:
       {{ci_service.name}}:
-        image: {{ci_service.image}}
-        ports:
-          - {{ci_service.port}}:{{ci_service.port}}
-{%- if ci_service.health_cmd %}
-        options: >-
-          --health-cmd "{{ci_service.health_cmd}}"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
-{%- else %}
+{%- if not ci_service.health_cmd %}
         # No `--health-cmd`: this image ships no usable in-container health probe,
         # so the runner cannot gate on readiness. It boots in well under a second
         # and the checkout/Python/uv setup steps precede the first test line, so
         # the service is long ready by then; the integration test's own
         # connect-retry covers the rest. See ADR-008.
+{%- endif %}
+        image: {{ci_service.image}}
+        ports:
+          - {{ci_service.port}}:{{ci_service.port}}
+{%- if ci_service.health_cmd %}
+        options: >-
+          --health-cmd "{{ci_service.health_cmd}}" --health-interval 5s --health-timeout 3s --health-retries 5
 {%- endif %}
     env:
       {{worker_broker_spec.env}}: {{ci_service.url}}
