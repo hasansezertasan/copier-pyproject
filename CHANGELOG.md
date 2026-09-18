@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.4.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.3.0...v1.4.0) (2026-09-18)
+
+
+### 🚀 Features
+
+* **docs:** add per-component documentation examples ([#275](https://github.com/hasansezertasan/copier-pyproject/issues/275)) ([a8a632b](https://github.com/hasansezertasan/copier-pyproject/commit/a8a632b19afe2c5eb6f01fbc44f4a7f38c93919a))
+* **template:** guide AI agents on package structure ([#288](https://github.com/hasansezertasan/copier-pyproject/issues/288)) ([596e7c7](https://github.com/hasansezertasan/copier-pyproject/commit/596e7c75ab96d48a8022164af6512c24979e9bac))
+
+
+### 🐛 Bug Fixes
+
+* **ci:** correct the visibility guard merged in [#291](https://github.com/hasansezertasan/copier-pyproject/issues/291) ([#294](https://github.com/hasansezertasan/copier-pyproject/issues/294)) ([f19133d](https://github.com/hasansezertasan/copier-pyproject/commit/f19133d059f93c35136a81cb2cdebea017d9cf49))
+* **ci:** gate CodeQL workflow on public repository visibility ([#289](https://github.com/hasansezertasan/copier-pyproject/issues/289)) ([0e7fac8](https://github.com/hasansezertasan/copier-pyproject/commit/0e7fac8acb9d7b98f449380791212a7f58ed33f9))
+* **ci:** gate dependency-review on public repository visibility ([#287](https://github.com/hasansezertasan/copier-pyproject/issues/287)) ([29d6426](https://github.com/hasansezertasan/copier-pyproject/commit/29d6426d45f4c0b1575baeb248bd3f616913ef30))
+* **ci:** gate remaining code-scanning uploads on public repository visibility ([#291](https://github.com/hasansezertasan/copier-pyproject/issues/291)) ([6f19f19](https://github.com/hasansezertasan/copier-pyproject/commit/6f19f193c120a3031de65c4ddf476107c639504c))
+* **template:** disable MD060 autofix that corrupts valid tables ([#292](https://github.com/hasansezertasan/copier-pyproject/issues/292)) ([17dbde6](https://github.com/hasansezertasan/copier-pyproject/commit/17dbde639fa0f23bf4b2e6b38c1fdacc6280244d))
+* **template:** ignore pytest hook names in vulture config ([#296](https://github.com/hasansezertasan/copier-pyproject/issues/296)) ([1f200b7](https://github.com/hasansezertasan/copier-pyproject/commit/1f200b722826b483950024af1d821ec699baaec7))
+* **template:** ship generated files in formatter-canonical form ([#297](https://github.com/hasansezertasan/copier-pyproject/issues/297)) ([290954a](https://github.com/hasansezertasan/copier-pyproject/commit/290954af6dec5114a7c60fb33fd1065655986254))
+
+
+### 🧪 Tests
+
+* guard against stray empty-basename files in rendered output ([#278](https://github.com/hasansezertasan/copier-pyproject/issues/278)) ([4617567](https://github.com/hasansezertasan/copier-pyproject/commit/46175670bad9993c85c77d997b3035ab5a620ec6))
+
 ## [1.3.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.2.1...v1.3.0) (2026-09-07)
 
 
