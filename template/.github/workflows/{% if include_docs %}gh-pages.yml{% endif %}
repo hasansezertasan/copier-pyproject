@@ -49,7 +49,22 @@ jobs:
           # silently when `git archive` cannot read a listed version would drop
           # it from the assembled site — which the deploy then cleans off
           # gh-pages. That is exactly the deploy this guard exists to protect.
+          #
+          # Its *granularity* is configuration, not orchestration, so carry the
+          # tag's value across the swap: which slug a release occupies is fixed
+          # at publish time. Rebuilding 1.2.3 under `1` because the answer has
+          # since changed from minor to major would publish it a second time
+          # beside the live `1.2/` and repoint `latest` at the duplicate. A tag
+          # from before this script existed leaves it unset, and the dispatch
+          # revision's own baked answer stands.
+          granularity=""
+          if [ -f tools/build_docs.py ]; then
+            granularity="$(sed -nE 's/^(DEFAULT_)?VERSION_GRANULARITY = "([a-z]+)"$/\2/p' tools/build_docs.py)"
+          fi
           git checkout "$dispatch_ref" -- tools/build_docs.py
+          if [ -n "$granularity" ]; then
+            echo "DOCS_VERSION_GRANULARITY=$granularity" >> "$GITHUB_ENV"
+          fi
           echo "DOCS_BUILD_VERSION=${tag#v}" >> "$GITHUB_ENV"
       - name: Set up Python
         # After the release-tag checkout, so .python-version is the interpreter

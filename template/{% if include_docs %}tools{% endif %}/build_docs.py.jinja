@@ -30,7 +30,19 @@ from packaging.version import InvalidVersion, Version
 # Version-directory granularity, baked from the Copier ``docs_version_granularity``
 # answer. Edit here only if you want to change how release versions map to docs
 # directories: "minor" -> X.Y, "major" -> X, "full" -> X.Y.Z.
-VERSION_GRANULARITY = "{{ docs_version_granularity }}"
+DEFAULT_VERSION_GRANULARITY = "{{ docs_version_granularity }}"
+
+# A manual redeploy (gh-pages.yml) rebuilds an already-published release tag
+# with *this* revision's script, so it passes the granularity baked into that
+# tag through the environment. The slug a release occupies is a property of the
+# release: rebuilding 1.2.3 under "1" because the answer has since changed from
+# minor to major would publish it a second time beside the live 1.2/ directory
+# and repoint `latest` at the duplicate. Unset everywhere else, so a normal
+# release build uses the answer above.
+VERSION_GRANULARITY = (
+    os.environ.get("DOCS_VERSION_GRANULARITY", "").strip()
+    or DEFAULT_VERSION_GRANULARITY
+)
 
 DOCS_DIR = Path("docs")
 HTML_DIR = DOCS_DIR / "_build" / "html"

@@ -97,7 +97,9 @@ question, **`docs_version_granularity`** (`when: include_docs`), with choices
 **minor** (`X.Y`, default), **major** (`X`), and **full** (`X.Y.Z`). Default
 `minor` matches ADR-002's pre-1.0 minor-is-breaking posture; a big project can
 pick `major`, an archival project `full`. The choice bakes a single slug-slicing
-constant into the generated `build_docs.py`.
+constant into the generated `build_docs.py`
+(`DEFAULT_VERSION_GRANULARITY`), overridable at build time by
+`DOCS_VERSION_GRANULARITY` — which only the manual redeploy sets (see 4).
 
 ### 4. Manual `gh-pages.yml` stays, made version-aware
 
@@ -116,6 +118,17 @@ manual redeploy is most likely to be run, right after a failed release. The
 interpreter/uv setup steps run **after** that checkout, so the tagged docs build
 on the Python version the release actually shipped on rather than whatever
 `main` has bumped to since.
+
+`build_docs.py` itself is then restored from the dispatch ref: it is
+orchestration, the same layer as the workflow file, and an older tagged copy
+could carry the version-dropping bug 4a exists to prevent. Its *granularity* is
+not orchestration, though — which slug a release occupies is fixed at publish
+time — so the step reads the tag's baked value before the swap and passes it
+back through `DOCS_VERSION_GRANULARITY`. Otherwise an adopter who changed the
+answer after their last release would, on the next manual redeploy, republish
+that tag under a second slug (`1.2.3` under `1` beside the live `1.2/`) and
+repoint `latest` at the duplicate. A tag predating the script leaves the
+variable unset and the dispatch revision's own answer stands.
 
 ### 4a. The `gh-pages` fetch must fail loudly
 
