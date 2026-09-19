@@ -102,7 +102,10 @@ requires-python = ">=3.10"
 # unconditionally when enabled.
 dependencies = [
   "typer>=0.20.0",
-  "textual>=0.50.0",
+  # >=6.0.0 for `Static.content`, which the headless pilot test asserts on
+  # (ADR-032). Earlier releases expose only `Static.renderable`, and 6.0.0
+  # onward returns None for it — there is no spelling that spans both.
+  "textual>=6.0.0",
   "typing-extensions>=4.4.0",
   "fastapi[all]>=0.123.5",
   "mcp>=1.0.0,<2", # TODO @octocat: mcp 2.0.0 is a breaking API rewrite (input_schema, new Server API); migrate mcp/app.py before relaxing this cap
@@ -604,9 +607,11 @@ disable = [
   "missing-function-docstring", # C0116
   "too-few-public-methods", # R0903 — trips dataclasses / config / Protocol classes
   # C0415 — the cli->tui/gui/web dispatch, and each component's own heavy or
-  # platform-conditional import (tkinter, textual, uvicorn, the worker's uvloop
-  # probe), are deliberately lazy so import-linter's layering contract holds and
-  # a framework is only imported when the code path that needs it actually runs.
+  # platform-conditional import (tkinter, uvicorn, the worker's uvloop probe),
+  # are deliberately lazy so import-linter's layering contract holds and a
+  # framework is only imported when the code path that needs it actually runs.
+  # Textual is the exception: the TUI imports it at module scope so `InfoApp`
+  # can be defined there and driven by the headless pilot (ADR-032).
   "import-outside-toplevel",
   # W0706 — the generated TUI entry point explicitly re-raises
   # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the

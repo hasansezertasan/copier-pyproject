@@ -5,9 +5,13 @@ from __future__ import annotations
 import platform
 import sys
 from importlib.metadata import Distribution, PackageNotFoundError
+from typing import TYPE_CHECKING
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 __all__ = ["GuiDisplayError", "build_info_message", "main"]
 
@@ -41,36 +45,64 @@ def build_info_message() -> str:
     )
 
 
-def _display_message(message: str) -> None:  # pragma: no cover
-    """Show the information message in a small Tkinter dialog.
+def _default_dialog_driver(title: str, message: str) -> None:
+    """Create a hidden Tk root, show the modal dialog, and tear the root down.
 
-    Raises:
-        GuiDisplayError: If Tkinter is unavailable or the window cannot open.
+    Importing ``tkinter`` here (rather than at module scope) keeps the import
+    failure local: Tkinter ships separately from CPython on most Linux
+    distributions, and ``_display_message`` turns that ``ImportError`` into a
+    ``GuiDisplayError`` carrying a specific message.
     """
-    try:
-        import tkinter as tk  # noqa: PLC0415
-        from tkinter import TclError, messagebox  # noqa: PLC0415
-    except ImportError as exc:
-        msg = "Tkinter is not available."
-        raise GuiDisplayError(msg) from exc
+    import tkinter as tk  # noqa: PLC0415
+    from tkinter import messagebox  # noqa: PLC0415
 
     root = tk.Tk()
-    root.withdraw()
     try:
-        _ = messagebox.showinfo(title=f"{PROJECT_NAME} Info", message=message)
-    except TclError as exc:
-        msg = "Unable to display the GUI window."
-        raise GuiDisplayError(msg) from exc
+        root.withdraw()
+        _ = messagebox.showinfo(title, message)
     finally:
         root.destroy()
 
 
-def main(*, show_window: bool = True) -> int:
+def _display_message(
+    message: str, *, dialog_driver: Callable[[str, str], None] = _default_dialog_driver
+) -> None:
+    """Show the information message in a small Tkinter dialog.
+
+    Args:
+        message: The formatted information message to display.
+        dialog_driver: Callable that displays the dialog given ``(title, message)``.
+            Defaults to the real Tkinter messagebox. Injected in tests to
+            drive the GUI headless without blocking.
+
+    Raises:
+        GuiDisplayError: If Tkinter is unavailable or the window cannot open.
+        KeyboardInterrupt: If the user interrupts the dialog.
+        SystemExit: If interpreter exit is requested.
+    """
+    try:
+        dialog_driver(f"{PROJECT_NAME} Info", message)
+    except (KeyboardInterrupt, SystemExit):
+        raise  # Let these propagate naturally
+    except ImportError as exc:
+        msg = "Tkinter is not available."
+        raise GuiDisplayError(msg) from exc
+    except Exception as exc:
+        msg = "Unable to display the GUI window."
+        raise GuiDisplayError(msg) from exc
+
+
+def main(
+    *,
+    show_window: bool = True,
+    dialog_driver: Callable[[str, str], None] = _default_dialog_driver,
+) -> int:
     """Entry point for the GUI script.
 
     Args:
         show_window: When ``False``, write the info to stdout instead of
             opening a window (useful for headless environments and tests).
+        dialog_driver: Optional dialog driver callable. Defaults to Tkinter.
 
     Returns:
         int: ``0`` on success, ``1`` if the window could not be displayed.
@@ -84,7 +116,7 @@ def main(*, show_window: bool = True) -> int:
         return 0
 
     try:
-        _display_message(info_message)
+        _display_message(info_message, dialog_driver=dialog_driver)
     except GuiDisplayError:
         logger.exception("Failed to display GUI window; falling back to stdout.")
         _ = sys.stdout.write(f"{info_message}\n")

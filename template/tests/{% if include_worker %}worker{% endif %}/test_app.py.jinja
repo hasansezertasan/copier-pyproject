@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from typing import TYPE_CHECKING
 
 import pytest
 from {{ worker_broker_spec.module }} import {{ worker_broker_spec.test_cls }}
 from pydantic import ValidationError
 
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.worker.app import (
     REQUESTS_DESTINATION,
     RESPONSES_DESTINATION,
@@ -183,3 +185,23 @@ async def test_malformed_request_is_rejected() -> None:
             await test_broker.publish({"wrong": "field"}, REQUESTS_DESTINATION)
 
     assert responses == []
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_hooks(caplog: pytest.LogCaptureFixture) -> None:
+    """Startup and shutdown lifecycle hooks log their transitions."""
+    with caplog.at_level(logging.INFO, logger=PROJECT_NAME):
+        await worker_app.on_startup()
+        await worker_app.on_shutdown()
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert f"Worker started - version {worker_app.__version__}" in messages
+    assert "Worker shutting down" in messages
+
+
+def test_main_runs_app() -> None:
+    """``main`` dispatches the FastStream app to the provided runner."""
+    captured: list[object] = []
+    worker_app.main(runner=captured.append)
+    assert len(captured) == 1
+    assert captured[0] is worker_app.app

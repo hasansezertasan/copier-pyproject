@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
+from typing import TYPE_CHECKING
 
 from faststream import FastStream, Logger
 from {{ worker_broker_spec.module }} import {{ worker_broker_spec.cls }}
@@ -12,6 +13,9 @@ from pydantic import BaseModel, Field
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 __all__ = [
     "REQUESTS_DESTINATION",
@@ -158,22 +162,23 @@ app = FastStream(broker)
 
 
 @app.after_startup
-async def on_startup() -> None:  # noqa: RUF029  # pragma: no cover
+async def on_startup() -> None:  # noqa: RUF029
     """Log startup information."""
     app_logger.info("Worker started - version %s", __version__)
 
 
 @app.after_shutdown
-async def on_shutdown() -> None:  # noqa: RUF029  # pragma: no cover
+async def on_shutdown() -> None:  # noqa: RUF029
     """Log shutdown information."""
     app_logger.info("Worker shutting down")
 
 
-def main() -> None:  # pragma: no cover
-    """Entry point for the worker application.
+def _run_app(app_: FastStream) -> None:  # pragma: no cover
+    """Select an event loop and execute the FastStream application on it.
 
-    Runs the FastStream application using uvloop if available. Excluded from
-    coverage: it blocks on the broker connection until shutdown.
+    The irreducible blocking call, separated from the startup glue in ``main``.
+    Loop selection stays here rather than in a measured helper: the uvloop
+    probe only means anything next to the ``run`` call it chooses the loop for.
     """
     import asyncio  # noqa: PLC0415
 
@@ -184,6 +189,19 @@ def main() -> None:  # pragma: no cover
         # silently running the default loop is indistinguishable from one on
         # uvloop when debugging throughput.
         app_logger.info("uvloop not available; using the default asyncio event loop")
-        asyncio.run(app.run())
+        asyncio.run(app_.run())
     else:
-        uvloop.run(app.run())
+        uvloop.run(app_.run())
+
+
+def main(*, runner: Callable[[FastStream], None] = _run_app) -> None:
+    """Entry point for the worker application.
+
+    Runs the FastStream application using the specified runner.
+
+    Args:
+        runner: Callable that executes the FastStream application. Defaults
+            to running the application via uvloop/asyncio. Injected in tests to
+            avoid blocking on a broker connection.
+    """
+    runner(app)

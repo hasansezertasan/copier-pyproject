@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -13,6 +13,9 @@ from mcp.types import TextContent, Tool
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.logging_setup import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 __all__ = ["call_tool", "list_tools", "main", "run_server", "server"]
 
@@ -87,21 +90,46 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]: 
     raise ValueError(msg)
 
 
-async def run_server() -> None:  # pragma: no cover
+async def _stdio_transport() -> None:  # pragma: no cover
     """Run the MCP server using stdio transport.
 
-    Excluded from coverage: it blocks on the stdio transport until the client
-    disconnects. The tool logic it serves (``call_tool``/``list_tools``) is
-    unit-tested separately.
+    The irreducible blocking call on stdio.
     """
-    logger.info("Starting MCP server for {{github_repo_name}}")
     async with stdio_server() as (read_stream, write_stream):
         init_options = server.create_initialization_options()
         await server.run(read_stream, write_stream, init_options)
 
 
-def main() -> None:  # pragma: no cover
-    """Entry point for the MCP server. Excluded from coverage: blocks on stdio."""
+async def run_server(
+    *, transport: Callable[[], Awaitable[None]] = _stdio_transport
+) -> None:
+    """Run the MCP server.
+
+    Args:
+        transport: Coroutine function that manages streams and executes the
+            server. Defaults to stdio transport. Injected in tests to avoid
+            blocking on real stdio streams.
+    """
+    logger.info("Starting MCP server for {{github_repo_name}}")
+    await transport()
+
+
+def _run_server_loop() -> None:  # pragma: no cover
+    """Run the MCP server event loop.
+
+    The irreducible blocking call on stdio.
+    """
     import asyncio  # noqa: PLC0415
 
     asyncio.run(run_server())
+
+
+def main(*, runner: Callable[[], None] = _run_server_loop) -> None:
+    """Entry point for the MCP server.
+
+    Args:
+        runner: Callable that executes the server event loop. Defaults to
+            running via asyncio.run. Injected in tests to avoid blocking on
+            stdio.
+    """
+    runner()

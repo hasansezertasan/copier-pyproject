@@ -279,3 +279,13 @@ def test_openapi_schema_available(client: TestClient) -> None:
     openapi_response = client.get("/schema/openapi.json")
     assert openapi_response.status_code == 200, "OpenAPI schema should be available"
 {%- endif %}
+
+
+def test_main_launches_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``main`` resolves bind and invokes the runner."""
+    monkeypatch.delenv(f"{ENV_PREFIX}HOST", raising=False)
+    monkeypatch.delenv(f"{ENV_PREFIX}PORT", raising=False)
+    captured: list[tuple[str, int]] = []
+    web_app.main(runner=lambda host, port: captured.append((host, port)))
+    assert len(captured) == 1
+    assert captured[0] == ("127.0.0.1", 8000)

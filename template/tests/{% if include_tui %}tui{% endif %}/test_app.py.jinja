@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import platform
 from importlib.metadata import Distribution, PackageNotFoundError
-from typing import TYPE_CHECKING
+
+import pytest
+from textual.widgets import Static
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.tui import app as tui_app
-
-if TYPE_CHECKING:
-    import pytest
 
 
 class _MissingDistribution:
@@ -54,6 +53,32 @@ def test_build_info_message_handles_missing_metadata(
     assert PROJECT_NAME in message
 
 
+@pytest.mark.asyncio
+async def test_info_app_headless() -> None:
+    """The TUI InfoApp layout renders metadata and quits on 'q'.
+
+    Given:
+        - An InfoApp initialized with a test message.
+    When:
+        - Driven headlessly via Textual's App.run_test pilot.
+    Then:
+        - Widgets contain expected titles and content, and pressing 'q' exits.
+    """
+    app = tui_app.InfoApp("Test Info Message")
+    async with app.run_test() as pilot:
+        assert app.title == f"{PROJECT_NAME} Info"
+        title = app.query_one("#title", Static)
+        assert title.content == PROJECT_NAME
+        info = app.query_one("#info-text", Static)
+        assert info.content == "Test Info Message"
+        footer = app.query_one("#footer", Static)
+        assert footer.content == "Press 'q' to quit"
+        assert app.is_running
+        await pilot.press("q")
+        await pilot.pause()
+        assert not app.is_running
+
+
 def test_main_can_skip_tui(capsys: pytest.CaptureFixture[str]) -> None:
     """When TUI display is skipped, information is printed to stdout.
 
@@ -68,42 +93,52 @@ def test_main_can_skip_tui(capsys: pytest.CaptureFixture[str]) -> None:
     assert PROJECT_NAME in captured.out
 
 
-def test_main_displays_tui(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_displays_tui() -> None:
     """When the TUI displays successfully, ``main`` returns 0.
 
-    Given: The TUI display helper succeeds (stubbed — no real Textual app
-        under headless CI)
-    When: main is called
-    Then: The helper is called once with the info message and the exit code is 0
+    Given:
+        - A mock driver that intercepts app execution.
+    When:
+        - ``main()`` is called with the driver.
+    Then:
+        - The driver receives the InfoApp and ``main`` returns 0.
     """
-    displayed: list[str] = []
-    monkeypatch.setattr(tui_app, "_display_tui", displayed.append)
-
-    exit_code = tui_app.main()
+    displayed: list[tui_app.InfoApp] = []
+    exit_code = tui_app.main(driver=displayed.append)
 
     assert exit_code == 0
     assert len(displayed) == 1
-    assert PROJECT_NAME in displayed[0]
+    assert PROJECT_NAME in displayed[0].message
 
 
-def test_main_handles_display_errors(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_main_handles_display_errors(capsys: pytest.CaptureFixture[str]) -> None:
     """Errors while showing the TUI should fall back to stdout.
 
-    Given: The TUI cannot be displayed
-    When: main is called
-    Then: The exit code is 1 and info is written to stdout
+    Given:
+        - The TUI display driver raises an error.
+    When:
+        - ``main()`` is called.
+    Then:
+        - The exit code is 1 and info is written to stdout.
     """
-    error_message = "boom"
 
-    def _raise_display_error(_: str) -> None:
-        raise tui_app.TuiDisplayError(error_message)
+    def _raise_display_error(_: tui_app.InfoApp) -> None:
+        msg = "boom"
+        raise RuntimeError(msg)
 
-    monkeypatch.setattr(tui_app, "_display_tui", _raise_display_error)
-
-    exit_code = tui_app.main()
+    exit_code = tui_app.main(driver=_raise_display_error)
     captured = capsys.readouterr()
 
     assert exit_code == 1
     assert PROJECT_NAME in captured.out
+
+
+@pytest.mark.parametrize("exc_type", [KeyboardInterrupt, SystemExit])
+def test_main_propagates_interrupt(exc_type: type[BaseException]) -> None:
+    """``KeyboardInterrupt`` and ``SystemExit`` propagate out of ``main``."""
+
+    def _raise_interrupt(_: tui_app.InfoApp) -> None:
+        raise exc_type
+
+    with pytest.raises(exc_type):
+        tui_app.main(driver=_raise_interrupt)

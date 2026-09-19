@@ -97,7 +97,7 @@ def info() -> None:
 {%- if include_tui and primary_component != 'tui' %}
 
 
-def interactive() -> None:  # pragma: no cover
+def interactive() -> None:
     """Start interactive mode (TUI) for {{github_repo_name}}.
 
     Launch the terminal user interface:
@@ -113,7 +113,7 @@ def interactive() -> None:  # pragma: no cover
 {%- if include_gui and primary_component != 'gui' %}
 
 
-def gui() -> None:  # pragma: no cover
+def gui() -> None:
     """Start the graphical user interface for {{github_repo_name}}.
 
     Launch the GUI:
@@ -129,7 +129,7 @@ def gui() -> None:  # pragma: no cover
 {%- if include_web and primary_component != 'web' %}
 
 
-def web() -> None:  # pragma: no cover
+def web() -> None:
     """Start the web interface for {{github_repo_name}}.
 
     Launch the web server:
@@ -142,7 +142,7 @@ def web() -> None:  # pragma: no cover
 {%- if include_mcp and primary_component != 'mcp' %}
 
 
-def mcp() -> None:  # pragma: no cover
+def mcp() -> None:
     """Start the MCP server for {{github_repo_name}}.
 
     Launch the MCP server:
@@ -155,7 +155,7 @@ def mcp() -> None:  # pragma: no cover
 {%- if include_worker and primary_component != 'worker' %}
 
 
-def worker() -> None:  # pragma: no cover
+def worker() -> None:
     """Start the message queue worker for {{github_repo_name}}.
 
     Launch the worker:
@@ -281,7 +281,7 @@ app = typer.Typer(name="{{github_repo_name}}"{% if include_cli %}, no_args_is_he
 
 
 @app.callback(invoke_without_command=True)
-def default(ctx: typer.Context) -> None:  # pragma: no cover
+def default(ctx: typer.Context) -> None:
     """Launch the primary component (``{{primary_component}}``) by default.
 
     Runs when ``{{github_repo_name}}`` is invoked with no subcommand; a named
@@ -368,7 +368,7 @@ def info() -> None:
 
 
 @app.command()
-def interactive() -> None:  # pragma: no cover
+def interactive() -> None:
     """Start interactive mode (TUI) for {{github_repo_name}}.
 
     Launch the terminal user interface:
@@ -385,7 +385,7 @@ def interactive() -> None:  # pragma: no cover
 
 
 @app.command()
-def gui() -> None:  # pragma: no cover
+def gui() -> None:
     """Start the graphical user interface for {{github_repo_name}}.
 
     Launch the GUI:
@@ -402,7 +402,7 @@ def gui() -> None:  # pragma: no cover
 
 
 @app.command()
-def web() -> None:  # pragma: no cover
+def web() -> None:
     """Start the web interface for {{github_repo_name}}.
 
     Launch the web server:
@@ -416,7 +416,7 @@ def web() -> None:  # pragma: no cover
 
 
 @app.command()
-def mcp() -> None:  # pragma: no cover
+def mcp() -> None:
     """Start the MCP server for {{github_repo_name}}.
 
     Launch the MCP server:
@@ -430,7 +430,7 @@ def mcp() -> None:  # pragma: no cover
 
 
 @app.command()
-def worker() -> None:  # pragma: no cover
+def worker() -> None:
     """Start the message queue worker for {{github_repo_name}}.
 
     Launch the worker:
