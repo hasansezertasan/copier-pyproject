@@ -37,7 +37,8 @@
           { "context": "Verify linked issue" },
           { "context": "Check PR task list" },
           { "context": "Dependency audit (pip-audit)" },
-          { "context": "Secret scan (gitleaks)" }{% if include_web %},
+          { "context": "Secret scan (gitleaks)" },
+          { "context": "Static analysis (semgrep)" }{% if include_web %},
           { "context": "Container image scan (Trivy)" }{% endif %}
         ]
       }

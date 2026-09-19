@@ -73,6 +73,38 @@ jobs:
         # on any finding. Runs in an ephemeral uvx env so pip-audit itself is not
         # a project dependency.
         run: uvx pip-audit --requirement requirements-audit.txt
+  semgrep:
+    name: Static analysis (semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+      - name: Scan source for insecure patterns
+        # Rules-database SAST over the package source. It overlaps ruff's
+        # flake8-bandit (`S`) rules — `select = ["ALL"]` enables all of them, so
+        # e.g. an md5 call trips both `S324` and semgrep's
+        # `insecure-hash-algorithm-md5` — and its genuine addition is the
+        # cross-statement taint rules ruff's per-node AST checks cannot express,
+        # on a faster cadence than CodeQL's scheduled analysis.
+        # Runs in an ephemeral uvx env (like pip-audit above) rather than the
+        # `style` dependency group: the wheel is ~70 MB and the ruleset is
+        # fetched from the registry, so it belongs in CI, not in every
+        # contributor's sync or the pre-commit gate. `p/python` is named
+        # explicitly rather than `--config auto` so rule *selection* does not
+        # depend on semgrep's language auto-detection — the tool and the
+        # ruleset's contents are still fetched live, so a semgrep release or a
+        # new community rule can turn a green `main` red. `--error` makes
+        # findings blocking; silence a false positive with a trailing
+        # `# nosemgrep: <rule-id>` on the offending line. `--metrics=off` keeps
+        # scan telemetry off the wire.
+        run: uvx semgrep scan --config p/python --error --metrics=off src/
 {%- if include_web %}
   trivy-image:
     name: Container image scan (Trivy)

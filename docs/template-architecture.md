@@ -980,6 +980,27 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
        DB), this re-audits the *entire* resolved tree against the PyPI Advisory
        DB on the weekly cron, so a CVE disclosed *after* a dependency merged is
        caught while it is still pinned.
+     - `semgrep` (always): rules-database SAST over `src/` via `uvx semgrep scan`
+       (ephemeral env, like `pip-audit`), with the `p/python` registry ruleset
+       named explicitly rather than `--config auto` so rule *selection* does not
+       depend on semgrep's language auto-detection. `--error` makes findings
+       blocking (a false positive is silenced with a trailing
+       `# nosemgrep: <rule-id>`); `--metrics=off` keeps scan telemetry off the
+       wire. It **overlaps** ruff's flake8-bandit (`S`) rules rather than merely
+       complementing them — `select = ["ALL"]` turns all of `S` on, so an md5
+       call trips both `S324` and `insecure-hash-algorithm-md5`; the genuine
+       marginal value is `p/python`'s cross-statement taint rules, which ruff's
+       per-node AST checks cannot express, on a faster cadence than CodeQL's
+       scheduled deep analysis. Note this job is *not* hermetic: the tool is
+       unpinned (`uvx`) and the ruleset is fetched live, so a semgrep release or
+       a new community rule can turn a previously-green `main` red, and a
+       registry outage fails the job. That is the accepted trade for zero
+       ruleset maintenance — `p/security-audit` is deliberately **not** added on
+       top (auditor-oriented, low-confidence pack; `p/python` already carries the
+       `python.lang.security.*` rules). Deliberately *not* in the `style`
+       dependency group or a prek hook: the wheel is ~70 MB and the ruleset is
+       fetched from the registry, so a local pre-commit gate would be slow and
+       network-dependent.
      - `trivy-image` (**`include_web` only**): builds the generated `Dockerfile`
        and scans the image with `aquasecurity/trivy-action`
        (`severity CRITICAL,HIGH`, `ignore-unfixed: true`, `exit-code: 1`). Gated
