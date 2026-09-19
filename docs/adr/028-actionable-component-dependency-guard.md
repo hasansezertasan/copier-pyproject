@@ -112,7 +112,9 @@ root with no settings renders without the guard.
 
 ### Guard the sole-component entrypoint too
 
-A project that enables exactly *one* runnable component has no console root
+A project that enables exactly one runnable component — GUI, TUI, MCP or worker;
+a web project takes the minimal launcher instead, see
+[ADR-032](032-uniform-run-dev-launch-verbs.md) — has no console root
 (`include_console_root` is false, so no `cli/` package is rendered) and
 `__main__.py` binds that component directly. This is the ADR-007
 standalone-executable entrypoint — what PyCrucible, PyInstaller and Nuitka all
@@ -133,7 +135,8 @@ with `tkinter`, the hint is chosen per *module* rather than per component:
 `_TK_HINT` for `tkinter`/`_tkinter`, `_SYNC_HINT` for everything else.
 
 The five near-identical `elif include_<component>` branches collapsed into one
-block parameterized by `sole_component`; the summary line and whether `main()`
+block parameterized by `sole_component` (`web` among them, so the collapse also
+survived web moving to the launcher); the summary line and whether `main()`
 returns an exit code are the only per-component differences left. See issue #268.
 
 ### Direct library imports stay unguarded

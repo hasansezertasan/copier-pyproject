@@ -60,12 +60,15 @@ def test_resolve_app_path_accepts_an_import_string() -> None:
     assert resolve_app_path("mypackage.other:asgi") == "mypackage.other:asgi"
 
 
-@pytest.mark.parametrize("app_path", ["mypackage.other", ":asgi", "mypackage.other:"])
+@pytest.mark.parametrize(
+    "app_path", ["mypackage.other", ":asgi", "mypackage.other:", "mypackage:other:asgi"]
+)
 def test_resolve_app_path_rejects_malformed_targets(app_path: str) -> None:
     """A target that is not a ``module:attribute`` pair fails loudly.
 
     Given:
-        - A target missing the separator, the module, or the attribute.
+        - A target missing the separator, the module, or the attribute, or
+          carrying a second separator.
     When:
         - It is resolved before handing it to uvicorn.
     Then:

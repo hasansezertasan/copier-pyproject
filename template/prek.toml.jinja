@@ -146,7 +146,13 @@ hooks = [
 {%- endif %}
 {%- set _mypy_deps = [] %}
 {%- if include_web %}{% set _ = _mypy_deps.append("fastapi" if web_framework == "fastapi" else "litestar") %}{% endif %}
-{%- if include_cli and cli_framework == "typer" %}{% set _ = _mypy_deps.append("typer") %}{% endif %}
+{#- ``root_uses_typer``, not ``cli_framework == "typer"``: the console root is
+    the Typer one whenever it exists and an explicit argparse choice was not
+    made, which now includes a web-only project. This hook runs mypy in an
+    isolated env, so a missed entry here is a missing-import failure on the
+    adopter's first ``prek run --all-files`` even though ``tox -e style``
+    passes. Same single source as the ``typer`` runtime dependency. -#}
+{%- if root_uses_typer %}{% set _ = _mypy_deps.append("typer") %}{% endif %}
 {%- if include_tui %}{% set _ = _mypy_deps.append("textual") %}{% endif %}
 {%- if include_mcp %}{% set _ = _mypy_deps.append("mcp>=1.0.0,<2") %}{% endif %}
 {%- if include_worker %}{% set _ = _mypy_deps.append("faststream[" ~ ('rabbit' if worker_broker == 'rabbitmq' else worker_broker) ~ "]") %}{% endif %}

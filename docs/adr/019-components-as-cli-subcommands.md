@@ -54,18 +54,19 @@ include_console_root = include_cli or include_web or (≥2 of gui/tui/web/mcp/wo
 
 - **`include_cli` on** → CLI is always the primary; `cli/` is the full CLI
   (`version`/`info` commands, `no_args_is_help`) plus a subcommand per secondary.
-- **`include_cli` off, ≥2 components** → `cli/` is a *minimal launcher*: no
-  `version`/`info`; bare `<pkg>` launches the primary via an
+- **`include_cli` off, ≥2 components — or web alone** → `cli/` is a *minimal
+  launcher*: no `version`/`info`; bare `<pkg>` launches the primary via an
   `@app.callback(invoke_without_command=True)` default, secondaries are named
   subcommands.
-- **`include_cli` off, exactly one component** → **no root, no `typer`**; bare
-  `<pkg>` launches that component directly (`__main__` dispatches to it), exactly
-  as before.
+- **`include_cli` off, exactly one component other than web** → **no root, no
+  `typer`**; bare `<pkg>` launches that component directly (`__main__`
+  dispatches to it), exactly as before.
 
 `include_console_root` is the single source of truth for the `cli/` package and
 test guards, the `typer` core dependency, the import-linter `cli` orchestrator
 layer, and the `__main__.py` branch. This keeps `typer` off a single-component
-non-CLI app (e.g. a pure web service), and leaves `include_cli`'s meaning — the
+non-CLI app (a GUI, TUI, MCP or worker project — a *web* project now takes the
+launcher deliberately, see the amendment below), and leaves `include_cli`'s meaning — the
 `version`/`info` inspection feature — intact. The one accepted cost is that the
 package directory is named `cli/` even in a launcher-only project that did not
 set `include_cli`.

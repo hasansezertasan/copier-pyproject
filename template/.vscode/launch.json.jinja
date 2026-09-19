@@ -37,8 +37,8 @@
       "type": "debugpy",
       "request": "launch",
       "justMyCode": false,
-      "module": "uv",
-      "args": ["run", "{{github_repo_name}}", "dev"]
+      "module": "{{github_repo_name}}",
+      "args": ["dev"]
     },
     {% endif %}
     {% if include_cli %}

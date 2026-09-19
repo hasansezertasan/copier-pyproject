@@ -73,9 +73,10 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]: 
 
     if name == "info":
         logger.info("MCP tool `info` called.")
+        python = f"{payload['python_version']} ({payload['python_implementation']})"
         info_text = (
             f"Application Version: {payload['application_version']}\n"
-            f"Python Version: {payload['python_version']} ({payload['python_implementation']})\n"  # noqa: E501
+            f"Python Version: {python}\n"
             f"Platform: {payload['platform']}"
         )
         return [TextContent(type="text", text=info_text)]

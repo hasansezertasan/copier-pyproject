@@ -195,7 +195,10 @@ def resolve_app_path(app_path: str | None = None) -> str:
     if app_path is None:
         return DEFAULT_APP_PATH
     module_name, separator, attribute = app_path.partition(":")
-    if not separator or not module_name or not attribute:
+    # ``":" in attribute`` rejects ``module:attr:extra``, which ``partition``
+    # would otherwise accept with a non-empty module and attribute and hand to
+    # uvicorn to fail in its own words.
+    if not separator or not module_name or not attribute or ":" in attribute:
         msg = f"Invalid application path {app_path!r}; expected 'module:attribute'."
         # Log before exiting so the cause reaches structured log sinks, not just
         # the SystemExit message printed to stderr by the interpreter.

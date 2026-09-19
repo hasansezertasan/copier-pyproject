@@ -254,7 +254,9 @@ class _BrokerExtraMissingFinder:
 
 from __future__ import annotations
 
+{% if need_import_guard or include_web -%}
 import importlib
+{% endif -%}
 {% if include_web or include_tui or include_gui or include_mcp or include_worker -%}
 import sys
 {% endif -%}
@@ -276,9 +278,11 @@ if TYPE_CHECKING:
     from importlib.machinery import ModuleSpec
     from types import ModuleType
 {% endif %}
-# Import the module object (not the re-exported callable) so the monkeypatches
-# below reach the private helpers where the commands look them up.
+{%- if need_import_guard %}
+# Import the module object (not the re-exported callable) so the guard tests
+# below reach the private helpers by the name the commands look them up under.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
+{%- endif %}
 {%- if include_web %}
 # Same reason, for the module the ``run``/``dev`` launchers import at call time.
 # The web ``__init__`` re-exports the ASGI ``app`` object, which shadows the
@@ -748,7 +752,9 @@ def test_run_without_a_target_uses_the_project_application(
 
 from __future__ import annotations
 
+{% if need_import_guard or include_web -%}
 import importlib
+{% endif -%}
 {% if include_web or include_tui or include_gui or include_mcp or include_worker -%}
 import sys
 {% endif -%}
@@ -777,11 +783,13 @@ if TYPE_CHECKING:
 {%- endif %}
 
 
+{%- if need_import_guard %}
 # The cli ``__init__`` re-exports the Typer ``app`` object, which shadows the
 # ``app`` submodule on any attribute-based import (``from ... import app``,
 # ``import ...app as ...``). importlib returns the real module from sys.modules —
-# the object the monkeypatch below needs to patch.
+# the object the guard tests below need to reach.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
+{%- endif %}
 {%- if include_web %}
 # Same reason, for the module the ``run``/``dev`` launchers import at call time.
 web_app_module = importlib.import_module("{{github_repo_name}}.web.app")

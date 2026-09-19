@@ -261,9 +261,10 @@ def info() -> None:
         _ = sys.stderr.write(_METADATA_MISSING + "\n")
         raise SystemExit(1) from None
     logger.info("Command `info` called.")
+    python = f"{payload['python_version']} ({payload['python_implementation']})"
     lines = [
         f"Application Version: {payload['application_version']}",
-        f"Python Version: {payload['python_version']} ({payload['python_implementation']})",  # noqa: E501
+        f"Python Version: {python}",
         f"Platform: {payload['platform']}",
     ]
     _ = sys.stdout.write("\n".join(lines) + "\n")
@@ -718,10 +719,9 @@ def info() -> None:
         )
         raise typer.Exit(code=1) from None
     logger.info("Command `info` called.")
+    python = f"{payload['python_version']} ({payload['python_implementation']})"
     typer.echo(f"Application Version: {payload['application_version']}")
-    typer.echo(
-        f"Python Version: {payload['python_version']} ({payload['python_implementation']})"  # noqa: E501
-    )
+    typer.echo(f"Python Version: {python}")
     typer.echo(f"Platform: {payload['platform']}")
     logger.info("Application information displayed successfully.")
 {%- endif %}

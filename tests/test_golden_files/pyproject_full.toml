@@ -381,6 +381,11 @@ ignore_decorators = [
   # FastStream subscriber callbacks (any broker variable name) are invoked by the
   # framework, including the collector subscribers in the worker tests.
   "@*.subscriber",
+  # A fixture used through ``@pytest.mark.usefixtures("name")`` -- or from
+  # another test module -- is only ever named in a string, which vulture cannot
+  # see. Unused fixtures are caught properly by ``pytest --dead-fixtures`` in
+  # the tox ``style`` env, so this delegates rather than suppresses.
+  "@pytest.fixture",
 ]
 # Public API surfaces vulture cannot see being used: ``main`` entry points are
 # referenced only via pyproject scripts, ``model_config`` is consumed by
