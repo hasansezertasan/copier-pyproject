@@ -52,12 +52,29 @@ Typer root on purpose:
   and writing the same message to stderr.
 
 Because `cli_framework` is only asked `when: include_cli`, the choice only ever
-switches the root when a CLI is present. A no-CLI multi-component launcher
-(`include_console_root` true via ≥2 components) keeps the Typer root — its
-`cli_framework` value stays at the `typer` default. The Typer dependency is
-therefore gated on `include_console_root and cli_framework == "typer"`, which is
-correct in every case (the default makes the guard true whenever `include_cli` is
-false).
+switches the root when a CLI is present. A no-CLI launcher — `include_console_root`
+true via ≥2 components, or via `include_web` alone
+([ADR-032](032-uniform-run-dev-launch-verbs.md)) — keeps the Typer root.
+
+**The Typer dependency is gated on `root_uses_typer`, not on
+`cli_framework == "typer"`.** An earlier revision of this ADR claimed the latter
+was "correct in every case, because the default makes the guard true whenever
+`include_cli` is false". That is wrong, and the counter-example is a supported
+update path: Copier *retains* hidden and unasked answers, so a project that once
+set `include_cli: true` + `cli_framework: argparse` and then turns the CLI off
+while keeping ≥2 components (or the web app) carries the stored `argparse`
+answer forward. `cli_framework == "typer"` is then false while the rendered root
+*is* the Typer one — a project whose launcher imports `typer` without declaring
+it: broken at launch even in a fully synced environment, with the ADR-028 guard
+recommending a `uv sync` that cannot help.
+
+`root_uses_typer` (`copier.yml`, `when: false`) is therefore the single source
+for all three consumers that must agree — the `cli/app.py` branch, the `typer`
+entry in `[project] dependencies`, and the `typer` entry in the isolated
+mirrors-mypy prek hook's `additional_dependencies`. The last one is easy to miss
+because `tox -e style` runs mypy against the project's real venv, where `typer`
+is installed as a runtime dependency; only the isolated hook environment sees the
+gap, and only on the adopter's first `prek run --all-files`.
 
 ### The `is_app` gate is kept as-is
 
