@@ -7,6 +7,30 @@
     The guard constants, dependency tuples, and ``_preflight`` are identical in
     both the argparse and Typer branches, so they are defined once as Jinja macros
     and expanded in each branch to avoid source-level duplication. -#}
+{#- ``run``/``dev`` share one launch function differing only by ``dev_mode``
+    (issue #177, ADR-032). The guarded import is identical in both roots, so it
+    is a macro like the rest of the shared guard infrastructure. -#}
+{%- macro _run_web_fn() -%}
+def _run_web(app_path: str | None, *, dev_mode: bool) -> None:
+    """Launch the web application, reporting a missing dependency actionably.
+
+    Args:
+        app_path: An explicit ``"module:attribute"`` import string, or ``None``
+            to run this project's own web application.
+        dev_mode: When ``True``, enable autoreload and bind loopback.
+    """
+    with _component_dependencies("{{ component_label['web'] }}", *_WEB_DEPENDENCIES):
+{%- for module in component_preflight['web'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.web.app import run_server  # noqa: PLC0415
+
+    run_server(app_path, dev_mode=dev_mode)
+{%- endmacro -%}
+{%- macro _app_path_help() -%}
+The application to run as a ``module:attribute`` import
+            string. Defaults to this project's own web application.
+{%- endmacro -%}
 {#- --- shared guard infrastructure (expanded by both branches) --- -#}
 {%- macro _guard_constants() -%}
 # Every component's runtime dependency is a core ``dependency`` of this package
@@ -54,6 +78,10 @@ def _preflight(module: str) -> None:
     """
     try:
         _ = importlib.import_module(module)
+{#- The tkinter clause is emitted only for a project that actually launches the
+    GUI: elsewhere it is a branch nothing can take, which the coverage gate
+    would (correctly) report as unreachable. -#}
+{%- if "gui" in launched_components %}
     except ModuleNotFoundError as exc:
         # An interpreter built without tk-dev fails ``import tkinter`` naming the
         # ``_tkinter`` C extension, which is the useful name for the system-level
@@ -64,7 +92,18 @@ def _preflight(module: str) -> None:
         if module == "tkinter" and exc.name == "_tkinter":
             raise
         raise ModuleNotFoundError(str(exc), name=module) from None
+{%- else %}
+    except ModuleNotFoundError as exc:
+        # A nested failure belongs to the dependency being preflighted: a
+        # partially installed uvicorn or web framework may name a sub-dependency
+        # like ``click`` or ``starlette``, but the launcher's allowlist
+        # intentionally knows only its direct dependencies.
+        raise ModuleNotFoundError(str(exc), name=module) from None
+{%- endif %}
     except ImportError as exc:
+        # Not just "missing": a module whose own import raises is unusable here
+        # too, and ``uv sync`` is the same repair. This is also the only shape
+        # faststream's nameless broker-extra ``ImportError`` arrives in.
         raise ModuleNotFoundError(str(exc), name=module) from None
 {%- endmacro -%}
 {% if not root_uses_typer -%}
@@ -99,6 +138,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable{% if need_import_guard %}, Generator{% endif %}
 
 {% set cli_all = ["app", "show_version", "info"] -%}
+{%- if include_web %}{% set _ = cli_all.append("run") %}{% set _ = cli_all.append("dev") %}{% endif -%}
 {%- if include_tui and primary_component != 'tui' %}{% set _ = cli_all.append("interactive") %}{% endif -%}
 {%- if include_gui and primary_component != 'gui' %}{% set _ = cli_all.append("gui") %}{% endif -%}
 {%- if include_web and primary_component != 'web' %}{% set _ = cli_all.append("web") %}{% endif -%}
@@ -285,16 +325,49 @@ def web() -> None:  # pragma: no cover
     Launch the web server:
         {{github_repo_name}} web
 
+    The component-named form ADR-019 gives every non-primary component. It is
+    ``{{github_repo_name}} run`` with no target; use ``run``/``dev`` to point at
+    a different application or to enable autoreload.
+
     A missing dependency is reported by the dependency guards defined above,
     which exit 1 with a message naming the component, the module, and the fix.
     """
-    with _component_dependencies("{{ component_label['web'] }}", *_WEB_DEPENDENCIES):
-{%- for module in component_preflight['web'] %}
-        _preflight("{{ module }}")
-{%- endfor %}
-        from {{github_repo_name}}.web.app import main  # noqa: PLC0415
+    _run_web(None, dev_mode=False)
+{%- endif %}
+{%- if include_web %}
 
-    main()
+
+_APP_PATH_HELP = "Application to run as 'module:attribute'."
+
+
+{{ _run_web_fn() }}
+
+
+def run(app_path: str | None = None) -> None:
+    """Run the web application.
+
+    Start the server on the configured bind:
+        {{github_repo_name}} run
+
+    Run a different application:
+        {{github_repo_name}} run mypackage.other:app
+
+    Args:
+        app_path: {{ _app_path_help() }}
+    """
+    _run_web(app_path, dev_mode=False)
+
+
+def dev(app_path: str | None = None) -> None:
+    """Run the web application with autoreload, bound to localhost.
+
+    Start a reloading development server:
+        {{github_repo_name}} dev
+
+    Args:
+        app_path: {{ _app_path_help() }}
+    """
+    _run_web(app_path, dev_mode=True)
 {%- endif %}
 {%- if include_mcp and primary_component != 'mcp' %}
 
@@ -382,6 +455,16 @@ def build_parser() -> argparse.ArgumentParser:
 {%- if include_web and primary_component != 'web' %}
     _ = subparsers.add_parser("web", help="Start the web interface.")
 {%- endif %}
+{%- if include_web %}
+    for name, summary in (
+        ("run", "Run the web application."),
+        ("dev", "Run the web application with autoreload."),
+    ):
+        launcher = subparsers.add_parser(name, help=summary)
+        _ = launcher.add_argument(
+            "app_path", nargs="?", default=None, help=_APP_PATH_HELP
+        )
+{%- endif %}
 {%- if include_mcp and primary_component != 'mcp' %}
     _ = subparsers.add_parser("mcp", help="Start the MCP server.")
 {%- endif %}
@@ -401,6 +484,13 @@ def app(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     # ``argparse.Namespace`` attributes are ``Any``; narrow the dispatch key.
     command = cast("str | None", args.command)
+{%- if include_web %}
+    if command in {"run", "dev"}:
+        # ``run``/``dev`` take an optional target, so they are dispatched here
+        # rather than through the zero-argument ``_COMMANDS`` table.
+        _run_web(cast("str | None", args.app_path), dev_mode=command == "dev")
+        return
+{%- endif %}
     handler = _COMMANDS.get(command) if command is not None else None
     if handler is None:
         # Parity with Typer's ``no_args_is_help``: show help when no command is
@@ -442,8 +532,12 @@ import sys
 {% if include_cli -%}
 from importlib.metadata import Distribution, PackageNotFoundError
 {% endif -%}
-{% if need_import_guard -%}
+{% if need_import_guard and include_web -%}
+from typing import TYPE_CHECKING, Annotated, TypeAlias
+{% elif need_import_guard -%}
 from typing import TYPE_CHECKING
+{% elif include_web -%}
+from typing import Annotated, TypeAlias
 {% endif %}
 import typer
 
@@ -457,6 +551,7 @@ if TYPE_CHECKING:
 
 {% set cli_all = ["app"] -%}
 {%- if include_cli %}{% set _ = cli_all.append("show_version") %}{% set _ = cli_all.append("info") %}{% else %}{% set _ = cli_all.append("default") %}{% endif -%}
+{%- if include_web %}{% set _ = cli_all.append("run") %}{% set _ = cli_all.append("dev") %}{% endif -%}
 {%- if include_tui and primary_component != 'tui' %}{% set _ = cli_all.append("interactive") %}{% endif -%}
 {%- if include_gui and primary_component != 'gui' %}{% set _ = cli_all.append("gui") %}{% endif -%}
 {%- if include_web and primary_component != 'web' %}{% set _ = cli_all.append("web") %}{% endif -%}
@@ -528,6 +623,16 @@ def _component_dependencies(
         )
         raise typer.Exit(code=1) from None
 {% endif %}
+
+{%- if include_web %}
+
+# Typer reads the argument spec off the annotation, so the shared alias keeps
+# ``run`` and ``dev`` from drifting on help text or optionality.
+_APP_PATH_HELP = "Application to run as 'module:attribute'."
+# ``TypeAlias``, not a bare assignment: ruff's parenthesize-tuple-in-subscript
+# rule otherwise reads ``Annotated[X, Y]`` as an unparenthesized tuple.
+_AppPath: TypeAlias = Annotated[str | None, typer.Argument(help=_APP_PATH_HELP)]
+{%- endif %}
 
 app = typer.Typer(name="{{github_repo_name}}"{% if include_cli %}, no_args_is_help=True{% endif %})
 {%- if not include_cli %}
@@ -685,16 +790,48 @@ def web() -> None:  # pragma: no cover
     Launch the web server:
         {{github_repo_name}} web
 
+    The component-named form ADR-019 gives every non-primary component. It is
+    ``{{github_repo_name}} run`` with no target; use ``run``/``dev`` to point at
+    a different application or to enable autoreload.
+
     A missing dependency is reported by the dependency guards defined above,
     which exit 1 with a message naming the component, the module, and the fix.
     """
-    with _component_dependencies("{{ component_label['web'] }}", *_WEB_DEPENDENCIES):
-{%- for module in component_preflight['web'] %}
-        _preflight("{{ module }}")
-{%- endfor %}
-        from {{github_repo_name}}.web.app import main  # noqa: PLC0415
+    _run_web(None, dev_mode=False)
+{%- endif %}
+{%- if include_web %}
 
-    main()
+
+{{ _run_web_fn() }}
+
+
+@app.command()
+def run(app_path: _AppPath = None) -> None:
+    """Run the web application.
+
+    Start the server on the configured bind:
+        {{github_repo_name}} run
+
+    Run a different application:
+        {{github_repo_name}} run mypackage.other:app
+
+    Args:
+        app_path: {{ _app_path_help() }}
+    """
+    _run_web(app_path, dev_mode=False)
+
+
+@app.command()
+def dev(app_path: _AppPath = None) -> None:
+    """Run the web application with autoreload, bound to localhost.
+
+    Start a reloading development server:
+        {{github_repo_name}} dev
+
+    Args:
+        app_path: {{ _app_path_help() }}
+    """
+    _run_web(app_path, dev_mode=True)
 {%- endif %}
 {%- if include_mcp and primary_component != 'mcp' %}
 

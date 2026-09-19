@@ -634,6 +634,26 @@ preflights and applies the same translation to the modules imported at the root'
 from the enabled toggles, so a pure argparse root with no settings renders
 without that guard.
 
+### `run` / `dev` launch verbs (web)
+
+When `include_web` is enabled the console root also carries
+`<pkg> run [module:attribute]` and `<pkg> dev [module:attribute]`, sharing one
+`_run_web(app_path, *, dev_mode)` that differs only in that flag. `run` uses the
+`{PROJECT}_HOST`/`{PROJECT}_PORT` bind; `dev` adds `reload=True` and forces a
+`127.0.0.1` bind. `web/app.py` owns the launch itself: `resolve_app_path`
+validates the `module:attribute` shape (defaulting to `DEFAULT_APP_PATH`,
+i.e. `<pkg>.web.app:app`) and `run_server` hands the *import string* to uvicorn,
+which is the only form autoreload can re-import.
+
+`include_console_root` is therefore true whenever `include_web` is, so a
+web-only project (the `web` preset) gains a minimal launcher — and with it a
+`typer` runtime dependency and a `cli/` package — rather than a second console
+script alongside the ADR-019 scheme. Bare `<pkg>` still launches the primary
+component. Where web is not primary, `<pkg> web` remains and is literally
+`<pkg> run` with no target. The worker keeps `<pkg> worker` only: its reload
+lives in `faststream[cli]`, which stays a docs-group dependency. See
+[ADR-032](adr/032-uniform-run-dev-launch-verbs.md).
+
 A project with exactly **one** runnable component has no console root at all, so
 `__main__.py` binds that component directly — the ADR-007 standalone-executable
 entrypoint. It renders a sibling `_load_component()` with the same preflight,

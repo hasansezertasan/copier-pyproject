@@ -137,6 +137,89 @@ class _NestedMcpDependencyMissingFinder:
             raise ModuleNotFoundError(_NESTED_MCP_DEP_MESSAGE, name="anyio")
         return None
 {%- endmacro -%}
+{%- macro _run_dev_test_helpers() -%}
+#: ``(app_path, dev_mode)`` pairs recorded instead of starting a real server.
+_RUN_CALLS: list[tuple[str | None, bool]] = []
+
+
+def _record_run_server(app_path: str | None = None, *, dev_mode: bool = False) -> None:
+    """Stand in for ``web.app.run_server``, which would block on uvicorn.
+
+    Args:
+        app_path: The target the launcher resolved, or ``None`` for the default.
+        dev_mode: Whether autoreload was requested.
+    """
+    _RUN_CALLS.append((app_path, dev_mode))
+
+
+@pytest.fixture
+def run_calls(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str | None, bool]]:
+    """Capture what the ``run``/``dev`` launchers would hand to the web server.
+
+    ``_run_web`` imports ``run_server`` from the module at call time, so patching
+    the attribute there is what the launcher actually sees.
+
+    Returns:
+        The list the stub appends each call to, empty at test start.
+    """
+    _RUN_CALLS.clear()
+    monkeypatch.setattr(web_app_module, "run_server", _record_run_server)
+    return _RUN_CALLS
+{%- endmacro -%}
+{#- Every project that renders ``_preflight`` renders this, so the
+    ``except ImportError`` arm is exercised in *every* shape rather than only in
+    the ones that happen to enable the worker (whose broker extra is the natural
+    source of a nameless ``ImportError``). -#}
+{%- macro _preflight_test_helpers() -%}
+#: A name no distribution claims, so only the finder below can resolve it.
+_BROKEN_MODULE = "broken_preflight_target"
+_BROKEN_MODULE_MESSAGE = "cannot import name 'x' from a partially initialized module"
+
+
+class _BrokenModuleFinder:
+    """Simulate a dependency that is installed but whose import raises."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the sentinel import with a *nameless* ``ImportError``.
+
+        Raises:
+            ImportError: Carrying no module name, the shape faststream's broker
+                re-export raises and that exact-name matching cannot classify.
+        """
+        del path, target
+        if fullname == _BROKEN_MODULE:
+            raise ImportError(_BROKEN_MODULE_MESSAGE)
+        return None
+
+
+def test_preflight_names_a_dependency_that_fails_to_import(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A nameless ``ImportError`` is re-raised naming the preflighted module.
+
+    Given:
+        - A dependency present on disk whose own import raises without naming a
+          module -- a broken install, or faststream's guarded broker re-export.
+    When:
+        - The launcher preflights it.
+    Then:
+        - It becomes a ``ModuleNotFoundError`` carrying that module's name, so
+          the guard's exact-match rule can classify it.
+    """
+    finder = _BrokenModuleFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+
+    with pytest.raises(ModuleNotFoundError) as excinfo:
+        vars(cli_app)["_preflight"](_BROKEN_MODULE)
+
+    assert excinfo.value.name == _BROKEN_MODULE
+{%- endmacro -%}
 {%- macro _worker_test_helpers() -%}
 _BROKER_EXTRA_MESSAGE = "please install dependencies for the broker"
 
@@ -193,6 +276,12 @@ if TYPE_CHECKING:
 # Import the module object (not the re-exported callable) so the monkeypatch
 # below patches ``Distribution`` where the commands look it up.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
+{%- if include_web %}
+# Same reason, for the module the ``run``/``dev`` launchers import at call time.
+# The web ``__init__`` re-exports the ASGI ``app`` object, which shadows the
+# ``app`` submodule on any attribute-based import.
+web_app_module = importlib.import_module("{{github_repo_name}}.web.app")
+{%- endif %}
 
 
 class _MissingDistribution:
@@ -362,6 +451,11 @@ def test_submodule_of_a_dependency_is_not_translated(
 
     assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
+{%- if preflight_used %}
+
+
+{{ _preflight_test_helpers() }}
+{%- endif %}
 {%- if include_tui %}
 
 
@@ -434,6 +528,9 @@ def test_gui_launcher_reports_missing_tk_extension(
         - The same actionable Tk message is shown, not a bare traceback.
     """
     finder = _TkExtensionMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "tkinter", raising=False)
 
@@ -484,6 +581,9 @@ def test_web_launcher_reports_missing_nested_dependency(
 ) -> None:
     """The web launcher attributes a nested preflight failure to ``uvicorn``."""
     finder = _NestedDependencyMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "uvicorn", raising=False)
 
@@ -503,6 +603,9 @@ def test_web_launcher_reports_missing_nested_framework_dependency(
 ) -> None:
     """The web launcher attributes a nested framework failure to ``{{ web_framework }}``."""
     finder = _NestedWebFrameworkMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "{{ web_framework }}", raising=False)
 
@@ -522,6 +625,9 @@ def test_web_launcher_preserves_import_time_application_errors(
 ) -> None:
     """An unrelated failure while importing the app keeps its diagnostics."""
     finder = _ApplicationImportFailureFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "{{github_repo_name}}.web.app", raising=False)
 
@@ -553,6 +659,9 @@ def test_mcp_launcher_reports_missing_nested_dependency(
 ) -> None:
     """The MCP launcher attributes a nested preflight failure to ``mcp``."""
     finder = _NestedMcpDependencyMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "mcp", raising=False)
 
@@ -588,6 +697,9 @@ def test_worker_launcher_reports_missing_broker_extra(
           rather than dumping faststream's own traceback.
     """
     finder = _BrokerExtraMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     # Drop the parent too, so the import starts from scratch exactly as it would
     # in a fresh interpreter: ``faststream`` resolves normally, then the broker
@@ -604,6 +716,40 @@ def test_worker_launcher_reports_missing_broker_extra(
     assert "{{ worker_broker_spec.module }}" in err
     assert "uv sync" in err
     assert "Traceback" not in err
+{%- endif %}
+{%- if include_web %}
+
+
+{{ _run_dev_test_helpers() }}
+
+
+@pytest.mark.parametrize("command", ["run", "dev"])
+def test_run_and_dev_dispatch_to_the_web_server(
+    command: str, run_calls: list[tuple[str | None, bool]]
+) -> None:
+    """``run``/``dev`` reach the web server, differing only in ``dev_mode``.
+
+    Given:
+        - The uniform launch verbs, which take an optional ``module:attribute``
+          target and so are dispatched outside the zero-argument command table.
+    When:
+        - Each is invoked with an explicit target.
+    Then:
+        - The target reaches the web server unchanged, and ``dev`` is the only
+          one that asks for autoreload.
+    """
+    app([command, "mypackage.other:asgi"])
+
+    assert run_calls == [("mypackage.other:asgi", command == "dev")]
+
+
+def test_run_without_a_target_uses_the_project_application(
+    run_calls: list[tuple[str | None, bool]],
+) -> None:
+    """With no target, the launcher defers to the web module's own default."""
+    app(["run"])
+
+    assert run_calls == [(None, False)]
 {%- endif %}
 {%- else -%}
 """Test cases for the {{github_repo_name}} Typer root."""
@@ -647,6 +793,10 @@ if TYPE_CHECKING:
 # ``import ...app as ...``). importlib returns the real module from sys.modules —
 # the object the monkeypatch below needs to patch.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
+{%- if include_web %}
+# Same reason, for the module the ``run``/``dev`` launchers import at call time.
+web_app_module = importlib.import_module("{{github_repo_name}}.web.app")
+{%- endif %}
 {%- if include_cli %}
 
 
@@ -832,6 +982,11 @@ def test_submodule_of_a_dependency_is_not_translated(
 
     assert "uv sync" not in capsys.readouterr().err
 {%- endif %}
+{%- if preflight_used %}
+
+
+{{ _preflight_test_helpers() }}
+{%- endif %}
 {%- if include_tui %}
 
 
@@ -902,6 +1057,9 @@ def test_gui_launcher_reports_missing_tk_extension(
         - The same actionable Tk message is shown, not a bare traceback.
     """
     finder = _TkExtensionMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "tkinter", raising=False)
 
@@ -950,6 +1108,9 @@ def test_web_launcher_reports_missing_nested_dependency(
 ) -> None:
     """The web launcher attributes a nested preflight failure to ``uvicorn``."""
     finder = _NestedDependencyMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "uvicorn", raising=False)
 
@@ -968,6 +1129,9 @@ def test_web_launcher_reports_missing_nested_framework_dependency(
 ) -> None:
     """The web launcher attributes a nested framework failure to ``{{ web_framework }}``."""
     finder = _NestedWebFrameworkMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "{{ web_framework }}", raising=False)
 
@@ -986,6 +1150,9 @@ def test_web_launcher_preserves_import_time_application_errors(
 ) -> None:
     """An unrelated failure while importing the app keeps its diagnostics."""
     finder = _ApplicationImportFailureFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "{{github_repo_name}}.web.app", raising=False)
 
@@ -1019,6 +1186,9 @@ def test_mcp_launcher_reports_missing_nested_dependency(
 ) -> None:
     """The MCP launcher attributes a nested preflight failure to ``mcp``."""
     finder = _NestedMcpDependencyMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, "mcp", raising=False)
 
@@ -1052,6 +1222,9 @@ def test_worker_launcher_reports_missing_broker_extra(
           rather than dumping faststream's own traceback.
     """
     finder = _BrokerExtraMissingFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     # Drop the parent too, so the import starts from scratch exactly as it would
     # in a fresh interpreter: ``faststream`` resolves normally, then the broker
@@ -1067,5 +1240,41 @@ def test_worker_launcher_reports_missing_broker_extra(
     assert "{{ worker_broker_spec.module }}" in result.output
     assert "uv sync" in result.output
     assert "Traceback" not in result.output
+{%- endif %}
+{%- if include_web %}
+
+
+{{ _run_dev_test_helpers() }}
+
+
+@pytest.mark.parametrize("command", ["run", "dev"])
+def test_run_and_dev_dispatch_to_the_web_server(
+    runner: CliRunner, command: str, run_calls: list[tuple[str | None, bool]]
+) -> None:
+    """``run``/``dev`` reach the web server, differing only in ``dev_mode``.
+
+    Given:
+        - The uniform launch verbs, which take an optional ``module:attribute``
+          target.
+    When:
+        - Each is invoked with an explicit target.
+    Then:
+        - The target reaches the web server unchanged, and ``dev`` is the only
+          one that asks for autoreload.
+    """
+    result: Result = runner.invoke(app, [command, "mypackage.other:asgi"])
+
+    assert result.exit_code == 0
+    assert run_calls == [("mypackage.other:asgi", command == "dev")]
+
+
+def test_run_without_a_target_uses_the_project_application(
+    runner: CliRunner, run_calls: list[tuple[str | None, bool]]
+) -> None:
+    """With no target, the launcher defers to the web module's own default."""
+    result: Result = runner.invoke(app, ["run"])
+
+    assert result.exit_code == 0
+    assert run_calls == [(None, False)]
 {%- endif %}
 {%- endif %}

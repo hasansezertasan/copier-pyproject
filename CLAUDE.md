@@ -136,9 +136,11 @@ uv run --locked tox run -e integration
 uv run --locked example version
 uv run --locked example info
 
-# Run the web app in dev mode (if include_web=true). Framework-specific:
-uv run --locked fastapi dev example.web.app:app                 # web_framework=fastapi
-uv run --locked litestar --app=example.web.app:app run          # web_framework=litestar
+# Run the web app (if include_web=true). Same verbs for both frameworks (ADR-032);
+# `dev` adds autoreload and forces a 127.0.0.1 bind.
+uv run --locked example run
+uv run --locked example dev
+uv run --locked example run other.module:app   # any ASGI app, not just this one
 
 # Non-primary components are subcommands of the `example` root (ADR-019); the
 # *primary* component is launched by bare `example`. The forms below assume each
@@ -210,7 +212,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | Toggle | One-line | ADR |
 | --- | --- | --- |
 | `include_cli` | CLI — the `pkg` console root (`cli_framework` = typer or stdlib argparse) | [019](docs/adr/019-components-as-cli-subcommands.md), [020](docs/adr/020-cli-framework-choice.md), [028](docs/adr/028-actionable-component-dependency-guard.md) |
-| `include_web` | Web app (FastAPI/Litestar, `web_framework`) + Dockerfile | — |
+| `include_web` | Web app (FastAPI/Litestar, `web_framework`) + Dockerfile + the `pkg run`/`pkg dev` launch verbs (forces a console root) | [032](docs/adr/032-uniform-run-dev-launch-verbs.md) |
 | `include_gui` | Tkinter GUI | — |
 | `include_tui` | Textual TUI | — |
 | `include_mcp` | MCP server | — |
@@ -289,6 +291,11 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   var in `copier.yml` (CLI > GUI > TUI > web > MCP > worker). Derive from it; do
   **not** re-spell it as inline `include_x or include_y …`
   ([ADR-019](docs/adr/019-components-as-cli-subcommands.md)).
+- **A web project always has a console root.** `include_console_root` includes
+  `include_web` so `pkg run`/`pkg dev` have somewhere to live; the alternative
+  (standalone `pkg-run`/`pkg-dev` scripts) is the second entry scheme ADR-019
+  forbids. Consequence: `sole_component` is never `web`
+  ([ADR-032](docs/adr/032-uniform-run-dev-launch-verbs.md)).
 - **Per-component coverage scopes must match both layouts.** The per-component
   `coverage report --include`/`--omit` patterns in `ci.yml`'s `coverage-*` jobs
   must match `src/<pkg>/…` (editable) **and** `*/site-packages/…` (installed

@@ -347,15 +347,24 @@ primary_component:
   default: "{% if include_cli %}cli{% elif include_gui %}gui{% elif include_tui %}tui{% elif include_web %}web{% elif include_mcp %}mcp{% elif include_worker %}worker{% endif %}"
 # True when the project has a ``{{github_repo_name}}`` Typer root that hosts the
 # component subcommands: whenever the CLI is enabled (CLI is always the primary),
-# or — with no CLI — whenever ≥2 runnable components need a shared launcher. A
-# single-component non-CLI app has no root (bare ``{{github_repo_name}}`` launches
-# that component directly) and never pulls in ``typer``. Consumed by the ``cli``
-# package/test guards, the ``typer`` dependency, the import-linter ``cli`` layer,
-# and ``__main__.py``. See ADR-019.
+# whenever the web app is enabled (it needs somewhere to hang ``run``/``dev`` —
+# see below and ADR-032), or — with neither — whenever ≥2 runnable components
+# need a shared launcher. A single-component non-CLI app has no root (bare
+# ``{{github_repo_name}}`` launches that component directly) and never pulls in
+# ``typer``. Consumed by the ``cli`` package/test guards, the ``typer``
+# dependency, the import-linter ``cli`` layer, and ``__main__.py``. See ADR-019.
+#
+# `include_web` is listed explicitly rather than folded into the ≥2 count: a
+# web-only project is exactly the shape that wants `{{github_repo_name}} dev`
+# most, and it is the only runnable component whose server runner (`uvicorn`) is
+# already a runtime dependency, so hosting the verbs costs it nothing but the
+# launcher itself. Bare `{{github_repo_name}}` still launches the primary
+# component through the minimal launcher's default callback, so the ADR-019
+# precedence is unchanged.
 include_console_root:
   type: bool
   when: false
-  default: "{{ include_cli or ([include_gui, include_tui, include_web, include_mcp, include_worker] | select | list | length >= 2) }}"
+  default: "{{ include_cli or include_web or ([include_gui, include_tui, include_web, include_mcp, include_worker] | select | list | length >= 2) }}"
 # The components the console root reaches by *lazy* import: every enabled
 # runnable component that is not the primary (ADR-019). Derived from
 # `primary_component`, so the precedence still lives in exactly one place.

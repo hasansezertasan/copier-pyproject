@@ -1,3 +1,57 @@
+{#- Rendered by whichever branch defines ``_preflight``, so its
+    ``except ImportError`` arm is exercised in every shape rather than only in
+    the ones whose dependencies happen to fail that way. -#}
+{%- macro _preflight_import_error_test() -%}
+#: A name no distribution claims, so only the finder below can resolve it.
+_BROKEN_MODULE = "broken_preflight_target"
+_BROKEN_MODULE_MESSAGE = "cannot import name 'x' from a partially initialized module"
+
+
+class _BrokenModuleFinder:
+    """Simulate a dependency that is installed but whose import raises."""
+
+    @staticmethod
+    def find_spec(
+        fullname: str, path: Sequence[str] | None, target: ModuleType | None = None
+    ) -> ModuleSpec | None:
+        """Fail the sentinel import with a *nameless* ``ImportError``.
+
+        Raises:
+            ImportError: Carrying no module name, the shape a broken install
+                raises and that exact-name matching cannot classify.
+        """
+        del path, target
+        if fullname == _BROKEN_MODULE:
+            raise ImportError(_BROKEN_MODULE_MESSAGE)
+        return None
+
+
+def test_preflight_names_a_dependency_that_fails_to_import(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A nameless ``ImportError`` is re-raised naming the preflighted module.
+
+    Given:
+        - A dependency present on disk whose own import raises without naming a
+          module, i.e. a broken rather than a missing install.
+    When:
+        - ``__main__`` preflights it.
+    Then:
+        - It becomes a ``ModuleNotFoundError`` carrying that module's name, so
+          the guard's exact-match rule can classify it.
+    """
+    main_module = importlib.import_module("{{github_repo_name}}.__main__")
+    finder = _BrokenModuleFinder()
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
+    monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
+
+    with pytest.raises(ModuleNotFoundError) as excinfo:
+        vars(main_module)["_preflight"](_BROKEN_MODULE)
+
+    assert excinfo.value.name == _BROKEN_MODULE
+{%- endmacro -%}
 {#- Emit a module-name tuple in the exact byte form ruff-format produces
     (ADR-030): one line when it fits in 88 columns, otherwise one element per
     line with a trailing comma. Mirrors the macro in ``__main__.py.jinja``. -#}
@@ -167,6 +221,9 @@ def test_console_root_reports_missing_nested_root_dependency(
     """A nested failure while preflighting a root dependency is attributed to it."""
     main_module = importlib.import_module("{{github_repo_name}}.__main__")
     finder = _NestedRootDependencyMissingFinder(dependency)
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     monkeypatch.delitem(sys.modules, dependency, raising=False)
     prefix = "{{github_repo_name}}."
@@ -205,6 +262,9 @@ def test_console_root_preserves_unrelated_import_errors(
         _ = vars(main_module)["_load_console_root"]()
 
     assert "uv sync" not in capsys.readouterr().err
+
+
+{{ _preflight_import_error_test() }}
 {%- endif %}
 {%- if sole_component %}
 
@@ -282,6 +342,9 @@ def test_sole_component_reports_missing_dependency(
     trigger = dependency
 {%- endif %}
     finder = _DependencyMissingFinder(trigger, dependency)
+    # The stub intercepts only its own target, so an unrelated import still
+    # resolves normally -- and the pass-through arm stays exercised.
+    assert finder.find_spec("json", None) is None
     monkeypatch.setattr(sys, "meta_path", [finder, *sys.meta_path])
     for cached in (trigger, dependency):
         monkeypatch.delitem(sys.modules, cached, raising=False)
@@ -329,4 +392,7 @@ def test_sole_component_preserves_unrelated_import_errors(
         _ = vars(main_module)["_load_component"]()
 
     assert "uv sync" not in capsys.readouterr().err
+
+
+{{ _preflight_import_error_test() }}
 {%- endif %}

@@ -14,7 +14,7 @@ from litestar.testing import TestClient
 {%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.web.app import app, resolve_bind
+from {{github_repo_name}}.web.app import DEFAULT_APP_PATH, app, resolve_app_path, resolve_bind
 
 # The web ``__init__`` re-exports the ASGI ``app`` object, which shadows the
 # ``app`` submodule on any attribute-based import (``from ... import app``,
@@ -63,6 +63,36 @@ def test_resolve_bind_invalid_port(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(SystemExit):
         resolve_bind()
+
+
+def test_resolve_app_path_defaults_to_this_application() -> None:
+    """With no target, ``{{github_repo_name}} run`` runs this project's own app."""
+    assert resolve_app_path() == DEFAULT_APP_PATH
+    assert resolve_app_path(None) == DEFAULT_APP_PATH
+
+
+def test_resolve_app_path_accepts_an_import_string() -> None:
+    """An explicit ``module:attribute`` target is passed through untouched."""
+    assert resolve_app_path("mypackage.other:asgi") == "mypackage.other:asgi"
+
+
+@pytest.mark.parametrize("app_path", ["mypackage.other", ":asgi", "mypackage.other:"])
+def test_resolve_app_path_rejects_malformed_targets(app_path: str) -> None:
+    """A target that is not a ``module:attribute`` pair fails loudly.
+
+    Given:
+        - A target missing the separator, the module, or the attribute.
+    When:
+        - It is resolved before handing it to uvicorn.
+    Then:
+        - ``SystemExit`` carries a message naming the bad value and the expected
+          shape, rather than letting uvicorn fail later with its own wording.
+    """
+    with pytest.raises(SystemExit) as excinfo:
+        _ = resolve_app_path(app_path)
+
+    assert app_path in str(excinfo.value)
+    assert "module:attribute" in str(excinfo.value)
 
 
 def test_version_endpoint(client: TestClient) -> None:

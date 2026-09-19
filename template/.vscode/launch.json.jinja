@@ -33,17 +33,12 @@
     },
     {% if include_web %}
     {
-      "name": "Python: Web App",
+      "name": "Python: Web App (dev)",
       "type": "debugpy",
       "request": "launch",
-      "module": "uvicorn",
       "justMyCode": false,
-      "args": [
-        "{{github_repo_name}}.app:app",
-        "--reload",
-        "--log-level=debug",
-        "--port=80"
-      ]
+      "module": "uv",
+      "args": ["run", "{{github_repo_name}}", "dev"]
     },
     {% endif %}
     {% if include_cli %}

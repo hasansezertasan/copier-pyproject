@@ -49,7 +49,7 @@ only whenever — it is useful, captured by one hidden computed variable in
 `copier.yml` (`when: false`):
 
 ```text
-include_console_root = include_cli or (≥2 of gui/tui/web/mcp/worker enabled)
+include_console_root = include_cli or include_web or (≥2 of gui/tui/web/mcp/worker enabled)
 ```
 
 - **`include_cli` on** → CLI is always the primary; `cli/` is the full CLI
@@ -91,3 +91,13 @@ tests keep the module covered under the `fail_under = 99` gate.
 - Downstream projects adopting this via `copier update` gain the subcommands and
   lose the `<pkg>-<name>` scripts; any wrapper/alias that invoked a suffixed
   script must switch to the subcommand form.
+
+## Amendment (2026-09)
+
+`include_console_root` gained `include_web`: a web project always has a console
+root, so the `run`/`dev` launch verbs have somewhere to live without a second
+entry scheme. Bare `<pkg>` still launches the primary component and `<pkg> web`
+still exists wherever web is not primary, so the rules above are unchanged — a
+web-only project simply reaches its component through the minimal launcher
+rather than a direct `__main__` binding. See
+[ADR-032](032-uniform-run-dev-launch-verbs.md).

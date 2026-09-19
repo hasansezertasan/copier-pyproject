@@ -183,16 +183,81 @@ def resolve_bind() -> tuple[str, int]:
     return host, port
 
 
-def main() -> None:  # pragma: no cover
-    """Entry point for the web application.
+#: The ASGI application ``{{github_repo_name}} run`` / ``{{github_repo_name}} dev``
+#: start when given no explicit target. Spelled as a uvicorn import string
+#: rather than passed as an object because autoreload re-imports the app in a
+#: child process, so only the string form can reload (see ADR-032).
+DEFAULT_APP_PATH = "{{github_repo_name}}.web.app:app"
 
-    Excluded from coverage: it blocks on the uvicorn server loop. The bind
-    resolution it relies on (``resolve_bind``) is unit-tested separately.
+#: Development mode always binds loopback, whatever ``{PROJECT}_HOST`` says: a
+#: reloading server runs unreviewed code on save, so it belongs on the
+#: developer's own machine. Matches ``fastapi dev``.
+DEV_HOST = "127.0.0.1"
+
+
+def resolve_app_path(app_path: str | None = None) -> str:
+    """Resolve the ASGI application to run into a uvicorn import string.
+
+    Args:
+        app_path: An explicit ``"module:attribute"`` import string, or ``None``
+            to run this project's own web application.
+
+    Returns:
+        str: The import string to hand to uvicorn.
+
+    Raises:
+        SystemExit: If ``app_path`` is not a ``module:attribute`` pair.
+    """
+    if app_path is None:
+        return DEFAULT_APP_PATH
+    module_name, separator, attribute = app_path.partition(":")
+    if not separator or not module_name or not attribute:
+        msg = f"Invalid application path {app_path!r}; expected 'module:attribute'."
+        # Log before exiting so the cause reaches structured log sinks, not just
+        # the SystemExit message printed to stderr by the interpreter.
+        logger.error(msg)
+        raise SystemExit(msg)
+    return app_path
+
+
+def run_server(  # pragma: no cover
+    app_path: str | None = None, *, dev_mode: bool = False
+) -> None:
+    """Run the web application with uvicorn.
+
+    Excluded from coverage: it blocks on the uvicorn server loop. The target and
+    bind resolution it relies on (``resolve_app_path``, ``resolve_bind``) are
+    unit-tested separately.
+
+    Args:
+        app_path: An explicit ``"module:attribute"`` import string, or ``None``
+            to run this project's own web application.
+        dev_mode: When ``True``, enable autoreload and bind loopback.
     """
     import uvicorn  # noqa: PLC0415
 
+    target = resolve_app_path(app_path)
     host, port = resolve_bind()
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(target, host=DEV_HOST if dev_mode else host, port=port, reload=dev_mode)
 
 
-__all__ = ["app", "get_info", "get_version", "main", "resolve_bind"]
+def main() -> None:  # pragma: no cover
+    """Entry point for the web application.
+
+    Excluded from coverage: it delegates to ``run_server``, which blocks on the
+    uvicorn server loop.
+    """
+    run_server()
+
+
+__all__ = [
+    "DEFAULT_APP_PATH",
+    "DEV_HOST",
+    "app",
+    "get_info",
+    "get_version",
+    "main",
+    "resolve_app_path",
+    "resolve_bind",
+    "run_server",
+]

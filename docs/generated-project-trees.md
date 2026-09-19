@@ -257,7 +257,7 @@ tools/build_docs.py
 
 ## web
 
-116 files.
+120 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -354,6 +354,8 @@ pyproject.toml
 src/example/__init__.py
 src/example/__main__.py
 src/example/__metadata__.py
+src/example/cli/__init__.py
+src/example/cli/app.py
 src/example/core/__init__.py
 src/example/core/app.py
 src/example/core/config.py
@@ -365,6 +367,8 @@ src/example/utils/app.py
 src/example/web/__init__.py
 src/example/web/app.py
 tests/__init__.py
+tests/cli/__init__.py
+tests/cli/test_app.py
 tests/conftest.py
 tests/core/__init__.py
 tests/core/test_config.py

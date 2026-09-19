@@ -51,7 +51,7 @@ Copier will prompt for:
 - `short_description`
 - `package_keywords` (extra comma-separated PyPI keywords; tooling/component keywords are added automatically)
 - `include_cli` (include Typer CLI)
-- `include_web` (include web API; its OpenAPI schema is generated into the docs)
+- `include_web` (include web API; its OpenAPI schema is generated into the docs, and the project gets `pkg run` / `pkg dev` launch verbs — see [ADR-032](docs/adr/032-uniform-run-dev-launch-verbs.md))
 - `web_framework` (fastapi/litestar - when `include_web` is enabled)
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)
