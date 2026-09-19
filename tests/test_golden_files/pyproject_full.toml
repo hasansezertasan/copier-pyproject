@@ -840,7 +840,6 @@ set_env = { PYTHONUNBUFFERED = "1" }
 # separate builder executes the occasional ``>>>`` snippet that belongs inline
 # with prose.
 commands = [["sphinx-build", "-b", "doctest", "docs", "docs/_build/doctest"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Run documentation doctests"
 runner = "uv-venv-runner"
