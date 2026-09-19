@@ -380,7 +380,7 @@ tools/build_docs.py
 
 ## full
 
-174 files.
+176 files.
 
 ```text
 .all-contributorsrc
@@ -432,6 +432,7 @@ tools/build_docs.py
 .github/rulesets/main.json
 .github/settings.yml
 .github/workflows/all-contributors.yml
+.github/workflows/benchmarks.yml
 .github/workflows/check-branch-name.yml
 .github/workflows/check-linked-issues.yml
 .github/workflows/check-pr-title.yml
@@ -470,6 +471,7 @@ CLAUDE.md
 Dockerfile
 LICENSE
 README.md
+benchmarks/test_version_lookup.py
 cobo.lock
 docs/check_warnings.py
 docs/cli-reference.md
