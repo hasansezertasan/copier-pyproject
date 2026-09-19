@@ -133,10 +133,15 @@ An interactive terminal user interface displays project information. Press 'q' t
 ### Web
 
 ```bash
-{{github_repo_name}}{% if primary_component != 'web' %} web{% endif %}
+{{github_repo_name}} run              # serve on the configured bind
+{{github_repo_name}} dev              # same, with autoreload, bound to localhost
+{{github_repo_name}} run pkg.mod:app  # serve a different ASGI application
 ```
 
 {% if web_framework == "fastapi" %}Open <http://127.0.0.1:8000/docs> for the interactive API documentation.{% else %}Open <http://127.0.0.1:8000/schema> for the interactive API documentation.{% endif %}
+
+Host and port come from `{{ github_repo_name | upper | replace("-", "_") }}_HOST` / `{{ github_repo_name | upper | replace("-", "_") }}_PORT`; `dev` always binds `127.0.0.1`.
+{%- if primary_component != 'web' %} `{{github_repo_name}} web` is the component-named alias for `{{github_repo_name}} run` with no target.{% endif %}
 {%- endif %}
 {%- if include_mcp %}
 

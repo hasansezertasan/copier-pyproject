@@ -238,6 +238,9 @@ orchestrator layer above them (the `{{pkg}}` Typer root, whose subcommands
 lazy-import those components to launch them — see ADR-019), all layered above
 `core` above `utils`. The `cli` layer is present whenever `include_console_root`
 is true (see the entry-points section below), not only when `include_cli` is set.
+`core` is also where the shared application payload lives (`core/app.py`,
+ADR-033): it is already the layer directly beneath the component group, so the
+sharing needs no new layer and the contract is unchanged.
 The component layers are Jinja-conditional on the enabled toggles (omitted when
 none are enabled, leaving a `core > utils` contract), so no `ignore_imports` is
 needed. The contract is **exhaustive** (`containers = ["{{pkg}}"]`,
@@ -464,6 +467,24 @@ Subcommands:
 `example/` stays gitignored — a pure smoke-test target of the same entrypoint,
 not a drift-checked artifact (an untracked tree has no diff to check).
 
+## Shared Jinja helpers (`_macros.jinja`)
+
+`_macros.jinja` at the **repository root** holds helpers several templates need.
+It sits outside `_subdirectory`, so copier treats it as a template *input* and
+can never render it into a generated project — no `_exclude` override required
+(which would replace copier's default exclude list wholesale). Templates import
+it on their first line.
+
+It currently carries `py_collection(name, items, kind)`, which emits a Python
+tuple or list literal in the exact byte form ruff-format produces: one line when
+the whole statement fits in 88 columns, otherwise one element per line with a
+trailing comma. The right form depends on values only known at render time (the
+package name, the broker module, how many components are enabled), so a template
+that always picks one ships a file the adopter's first `prek run --all-files`
+rewrites — see [ADR-030](adr/030-generated-files-must-be-formatter-canonical.md).
+Used by `__main__.py`, `cli/app.py` and `tests/test_main.py` for `__all__`, the
+component dependency allowlists, and the guard tuples.
+
 ## Generated Project Structure
 
 See [`generated-project-trees.md`](generated-project-trees.md) for the generated,
@@ -478,6 +499,16 @@ Root modules in `src/{{github_repo_name}}/`:
 Subpackages (each with `__init__.py` and `app.py`):
 
 - `core/` - Core infrastructure (always included):
+  - `app.py` - The version/runtime payload **every** interface renders
+    (`version()`, `info()`, `info_or_unknown()`, `MetadataUnavailableError`).
+    Each component is an adapter over it — the CLI exits 1, the web app answers
+    503, the MCP tool returns error text, the GUI/TUI show `unknown`, the worker
+    falls back to `0.0.0` — so the payload and the metadata lookup exist once
+    rather than once per component. Renders as an empty placeholder for a
+    library with no runnable component. Its failure path is exercised through
+    the shared `missing_metadata` fixture in `tests/conftest.py`, which reaches
+    every component's error branch by patching this one module
+    ([ADR-033](adr/033-shared-app-service-components-as-adapters.md)).
   - `dirs.py` - Project directory locations (`~/.<package>`)
   - `logging_setup.py` - Centralized logging
   - `config.py` - Configuration (uses pydantic-settings if enabled). When
@@ -582,12 +613,16 @@ component `X` is a subcommand exactly when `primary_component != "X"`. Do
 
 The `pkg` Typer root lives in the `cli/` package. It exists whenever
 `include_console_root` (a hidden `when: false` computed var) is true —
-`include_cli or (≥2 of gui/tui/web/mcp/worker enabled)`. When `include_cli` is
-off but ≥2 components are enabled, `cli/` is a *minimal launcher* (no
-`version`/`info`; bare `pkg` launches the primary via an
-`@app.callback(invoke_without_command=True)` default, secondaries are
-subcommands). A single-component non-CLI app has **no** root and does **not**
-pull in `typer` — bare `pkg` launches that component directly via `__main__`.
+`include_cli or include_web or (≥2 of gui/tui/web/mcp/worker enabled)`. When
+`include_cli` is off, `cli/` is a *minimal launcher* (no `version`/`info`; bare
+`pkg` launches the primary via an `@app.callback(invoke_without_command=True)`
+default, secondaries are subcommands). `include_web` is listed because the
+`run`/`dev` verbs need a root to live on ([ADR-032](adr/032-uniform-run-dev-launch-verbs.md));
+a web-only project therefore gets the minimal launcher and a `typer` runtime
+dependency, with bare `pkg` unchanged. Any *other* single-component non-CLI app
+has **no** root and does **not** pull in `typer` — bare `pkg` launches that
+component directly via `__main__`, through the `_load_component()` guard
+described above.
 `include_console_root` is the single source of truth for the `cli/`
 package/test-dir guards, the `typer` core dependency, the import-linter `cli`
 layer, and the `__main__.py` branch.
@@ -603,6 +638,86 @@ layer, and the `__main__.py` branch.
 
 The CLI framework choice (Typer) is recorded in
 [ADR-020](adr/020-cli-framework-choice.md).
+
+Each launcher command wraps its lazy component import in a private
+`_component_dependencies(component, *dependencies)` context manager, so a
+missing known dependency exits 1 with a message naming the component, the
+missing module, and `uv sync` — instead of a bare `ModuleNotFoundError`
+traceback. The match is **exact**, so an application import defect (a typo'd
+`from <dep>.user_plugin import X`) propagates with its traceback intact. The
+guard is emitted only when the root actually lazy-imports something (derived
+from `primary_component`, so a CLI-only project renders without it) and covers
+the minimal launcher's default callback too.
+
+Dependencies the component imports *later* than that block — `uvicorn` (used
+when the web app calls `uvicorn.run()`), `textual`, `tkinter` (imported only
+when the GUI draws), and `faststream.<broker>` (a guarded re-export that raises
+a nameless `ImportError`) — are imported eagerly by a `_preflight(module)` helper
+inside the guard, which names the module when the interpreter does not. The GUI
+passes a different `hint=` naming the platform's Tk package (`python3-tk`,
+`python3-tkinter`, or a `python-tk@X.Y` pinned to `sys.version_info`), because
+`tkinter` is a standard-library extension module that no dependency sync can
+install; its allowlist covers the `_tkinter` C extension too. The worker's
+allowlist names `faststream.<broker>` rather than the broker client. MCP is
+preflighted too — its transitive dependencies (e.g. `anyio`) can surface nested
+failures with unhelpful names that the preflight normalizes to `mcp`.
+
+`__main__.py` additionally loads the root through `_load_console_root()`, which
+preflights and applies the same translation to the modules imported at the root's
+*module* scope: `typer`, plus `pydantic`/`pydantic_settings` via `core.logging_setup` →
+`core.config` when `include_pydantic_settings`. `root_dependencies` is computed
+from the enabled toggles, so a pure argparse root with no settings renders
+without that guard.
+
+### `run` / `dev` launch verbs (web)
+
+When `include_web` is enabled the console root also carries
+`<pkg> run [module:attribute]` and `<pkg> dev [module:attribute]`, sharing one
+`_run_web(app_path, *, dev_mode)` that differs only in that flag. `run` uses the
+`{PROJECT}_HOST`/`{PROJECT}_PORT` bind; `dev` adds `reload=True` and forces a
+`127.0.0.1` bind. `web/app.py` owns the launch itself: `resolve_app_path`
+validates the `module:attribute` shape (defaulting to `DEFAULT_APP_PATH`,
+i.e. `<pkg>.web.app:app`) and `run_server` hands the *import string* to uvicorn,
+which is the only form autoreload can re-import.
+
+`include_console_root` is therefore true whenever `include_web` is, so a
+web-only project (the `web` preset) gains a minimal launcher — and with it a
+`typer` runtime dependency and a `cli/` package — rather than a second console
+script alongside the ADR-019 scheme. Bare `<pkg>` still launches the primary
+component. Where web is not primary, `<pkg> web` remains and is literally
+`<pkg> run` with no target. The worker keeps `<pkg> worker` only: its reload
+lives in `faststream[cli]`, which stays a docs-group dependency. See
+[ADR-032](adr/032-uniform-run-dev-launch-verbs.md).
+
+A project with exactly **one** runnable component has no console root at all, so
+`__main__.py` binds that component directly — the ADR-007 standalone-executable
+entrypoint. It renders a sibling `_load_component()` with the same preflight,
+exact-match rule and hints, covering the component's own dependencies *and* the
+settings stack the import chain reaches through `core.logging_setup` →
+`core.config`. Because that merged allowlist mixes real distributions with
+`tkinter`, the hint is picked per *module*: the Tk hint for `tkinter`/`_tkinter`,
+`uv sync` for everything else. The five per-component `elif` branches
+`__main__.py` used to carry are now one block parameterized by `sole_component`.
+
+A library consumer's own `import <pkg>.web.app` stays **unguarded** and raises a
+plain `ModuleNotFoundError` — deliberately: they are already reading a traceback
+in their own code, where the failing import and its caller are both visible, and
+a module-scope guard would run on every successful import forever.
+
+`launcher_components`, `need_import_guard`, `launched_components`,
+`component_label`, `component_dependencies`, `component_preflight`,
+`preflight_used`, `root_dependencies`, `sole_component`,
+`sole_component_dependencies` and `sole_component_preflight` are `when: false`
+computed variables in `copier.yml`, read by `cli/app.py.jinja`,
+`__main__.py.jinja` and both test modules so the four cannot drift. The two
+guards live in different files and never coexist in one project, so
+`component_dependencies` is the only thing that can catch them disagreeing about
+what a component depends on.
+
+The rationale — why the hint is `uv sync` and never `pip install pkg[<extra>]`,
+why matching is exact, why some dependencies need an eager import, why Tk is
+special, and why direct library imports are out of scope — is recorded in
+[ADR-028](adr/028-actionable-component-dependency-guard.md).
 
 ## Devcontainer Structure
 

@@ -1,4 +1,112 @@
-{% if include_cli and cli_framework == "argparse" -%}
+{% import "_macros.jinja" as fmt %}{#- Every derived fact this module needs -- ``launcher_components``,
+    ``need_import_guard``, ``component_label``, ``component_preflight``,
+    ``preflight_used`` and ``root_uses_typer`` -- is computed in ``copier.yml``
+    from ``primary_component`` (ADR-019), so this module, its test module and the
+    ``typer`` dependency in ``pyproject.toml`` cannot drift.
+
+    The guard constants, dependency tuples, and ``_preflight`` are identical in
+    both the argparse and Typer branches, so they are defined once as Jinja macros
+    and expanded in each branch to avoid source-level duplication. -#}
+{#- ``run``/``dev`` share one launch function differing only by ``dev_mode``
+    (issue #177, ADR-032). The guarded import is identical in both roots, so it
+    is a macro like the rest of the shared guard infrastructure. -#}
+{%- macro _run_web_fn() -%}
+def _run_web(app_path: str | None, *, dev_mode: bool) -> None:
+    """Launch the web application, reporting a missing dependency actionably.
+
+    Args:
+        app_path: An explicit ``"module:attribute"`` import string, or ``None``
+            to run this project's own web application.
+        dev_mode: When ``True``, enable autoreload and bind loopback.
+    """
+    with _component_dependencies("{{ component_label['web'] }}", *_WEB_DEPENDENCIES):
+{%- for module in component_preflight['web'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.web.app import run_server  # noqa: PLC0415
+
+    run_server(app_path, dev_mode=dev_mode)
+{%- endmacro -%}
+{%- macro _app_path_help() -%}
+The application to run as a ``module:attribute`` import
+            string. Defaults to this project's own web application.
+{%- endmacro -%}
+{#- --- shared guard infrastructure (expanded by both branches) --- -#}
+{%- macro _guard_constants() -%}
+# Every component's runtime dependency is a core ``dependency`` of this package
+# (there are no per-component extras), so a missing one never means "install the
+# extra" -- it means this environment is out of sync with the installed metadata.
+# That happens after a ``copier update`` enables a component, or in a stale venv.
+_MISSING_DEPENDENCY = "Error: The {component} component requires '{missing}', which is not available in this environment. {hint}"  # noqa: E501
+_SYNC_HINT = f"Component dependencies ship with '{PROJECT_NAME}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+{%- if include_gui %}
+# ``tkinter`` is the one exception to the comment above: it is a standard-library
+# extension module, not a distribution, so ``uv sync`` cannot install it. Missing
+# means this interpreter was built without Tk -- a system-level fix. Homebrew's
+# ``python-tk`` is an alias for the newest Python's formula, so the bare name
+# would install Tk for the wrong interpreter; pin it to the running version.
+_TK_HINT = f"'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}`), or use a Python build that includes Tk."  # noqa: E501
+{%- endif %}
+{#- The allowlists come from ``component_dependencies`` in ``copier.yml``, the
+    single source shared with ``__main__.py``'s sole-component guard -- see
+    ADR-028. ``gui`` carries ``_tkinter`` beside ``tkinter`` because that C
+    extension is the name that actually fails on an interpreter built without
+    tk-dev; ``worker`` carries ``faststream.<broker>`` rather than the broker
+    client, which faststream re-exports behind its own nameless import guard. -#}
+{%- for component in launched_components | sort %}
+{{ fmt.py_collection("_" ~ component | upper ~ "_DEPENDENCIES", component_dependencies[component]) }}
+{%- endfor %}
+{%- endmacro -%}
+{%- macro _preflight_fn() -%}
+
+
+def _preflight(module: str) -> None:
+    """Import a component dependency eagerly, so the guard below can classify it.
+
+    Two kinds of dependency never reach the guard in a usable form. ``uvicorn``
+    and Tkinter are imported at *call* time -- after the guarded block has closed
+    -- and ``faststream.<broker>`` is a guarded re-export that raises a plain,
+    *nameless* ``ImportError`` when the broker extra is absent, which exact-name
+    matching cannot classify. Importing here, and supplying the module name when
+    the interpreter does not, puts both back in reach of the guard.
+
+    Args:
+        module: Import module name to import eagerly.
+
+    Raises:
+        ModuleNotFoundError: Naming ``module`` when it cannot be imported.
+    """
+    try:
+        _ = importlib.import_module(module)
+{#- The tkinter clause is emitted only for a project that actually launches the
+    GUI: elsewhere it is a branch nothing can take, which the coverage gate
+    would (correctly) report as unreachable. -#}
+{%- if "gui" in launched_components %}
+    except ModuleNotFoundError as exc:
+        # An interpreter built without tk-dev fails ``import tkinter`` naming the
+        # ``_tkinter`` C extension, which is the useful name for the system-level
+        # fix. Other nested failures belong to the dependency being preflighted:
+        # a partially installed uvicorn or web framework may name a sub-dependency
+        # like ``click`` or ``starlette``, but the launcher's allowlist
+        # intentionally knows only its direct dependencies.
+        if module == "tkinter" and exc.name == "_tkinter":
+            raise
+        raise ModuleNotFoundError(str(exc), name=module) from None
+{%- else %}
+    except ModuleNotFoundError as exc:
+        # A nested failure belongs to the dependency being preflighted: a
+        # partially installed uvicorn or web framework may name a sub-dependency
+        # like ``click`` or ``starlette``, but the launcher's allowlist
+        # intentionally knows only its direct dependencies.
+        raise ModuleNotFoundError(str(exc), name=module) from None
+{%- endif %}
+    except ImportError as exc:
+        # Not just "missing": a module whose own import raises is unusable here
+        # too, and ``uv sync`` is the same repair. This is also the only shape
+        # faststream's nameless broker-extra ``ImportError`` arrives in.
+        raise ModuleNotFoundError(str(exc), name=module) from None
+{%- endmacro -%}
+{% if not root_uses_typer -%}
 """CLI application for the project.
 
 A dependency-free ``argparse`` root for the ``{{github_repo_name}}`` command. It
@@ -12,29 +120,97 @@ ADR-019 and ADR-020). Selected via ``cli_framework``.
 from __future__ import annotations
 
 import argparse
-import platform
+{% if need_import_guard -%}
+import contextlib
+{% endif -%}
+{% if preflight_used -%}
+import importlib
+{% endif -%}
 import sys
-from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING, cast
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable{% if need_import_guard %}, Generator{% endif %}
 
 {% set cli_all = ["app", "show_version", "info"] -%}
+{%- if include_web %}{% set _ = cli_all.append("run") %}{% set _ = cli_all.append("dev") %}{% endif -%}
 {%- if include_tui and primary_component != 'tui' %}{% set _ = cli_all.append("interactive") %}{% endif -%}
 {%- if include_gui and primary_component != 'gui' %}{% set _ = cli_all.append("gui") %}{% endif -%}
 {%- if include_web and primary_component != 'web' %}{% set _ = cli_all.append("web") %}{% endif -%}
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = cli_all.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = cli_all.append("worker") %}{% endif -%}
 {%- set _ = cli_all.sort() -%}
-__all__ = [{% for n in cli_all %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{{ fmt.py_collection("__all__", cli_all, kind="list") }}
 
 logger = get_logger()
 
 _METADATA_MISSING = f"Error: Package '{PROJECT_NAME}' metadata not found. Is the package installed correctly?"  # noqa: E501
+{%- if need_import_guard %}
+
+{{ _guard_constants() }}
+{%- if preflight_used %}
+
+
+{{ _preflight_fn() }}
+{%- endif %}
+
+
+@contextlib.contextmanager
+def _component_dependencies(
+    component: str, *dependencies: str, hint: str = _SYNC_HINT
+) -> Generator[None, None, None]:
+    """Translate a missing component dependency into an actionable CLI error.
+
+    Wraps a launcher subcommand's lazy import so a ``ModuleNotFoundError`` for a
+    known dependency becomes a message naming the component, missing module, and
+    fix. Dependencies the component imports later than this block are imported
+    eagerly by ``_preflight`` above instead.
+
+    Args:
+        component: Human name of the component being launched (e.g. ``"web"``).
+        *dependencies: Import module names owned by the component, matched
+            exactly.
+        hint: Remediation sentence appended to the error. Defaults to the
+            out-of-sync-environment ``uv sync`` hint, which is right for every
+            component whose dependency is a real distribution.
+
+    Yields:
+        ``None``; the caller performs the import inside the block.
+
+    Raises:
+        ModuleNotFoundError: Propagating a missing module that is not exactly one
+            of the component's known dependencies.
+        SystemExit: With code 1 if a dependency of ``component`` is missing.
+    """
+    try:
+        yield
+    except ModuleNotFoundError as exc:
+        missing = exc.name
+        # Exact matches only. A failure *below* an installed dependency's
+        # namespace -- a typo'd ``from <dep>.user_plugin import X`` in a
+        # customized component -- is an application defect, not a stale
+        # environment, and suppressing its traceback to recommend ``uv sync``
+        # would send the reader down the wrong path. A genuine missing dependency
+        # reaching *this* block always names a root, because the component
+        # imports it as ``from <dep> import X`` at module scope; the awkward
+        # cases (deferred and guarded imports) go through ``_preflight``.
+        if missing is None or missing not in dependencies:
+            raise
+        # An out-of-sync environment is an expected, user-facing error, so log
+        # without the traceback that logging.exception would add.
+        logger.error(  # noqa: TRY400
+            "Missing dependency %r for the %s component", missing, component
+        )
+        message = _MISSING_DEPENDENCY.format(
+            component=component, missing=missing, hint=hint
+        )
+        _ = sys.stderr.write(message + "\n")
+        raise SystemExit(1) from None
+{%- endif %}
 
 
 def show_version() -> None:
@@ -50,15 +226,15 @@ def show_version() -> None:
         SystemExit: With code 1 if the package metadata cannot be found.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        resolved = service.version()
+    except service.MetadataUnavailableError:
         # An uninstalled or partial package is an expected, user-facing error, so
         # log without the traceback that logging.exception would add.
         logger.error("Package metadata not found for %s", PROJECT_NAME)  # noqa: TRY400
         _ = sys.stderr.write(_METADATA_MISSING + "\n")
         raise SystemExit(1) from None
     logger.info("Command `version` called.")
-    _ = sys.stdout.write(f"{distribution.version}\n")
+    _ = sys.stdout.write(f"{resolved}\n")
     logger.info("Version displayed successfully.")
 
 
@@ -77,20 +253,19 @@ def info() -> None:
         SystemExit: With code 1 if the package metadata cannot be found.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         # An uninstalled or partial package is an expected, user-facing error, so
         # log without the traceback that logging.exception would add.
         logger.error("Package metadata not found for %s", PROJECT_NAME)  # noqa: TRY400
         _ = sys.stderr.write(_METADATA_MISSING + "\n")
         raise SystemExit(1) from None
     logger.info("Command `info` called.")
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
+    python = f"{payload['python_version']} ({payload['python_implementation']})"
     lines = [
-        f"Application Version: {distribution.version}",
-        f"Python Version: {python_version} ({python_implementation})",
-        f"Platform: {platform.system()}",
+        f"Application Version: {payload['application_version']}",
+        f"Python Version: {python}",
+        f"Platform: {payload['platform']}",
     ]
     _ = sys.stdout.write("\n".join(lines) + "\n")
     logger.info("Application information displayed successfully.")
@@ -104,9 +279,14 @@ def interactive() -> None:  # pragma: no cover
         {{github_repo_name}} interactive
 
     Raises:
-        SystemExit: Propagating the TUI's exit code.
+        SystemExit: Propagating the TUI's exit code, or code 1 if a dependency of
+            the TUI is missing from this environment.
     """
-    from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label['tui'] }}", *_TUI_DEPENDENCIES):
+{%- for module in component_preflight['tui'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
 {%- endif %}
@@ -120,9 +300,17 @@ def gui() -> None:  # pragma: no cover
         {{github_repo_name}} gui
 
     Raises:
-        SystemExit: Propagating the GUI's exit code.
+        SystemExit: Propagating the GUI's exit code, or code 1 if a dependency of
+            the GUI is missing from this environment.
     """
-    from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label['gui'] }}", *_GUI_DEPENDENCIES, hint=_TK_HINT):
+        # ``gui.app`` imports Tkinter only when it draws the window, i.e. after
+        # this guard has closed, so import it here to keep a Tk-less interpreter
+        # an actionable error rather than a GuiDisplayError fallback.
+{%- for module in component_preflight['gui'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise SystemExit(main())
 {%- endif %}
@@ -134,10 +322,50 @@ def web() -> None:  # pragma: no cover
 
     Launch the web server:
         {{github_repo_name}} web
-    """
-    from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
-    main()
+    The component-named form ADR-019 gives every non-primary component. It is
+    ``{{github_repo_name}} run`` with no target; use ``run``/``dev`` to point at
+    a different application or to enable autoreload.
+
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
+    """
+    _run_web(None, dev_mode=False)
+{%- endif %}
+{%- if include_web %}
+
+
+_APP_PATH_HELP = "Application to run as 'module:attribute'."
+
+
+{{ _run_web_fn() }}
+
+
+def run(app_path: str | None = None) -> None:
+    """Run the web application.
+
+    Start the server on the configured bind:
+        {{github_repo_name}} run
+
+    Run a different application:
+        {{github_repo_name}} run mypackage.other:app
+
+    Args:
+        app_path: {{ _app_path_help() }}
+    """
+    _run_web(app_path, dev_mode=False)
+
+
+def dev(app_path: str | None = None) -> None:
+    """Run the web application with autoreload, bound to localhost.
+
+    Start a reloading development server:
+        {{github_repo_name}} dev
+
+    Args:
+        app_path: {{ _app_path_help() }}
+    """
+    _run_web(app_path, dev_mode=True)
 {%- endif %}
 {%- if include_mcp and primary_component != 'mcp' %}
 
@@ -147,8 +375,15 @@ def mcp() -> None:  # pragma: no cover
 
     Launch the MCP server:
         {{github_repo_name}} mcp
+
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label['mcp'] }}", *_MCP_DEPENDENCIES):
+{%- for module in component_preflight['mcp'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
@@ -160,8 +395,19 @@ def worker() -> None:  # pragma: no cover
 
     Launch the worker:
         {{github_repo_name}} worker
+
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label['worker'] }}", *_WORKER_DEPENDENCIES):
+        # ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+        # faststream's own import guard, which raises a *nameless* ``ImportError``
+        # when the extra is absent; ``_preflight`` supplies the module name so the
+        # guard above can classify it.
+{%- for module in component_preflight['worker'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
@@ -207,6 +453,16 @@ def build_parser() -> argparse.ArgumentParser:
 {%- if include_web and primary_component != 'web' %}
     _ = subparsers.add_parser("web", help="Start the web interface.")
 {%- endif %}
+{%- if include_web %}
+    for name, summary in (
+        ("run", "Run the web application."),
+        ("dev", "Run the web application with autoreload."),
+    ):
+        launcher = subparsers.add_parser(name, help=summary)
+        _ = launcher.add_argument(
+            "app_path", nargs="?", default=None, help=_APP_PATH_HELP
+        )
+{%- endif %}
 {%- if include_mcp and primary_component != 'mcp' %}
     _ = subparsers.add_parser("mcp", help="Start the MCP server.")
 {%- endif %}
@@ -226,6 +482,13 @@ def app(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     # ``argparse.Namespace`` attributes are ``Any``; narrow the dispatch key.
     command = cast("str | None", args.command)
+{%- if include_web %}
+    if command in {"run", "dev"}:
+        # ``run``/``dev`` take an optional target, so they are dispatched here
+        # rather than through the zero-argument ``_COMMANDS`` table.
+        _run_web(cast("str | None", args.app_path), dev_mode=command == "dev")
+        return
+{%- endif %}
     handler = _COMMANDS.get(command) if command is not None else None
     if handler is None:
         # Parity with Typer's ``no_args_is_help``: show help when no command is
@@ -250,31 +513,119 @@ via the default callback.
 """
 # mypy: disable-error-code="misc"
 
+{# Collected rather than emitted as a chain of inline conditionals: a CLI-only
+    project imports nothing here from the standard library, and an empty chain
+    left two blank lines before ``import typer`` -- which ruff's isort rewrites,
+    so the file would not be formatter-canonical (ADR-030). -#}
+{%- set _stdlib = [] -%}
+{%- if need_import_guard %}{% set _ = _stdlib.append("import contextlib") %}{% endif -%}
+{%- if preflight_used %}{% set _ = _stdlib.append("import importlib") %}{% endif -%}
+{%- if include_gui %}{% set _ = _stdlib.append("import sys") %}{% endif -%}
+{%- set _typing = [] -%}
+{%- if need_import_guard %}{% set _ = _typing.append("TYPE_CHECKING") %}{% endif -%}
+{%- if include_web %}{% set _ = _typing.append("Annotated") %}{% set _ = _typing.append("TypeAlias") %}{% endif -%}
+{%- if _typing %}{% set _ = _stdlib.append("from typing import " ~ _typing | join(", ")) %}{% endif -%}
 from __future__ import annotations
-
-{% if include_cli -%}
-import platform
-from importlib.metadata import Distribution, PackageNotFoundError
-
-{% endif -%}
+{% if _stdlib %}
+{% for line in _stdlib %}{{ line }}
+{% endfor %}{% endif %}
 import typer
 
-{% if include_cli -%}
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-{% endif -%}
+{%- if include_cli %}
+from {{github_repo_name}}.core import app as service
+{%- endif %}
 from {{github_repo_name}}.core.logging_setup import get_logger
+{%- if need_import_guard %}
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+{%- endif %}
 
 {% set cli_all = ["app"] -%}
 {%- if include_cli %}{% set _ = cli_all.append("show_version") %}{% set _ = cli_all.append("info") %}{% else %}{% set _ = cli_all.append("default") %}{% endif -%}
+{%- if include_web %}{% set _ = cli_all.append("run") %}{% set _ = cli_all.append("dev") %}{% endif -%}
 {%- if include_tui and primary_component != 'tui' %}{% set _ = cli_all.append("interactive") %}{% endif -%}
 {%- if include_gui and primary_component != 'gui' %}{% set _ = cli_all.append("gui") %}{% endif -%}
 {%- if include_web and primary_component != 'web' %}{% set _ = cli_all.append("web") %}{% endif -%}
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = cli_all.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = cli_all.append("worker") %}{% endif -%}
 {%- set _ = cli_all.sort() -%}
-__all__ = [{% for n in cli_all %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{{ fmt.py_collection("__all__", cli_all, kind="list") }}
 
 logger = get_logger()
+{%- if need_import_guard %}
+
+{{ _guard_constants() }}
+{%- if preflight_used %}
+
+
+{{ _preflight_fn() }}
+{%- endif %}
+
+
+@contextlib.contextmanager
+def _component_dependencies(
+    component: str, *dependencies: str, hint: str = _SYNC_HINT
+) -> Generator[None, None, None]:
+    """Translate a missing component dependency into an actionable CLI error.
+
+    Wraps a launcher command's lazy import so a ``ModuleNotFoundError`` for a
+    known dependency becomes a message naming the component, missing module, and
+    fix. Dependencies the component imports later than this block are imported
+    eagerly by ``_preflight`` above instead.
+
+    Args:
+        component: Human name of the component being launched (e.g. ``"web"``).
+        *dependencies: Import module names owned by the component, matched
+            exactly.
+        hint: Remediation sentence appended to the error. Defaults to the
+            out-of-sync-environment ``uv sync`` hint, which is right for every
+            component whose dependency is a real distribution.
+
+    Yields:
+        ``None``; the caller performs the import inside the block.
+
+    Raises:
+        ModuleNotFoundError: Propagating a missing module that is not exactly one
+            of the component's known dependencies.
+        typer.Exit: With code 1 if a dependency of ``component`` is missing.
+    """
+    try:
+        yield
+    except ModuleNotFoundError as exc:
+        missing = exc.name
+        # Exact matches only. A failure *below* an installed dependency's
+        # namespace -- a typo'd ``from <dep>.user_plugin import X`` in a
+        # customized component -- is an application defect, not a stale
+        # environment, and suppressing its traceback to recommend ``uv sync``
+        # would send the reader down the wrong path. A genuine missing dependency
+        # reaching *this* block always names a root, because the component
+        # imports it as ``from <dep> import X`` at module scope; the awkward
+        # cases (deferred and guarded imports) go through ``_preflight``.
+        if missing is None or missing not in dependencies:
+            raise
+        # An out-of-sync environment is an expected, user-facing error, so log
+        # without the traceback that logging.exception would add.
+        logger.error(  # noqa: TRY400
+            "Missing dependency %r for the %s component", missing, component
+        )
+        typer.echo(
+            _MISSING_DEPENDENCY.format(component=component, missing=missing, hint=hint),
+            err=True,
+        )
+        raise typer.Exit(code=1) from None
+{% endif %}
+
+{%- if include_web %}
+
+# Typer reads the argument spec off the annotation, so the shared alias keeps
+# ``run`` and ``dev`` from drifting on help text or optionality.
+_APP_PATH_HELP = "Application to run as 'module:attribute'."
+# ``TypeAlias``, not a bare assignment: ruff's parenthesize-tuple-in-subscript
+# rule otherwise reads ``Annotated[X, Y]`` as an unparenthesized tuple.
+_AppPath: TypeAlias = Annotated[str | None, typer.Argument(help=_APP_PATH_HELP)]
+{%- endif %}
 
 app = typer.Typer(name="{{github_repo_name}}"{% if include_cli %}, no_args_is_help=True{% endif %})
 {%- if not include_cli %}
@@ -286,15 +637,26 @@ def default(ctx: typer.Context) -> None:  # pragma: no cover
 
     Runs when ``{{github_repo_name}}`` is invoked with no subcommand; a named
     subcommand always takes precedence.
-{%- if primary_component in ["gui", "tui"] %}
-
+{% if primary_component in ["gui", "tui"] %}
     Raises:
-        typer.Exit: Propagating the primary component's exit code.
+        typer.Exit: Propagating the primary component's exit code, or code 1 if a
+            dependency of the component is missing from this environment.
+{%- else %}
+    A missing dependency is reported by ``_component_dependencies`` below.
 {%- endif %}
     """
     if ctx.invoked_subcommand is not None:
         return
-    from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label[primary_component] }}", *_{{primary_component | upper}}_DEPENDENCIES{% if primary_component == "gui" %}, hint=_TK_HINT{% endif %}):
+{%- if primary_component in component_preflight %}
+        # Imported eagerly so this guard can classify its absence -- the component
+        # itself imports it too late, or behind a third-party import guard. See
+        # ``_preflight``.
+{%- for module in component_preflight[primary_component] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+{%- endif %}
+        from {{github_repo_name}}.{{primary_component}}.app import main  # noqa: PLC0415
 
     {{ "raise typer.Exit(code=main())" if primary_component in ["gui", "tui"] else "main()" }}
 {%- endif %}
@@ -315,8 +677,8 @@ def show_version() -> None:
         typer.Exit: If the package metadata cannot be found.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        resolved = service.version()
+    except service.MetadataUnavailableError:
         # An uninstalled or partial package is an expected, user-facing error, so
         # log without the traceback that logging.exception would add.
         logger.error("Package metadata not found for %s", PROJECT_NAME)  # noqa: TRY400
@@ -326,7 +688,7 @@ def show_version() -> None:
         )
         raise typer.Exit(code=1) from None
     logger.info("Command `version` called.")
-    typer.echo(distribution.version)
+    typer.echo(resolved)
     logger.info("Version displayed successfully.")
 
 
@@ -346,8 +708,8 @@ def info() -> None:
         typer.Exit: If the package metadata cannot be found.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         # An uninstalled or partial package is an expected, user-facing error, so
         # log without the traceback that logging.exception would add.
         logger.error("Package metadata not found for %s", PROJECT_NAME)  # noqa: TRY400
@@ -357,11 +719,10 @@ def info() -> None:
         )
         raise typer.Exit(code=1) from None
     logger.info("Command `info` called.")
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
-    typer.echo(f"Application Version: {distribution.version}")
-    typer.echo(f"Python Version: {python_version} ({python_implementation})")
-    typer.echo(f"Platform: {platform.system()}")
+    python = f"{payload['python_version']} ({payload['python_implementation']})"
+    typer.echo(f"Application Version: {payload['application_version']}")
+    typer.echo(f"Python Version: {python}")
+    typer.echo(f"Platform: {payload['platform']}")
     logger.info("Application information displayed successfully.")
 {%- endif %}
 {%- if include_tui and primary_component != 'tui' %}
@@ -375,9 +736,14 @@ def interactive() -> None:  # pragma: no cover
         {{github_repo_name}} interactive
 
     Raises:
-        typer.Exit: Propagating the TUI's exit code.
+        typer.Exit: Propagating the TUI's exit code, or code 1 if a dependency of
+            the TUI is missing from this environment.
     """
-    from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label['tui'] }}", *_TUI_DEPENDENCIES):
+{%- for module in component_preflight['tui'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.tui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
 {%- endif %}
@@ -392,9 +758,17 @@ def gui() -> None:  # pragma: no cover
         {{github_repo_name}} gui
 
     Raises:
-        typer.Exit: Propagating the GUI's exit code.
+        typer.Exit: Propagating the GUI's exit code, or code 1 if a dependency of
+            the GUI is missing from this environment.
     """
-    from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label['gui'] }}", *_GUI_DEPENDENCIES, hint=_TK_HINT):
+        # ``gui.app`` imports Tkinter only when it draws the window, i.e. after
+        # this guard has closed, so import it here to keep a Tk-less interpreter
+        # an actionable error rather than a GuiDisplayError fallback.
+{%- for module in component_preflight['gui'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.gui.app import main  # noqa: PLC0415
 
     raise typer.Exit(code=main())
 {%- endif %}
@@ -407,10 +781,49 @@ def web() -> None:  # pragma: no cover
 
     Launch the web server:
         {{github_repo_name}} web
-    """
-    from {{github_repo_name}}.web.app import main  # noqa: PLC0415
 
-    main()
+    The component-named form ADR-019 gives every non-primary component. It is
+    ``{{github_repo_name}} run`` with no target; use ``run``/``dev`` to point at
+    a different application or to enable autoreload.
+
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
+    """
+    _run_web(None, dev_mode=False)
+{%- endif %}
+{%- if include_web %}
+
+
+{{ _run_web_fn() }}
+
+
+@app.command()
+def run(app_path: _AppPath = None) -> None:
+    """Run the web application.
+
+    Start the server on the configured bind:
+        {{github_repo_name}} run
+
+    Run a different application:
+        {{github_repo_name}} run mypackage.other:app
+
+    Args:
+        app_path: {{ _app_path_help() }}
+    """
+    _run_web(app_path, dev_mode=False)
+
+
+@app.command()
+def dev(app_path: _AppPath = None) -> None:
+    """Run the web application with autoreload, bound to localhost.
+
+    Start a reloading development server:
+        {{github_repo_name}} dev
+
+    Args:
+        app_path: {{ _app_path_help() }}
+    """
+    _run_web(app_path, dev_mode=True)
 {%- endif %}
 {%- if include_mcp and primary_component != 'mcp' %}
 
@@ -421,8 +834,15 @@ def mcp() -> None:  # pragma: no cover
 
     Launch the MCP server:
         {{github_repo_name}} mcp
+
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label['mcp'] }}", *_MCP_DEPENDENCIES):
+{%- for module in component_preflight['mcp'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.mcp.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}
@@ -435,8 +855,19 @@ def worker() -> None:  # pragma: no cover
 
     Launch the worker:
         {{github_repo_name}} worker
+
+    A missing dependency is reported by the dependency guards defined above,
+    which exit 1 with a message naming the component, the module, and the fix.
     """
-    from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
+    with _component_dependencies("{{ component_label['worker'] }}", *_WORKER_DEPENDENCIES):
+        # ``{{ worker_broker_spec.module }}`` re-exports the broker client behind
+        # faststream's own import guard, which raises a *nameless* ``ImportError``
+        # when the extra is absent; ``_preflight`` supplies the module name so the
+        # guard above can classify it.
+{%- for module in component_preflight['worker'] %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        from {{github_repo_name}}.worker.app import main  # noqa: PLC0415
 
     main()
 {%- endif %}

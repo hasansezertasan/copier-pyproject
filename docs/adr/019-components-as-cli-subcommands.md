@@ -49,23 +49,24 @@ only whenever — it is useful, captured by one hidden computed variable in
 `copier.yml` (`when: false`):
 
 ```text
-include_console_root = include_cli or (≥2 of gui/tui/web/mcp/worker enabled)
+include_console_root = include_cli or include_web or (≥2 of gui/tui/web/mcp/worker enabled)
 ```
 
 - **`include_cli` on** → CLI is always the primary; `cli/` is the full CLI
   (`version`/`info` commands, `no_args_is_help`) plus a subcommand per secondary.
-- **`include_cli` off, ≥2 components** → `cli/` is a *minimal launcher*: no
-  `version`/`info`; bare `<pkg>` launches the primary via an
+- **`include_cli` off, ≥2 components — or web alone** → `cli/` is a *minimal
+  launcher*: no `version`/`info`; bare `<pkg>` launches the primary via an
   `@app.callback(invoke_without_command=True)` default, secondaries are named
   subcommands.
-- **`include_cli` off, exactly one component** → **no root, no `typer`**; bare
-  `<pkg>` launches that component directly (`__main__` dispatches to it), exactly
-  as before.
+- **`include_cli` off, exactly one component other than web** → **no root, no
+  `typer`**; bare `<pkg>` launches that component directly (`__main__`
+  dispatches to it), exactly as before.
 
 `include_console_root` is the single source of truth for the `cli/` package and
 test guards, the `typer` core dependency, the import-linter `cli` orchestrator
 layer, and the `__main__.py` branch. This keeps `typer` off a single-component
-non-CLI app (e.g. a pure web service), and leaves `include_cli`'s meaning — the
+non-CLI app (a GUI, TUI, MCP or worker project — a *web* project now takes the
+launcher deliberately, see the amendment below), and leaves `include_cli`'s meaning — the
 `version`/`info` inspection feature — intact. The one accepted cost is that the
 package directory is named `cli/` even in a launcher-only project that did not
 set `include_cli`.
@@ -91,3 +92,13 @@ tests keep the module covered under the `fail_under = 99` gate.
 - Downstream projects adopting this via `copier update` gain the subcommands and
   lose the `<pkg>-<name>` scripts; any wrapper/alias that invoked a suffixed
   script must switch to the subcommand form.
+
+## Amendment (2026-09)
+
+`include_console_root` gained `include_web`: a web project always has a console
+root, so the `run`/`dev` launch verbs have somewhere to live without a second
+entry scheme. Bare `<pkg>` still launches the primary component and `<pkg> web`
+still exists wherever web is not primary, so the rules above are unchanged — a
+web-only project simply reaches its component through the minimal launcher
+rather than a direct `__main__` binding. See
+[ADR-032](032-uniform-run-dev-launch-verbs.md).

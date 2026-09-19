@@ -16,7 +16,12 @@ and status codes (including the ``503`` returned when the package metadata is
 unavailable). It is generated on every docs build directly from the live
 ``app`` object, so it stays in lockstep with the code.
 
-The bind-resolution helper is importable for embedding or testing:
+Run it with the project's own launch verbs — ``{{github_repo_name}} run`` for
+the configured bind, ``{{github_repo_name}} dev`` for autoreload on
+``127.0.0.1``. Both accept an optional ``module:attribute`` target in place of
+this project's application.
+
+The target- and bind-resolution helpers are importable for embedding or testing:
 
 .. literalinclude:: examples/web_usage.py
    :language: python

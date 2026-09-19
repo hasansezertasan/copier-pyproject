@@ -148,12 +148,32 @@ def test_single_component_non_cli_has_no_console_root(
     render: Callable[..., Path],
 ) -> None:
     # A single non-CLI component has no shared launcher: no `cli/` package, no
-    # `typer` dependency, and `__main__` launches it directly.
-    root = _render_only(render, "web")
+    # `typer` dependency, and `__main__` launches it directly. Web is the
+    # exception (see the next test), so this uses MCP.
+    root = _render_only(render, "mcp")
     project = _pyproject(root)
     assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
     assert not (root / "src" / PKG / "cli").exists()
     assert not any(dep.startswith("typer") for dep in project["dependencies"])
+
+
+def test_single_web_component_still_gets_a_console_root(
+    render: Callable[..., Path],
+) -> None:
+    # Web is the one component that forces a console root even on its own: the
+    # `run`/`dev` launch verbs need somewhere to live, and a standalone
+    # `<pkg>-run` script would be the second entry scheme ADR-019 forbids.
+    # Bare `<pkg>` must still launch the web app, via the default callback.
+    root = _render_only(render, "web")
+    project = _pyproject(root)
+    assert project["scripts"] == {PKG: f"{PKG}.__main__:main"}
+    assert (root / "src" / PKG / "cli" / "app.py").exists()
+    assert any(dep.startswith("typer") for dep in project["dependencies"])
+    src = (root / "src" / PKG / "cli" / "app.py").read_text(encoding="utf-8")
+    assert "invoke_without_command=True" in src  # bare `<pkg>` -> primary
+    assert f"from {PKG}.web.app import main" in src
+    assert "def run(" in src
+    assert "def dev(" in src
 
 
 def test_pydantic_settings_is_core_dependency(render: Callable[..., Path]) -> None:
