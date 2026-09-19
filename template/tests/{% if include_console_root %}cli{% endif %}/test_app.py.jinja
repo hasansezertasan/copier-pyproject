@@ -1314,6 +1314,16 @@ def test_subcommand_{{ name }}_dispatches(
 ) -> None:
     """The `{{ name }}` subcommand invokes the {{ name }} component entry point."""
     called = False
+{% if name == "gui" -%}
+    # The GUI launcher preflights Tkinter before importing its entry point. The
+    # preflight failure contract is covered separately; this dispatch test must
+    # reach the replacement entry point on Tk-less Linux CI runners.
+
+    def skip_preflight(_: str) -> None:
+        """Let this dispatch-only test proceed without an installed Tkinter."""
+
+    monkeypatch.setattr(cli_app, "_preflight", skip_preflight)
+{% endif -%}
 {% if name in ["interactive", "gui"] %}
     def mock_main() -> int:
         nonlocal called
