@@ -95,7 +95,7 @@ Optional components (all boolean):
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
 - `include_all_contributors` - all-contributors config (`.all-contributorsrc`) + README section
 - `include_smokeshow` - publish the combined coverage HTML report to a tokenless ephemeral URL via `smokeshow` (a step in the `coverage-report` CI job; public repos only, `default: false`; see [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md))
-- `include_benchmarks` - pytest-codspeed benchmark suite, `benchmark` tox/mise entry points, and a separate non-blocking CodSpeed workflow (requires `CODSPEED_TOKEN`; see [ADR-032](adr/032-opt-in-performance-benchmarking.md))
+- `include_benchmarks` - pytest-codspeed benchmark suite, `benchmark` tox/mise entry points, and a separate non-blocking CodSpeed workflow (requires `CODSPEED_TOKEN`; see [ADR-034](adr/034-opt-in-performance-benchmarking.md))
 
   These are opt-in integrations kept as toggles (not always-on) precisely to
   preserve the self-contained "green on first push, zero external accounts"

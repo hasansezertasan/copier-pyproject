@@ -1,4 +1,4 @@
-# ADR-032: Opt-in performance benchmarking
+# ADR-034: Opt-in performance benchmarking
 
 ## Status
 
