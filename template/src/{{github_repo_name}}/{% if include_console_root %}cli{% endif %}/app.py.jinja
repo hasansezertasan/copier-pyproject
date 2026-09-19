@@ -1,4 +1,4 @@
-{#- Every derived fact this module needs -- ``launcher_components``,
+{% import "_macros.jinja" as fmt %}{#- Every derived fact this module needs -- ``launcher_components``,
     ``need_import_guard``, ``component_label``, ``component_preflight``,
     ``preflight_used`` and ``root_uses_typer`` -- is computed in ``copier.yml``
     from ``primary_component`` (ADR-019), so this module, its test module and the
@@ -31,22 +31,6 @@ def _run_web(app_path: str | None, *, dev_mode: bool) -> None:
 The application to run as a ``module:attribute`` import
             string. Defaults to this project's own web application.
 {%- endmacro -%}
-{#- Emit ``__all__`` in the exact byte form ruff-format produces (ADR-030): one
-    line when it fits in 88 columns, otherwise one name per line with a trailing
-    comma. ``skip-magic-trailing-comma`` is on in the generated project, so an
-    always-exploded list would be collapsed back. -#}
-{%- macro _dunder_all(names) -%}
-{%- set _joined = names | map('tojson') | join(', ') -%}
-{%- if ('__all__ = [' ~ _joined ~ ']') | length <= 88 -%}
-__all__ = [{{ _joined }}]
-{%- else -%}
-__all__ = [
-{%- for name in names %}
-    {{ name | tojson }},
-{%- endfor %}
-]
-{%- endif -%}
-{%- endmacro -%}
 {#- --- shared guard infrastructure (expanded by both branches) --- -#}
 {%- macro _guard_constants() -%}
 # Every component's runtime dependency is a core ``dependency`` of this package
@@ -70,7 +54,7 @@ _TK_HINT = f"'tkinter' is part of the Python standard library but ships as a sep
     tk-dev; ``worker`` carries ``faststream.<broker>`` rather than the broker
     client, which faststream re-exports behind its own nameless import guard. -#}
 {%- for component in launched_components | sort %}
-_{{ component | upper }}_DEPENDENCIES = ({{ component_dependencies[component] | map('tojson') | join(', ') }}{% if component_dependencies[component] | length == 1 %},{% endif %})
+{{ fmt.py_collection("_" ~ component | upper ~ "_DEPENDENCIES", component_dependencies[component]) }}
 {%- endfor %}
 {%- endmacro -%}
 {%- macro _preflight_fn() -%}
@@ -160,7 +144,7 @@ if TYPE_CHECKING:
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = cli_all.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = cli_all.append("worker") %}{% endif -%}
 {%- set _ = cli_all.sort() -%}
-{{ _dunder_all(cli_all) }}
+{{ fmt.py_collection("__all__", cli_all, kind="list") }}
 
 logger = get_logger()
 
@@ -568,7 +552,7 @@ if TYPE_CHECKING:
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = cli_all.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = cli_all.append("worker") %}{% endif -%}
 {%- set _ = cli_all.sort() -%}
-{{ _dunder_all(cli_all) }}
+{{ fmt.py_collection("__all__", cli_all, kind="list") }}
 
 logger = get_logger()
 {%- if need_import_guard %}

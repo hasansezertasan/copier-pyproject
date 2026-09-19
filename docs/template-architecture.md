@@ -467,6 +467,24 @@ Subcommands:
 `example/` stays gitignored — a pure smoke-test target of the same entrypoint,
 not a drift-checked artifact (an untracked tree has no diff to check).
 
+## Shared Jinja helpers (`_macros.jinja`)
+
+`_macros.jinja` at the **repository root** holds helpers several templates need.
+It sits outside `_subdirectory`, so copier treats it as a template *input* and
+can never render it into a generated project — no `_exclude` override required
+(which would replace copier's default exclude list wholesale). Templates import
+it on their first line.
+
+It currently carries `py_collection(name, items, kind)`, which emits a Python
+tuple or list literal in the exact byte form ruff-format produces: one line when
+the whole statement fits in 88 columns, otherwise one element per line with a
+trailing comma. The right form depends on values only known at render time (the
+package name, the broker module, how many components are enabled), so a template
+that always picks one ships a file the adopter's first `prek run --all-files`
+rewrites — see [ADR-030](adr/030-generated-files-must-be-formatter-canonical.md).
+Used by `__main__.py`, `cli/app.py` and `tests/test_main.py` for `__all__`, the
+component dependency allowlists, and the guard tuples.
+
 ## Generated Project Structure
 
 See [`generated-project-trees.md`](generated-project-trees.md) for the generated,

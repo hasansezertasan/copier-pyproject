@@ -1,4 +1,4 @@
-{#- Rendered by whichever branch defines ``_preflight``, so its
+{% import "_macros.jinja" as fmt %}{#- Rendered by whichever branch defines ``_preflight``, so its
     ``except ImportError`` arm is exercised in every shape rather than only in
     the ones whose dependencies happen to fail that way. -#}
 {%- macro _preflight_import_error_test() -%}
@@ -51,22 +51,6 @@ def test_preflight_names_a_dependency_that_fails_to_import(
         vars(main_module)["_preflight"](_BROKEN_MODULE)
 
     assert excinfo.value.name == _BROKEN_MODULE
-{%- endmacro -%}
-{#- Emit a module-name tuple in the exact byte form ruff-format produces
-    (ADR-030): one line when it fits in 88 columns, otherwise one element per
-    line with a trailing comma. Mirrors the macro in ``__main__.py.jinja``. -#}
-{%- macro _dep_tuple(name, modules) -%}
-{%- set _joined = modules | map('tojson') | join(', ') -%}
-{%- set _tail = ',' if modules | length == 1 else '' -%}
-{%- if (name ~ ' = (' ~ _joined ~ _tail ~ ')') | length <= 88 -%}
-{{ name }} = ({{ _joined }}{{ _tail }})
-{%- else -%}
-{{ name }} = (
-{%- for module in modules %}
-    {{ module | tojson }},
-{%- endfor %}
-)
-{%- endif -%}
 {%- endmacro -%}
 {#- ``root_dependencies`` (the third-party modules the console root imports at
     module scope, before the guard inside ``cli/app.py`` can run) and
@@ -269,7 +253,7 @@ def test_console_root_preserves_unrelated_import_errors(
 {%- if sole_component %}
 
 
-{{ _dep_tuple("_SOLE_DEPENDENCIES", sole_component_dependencies) }}
+{{ fmt.py_collection("_SOLE_DEPENDENCIES", sole_component_dependencies) }}
 {%- if sole_component == "gui" %}
 # The two modules whose absence is a *system* problem rather than a stale
 # dependency sync, so the guard must answer them with the Tk hint instead.

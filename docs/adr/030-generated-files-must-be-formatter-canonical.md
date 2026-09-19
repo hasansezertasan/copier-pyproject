@@ -123,3 +123,23 @@ of what `.example-input.yml`'s own name is.
 - The two formatter configs are pinned to non-default behavior. If a future
   yamlfmt/taplo release changes those knobs' semantics, the guard fails loudly on
   the next render rather than drifting silently — which is the point.
+
+## Amendment (2026-09): a shared helper for collection literals
+
+A Python tuple or list literal rendered from a Jinja loop has no single correct
+spelling: with `skip-magic-trailing-comma` on, ruff-format collapses it to one
+line when the whole statement fits in 88 columns and explodes it one element
+per line otherwise. A template that always emits one form ships a file the
+adopter's first `prek run --all-files` rewrites — the exact failure this ADR
+exists to prevent — and the width depends on values only known at render time
+(a package name, a broker module, how many components are enabled).
+
+`py_collection(name, items, kind)` in `_macros.jinja` does that branch once.
+The file sits at the **repository root**, outside `_subdirectory`, so it is a
+template input that can never be rendered into a generated project, and needs
+no `_exclude` override (which would replace copier's default exclude list
+wholesale). Templates import it on their first line.
+
+Used for `__all__`, the component dependency allowlists and the guard tuples in
+`__main__.py`, `cli/app.py` and `tests/test_main.py`. A second hand-written copy
+of the width branch is the drift it replaced.

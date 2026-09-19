@@ -1,24 +1,7 @@
-{#- ``_preflight`` is needed by both the console-root branch and the
+{% import "_macros.jinja" as fmt %}{#- ``_preflight`` is needed by both the console-root branch and the
     sole-component branch below, which are mutually exclusive, so it is defined
     once as a macro and expanded into whichever one renders. ``tk`` adds the one
     clause that only a GUI entrypoint needs. -#}
-{#- Emit a module-name tuple in the exact byte form ruff-format produces
-    (ADR-030): one line when it fits in 88 columns, otherwise one element per
-    line with a trailing comma. `skip-magic-trailing-comma` is on in the
-    generated project, so an always-exploded tuple would be collapsed back. -#}
-{%- macro _dep_tuple(name, modules) -%}
-{%- set _joined = modules | map('tojson') | join(', ') -%}
-{%- set _tail = ',' if modules | length == 1 else '' -%}
-{%- if (name ~ ' = (' ~ _joined ~ _tail ~ ')') | length <= 88 -%}
-{{ name }} = ({{ _joined }}{{ _tail }})
-{%- else -%}
-{{ name }} = (
-{%- for module in modules %}
-    {{ module | tojson }},
-{%- endfor %}
-)
-{%- endif -%}
-{%- endmacro -%}
 {%- macro _preflight_fn(tk=false) -%}
 def _preflight(module: str) -> None:
     """Import a dependency eagerly, attributing nested failures to it.
@@ -83,7 +66,7 @@ from collections.abc import Callable
 # enables settings) adds both the code and its dependency at once, so an
 # environment that has not been re-synced would otherwise fail here with a bare
 # ``ModuleNotFoundError`` before any launcher code executes.
-_ROOT_DEPENDENCIES = ({{ root_dependencies | map('tojson') | join(', ') }}{% if root_dependencies | length == 1 %},{% endif %})
+{{ fmt.py_collection("_ROOT_DEPENDENCIES", root_dependencies) }}
 _MISSING_ROOT_DEPENDENCY = "Error: The {{github_repo_name}} command requires the '{missing}' package, which is not installed. It ships with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
 
 
@@ -159,7 +142,7 @@ from collections.abc import Callable
 # the wrong interpreter) would otherwise fail here with a bare
 # ``ModuleNotFoundError``. These ship as core dependencies of this package, so
 # the fix is a re-sync, never an extra.
-{{ _dep_tuple("_COMPONENT_DEPENDENCIES", sole_component_dependencies) }}
+{{ fmt.py_collection("_COMPONENT_DEPENDENCIES", sole_component_dependencies) }}
 _MISSING_DEPENDENCY = "Error: The {{ component_label[sole_component] }} component requires '{missing}', which is not available in this environment. {hint}"  # noqa: E501
 _SYNC_HINT = "Component dependencies ship with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
 {%- if sole_component == "gui" %}

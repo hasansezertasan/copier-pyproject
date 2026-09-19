@@ -285,6 +285,12 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   gates on `git diff`, not hook exit codes — taplo used to rewrite files and
   exit 0) plus `tox -e style`'s check-mode taplo/ruff-format
   ([ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)).
+- **Shared Jinja helpers live in `_macros.jinja`** at the repo root — outside
+  `_subdirectory`, so it is an input copier can never render into a project.
+  Templates import it on their first line. It currently carries
+  `py_collection()`, which emits a tuple/list literal in the byte form
+  ruff-format produces; a second hand-rolled copy of that width logic is the
+  drift this replaced ([ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)).
 - **One render entrypoint.** `tools/render.py` is the only place `copier.run_copy`
   is called (harness fixture, CI matrix, docs artifacts, watch loop, mise tasks);
   adding a second `copier copy` spelling is the drift this replaced

@@ -1,0 +1,25 @@
+{#- Shared Jinja helpers. It lives at the repository root, outside the
+    ``_subdirectory`` copier renders, so it is an input that can never become
+    output. Templates pull it in with an ``import`` tag on their first line.
+
+    ``py_collection`` emits a Python tuple or list literal in the exact byte form
+    ruff-format produces (ADR-030): one line when the whole statement fits in 88
+    columns, otherwise one element per line with a trailing comma. The generated
+    project sets ``skip-magic-trailing-comma``, so an always-exploded literal
+    would be collapsed back and an always-inline one would be exploded -- either
+    way the adopter's first ``prek run --all-files`` would rewrite the file. -#}
+{%- macro py_collection(name, items, kind="tuple") -%}
+{%- set _open = '(' if kind == 'tuple' else '[' -%}
+{%- set _close = ')' if kind == 'tuple' else ']' -%}
+{%- set _joined = items | map('tojson') | join(', ') -%}
+{%- set _tail = ',' if kind == 'tuple' and items | length == 1 else '' -%}
+{%- if (name ~ ' = ' ~ _open ~ _joined ~ _tail ~ _close) | length <= 88 -%}
+{{ name }} = {{ _open }}{{ _joined }}{{ _tail }}{{ _close }}
+{%- else -%}
+{{ name }} = {{ _open }}
+{%- for item in items %}
+    {{ item | tojson }},
+{%- endfor %}
+{{ _close }}
+{%- endif -%}
+{%- endmacro -%}
