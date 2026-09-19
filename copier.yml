@@ -170,8 +170,7 @@ include_benchmarks:
   type: bool
   default: "{{ 'include_benchmarks' in preset_map[preset] }}"
   help: >-
-    Include pytest-codspeed benchmarks and a non-blocking CodSpeed CI workflow?
-    Requires registering the repository with CodSpeed and adding CODSPEED_TOKEN.
+    Include pytest-codspeed benchmarks and a non-blocking CodSpeed CI workflow? Requires registering the repository with CodSpeed and adding CODSPEED_TOKEN.
 include_launcher:
   type: bool
   default: "{{ 'include_launcher' in preset_map[preset] }}"
