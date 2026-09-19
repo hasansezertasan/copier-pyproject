@@ -263,6 +263,11 @@ test = [
   "pytest-timeout>=2.3",
 {%- endif %}
 ]
+{%- if include_benchmarks %}
+benchmarks = [
+  "pytest-codspeed>=4.0",
+]
+{%- endif %}
 {%- if include_docs %}
 docs = [
   "sphinx==8.1.3",
@@ -400,11 +405,19 @@ name = "cz_conventional_commits"
 
 [tool.pytest.ini_options]
 # addopts = "-rXs --strict-config --strict-markers"
-{%- if include_worker %}
+{%- if include_worker and include_benchmarks %}
+# Integration and benchmark tests need explicit opt-in runners, so neither is
+# included in the regular suite.
+addopts = "-v --tb=short -m 'not (integration or benchmark)'"
+{%- elif include_worker %}
 # `integration` tests need a real {{worker_broker}} (started via testcontainers,
 # Docker required), so they are deselected by default. A CLI `-m integration`
 # overrides this addopts default; CI runs them in a dedicated Ubuntu-only job.
 addopts = "-v --tb=short -m 'not integration'"
+{%- elif include_benchmarks %}
+# Benchmarks run separately because their timing-oriented plugin is not part of
+# the normal test dependency group and performance is not a correctness gate.
+addopts = "-v --tb=short -m 'not benchmark'"
 {%- else %}
 addopts = "-v --tb=short"
 {%- endif %}
@@ -412,6 +425,9 @@ addopts = "-v --tb=short"
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
 # jobs (issue #160, ADR-028); `integration` (ADR-008) is one axis of the scheme.
 markers = [
+{%- if include_benchmarks %}
+  "benchmark: performance benchmark (run with tox -e benchmark)",
+{%- endif %}
 {%- if include_worker %}
   "integration: requires a real broker via testcontainers (run with -m integration)",
 {%- endif %}
@@ -678,6 +694,10 @@ convention = "pep257"
 # Tests legitimately use asserts/magic values, reach into package internals, and
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
+{%- if include_benchmarks %}
+# Benchmarks are collected by path, not imported as a package.
+"benchmarks/**/*.py" = ["INP001"]
+{%- endif %}
 {%- if include_examples %}
 "examples/**/*.py" = ["INP001"]
 {%- endif %}
@@ -1061,6 +1081,18 @@ commands = [
 ]
 dependency_groups = ["tool"]
 description = "Setup environment for profiling with py-spy, scalene, and cProfile"
+runner = "uv-venv-runner"
+{%- endif %}
+{%- if include_benchmarks %}
+
+# On-demand only: benchmark timings are reported by the dedicated CodSpeed
+# workflow and deliberately stay outside the correctness/coverage suite.
+[tool.tox.env.benchmark]
+commands = [["pytest", "-m", "benchmark", "benchmarks", { replace = "posargs", extend = true }]]
+# Reuse pytest's base plugins/configuration (notably pytest-asyncio) so this
+# explicit runner behaves like the normal test environment.
+dependency_groups = ["test", "benchmarks"]
+description = "Run performance benchmarks locally."
 runner = "uv-venv-runner"
 {%- endif %}
 {%- if include_cli %}

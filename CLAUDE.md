@@ -219,6 +219,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_worker` | FastStream worker (`worker_broker` = kafka/nats/rabbitmq/redis) | [008](docs/adr/008-worker-broker-testing-strategy.md) |
 | `include_c_extensions` | Cython + multi-platform wheels | — |
 | `include_profiling` | py-spy / scalene / cProfile | — |
+| `include_benchmarks` | pytest-codspeed benchmarks + non-blocking CodSpeed workflow | [034](docs/adr/034-opt-in-performance-benchmarking.md) |
 | `include_examples` | `examples/` folder with usage stubs (`library`-preset default) | — |
 | `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + versioned Pages deploy with a version switcher + per-page "last updated"); **default-on** every preset, off keeps a README-only project. `docs/maintaining/` always ships | [025](docs/adr/025-optional-docs-subsystem.md), [027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md) |
 | `include_launcher` | PyCrucible online-first-run launcher | [007](docs/adr/007-standalone-executable-toggles.md) |
