@@ -92,6 +92,10 @@ without error, so the repository is never blocked.
 Protect ``main`` so a PR can only merge once its checks pass. Mark these check
 contexts as required (the names are the **check runs**, not the workflow files):
 
+- ``check`` — ``ci.yml``'s aggregate gate. It is the single context that covers
+  the tests, the per-component coverage gates, style, hooks and the documentation
+  build; without it a PR whose entire test suite failed still satisfies
+  protection, because the four metadata gates below say nothing about the code.
 - ``Validate PR title`` — the Conventional Commits PR-title lint
   (``check-pr-title.yml``), which release-please depends on.
 - ``Validate branch name`` — the Conventional Branch lint
@@ -100,7 +104,10 @@ contexts as required (the names are the **check runs**, not the workflow files):
 - ``Verify linked issue`` — the linked-issue check (``check-linked-issues.yml``),
   which fails a PR with no linked issue.
 - ``Task Completed Checker`` — the PR task-list gate (``task-completed-check.yml``),
-  which fails while any unticked checkbox remains in the PR description.
+  which fails while any unticked checkbox remains in the PR description. This is
+  the name of the **check run** the action publishes, not of the job around it
+  (``Check PR task list``) — the job is green even when boxes are unticked, so
+  requiring the job name would not gate anything.
 
 **[AGENT]**
 
@@ -111,7 +118,7 @@ contexts as required (the names are the **check runs**, not the workflow files):
    {
      "required_status_checks": {
        "strict": true,
-       "contexts": ["Validate PR title", "Validate branch name", "Verify linked issue", "Task Completed Checker"]
+       "contexts": ["check", "Validate PR title", "Validate branch name", "Verify linked issue", "Task Completed Checker"]
      },
      "enforce_admins": null,
      "required_pull_request_reviews": null,
@@ -124,13 +131,53 @@ contexts as required (the names are the **check runs**, not the workflow files):
 .. code-block:: sh
 
    gh api repos/{{github_user}}/{{github_repo_name}}/branches/main/protection \
-     --jq '(.required_status_checks.strict == true) and ((["Validate PR title","Validate branch name","Verify linked issue","Task Completed Checker"] - (.required_status_checks.contexts // [])) == [])' | grep -qx true
+     --jq '(.required_status_checks.strict == true) and ((["check","Validate PR title","Validate branch name","Verify linked issue","Task Completed Checker"] - (.required_status_checks.contexts // [])) == [])' | grep -qx true
 
 UI equivalent: **Settings → Branches → Add branch ruleset** (or **Add rule** for
 ``main``) — enable **Require status checks to pass before merging**, then search
-for and add the four contexts above. The contexts only appear in the picker
+for and add the five contexts above. The contexts only appear in the picker
 after each check has run at least once.
 {% endif %}
+.. _setup-first-pr:
+
+Apply protection *after* the first merge
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``check-pr-title.yml``, ``check-branch-name.yml``, ``check-linked-issues.yml``
+and ``task-completed-check.yml`` all trigger on ``pull_request_target``, which
+GitHub sources from the **base** branch. On a repository adopting this template
+``main`` does not have those workflows yet, so the very first pull request — the
+one that adds them — reports none of the four contexts and is permanently
+blocked by the protection above.
+
+So either apply branch protection only *after* the scaffolding has landed on
+``main``, or admin-merge that first pull request. From the second PR onwards the
+workflows exist on the base branch and every context reports normally.
+
+.. _setup-release-pr-checks:
+
+Release PRs need a manual nudge
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``release.yml`` runs ``release-please`` with the implicit ``GITHUB_TOKEN``, and
+**events created with that token do not start workflow runs** — the same rule
+that stops a ``release: published`` event from triggering ``gh-pages.yml``. So
+the release pull request opens with none of the required contexts reported and
+cannot merge on its own. (Renovate PRs are unaffected: Renovate authenticates as
+a GitHub App, not as ``GITHUB_TOKEN``.)
+
+This is not a setup step — there is nothing to configure and no ``[CHECK]``.
+It is the recurring workaround, recorded here because it is not discoverable
+from the workflows themselves: **close and reopen the release pull request.**
+Every required context listens for ``reopened``, so reopening it as yourself
+fires all of them under your identity. Do not just edit the PR body — that only
+re-fires the three ``pull_request_target`` checks that listen for ``edited``,
+missing ``check-branch-name.yml`` and ``ci.yml``.
+
+This is a deliberate trade, not an oversight: the alternative is giving
+``release.yml`` a PAT or GitHub App token, which is a standing credential with
+write access to ``main``. One manual reopen per release is the cheaper side.
+
 Let Actions open the release PR
 -------------------------------
 
@@ -187,6 +234,47 @@ tokens or secrets to manage).
 
 **[CHECK]** No scriptable check — confirm the pending publisher is listed at
 `PyPI → Publishing <https://pypi.org/manage/account/publishing/>`_.
+
+Restrict the ``publish`` environment to ``main``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``pypi-publish`` job holds ``id-token: write`` against the ``publish``
+environment, and ``release.yml`` carries ``workflow_dispatch``. A manual run
+executes the workflow file **from the branch you select**, so the
+``release_created`` guard inside the file is not a mitigation: anyone with write
+access could push a ``release.yml`` with that guard removed to an unprotected
+branch, dispatch it, mint a PyPI trusted-publishing token and publish arbitrary
+content. Branch protection on ``main`` is never consulted on that path, and
+removing the trigger is not an option — ``finalize-release`` re-dispatches this
+workflow with ``gh workflow run`` to reconcile the next release PR.
+
+The containment is the environment's **deployment branch policy**, which GitHub
+evaluates outside the workflow file, so editing the file cannot bypass it. Do
+this before the first release: GitHub auto-creates the environment
+**unprotected** on first use, and a repo scaffolded over an existing project may
+also be carrying a stale, unreferenced publish environment from its previous
+workflow.
+
+**[AGENT]**
+
+.. code-block:: sh
+
+   gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/environments/publish \
+     -f 'deployment_branch_policy[protected_branches]=false' \
+     -f 'deployment_branch_policy[custom_branch_policies]=true'
+   gh api -X POST repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
+     -f name=main -f type=branch
+
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh api repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
+     --jq 'any(.branch_policies[]; .name == "main")' | grep -qx true
+
+UI equivalent: **Settings → Environments → publish → Deployment branches and
+tags** — choose **Selected branches and tags** and add ``main``. While you are
+there, delete any leftover environment a previous release workflow created.
 
 Coverage reporting (Codecov)
 ----------------------------

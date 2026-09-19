@@ -1,6 +1,17 @@
 ---
 name: Release
 on:
+  # DO NOT REMOVE workflow_dispatch. It looks like a publish-escalation surface —
+  # a manual run executes this file from the *selected branch*, so the
+  # `release_created` guards are not a mitigation — but `finalize-release`
+  # re-dispatches this workflow with `gh workflow run` to reconcile a phantom
+  # release PR, and that API requires the trigger to exist. workflow_dispatch is
+  # also the documented exception to GITHUB_TOKEN loop-prevention, which is why
+  # that step needs no PAT. The containment is the `publish` environment's
+  # deployment-branch policy, which GitHub evaluates OUTSIDE this file so a
+  # branch edit cannot bypass it — see docs/maintaining/setup.rst
+  # ("PyPI trusted publishing"). Verify that policy is in place rather than
+  # deleting this trigger.
   workflow_dispatch:
   push:
     branches:
@@ -118,7 +129,7 @@ jobs:
           path: dist/
 {%- endif %}
       - name: Publish distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
 {%- if include_launcher %}
   build-launcher:
     name: Build Launcher (PyCrucible)
@@ -614,7 +625,26 @@ jobs:
       - name: Fetch gh-pages branch
         # build_docs.py preserves already-published versions from gh-pages; make
         # the branch available locally (no-op on the very first release).
-        run: git fetch origin gh-pages:gh-pages || echo "gh-pages does not exist yet"
+        #
+        # `git fetch ... || echo` would swallow a transport error as if the branch
+        # were simply absent: build_docs.py would then assemble a site with no
+        # prior versions and the deploy below (clean, minus pr-preview/**) would
+        # DELETE every published version directory from gh-pages. ls-remote can
+        # tell the two apart — exit 2 is "no such ref", anything else is a real
+        # failure worth aborting on.
+        run: |
+          set +e
+          git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            git fetch origin gh-pages:gh-pages
+          elif [ "$rc" -eq 2 ]; then
+            echo "gh-pages does not exist yet — first release, nothing to preserve"
+          else
+            echo "::error::could not query origin for gh-pages (ls-remote exit $rc); refusing to continue and risk deleting published versions"
+            exit 1
+          fi
       - name: Build versioned docs
         env:
           PYTHONUNBUFFERED: "1"

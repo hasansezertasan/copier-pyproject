@@ -107,6 +107,36 @@ would wipe every version-slug directory. It checks out the latest release tag,
 rebuilds that version, and preserves the rest — so a manual run never overwrites
 a released version's docs with unreleased `main` content.
 
+The tag comes from `gh api .../releases/latest`, **not** `git describe --tags`.
+release-please creates the tag (`force-tag-creation`) the moment the release PR
+merges and leaves the release a *draft* until the publish jobs succeed, so
+`git describe` would select an unreleased version — precisely in the window a
+manual redeploy is most likely to be run, right after a failed release. The
+`releases/latest` endpoint excludes drafts and prereleases by definition. The
+interpreter/uv setup steps run **after** that checkout, so the tagged docs build
+on the Python version the release actually shipped on rather than whatever
+`main` has bumped to since.
+
+### 4a. The `gh-pages` fetch must fail loudly
+
+Both deploy paths previously ran `git fetch origin gh-pages:gh-pages || echo
+"gh-pages does not exist yet"`, which swallows *every* failure, not only a
+missing ref. `build_docs.py` would then assemble a site with no prior versions
+and the deploy — clean, minus `pr-preview/**` — would **remove** the published
+version directories from `gh-pages`. One transient transport error destroys the
+documentation archive for every prior release.
+
+`git fetch` cannot express the distinction; `git ls-remote --exit-code` can
+(exit 2 means no matching ref, anything else is a real failure), so both
+workflows branch on its exit code and abort on anything but 0 or 2.
+
+The same rule applies one layer up, in `build_docs.py`:
+`preserve_from_gh_pages()` takes a `required` flag and **raises** when a subtree
+cannot be read. Every version slug it is handed came from `existing_versions()`
+— a `git ls-tree` of that very ref — so it provably exists, and silently
+omitting it is the same deletion by another route. Only the `latest` alias is
+genuinely optional.
+
 ### 5. Per-page "last updated"
 
 Add `sphinx-last-updated-by-git` to the `docs` dependency group (always-on within
@@ -137,3 +167,11 @@ blanket suppression.
 - `sphinx-last-updated-by-git` requires full git history at build time; the docs
   CI jobs already check out with `fetch-depth: 0`.
 - PR previews are unchanged and remain disjoint from version directories.
+- **The Sphinx warning gate lives in a `check`-aggregated job.** `docs-build`
+  (`sphinx-build -w` + `docs/check_warnings.py`) runs in `ci.yml`'s
+  `docs-doctest` job, which `check` — the required status context — aggregates.
+  It previously ran only in `docs-preview.yml`, a job forks skip and no
+  protected branch requires, so a PR introducing broken references kept every
+  required context green. `docs-doctest` on its own is `sphinx-build -b doctest`
+  with no `-W` and no allowlist, so it never covered this. That job checks out
+  at `fetch-depth: 0` for the same reason the other docs jobs do.

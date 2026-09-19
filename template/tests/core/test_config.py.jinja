@@ -2,7 +2,9 @@
 
 These tests assert only the public ``Settings`` behavior shared by both the
 pydantic-settings and stdlib backends, so they hold regardless of the
-``include_pydantic_settings`` choice.
+``include_pydantic_settings`` choice. The one backend-specific detail is
+``.env`` isolation in ``test_defaults`` — only the pydantic-settings backend
+reads a dotenv file.
 """
 
 from __future__ import annotations
@@ -27,8 +29,12 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("DEBUG", "LOG_LEVEL", "CONFIG_DIR"):
         monkeypatch.delenv(f"{ENV_PREFIX}{name}", raising=False)
 
-    settings = Settings()
-
+{% if include_pydantic_settings %}    # Clearing the environment is not enough: the pydantic-settings backend also
+    # reads `.env`, which .env.example tells contributors to create. Without
+    # this the test passes on CI and fails on any configured machine.
+    settings = Settings(_env_file=None)
+{% else %}    settings = Settings()
+{% endif %}
     assert settings.debug is False
     assert settings.log_level == "INFO"
     assert settings.config_dir == ROOT_FOLDER_PATH
