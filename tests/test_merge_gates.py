@@ -166,7 +166,11 @@ def test_setup_doc_contains_the_publish_environment_policy(
     # a pre-existing wildcard would stay eligible beside `main`. Delete first,
     # and assert the collection is exactly one `main` branch policy.
     assert "-X DELETE" in setup
-    assert '== ["branch:main"]' in setup
+    # `--paginate` applies `--jq` once per page, so the exactness check compares
+    # the accumulated lines: a per-page `== ["branch:main"]` piped to
+    # `grep -qx true` would pass on a final page that holds only `main`.
+    assert '[ "$policies" = "branch:main" ]' in setup
+    assert '"\\(.type // "branch"):\\(.name)"' in setup
     assert "DO NOT REMOVE workflow_dispatch" in _read(
         root, ".github", "workflows", "release.yml"
     )

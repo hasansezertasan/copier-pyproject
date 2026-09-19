@@ -267,22 +267,29 @@ delete every policy first and re-add exactly one:
    gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/environments/publish \
      -F 'deployment_branch_policy[protected_branches]=false' \
      -F 'deployment_branch_policy[custom_branch_policies]=true'
-   gh api --paginate repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
-     --jq '.branch_policies[].id' |
-     while read -r id; do
-       gh api -X DELETE "repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies/$id"
-     done
+   ids="$(gh api --paginate repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
+     --jq '.branch_policies[].id')"
+   for id in $ids; do
+     gh api -X DELETE "repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies/$id"
+   done
    gh api -X POST repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
      -f name=main -f type=branch
 
 **[CHECK]** The collection must be *exactly* one branch policy named ``main`` —
 asserting only that ``main`` is present would pass with a wildcard sitting next
-to it:
+to it. Compare the *accumulated* lines rather than folding the comparison into
+``--jq``: under ``--paginate`` the jq expression runs once **per page**, so a
+per-page ``== ["branch:main"]`` prints ``true`` for a final page holding only
+``main`` even while an earlier page still carries a wildcard — and a
+``grep -qx true`` over that output would accept it. (``--slurp`` is the
+documented way to wrap every page into one array, but ``gh`` rejects it
+together with ``--jq``.)
 
 .. code-block:: sh
 
-   gh api --paginate repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
-     --jq '[.branch_policies[] | "\(.type // "branch"):\(.name)"] == ["branch:main"]' | grep -qx true
+   policies="$(gh api --paginate repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
+     --jq '.branch_policies[] | "\(.type // "branch"):\(.name)"')"
+   [ "$policies" = "branch:main" ]
 
 UI equivalent: **Settings → Environments → publish → Deployment branches and
 tags** — choose **Selected branches and tags**, delete every rule already listed
