@@ -7,6 +7,9 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    # The job below is draft-gated, so leaving draft must explicitly start a
+    # fresh run; `ready_for_review` is not part of GitHub's default event types.
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions: {}
 

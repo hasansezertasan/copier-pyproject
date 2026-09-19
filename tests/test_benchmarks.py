@@ -38,6 +38,9 @@ def test_benchmark_scaffold_is_separate_and_non_blocking(
     assert "CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea" in workflow
     assert "--group test --group benchmarks" in workflow
     assert "CODSPEED_TOKEN secret is not set" in workflow
+    # The job is draft-gated, so leaving draft must start a fresh run.
+    assert "draft != true" in workflow
+    assert "types: [opened, synchronize, reopened, ready_for_review]" in workflow
 
     ci = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "benchmarks" not in ci
