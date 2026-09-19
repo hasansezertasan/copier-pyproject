@@ -261,6 +261,25 @@ whereas the redundant type checkers `ty`/`pyrefly`/`zuban` stay style-env-only s
 the fast gate carries one representative type checker (basedpyright), not five.
 See [ADR-014](adr/014-import-linter-for-architecture-contracts.md).
 
+**semgrep** is the rules-database SAST layer over `src/`, delivered
+style-env-only for the same reason `ty`/`pyrefly`/`zuban` are: it keeps no
+on-disk rule cache, so a prek hook would make a registry request on every `git
+commit` and fail for an offline contributor. Pinned in the `style` group
+(Renovate tracks it through the native `pep621` manager) and invoked as
+`semgrep scan --config p/python --error --metrics=off src` — the ruleset is
+*named* rather than `--config auto` so rule selection does not depend on
+language auto-detection, and `--metrics=off` keeps scan telemetry off the wire.
+Two consequences worth knowing: the run is **not hermetic** (rules are fetched
+at scan time, so a semgrep release can turn a green `main` red and a registry
+outage fails the env), and findings **overlap** ruff — `select = ["ALL"]` turns
+all of flake8-bandit (`S`) on, so an md5 call trips both `S324` and
+`insecure-hash-algorithm-md5`, and such a line needs both `# noqa` and
+`# nosemgrep: <rule-id>`. The genuine marginal value is the cross-statement
+taint rules ruff's per-node checks cannot express. The rules are **not** vendored
+into the template: the registry rules are under the Semgrep Rules License v1.0
+("You may not distribute the rules"), which forbids shipping them to adopters.
+See [ADR-032](adr/032-semgrep-sast-in-the-style-env.md).
+
 Also always included (no toggle): structured GitHub issue forms
 (`.github/ISSUE_TEMPLATE/bug_report.yml` + `feature_request.yml` + `config.yml`,
 the latter disabling blank issues) whose `component` dropdown is Jinja-gated to
@@ -865,27 +884,6 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
        DB), this re-audits the *entire* resolved tree against the PyPI Advisory
        DB on the weekly cron, so a CVE disclosed *after* a dependency merged is
        caught while it is still pinned.
-     - `semgrep` (always): rules-database SAST over `src/` via `uvx semgrep scan`
-       (ephemeral env, like `pip-audit`), with the `p/python` registry ruleset
-       named explicitly rather than `--config auto` so rule *selection* does not
-       depend on semgrep's language auto-detection. `--error` makes findings
-       blocking (a false positive is silenced with a trailing
-       `# nosemgrep: <rule-id>`); `--metrics=off` keeps scan telemetry off the
-       wire. It **overlaps** ruff's flake8-bandit (`S`) rules rather than merely
-       complementing them — `select = ["ALL"]` turns all of `S` on, so an md5
-       call trips both `S324` and `insecure-hash-algorithm-md5`; the genuine
-       marginal value is `p/python`'s cross-statement taint rules, which ruff's
-       per-node AST checks cannot express, on a faster cadence than CodeQL's
-       scheduled deep analysis. Note this job is *not* hermetic: the tool is
-       unpinned (`uvx`) and the ruleset is fetched live, so a semgrep release or
-       a new community rule can turn a previously-green `main` red, and a
-       registry outage fails the job. That is the accepted trade for zero
-       ruleset maintenance — `p/security-audit` is deliberately **not** added on
-       top (auditor-oriented, low-confidence pack; `p/python` already carries the
-       `python.lang.security.*` rules). Deliberately *not* in the `style`
-       dependency group or a prek hook: the wheel is ~70 MB and the ruleset is
-       fetched from the registry, so a local pre-commit gate would be slow and
-       network-dependent.
      - `trivy-image` (**`include_web` only**): builds the generated `Dockerfile`
        and scans the image with `aquasecurity/trivy-action`
        (`severity CRITICAL,HIGH`, `ignore-unfixed: true`, `exit-code: 1`). Gated

@@ -246,6 +246,8 @@ prek hooks (incl. blocking `zizmor` and `detect-secrets` with a committed
 ([ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)),
 the tox `style` env as the sole lint/build
 orchestrator ([ADR-003](docs/adr/003-tox-as-canonical-lint-runner.md)),
+a style-env-only semgrep SAST pass over `src/`
+([ADR-032](docs/adr/032-semgrep-sast-in-the-style-env.md)),
 editorconfig-checker, ghalint, `SUPPORT.md`, `.gitattributes`, `.git_archival.txt`,
 and `AGENTS.md`/`CLAUDE.md` onboarding files.
 
