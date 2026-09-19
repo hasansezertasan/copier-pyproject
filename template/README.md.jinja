@@ -40,7 +40,7 @@
 
 - [Screenshots](#screenshots)
 - [Installation](#installation)
-{%- if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_profiling or include_c_extensions %}
+{%- if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_profiling or include_benchmarks or include_c_extensions %}
 - [Usage](#usage)
 {%- endif %}
 - [Support](#support-heart)
@@ -196,6 +196,21 @@ View cProfile results with:
 ```bash
 snakeviz profile.prof
 ```
+{%- endif %}
+{%- if include_benchmarks %}
+
+### Benchmarks
+
+Run the opt-in benchmark suite locally:
+
+```bash
+tox run -e benchmark
+```
+
+The CodSpeed workflow reports simulated CPU-performance deltas on pushes and
+pull requests when ``CODSPEED_TOKEN`` is configured. Add project-specific hot
+paths under ``benchmarks/``; benchmark results are intentionally not a merge
+gate.
 {%- endif %}
 {%- if include_c_extensions %}
 

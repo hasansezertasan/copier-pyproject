@@ -362,7 +362,7 @@ turned on.
    [ "$(gh repo view {{github_user}}/{{github_repo_name}} --json hasDiscussionsEnabled --jq '.hasDiscussionsEnabled')" = "true" ]
 
 UI equivalent: **Settings → General → Features** — tick **Discussions**.
-{% if include_web or include_homebrew or include_scoop or include_sourcery or include_sonarcloud or include_all_contributors or include_repo_settings %}
+{% if include_web or include_homebrew or include_scoop or include_sourcery or include_sonarcloud or include_all_contributors or include_repo_settings or include_benchmarks %}
 Optional integrations
 ---------------------
 
@@ -504,6 +504,33 @@ value in ``sonar-project.properties``), then generate a token.
 Like the Codecov upload, the scan is opt-in and non-blocking: with the secret
 unset, CI records a ``::notice::`` and skips it, and fork PRs are skipped
 entirely (they never receive secrets).
+{%- endif %}
+{%- if include_benchmarks %}
+CodSpeed benchmarks
+~~~~~~~~~~~~~~~~~~~
+
+The ``benchmarks.yml`` workflow measures ``benchmarks/`` with
+`CodSpeed <https://codspeed.io/>`_ and reports simulated CPU-performance deltas
+on pushes and pull requests. It is deliberately not a merge gate.
+
+**[HUMAN]** Register ``{{github_user}}/{{github_repo_name}}`` with CodSpeed and
+create its upload token.
+
+**[AGENT]** Set it as a repository secret:
+
+.. code-block:: sh
+
+   gh secret set CODSPEED_TOKEN --repo {{github_user}}/{{github_repo_name}}
+
+**[CHECK]**
+
+.. code-block:: sh
+
+   gh secret list --repo {{github_user}}/{{github_repo_name}} --json name \
+     --jq 'any(.[]; .name == "CODSPEED_TOKEN")' | grep -qx true
+
+Without the secret, the workflow records a visible skip and remains green.
+Run the suite locally with ``uv run --locked tox run -e benchmark``.
 {%- endif %}
 {%- if include_sourcery %}
 Sourcery

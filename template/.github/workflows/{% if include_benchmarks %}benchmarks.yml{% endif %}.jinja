@@ -1,0 +1,44 @@
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions: {}
+
+jobs:
+  benchmarks:
+    name: CodSpeed benchmarks
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      CODSPEED_TOKEN_SET: {% raw %}${{ secrets.CODSPEED_TOKEN != '' }}{% endraw %}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        if: {% raw %}${{ env.CODSPEED_TOKEN_SET == 'true' }}{% endraw %}
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Run CodSpeed benchmarks
+        if: {% raw %}${{ env.CODSPEED_TOKEN_SET == 'true' }}{% endraw %}
+        uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea  # v5
+        with:
+          mode: simulation
+          run: uv run --locked --group test --group benchmarks pytest -m benchmark benchmarks --codspeed
+          token: {% raw %}${{ secrets.CODSPEED_TOKEN }}{% endraw %}
+      - name: Note skipped CodSpeed benchmarks
+        if: {% raw %}${{ env.CODSPEED_TOKEN_SET != 'true' }}{% endraw %}
+        run: echo "::notice::CODSPEED_TOKEN secret is not set — skipping CodSpeed benchmarks. See docs/maintaining/setup.rst (Repository setup) to enable them."
