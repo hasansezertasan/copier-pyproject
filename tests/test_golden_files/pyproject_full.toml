@@ -141,13 +141,21 @@ style = [
   "pylint==4.0.6",
   "pyrefly==1.2.0",
   "ruff==0.16.1",
-  "semgrep==1.177.0",
   "slotscheck==0.20.1",
   "sphinx-lint==1.0.2",
   "taplo==0.9.3",
   "ty==0.0.66",
   "typos==1.49.0",
   "zuban==0.9.1",
+]
+# semgrep is deliberately its own group rather than part of `style`: `dev`
+# includes `style` wholesale, so a plain `uv sync` — and every Windows/macOS
+# cell in ci.yml, which runs `uv run --locked tox run` — would download and
+# unpack ~215 MB (the wheel bundles a native semgrep-core) for a tool that only
+# ever executes in the Linux-only `style` job. The tox `style` env lists this
+# group explicitly. Still a single version source, same as every other pin.
+sast = [
+  "semgrep==1.177.0",
 ]
 test = [
   "coverage-enable-subprocess==1.0",
@@ -809,7 +817,7 @@ commands = [
 ]
 # `test` is included so the type checkers that scope tests (e.g. ty) can
 # resolve pytest and other test-only imports.
-dependency_groups = ["style", "test"]
+dependency_groups = ["sast", "style", "test"]
 description = "Run Checkers, Linters and Formatters"
 runner = "uv-venv-runner"
 

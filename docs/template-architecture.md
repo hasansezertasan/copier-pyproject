@@ -264,8 +264,11 @@ See [ADR-014](adr/014-import-linter-for-architecture-contracts.md).
 **semgrep** is the rules-database SAST layer over `src/`, delivered
 style-env-only for the same reason `ty`/`pyrefly`/`zuban` are: it keeps no
 on-disk rule cache, so a prek hook would make a registry request on every `git
-commit` and fail for an offline contributor. Pinned in the `style` group
-(Renovate tracks it through the native `pep621` manager) and invoked as
+commit` and fail for an offline contributor. Pinned in its own `sast` group —
+Renovate tracks it through the native `pep621` manager, and keeping it out of
+`style` (which `dev` includes wholesale) spares every plain `uv sync` and every
+Windows/macOS CI cell a ~215 MB install of a tool only the Linux `style` job
+runs — and invoked as
 `semgrep scan --config p/python --error --metrics=off src` — the ruleset is
 *named* rather than `--config auto` so rule selection does not depend on
 language auto-detection, and `--metrics=off` keeps scan telemetry off the wire.

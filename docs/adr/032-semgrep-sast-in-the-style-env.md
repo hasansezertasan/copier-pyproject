@@ -43,11 +43,19 @@ Three facts, established while scoping it, decided the shape:
 
 ## Decision
 
-### 1. semgrep is pinned in the `style` dependency group
+### 1. semgrep is pinned in its own `sast` dependency group
 
-`semgrep==1.177.0` sits alongside the other linters, so the version has a single
-source that Renovate tracks through the native `pep621` manager — no
-`customManager`, per the repo's Renovate convention.
+`semgrep==1.177.0` has a single version source that Renovate tracks through the
+native `pep621` manager — no `customManager`, per the repo's Renovate
+convention.
+
+It sits in a dedicated group rather than in `style` with the other linters
+because `dev` includes `style` wholesale. A plain `uv sync`, and every
+Windows/macOS cell in `ci.yml` (which runs `uv run --locked tox run`, syncing
+the default `dev` group), would otherwise download and unpack **~215 MB** — the
+wheel bundles a native `semgrep-core` — for a tool that only ever executes in
+the Linux-only `style` job. The tox `style` env lists `sast` explicitly, so the
+one place that runs semgrep is the one place that installs it.
 
 ### 2. It runs in the tox `style` env only — not as a prek hook
 
@@ -85,9 +93,12 @@ and untracked by Renovate. The `style` env placement supersedes it.
   red on an unrelated PR, and a registry outage fails `tox -e style`. This is
   the accepted trade for zero ruleset maintenance; fact (1) removes the only
   alternative that would have fixed it.
-- **A ~70 MB wheel in the `style` group**, so every contributor's `uv sync` and
-  every `tox -e style` run carries it — including all ten render scenarios in
-  this repo's own `template-ci.yml`.
+- **~215 MB installed** in the `style` env, on every `tox -e style` run —
+  including all ten render scenarios in this repo's own `template-ci.yml`. The
+  `sast` group keeps that off plain `uv sync` and the non-Linux CI cells, but
+  the style job itself pays it. (semgrep *does* ship a genuine `win_amd64`
+  wheel carrying `semgrep-core.exe`, so this is a cost decision, not a platform
+  constraint.)
 - **Findings overlap ruff.** A flagged line may need both `# noqa: S…` and
   `# nosemgrep: <rule-id>`. The genuine marginal value is the cross-statement
   taint rules ruff's per-node checks cannot express, on a faster cadence than
