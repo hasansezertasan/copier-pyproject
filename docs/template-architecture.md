@@ -266,6 +266,28 @@ whereas the redundant type checkers `ty`/`pyrefly`/`zuban` stay style-env-only s
 the fast gate carries one representative type checker (basedpyright), not five.
 See [ADR-014](adr/014-import-linter-for-architecture-contracts.md).
 
+**semgrep** is the rules-database SAST layer over `src/`, delivered
+style-env-only for the same reason `ty`/`pyrefly`/`zuban` are: it keeps no
+on-disk rule cache, so a prek hook would make a registry request on every `git
+commit` and fail for an offline contributor. Pinned in its own `sast` group —
+Renovate tracks it through the native `pep621` manager, and keeping it out of
+`style` (which `dev` includes wholesale) spares every plain `uv sync` and every
+Windows/macOS CI cell a ~215 MB install of a tool only the Linux `style` job
+runs — and invoked as
+`semgrep scan --config p/python --error --metrics=off src` — the ruleset is
+*named* rather than `--config auto` so rule selection does not depend on
+language auto-detection, and `--metrics=off` keeps scan telemetry off the wire.
+Two consequences worth knowing: the run is **not hermetic** (rules are fetched
+at scan time, so a semgrep release can turn a green `main` red and a registry
+outage fails the env), and findings **overlap** ruff — `select = ["ALL"]` turns
+all of flake8-bandit (`S`) on, so an md5 call trips both `S324` and
+`insecure-hash-algorithm-md5`, and such a line needs both `# noqa` and
+`# nosemgrep: <rule-id>`. The genuine marginal value is the cross-statement
+taint rules ruff's per-node checks cannot express. The rules are **not** vendored
+into the template: the registry rules are under the Semgrep Rules License v1.0
+("You may not distribute the rules"), which forbids shipping them to adopters.
+See [ADR-032](adr/032-semgrep-sast-in-the-style-env.md).
+
 Also always included (no toggle): structured GitHub issue forms
 (`.github/ISSUE_TEMPLATE/bug_report.yml` + `feature_request.yml` + `config.yml`,
 the latter disabling blank issues) whose `component` dropdown is Jinja-gated to
