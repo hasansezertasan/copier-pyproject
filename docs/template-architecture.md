@@ -238,6 +238,9 @@ orchestrator layer above them (the `{{pkg}}` Typer root, whose subcommands
 lazy-import those components to launch them — see ADR-019), all layered above
 `core` above `utils`. The `cli` layer is present whenever `include_console_root`
 is true (see the entry-points section below), not only when `include_cli` is set.
+`core` is also where the shared application payload lives (`core/app.py`,
+ADR-033): it is already the layer directly beneath the component group, so the
+sharing needs no new layer and the contract is unchanged.
 The component layers are Jinja-conditional on the enabled toggles (omitted when
 none are enabled, leaving a `core > utils` contract), so no `ignore_imports` is
 needed. The contract is **exhaustive** (`containers = ["{{pkg}}"]`,
@@ -478,6 +481,16 @@ Root modules in `src/{{github_repo_name}}/`:
 Subpackages (each with `__init__.py` and `app.py`):
 
 - `core/` - Core infrastructure (always included):
+  - `app.py` - The version/runtime payload **every** interface renders
+    (`version()`, `info()`, `info_or_unknown()`, `MetadataUnavailableError`).
+    Each component is an adapter over it — the CLI exits 1, the web app answers
+    503, the MCP tool returns error text, the GUI/TUI show `unknown`, the worker
+    falls back to `0.0.0` — so the payload and the metadata lookup exist once
+    rather than once per component. Renders as an empty placeholder for a
+    library with no runnable component. Its failure path is exercised through
+    the shared `missing_metadata` fixture in `tests/conftest.py`, which reaches
+    every component's error branch by patching this one module
+    ([ADR-033](adr/033-shared-app-service-components-as-adapters.md)).
   - `dirs.py` - Project directory locations (`~/.<package>`)
   - `logging_setup.py` - Centralized logging
   - `config.py` - Configuration (uses pydantic-settings if enabled). When

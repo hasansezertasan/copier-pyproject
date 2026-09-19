@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import platform
-from importlib.metadata import Distribution, PackageNotFoundError
 from typing import Any
 
 from mcp.server import Server
@@ -12,6 +10,7 @@ from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 __all__ = ["call_tool", "list_tools", "main", "run_server", "server"]
@@ -57,8 +56,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]: 
         ValueError: If an unknown tool name is requested.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         logger.exception(
             "Failed to retrieve package metadata for '%s'. Ensure the package is installed correctly.",  # noqa: E501
             PROJECT_NAME,
@@ -70,16 +69,14 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]: 
 
     if name == "version":
         logger.info("MCP tool `version` called.")
-        return [TextContent(type="text", text=distribution.version)]
+        return [TextContent(type="text", text=payload["application_version"])]
 
     if name == "info":
         logger.info("MCP tool `info` called.")
-        python_version = platform.python_version()
-        python_implementation = platform.python_implementation()
         info_text = (
-            f"Application Version: {distribution.version}\n"
-            f"Python Version: {python_version} ({python_implementation})\n"
-            f"Platform: {platform.system()}"
+            f"Application Version: {payload['application_version']}\n"
+            f"Python Version: {payload['python_version']} ({payload['python_implementation']})\n"  # noqa: E501
+            f"Platform: {payload['platform']}"
         )
         return [TextContent(type="text", text=info_text)]
 

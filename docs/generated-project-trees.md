@@ -131,7 +131,7 @@ tools/build_docs.py
 
 ## tool
 
-119 files.
+120 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -244,6 +244,7 @@ tests/cli/__init__.py
 tests/cli/test_app.py
 tests/conftest.py
 tests/core/__init__.py
+tests/core/test_app.py
 tests/core/test_config.py
 tests/core/test_dirs.py
 tests/core/test_logging_setup.py
@@ -257,7 +258,7 @@ tools/build_docs.py
 
 ## web
 
-120 files.
+121 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -371,6 +372,7 @@ tests/cli/__init__.py
 tests/cli/test_app.py
 tests/conftest.py
 tests/core/__init__.py
+tests/core/test_app.py
 tests/core/test_config.py
 tests/core/test_dirs.py
 tests/core/test_logging_setup.py
@@ -384,7 +386,7 @@ tools/build_docs.py
 
 ## full
 
-174 files.
+175 files.
 
 ```text
 .all-contributorsrc
@@ -542,6 +544,7 @@ tests/cli/__init__.py
 tests/cli/test_app.py
 tests/conftest.py
 tests/core/__init__.py
+tests/core/test_app.py
 tests/core/test_config.py
 tests/core/test_dirs.py
 tests/core/test_logging_setup.py

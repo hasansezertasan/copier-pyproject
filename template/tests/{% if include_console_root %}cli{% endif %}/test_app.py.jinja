@@ -258,8 +258,11 @@ import importlib
 {% if include_web or include_tui or include_gui or include_mcp or include_worker -%}
 import sys
 {% endif -%}
-from importlib.metadata import Distribution, PackageNotFoundError
-{% if include_web or include_gui or include_mcp or include_worker -%}
+{#- ``preflight_used`` is the set of components that render a ``_preflight``
+    call, and therefore the shapes that render a ``sys.meta_path`` finder stub
+    needing these types. It is broader than the launcher-specific list: the TUI
+    renders one too. -#}
+{% if preflight_used -%}
 from typing import TYPE_CHECKING{% if include_web %}, NoReturn{% endif %}
 {% endif %}
 import pytest
@@ -267,14 +270,14 @@ import pytest
 import uvicorn
 {% endif %}
 from {{github_repo_name}}.cli.app import app
-{% if include_web or include_gui or include_mcp or include_worker %}
+{% if preflight_used %}
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
     from types import ModuleType
 {% endif %}
-# Import the module object (not the re-exported callable) so the monkeypatch
-# below patches ``Distribution`` where the commands look it up.
+# Import the module object (not the re-exported callable) so the monkeypatches
+# below reach the private helpers where the commands look them up.
 cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
 {%- if include_web %}
 # Same reason, for the module the ``run``/``dev`` launchers import at call time.
@@ -282,14 +285,6 @@ cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
 # ``app`` submodule on any attribute-based import.
 web_app_module = importlib.import_module("{{github_repo_name}}.web.app")
 {%- endif %}
-
-
-class _MissingDistribution:
-    """Stub whose ``from_name`` always reports missing package metadata."""
-
-    @staticmethod
-    def from_name(name: str) -> Distribution:
-        raise PackageNotFoundError(name)
 
 
 {% set subcommands = [] -%}
@@ -345,9 +340,8 @@ def test_info(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.parametrize("command", ["version", "info"])
-def test_command_fails_loudly_when_metadata_missing(
-    monkeypatch: pytest.MonkeyPatch, command: str
-) -> None:
+@pytest.mark.usefixtures("missing_metadata")
+def test_command_fails_loudly_when_metadata_missing(command: str) -> None:
     """Commands exit 1 when package metadata is missing.
 
     Given:
@@ -358,8 +352,6 @@ def test_command_fails_loudly_when_metadata_missing(
         - The command exits with code 1 instead of dumping a traceback or
           silently printing nothing.
     """
-    monkeypatch.setattr(cli_app, "Distribution", _MissingDistribution)
-
     with pytest.raises(SystemExit) as excinfo:
         app([command])
 
@@ -760,9 +752,6 @@ import importlib
 {% if include_web or include_tui or include_gui or include_mcp or include_worker -%}
 import sys
 {% endif -%}
-{% if include_cli -%}
-from importlib.metadata import Distribution, PackageNotFoundError
-{% endif -%}
 from typing import TYPE_CHECKING{% if include_web %}, NoReturn{% endif %}
 
 import pytest
@@ -777,7 +766,7 @@ from typer.testing import CliRunner
 from {{github_repo_name}}.cli.app import app
 
 if TYPE_CHECKING:
-{%- if include_web or include_gui or include_mcp or include_worker %}
+{%- if preflight_used %}
     from collections.abc import Sequence
     from importlib.machinery import ModuleSpec
     from types import ModuleType
@@ -796,16 +785,6 @@ cli_app = importlib.import_module("{{github_repo_name}}.cli.app")
 {%- if include_web %}
 # Same reason, for the module the ``run``/``dev`` launchers import at call time.
 web_app_module = importlib.import_module("{{github_repo_name}}.web.app")
-{%- endif %}
-{%- if include_cli %}
-
-
-class _MissingDistribution:
-    """Stub whose ``from_name`` always reports missing package metadata."""
-
-    @staticmethod
-    def from_name(name: str) -> Distribution:
-        raise PackageNotFoundError(name)
 {%- endif %}
 
 
@@ -875,8 +854,9 @@ def test_info(runner: CliRunner) -> None:
 
 
 @pytest.mark.parametrize("command", ["version", "info"])
+@pytest.mark.usefixtures("missing_metadata")
 def test_command_fails_loudly_when_metadata_missing(
-    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, command: str
+    runner: CliRunner, command: str
 ) -> None:
     """Commands exit non-zero with an error when package metadata is missing.
 
@@ -888,8 +868,6 @@ def test_command_fails_loudly_when_metadata_missing(
         - The command exits with code 1 (the documented ``typer.Exit`` contract)
           instead of dumping a traceback or silently printing nothing.
     """
-    monkeypatch.setattr(cli_app, "Distribution", _MissingDistribution)
-
     result: Result = runner.invoke(app, [command])
 
     assert result.exit_code == 1

@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 import os
-import platform
-from importlib.metadata import Distribution, PackageNotFoundError
 {% if web_framework == "fastapi" %}
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
@@ -16,6 +14,7 @@ from litestar.openapi.datastructures import ResponseSpec
 {%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 logger = get_logger()
@@ -38,8 +37,8 @@ def get_version() -> str:
         HTTPException: If the package metadata is unavailable.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        resolved = service.version()
+    except service.MetadataUnavailableError:
         logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise HTTPException(
             status_code=503,
@@ -47,7 +46,7 @@ def get_version() -> str:
         ) from None
     logger.info("HTTP GET `/version` called.")
     logger.info("Version displayed successfully.")
-    return distribution.version
+    return resolved
 
 
 @app.get("/info", responses={503: {"description": "Package metadata is unavailable."}})
@@ -61,22 +60,14 @@ def get_info() -> JSONResponse:
         HTTPException: If the package metadata is unavailable.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise HTTPException(
             status_code=503,
             detail=f"Package metadata for '{PROJECT_NAME}' is unavailable",
         ) from None
     logger.info("HTTP GET `/info` called.")
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
-    payload = {
-        "application_version": distribution.version,
-        "python_version": python_version,
-        "python_implementation": python_implementation,
-        "platform": platform.system(),
-    }
     logger.info("Application information displayed successfully.")
     return JSONResponse(content=payload)
 {%- elif web_framework == "litestar" %}
@@ -101,8 +92,8 @@ def get_version() -> str:
         HTTPException: If the package metadata is unavailable.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        resolved = service.version()
+    except service.MetadataUnavailableError:
         logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise LitestarHTTPException(
             status_code=503,
@@ -110,7 +101,7 @@ def get_version() -> str:
         ) from None
     logger.info("HTTP GET `/version` called.")
     logger.info("Version displayed successfully.")
-    return distribution.version
+    return resolved
 
 
 @get(
@@ -132,23 +123,16 @@ def get_info() -> dict[str, str]:
         HTTPException: If the package metadata is unavailable.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise LitestarHTTPException(
             status_code=503,
             detail=f"Package metadata for '{PROJECT_NAME}' is unavailable",
         ) from None
     logger.info("HTTP GET `/info` called.")
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
     logger.info("Application information displayed successfully.")
-    return {
-        "application_version": distribution.version,
-        "python_version": python_version,
-        "python_implementation": python_implementation,
-        "platform": platform.system(),
-    }
+    return payload
 
 
 app = Litestar(route_handlers=[get_version, get_info])

@@ -31,6 +31,22 @@ def _run_web(app_path: str | None, *, dev_mode: bool) -> None:
 The application to run as a ``module:attribute`` import
             string. Defaults to this project's own web application.
 {%- endmacro -%}
+{#- Emit ``__all__`` in the exact byte form ruff-format produces (ADR-030): one
+    line when it fits in 88 columns, otherwise one name per line with a trailing
+    comma. ``skip-magic-trailing-comma`` is on in the generated project, so an
+    always-exploded list would be collapsed back. -#}
+{%- macro _dunder_all(names) -%}
+{%- set _joined = names | map('tojson') | join(', ') -%}
+{%- if ('__all__ = [' ~ _joined ~ ']') | length <= 88 -%}
+__all__ = [{{ _joined }}]
+{%- else -%}
+__all__ = [
+{%- for name in names %}
+    {{ name | tojson }},
+{%- endfor %}
+]
+{%- endif -%}
+{%- endmacro -%}
 {#- --- shared guard infrastructure (expanded by both branches) --- -#}
 {%- macro _guard_constants() -%}
 # Every component's runtime dependency is a core ``dependency`` of this package
@@ -126,12 +142,11 @@ import contextlib
 {% if preflight_used -%}
 import importlib
 {% endif -%}
-import platform
 import sys
-from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING, cast
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
@@ -145,7 +160,7 @@ if TYPE_CHECKING:
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = cli_all.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = cli_all.append("worker") %}{% endif -%}
 {%- set _ = cli_all.sort() -%}
-__all__ = [{% for n in cli_all %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{{ _dunder_all(cli_all) }}
 
 logger = get_logger()
 
@@ -227,15 +242,15 @@ def show_version() -> None:
         SystemExit: With code 1 if the package metadata cannot be found.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        resolved = service.version()
+    except service.MetadataUnavailableError:
         # An uninstalled or partial package is an expected, user-facing error, so
         # log without the traceback that logging.exception would add.
         logger.error("Package metadata not found for %s", PROJECT_NAME)  # noqa: TRY400
         _ = sys.stderr.write(_METADATA_MISSING + "\n")
         raise SystemExit(1) from None
     logger.info("Command `version` called.")
-    _ = sys.stdout.write(f"{distribution.version}\n")
+    _ = sys.stdout.write(f"{resolved}\n")
     logger.info("Version displayed successfully.")
 
 
@@ -254,20 +269,18 @@ def info() -> None:
         SystemExit: With code 1 if the package metadata cannot be found.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         # An uninstalled or partial package is an expected, user-facing error, so
         # log without the traceback that logging.exception would add.
         logger.error("Package metadata not found for %s", PROJECT_NAME)  # noqa: TRY400
         _ = sys.stderr.write(_METADATA_MISSING + "\n")
         raise SystemExit(1) from None
     logger.info("Command `info` called.")
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
     lines = [
-        f"Application Version: {distribution.version}",
-        f"Python Version: {python_version} ({python_implementation})",
-        f"Platform: {platform.system()}",
+        f"Application Version: {payload['application_version']}",
+        f"Python Version: {payload['python_version']} ({payload['python_implementation']})",  # noqa: E501
+        f"Platform: {payload['platform']}",
     ]
     _ = sys.stdout.write("\n".join(lines) + "\n")
     logger.info("Application information displayed successfully.")
@@ -523,14 +536,8 @@ import contextlib
 {% if preflight_used -%}
 import importlib
 {% endif -%}
-{% if include_cli -%}
-import platform
-{% endif -%}
 {% if include_gui -%}
 import sys
-{% endif -%}
-{% if include_cli -%}
-from importlib.metadata import Distribution, PackageNotFoundError
 {% endif -%}
 {% if need_import_guard and include_web -%}
 from typing import TYPE_CHECKING, Annotated, TypeAlias
@@ -542,6 +549,9 @@ from typing import Annotated, TypeAlias
 import typer
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+{%- if include_cli %}
+from {{github_repo_name}}.core import app as service
+{%- endif %}
 from {{github_repo_name}}.core.logging_setup import get_logger
 {%- if need_import_guard %}
 
@@ -558,7 +568,7 @@ if TYPE_CHECKING:
 {%- if include_mcp and primary_component != 'mcp' %}{% set _ = cli_all.append("mcp") %}{% endif -%}
 {%- if include_worker and primary_component != 'worker' %}{% set _ = cli_all.append("worker") %}{% endif -%}
 {%- set _ = cli_all.sort() -%}
-__all__ = [{% for n in cli_all %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{{ _dunder_all(cli_all) }}
 
 logger = get_logger()
 {%- if need_import_guard %}
@@ -684,8 +694,8 @@ def show_version() -> None:
         typer.Exit: If the package metadata cannot be found.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        resolved = service.version()
+    except service.MetadataUnavailableError:
         # An uninstalled or partial package is an expected, user-facing error, so
         # log without the traceback that logging.exception would add.
         logger.error("Package metadata not found for %s", PROJECT_NAME)  # noqa: TRY400
@@ -695,7 +705,7 @@ def show_version() -> None:
         )
         raise typer.Exit(code=1) from None
     logger.info("Command `version` called.")
-    typer.echo(distribution.version)
+    typer.echo(resolved)
     logger.info("Version displayed successfully.")
 
 
@@ -715,8 +725,8 @@ def info() -> None:
         typer.Exit: If the package metadata cannot be found.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         # An uninstalled or partial package is an expected, user-facing error, so
         # log without the traceback that logging.exception would add.
         logger.error("Package metadata not found for %s", PROJECT_NAME)  # noqa: TRY400
@@ -726,11 +736,11 @@ def info() -> None:
         )
         raise typer.Exit(code=1) from None
     logger.info("Command `info` called.")
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
-    typer.echo(f"Application Version: {distribution.version}")
-    typer.echo(f"Python Version: {python_version} ({python_implementation})")
-    typer.echo(f"Platform: {platform.system()}")
+    typer.echo(f"Application Version: {payload['application_version']}")
+    typer.echo(
+        f"Python Version: {payload['python_version']} ({payload['python_implementation']})"  # noqa: E501
+    )
+    typer.echo(f"Platform: {payload['platform']}")
     logger.info("Application information displayed successfully.")
 {%- endif %}
 {%- if include_tui and primary_component != 'tui' %}

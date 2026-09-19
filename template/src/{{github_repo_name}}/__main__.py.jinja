@@ -154,10 +154,11 @@ from collections.abc import Callable
 
 # Importing the component's ``main`` pulls in that component's own third-party
 # dependencies and -- through ``core.logging_setup`` -> ``core.config`` -- the
-# settings stack, all at module scope. A stale environment (a ``copier update`` that enabled this component
-# without a re-sync, or a frozen build run against the wrong interpreter) would
-# otherwise fail here with a bare ``ModuleNotFoundError``. These ship as core
-# dependencies of this package, so the fix is a re-sync, never an extra.
+# settings stack, all at module scope. A stale environment (a ``copier update``
+# that enabled this component without a re-sync, or a frozen build run against
+# the wrong interpreter) would otherwise fail here with a bare
+# ``ModuleNotFoundError``. These ship as core dependencies of this package, so
+# the fix is a re-sync, never an extra.
 {{ _dep_tuple("_COMPONENT_DEPENDENCIES", sole_component_dependencies) }}
 _MISSING_DEPENDENCY = "Error: The {{ component_label[sole_component] }} component requires '{missing}', which is not available in this environment. {hint}"  # noqa: E501
 _SYNC_HINT = "Component dependencies ship with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
@@ -191,7 +192,8 @@ def _load_component() -> Callable[[], {{ _entry_type }}]:
 {%- for module in sole_component_preflight %}
         _preflight("{{ module }}")
 {%- endfor %}
-        from {{github_repo_name}}.{{sole_component}}.app import main  # noqa: PLC0415
+        # Aliased: a bare ``main`` here would shadow this module's own ``main``.
+        from {{github_repo_name}}.{{sole_component}}.app import main as entry  # noqa: PLC0415
     except ModuleNotFoundError as exc:
         missing = exc.name
         if missing is None or missing not in _COMPONENT_DEPENDENCIES:
@@ -201,7 +203,7 @@ def _load_component() -> Callable[[], {{ _entry_type }}]:
             _MISSING_DEPENDENCY.format(missing=missing, hint=hint) + "\n"
         )
         raise SystemExit(1) from None
-    return main
+    return entry
 
 
 # The dispatcher below carries `# pragma: no cover`: invoking it launches the

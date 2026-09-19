@@ -236,6 +236,11 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_repo_ruleset` | branch-protection `ruleset-sync.yml` (`full` preset) | [021](docs/adr/021-repository-ruleset-as-code.md) |
 | Devcontainer: `include_postgres`/`include_redis` (`redis_backend`)/`include_pgadmin`/`include_adminer`/`include_dbeaver`/`include_vpn` | devcontainer services | — |
 
+Enabling any runnable component also renders `core/app.py`, the single
+version/runtime payload every component adapts over — add a fact more than one
+interface reports there, never in one of them
+([ADR-033](docs/adr/033-shared-app-service-components-as-adapters.md)).
+
 Always included (no toggle), each detailed in `docs/template-architecture.md`:
 release-please-managed `CHANGELOG.md` (no seed file), Codecov upload, Renovate
 (shared preset, incl. the `copier` update manager — [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)),
@@ -419,23 +424,32 @@ above — never a multi-line block here.
      precedence inline anywhere.
    - Add keywords
    - Add the component to the `[tool.importlinter]` `layers` contract (a sibling in the `il_components` list, or — like `cli` — its own orchestrator layer if it imports other components)
+   - Read the version/info payload from `core/app.py` (`service.version()` /
+     `service.info()` / `service.info_or_unknown()`), mapping
+     `MetadataUnavailableError` onto the component's own failure. Do **not**
+     re-implement the `Distribution.from_name` lookup or the `platform.*`
+     payload — that duplication is what ADR-033 removed.
 6. Add the new toggle to the `full` entry in `copier.yml`'s `preset_map` (and to
    any archetype preset — `library`/`tool`/`web` — whose shape includes it).
    `.example-input.yml` no longer lists individual toggles, so it needs no change.
 7. Update `README.md` and add the toggle's detail to `docs/template-architecture.md`
-8. Keep the component's coverage at the `fail_under = 99` gate (see
+8. Test the component's metadata-failure path with the shared
+   `missing_metadata` fixture from `tests/conftest.py` (it patches
+   `core.app.Distribution`, which every component reads through), not a
+   per-module `_MissingDistribution` stub.
+9. Keep the component's coverage at the `fail_under = 99` gate (see
    [ADR-008](docs/adr/008-worker-broker-testing-strategy.md)). Because
    `.example-input.yml` uses the `library` preset (no interface components), a
    component's coverage is only
    validated when you generate it explicitly — do that and run the suite. Unit-test
    the business logic *including reachable error handling* (metadata-failure
-   paths are tested via a `_MissingDistribution` monkeypatch stub — see the
+   paths are tested via the shared `missing_metadata` fixture — see the
    web/cli/gui/tui/mcp tests); only for genuinely untestable blocking
    entrypoints add `# pragma: no cover` to the specific launch/display function
    (as the `main()` entrypoints, the CLI launcher subcommands, the GUI/TUI
    `_display_*` helpers, and the worker lifecycle hooks do). Do **not** add
    blanket `exclude_lines` regexes for these — see the convention below.
-9. Wire the component into the per-component marker + path-filter surfaces
+10. Wire the component into the per-component marker + path-filter surfaces
    ([ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md)), which
    must stay in lockstep: register the marker in `pyproject.toml.jinja`
    `[tool.pytest.ini_options] markers` **and** add its `tests/` dir to
@@ -464,7 +478,9 @@ and previously masked the tested GUI/TUI `main()` entrypoints and the web 503
 handlers. Reachable error handling is tested, not excluded: the web `/version`
 and `/info` 503 responses, the CLI metadata-failure exit code, the GUI/TUI
 "Version: unknown" degradation, and the MCP error-text response all have unit
-tests using a `_MissingDistribution` monkeypatch stub.
+tests using the shared `missing_metadata` fixture (`tests/conftest.py`), which
+patches `core.app.Distribution` — the one module every component reads metadata
+through (ADR-033).
 
 Coverage measurement spans two layouts: `src/...` in an editable dev install and
 `.../site-packages/...` when tox/CI installs the built wheel/sdist (the tox test
