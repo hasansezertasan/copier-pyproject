@@ -367,8 +367,10 @@ Detail (jobs, gating, security posture) in `docs/template-architecture.md`.
 | `docs-linkcheck.yml` | weekly link check (non-blocking) | [011](docs/adr/011-docs-linting-and-cross-platform-filename-safety.md) |
 | Renovate `copier` manager | downstream template updates (not a workflow) | [015](docs/adr/015-template-self-versioning-and-copier-update-automation.md) |
 
-Required status checks on generated repos: `check-pr-title`,
-`check-linked-issues`, **Validate branch name**, and **Task Completed Checker**.
+Required status checks on generated repos (context names, not workflow files):
+**check** (`ci.yml`'s aggregate gate — the only one covering the code),
+**Validate PR title**, **Validate branch name**, **Verify linked issue**, and
+**Task Completed Checker** (the check run, not its job `Check PR task list`).
 
 ### Workflow hardening rules
 

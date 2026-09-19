@@ -92,6 +92,10 @@ def test_manual_redeploy_targets_a_published_release(
     assert workflow.index("Check out the latest release tag") < workflow.index(
         "Set up Python"
     )
+    # The tag carries the docs sources to rebuild, but build_docs.py is
+    # orchestration — keep this revision's, or a project that adopts a template
+    # update before its next release redeploys with the tagged (unhardened) one.
+    assert 'git checkout "$dispatch_ref" -- tools/build_docs.py' in workflow
 
 
 def test_build_docs_refuses_to_drop_a_published_version(
@@ -147,9 +151,12 @@ def test_setup_doc_contains_the_publish_environment_policy(
 ) -> None:
     """`workflow_dispatch` runs the file from any branch; the environment does not."""
     root = render()
-    assert "environments/publish/deployment-branch-policies" in _read(
-        root, "docs", "maintaining", "setup.rst"
-    )
+    setup = _read(root, "docs", "maintaining", "setup.rst")
+    assert "environments/publish/deployment-branch-policies" in setup
+    # `gh api -f` sends "false"/"true" as JSON *strings*; the environments API
+    # types both as booleans, so these two must use the typed -F form.
+    assert "-F 'deployment_branch_policy[protected_branches]=false'" in setup
+    assert "-F 'deployment_branch_policy[custom_branch_policies]=true'" in setup
     assert "DO NOT REMOVE workflow_dispatch" in _read(
         root, ".github", "workflows", "release.yml"
     )

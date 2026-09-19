@@ -147,8 +147,9 @@ Apply protection *after* the first merge
 and ``task-completed-check.yml`` all trigger on ``pull_request_target``, which
 GitHub sources from the **base** branch. On a repository adopting this template
 ``main`` does not have those workflows yet, so the very first pull request — the
-one that adds them — reports none of the four contexts and is permanently
-blocked by the protection above.
+one that adds them — reports none of those four contexts and is permanently
+blocked by the protection above. (``check`` is unaffected: ``ci.yml`` runs on
+plain ``pull_request``, which GitHub sources from the *head* branch.)
 
 So either apply branch protection only *after* the scaffolding has landed on
 ``main``, or admin-merge that first pull request. From the second PR onwards the
@@ -260,8 +261,8 @@ workflow.
 .. code-block:: sh
 
    gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/environments/publish \
-     -f 'deployment_branch_policy[protected_branches]=false' \
-     -f 'deployment_branch_policy[custom_branch_policies]=true'
+     -F 'deployment_branch_policy[protected_branches]=false' \
+     -F 'deployment_branch_policy[custom_branch_policies]=true'
    gh api -X POST repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
      -f name=main -f type=branch
 

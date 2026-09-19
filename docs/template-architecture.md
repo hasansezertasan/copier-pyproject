@@ -953,8 +953,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    never blocked. Branch names never reach `main` (squash-merge uses the PR
    title), so this is repo hygiene — not load-bearing for release-please. Keep it
    as a required status check (context: **Validate branch name**) alongside
-   `check-pr-title`, `check-linked-issues`, and **Task Completed Checker**
-   (`task-completed-check.yml`).
+   **Validate PR title**, **Verify linked issue**, **Task Completed Checker**
+   (`task-completed-check.yml`), and **check** — `ci.yml`'s aggregate gate, the
+   only one of the five that says anything about the code.
 7. **Supply-chain security** (always included, static workflows):
    - `codeql.yml`: CodeQL analysis on push/PR to `main` + weekly schedule.
      Job-level visibility gate — code scanning needs GitHub Advanced Security on

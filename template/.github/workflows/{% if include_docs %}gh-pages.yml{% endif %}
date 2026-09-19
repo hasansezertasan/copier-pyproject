@@ -38,7 +38,18 @@ jobs:
         run: |
           tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)"
           echo "Redeploying documentation for the latest published release: $tag"
+          dispatch_ref="$(git rev-parse HEAD)"
           git checkout --force --detach "$tag"
+          # Keep THIS revision's tools/build_docs.py. The tag carries the docs
+          # *sources* we want to rebuild, but build_docs.py is orchestration —
+          # the same layer as this workflow file, which workflow_dispatch already
+          # takes from the dispatch ref. Without this, a project that adopts a
+          # template update before cutting its next release would still run the
+          # tagged script on a manual redeploy, and an older one that returns
+          # silently when `git archive` cannot read a listed version would drop
+          # it from the assembled site — which the deploy then cleans off
+          # gh-pages. That is exactly the deploy this guard exists to protect.
+          git checkout "$dispatch_ref" -- tools/build_docs.py
           echo "DOCS_BUILD_VERSION=${tag#v}" >> "$GITHUB_ENV"
       - name: Set up Python
         # After the release-tag checkout, so .python-version is the interpreter
