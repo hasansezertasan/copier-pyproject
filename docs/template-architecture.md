@@ -595,12 +595,16 @@ component `X` is a subcommand exactly when `primary_component != "X"`. Do
 
 The `pkg` Typer root lives in the `cli/` package. It exists whenever
 `include_console_root` (a hidden `when: false` computed var) is true —
-`include_cli or (≥2 of gui/tui/web/mcp/worker enabled)`. When `include_cli` is
-off but ≥2 components are enabled, `cli/` is a *minimal launcher* (no
-`version`/`info`; bare `pkg` launches the primary via an
-`@app.callback(invoke_without_command=True)` default, secondaries are
-subcommands). A single-component non-CLI app has **no** root and does **not**
-pull in `typer` — bare `pkg` launches that component directly via `__main__`.
+`include_cli or include_web or (≥2 of gui/tui/web/mcp/worker enabled)`. When
+`include_cli` is off, `cli/` is a *minimal launcher* (no `version`/`info`; bare
+`pkg` launches the primary via an `@app.callback(invoke_without_command=True)`
+default, secondaries are subcommands). `include_web` is listed because the
+`run`/`dev` verbs need a root to live on ([ADR-032](adr/032-uniform-run-dev-launch-verbs.md));
+a web-only project therefore gets the minimal launcher and a `typer` runtime
+dependency, with bare `pkg` unchanged. Any *other* single-component non-CLI app
+has **no** root and does **not** pull in `typer` — bare `pkg` launches that
+component directly via `__main__`, through the `_load_component()` guard
+described above.
 `include_console_root` is the single source of truth for the `cli/`
 package/test-dir guards, the `typer` core dependency, the import-linter `cli`
 layer, and the `__main__.py` branch.
