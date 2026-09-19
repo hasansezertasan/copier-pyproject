@@ -3,8 +3,10 @@
 Guards the branch-protection-as-code design (ADR-021): the ruleset JSON and its
 idempotent sync workflow render only when the toggle is on, the JSON is valid
 and encodes the fixed review/bypass/merge policy, and the required-status-check
-contexts match the workflow job names this template ships (with the Trivy
-context gated on ``include_web``).
+contexts match the check names this template ships (with the Trivy context
+gated on ``include_web``). Most are job names; ``Task Completed Checker`` is
+the check *run* the task-list action publishes, because the job around it is
+green even when boxes are unticked.
 """
 
 from __future__ import annotations
@@ -71,7 +73,7 @@ def test_ruleset_status_contexts_non_web(render: Callable[..., Path]) -> None:
         "Validate branch name",
         "Validate PR title",
         "Verify linked issue",
-        "Check PR task list",
+        "Task Completed Checker",
         "Dependency audit (pip-audit)",
         "Secret scan (gitleaks)",
     ]
