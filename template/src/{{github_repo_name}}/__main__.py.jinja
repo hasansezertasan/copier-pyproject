@@ -1,3 +1,31 @@
+{% import "_macros.jinja" as fmt %}{#- ``_preflight`` is needed by both the console-root branch and the
+    sole-component branch below, which are mutually exclusive, so it is defined
+    once as a macro and expanded into whichever one renders. ``tk`` adds the one
+    clause that only a GUI entrypoint needs. -#}
+{%- macro _preflight_fn(tk=false) -%}
+def _preflight(module: str) -> None:
+    """Import a dependency eagerly, attributing nested failures to it.
+
+    Args:
+        module: Import module name to verify eagerly.
+
+    Raises:
+        ModuleNotFoundError: Naming ``module`` when it cannot be imported.
+    """
+    try:
+        _ = importlib.import_module(module)
+    except ModuleNotFoundError as exc:
+{%- if tk %}
+        # An interpreter built without tk-dev fails ``import tkinter`` naming the
+        # ``_tkinter`` C extension, which is the useful name for the system-level
+        # fix; every other nested failure belongs to the module being preflighted.
+        if module == "tkinter" and exc.name == "_tkinter":
+            raise
+{%- endif %}
+        raise ModuleNotFoundError(str(exc), name=module) from None
+    except ImportError as exc:
+        raise ModuleNotFoundError(str(exc), name=module) from None
+{%- endmacro -%}
 """Module entrypoint for the project.
 
 This is the single runnable entrypoint used by ``python -m {{github_repo_name}}``
@@ -14,8 +42,71 @@ template-generation time (via the Jinja conditionals below). To change the
 default entrypoint, re-render with a different component enabled or edit the
 import/``main`` binding here directly. With no runnable component enabled,
 ``main()`` exits non-zero with an explanatory message.
+
+Either binding routes its import through a loader that turns a missing
+dependency into one actionable line instead of a traceback (ADR-028). This is
+the boundary that needs it most: a standalone executable's user has no console
+root to fall back on and no obvious way to read a Python stack trace.
 """
 {%- if include_console_root %}
+{#- ``root_dependencies`` -- the third-party modules the console root imports at
+    *module scope*, before the component-dependency guard inside ``cli/app.py``
+    can run -- is computed in ``copier.yml``, which is also where
+    ``tests/test_main.py`` reads it from. The guard below is emitted exactly when
+    that list is non-empty. -#}
+{%- if root_dependencies %}
+
+import importlib
+import sys
+from collections.abc import Callable
+
+# Each of these ships as a core dependency of this package, so a missing one
+# never means "install an extra" -- it means this environment is out of sync with
+# the installed metadata. A ``copier update`` that adds the shared launcher (or
+# enables settings) adds both the code and its dependency at once, so an
+# environment that has not been re-synced would otherwise fail here with a bare
+# ``ModuleNotFoundError`` before any launcher code executes.
+{{ fmt.py_collection("_ROOT_DEPENDENCIES", root_dependencies) }}
+_MISSING_ROOT_DEPENDENCY = "Error: The {{github_repo_name}} command requires the '{missing}' package, which is not installed. It ships with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+
+
+{{ _preflight_fn() }}
+
+
+def _load_console_root() -> Callable[[], None]:
+    """Import the console root, reporting its own missing dependency actionably.
+
+    Returns:
+        Callable[[], None]: The console-root application. Both roots are
+            zero-argument callables: the argparse ``app`` defaults its ``argv``,
+            and ``typer.Typer.__call__`` takes ``*args``.
+
+    Raises:
+        ModuleNotFoundError: Propagating a missing module that is not exactly one
+            of the root's own dependencies, so an unrelated import defect keeps
+            its diagnostic context.
+        SystemExit: With code 1 when one of them is missing from this environment.
+    """
+    try:
+        for dependency in _ROOT_DEPENDENCIES:
+            _preflight(dependency)
+        from {{github_repo_name}}.cli import app  # noqa: PLC0415
+    except ModuleNotFoundError as exc:
+        missing = exc.name
+        if missing is None or missing not in _ROOT_DEPENDENCIES:
+            raise
+        _ = sys.stderr.write(_MISSING_ROOT_DEPENDENCY.format(missing=missing) + "\n")
+        raise SystemExit(1) from None
+    return app
+
+
+# The dispatchers below carry `# pragma: no cover`: invoking them launches the
+# blocking component (CLI loop, GUI mainloop, server, ...), which cannot run
+# under headless CI. tests/test_main.py pins the import wiring and callability.
+def main() -> None:  # pragma: no cover
+    """Run the {{github_repo_name}} console root (primary + component subcommands)."""
+    _load_console_root()()
+{%- else %}
 
 from {{github_repo_name}}.cli import app
 
@@ -26,50 +117,97 @@ from {{github_repo_name}}.cli import app
 def main() -> None:  # pragma: no cover
     """Run the {{github_repo_name}} console root (primary + component subcommands)."""
     app()
-{%- elif include_gui %}
+{%- endif %}
+{%- elif sole_component %}
+{#- Exactly one runnable component is enabled, so there is no console root and
+    no ``cli/`` package to route through: ``__main__`` binds the component
+    itself. The summary line and whether ``main()`` returns an exit code are the
+    only per-component differences, so they are looked up here rather than
+    spelled out as five near-identical branches. Everything else -- the
+    allowlist, the preflight list, the hint -- comes from ``copier.yml``
+    (``sole_component_dependencies``, ``sole_component_preflight``), the same
+    source ``cli/app.py`` reads. -#}
+{%- set _summaries = {"gui": "Launch the GUI application.", "tui": "Launch the TUI application.", "web": "Run the web application.", "mcp": "Run the MCP server.", "worker": "Run the message queue worker."} -%}
+{%- set _returns_code = sole_component in ["gui", "tui"] -%}
+{#- ``sole_component_tk_only`` (computed in ``copier.yml``, shared with
+    ``tests/test_main.py``): a GUI project with no settings stack has *only* Tk
+    in its allowlist, so the per-module hint choice would be a branch nothing
+    can take and the sync hint a string nothing can reach. -#}
+{%- set _tk_only = sole_component_tk_only -%}
+{%- set _entry_type = "int" if _returns_code else "None" %}
 
+import importlib
 import sys
+from collections.abc import Callable
 
-from {{github_repo_name}}.gui.app import main as _entry
+# Importing the component's ``main`` pulls in that component's own third-party
+# dependencies and -- through ``core.logging_setup`` -> ``core.config`` -- the
+# settings stack, all at module scope. A stale environment (a ``copier update``
+# that enabled this component without a re-sync, or a frozen build run against
+# the wrong interpreter) would otherwise fail here with a bare
+# ``ModuleNotFoundError``. These ship as core dependencies of this package, so
+# the fix is a re-sync, never an extra.
+{{ fmt.py_collection("_COMPONENT_DEPENDENCIES", sole_component_dependencies) }}
+_MISSING_DEPENDENCY = "Error: The {{ component_label[sole_component] }} component requires '{missing}', which is not available in this environment. {hint}"  # noqa: E501
+{%- if not _tk_only %}
+_SYNC_HINT = "Component dependencies ship with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+{%- endif %}
+{%- if sole_component == "gui" %}
+# ``tkinter`` is the one exception: it is a standard-library extension module,
+# not a distribution, so ``uv sync`` cannot install it. Missing means this
+# interpreter was built without Tk -- a system-level fix. Homebrew's
+# ``python-tk`` aliases the newest Python's formula, so the bare name would
+# install Tk for the wrong interpreter; pin it to the running version.
+{%- if not _tk_only %}
+_TK_MODULES = ("tkinter", "_tkinter")
+{%- endif %}
+_TK_HINT = f"'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}`), or use a Python build that includes Tk."  # noqa: E501
+{%- endif %}
 
 
+{{ _preflight_fn(tk=sole_component == "gui") }}
+
+
+def _load_component() -> Callable[[], {{ _entry_type }}]:
+    """Import the {{ component_label[sole_component] }} entrypoint, reporting a missing dependency actionably.
+
+    Returns:
+        Callable[[], {{ _entry_type }}]: The component's ``main`` entrypoint.
+
+    Raises:
+        ModuleNotFoundError: Propagating a missing module that is not exactly one
+            of the component's own dependencies, so an unrelated import defect
+            keeps its diagnostic context.
+        SystemExit: With code 1 when one of them is missing from this environment.
+    """
+    try:
+{%- for module in sole_component_preflight %}
+        _preflight("{{ module }}")
+{%- endfor %}
+        # Aliased: a bare ``main`` here would shadow this module's own ``main``.
+        from {{github_repo_name}}.{{sole_component}}.app import main as entry  # noqa: PLC0415
+    except ModuleNotFoundError as exc:
+        missing = exc.name
+        if missing is None or missing not in _COMPONENT_DEPENDENCIES:
+            raise
+        hint = {% if _tk_only %}_TK_HINT{% elif sole_component == "gui" %}_TK_HINT if missing in _TK_MODULES else _SYNC_HINT{% else %}_SYNC_HINT{% endif %}
+        _ = sys.stderr.write(
+            _MISSING_DEPENDENCY.format(missing=missing, hint=hint) + "\n"
+        )
+        raise SystemExit(1) from None
+    return entry
+
+
+# The dispatcher below carries `# pragma: no cover`: invoking it launches the
+# blocking component (GUI mainloop, server, ...), which cannot run under
+# headless CI. tests/test_main.py pins the import wiring and callability.
 def main() -> None:  # pragma: no cover
-    """Launch the GUI application."""
-    sys.exit(_entry())
-{%- elif include_tui %}
-
-import sys
-
-from {{github_repo_name}}.tui.app import main as _entry
-
-
-def main() -> None:  # pragma: no cover
-    """Launch the TUI application."""
-    sys.exit(_entry())
-{%- elif include_web %}
-
-from {{github_repo_name}}.web.app import main as _entry
-
-
-def main() -> None:  # pragma: no cover
-    """Run the web application."""
-    _entry()
-{%- elif include_mcp %}
-
-from {{github_repo_name}}.mcp.app import main as _entry
-
-
-def main() -> None:  # pragma: no cover
-    """Run the MCP server."""
-    _entry()
-{%- elif include_worker %}
-
-from {{github_repo_name}}.worker.app import main as _entry
-
-
-def main() -> None:  # pragma: no cover
-    """Run the message queue worker."""
-    _entry()
+    """{{ _summaries[sole_component] }}"""
+{%- if _returns_code %}
+    sys.exit(_load_component()())
+{%- else %}
+    _load_component()()
+{%- endif %}
 {%- else %}
 
 import sys

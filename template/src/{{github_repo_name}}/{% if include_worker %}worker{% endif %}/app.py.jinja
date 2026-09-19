@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import platform
-from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING
 
 from faststream import FastStream, Logger
@@ -12,6 +11,7 @@ from {{ worker_broker_spec.module }} import {{ worker_broker_spec.cls }}
 from pydantic import BaseModel, Field
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
@@ -44,9 +44,8 @@ app_logger = get_logger()
 # itself is not installed (broken install); it cannot be exercised where tests
 # run, hence the pragma — but log it so a worker reporting 0.0.0 is explainable.
 try:
-    _distribution = Distribution.from_name(PROJECT_NAME)
-    __version__ = _distribution.version
-except PackageNotFoundError:  # pragma: no cover
+    __version__ = service.version()
+except service.MetadataUnavailableError:  # pragma: no cover
     app_logger.warning(
         "Package metadata not found for %s; version falls back to 0.0.0", PROJECT_NAME
     )

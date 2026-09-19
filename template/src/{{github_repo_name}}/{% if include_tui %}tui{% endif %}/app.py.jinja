@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import platform
 import sys
-from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING, ClassVar, final
 
 from textual.app import App, ComposeResult
@@ -13,6 +11,7 @@ from textual.widgets import Static
 from typing_extensions import override
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
@@ -35,20 +34,12 @@ def build_info_message() -> str:
     Returns:
         str: A multi-line summary of the project name, version, and platform.
     """
-    try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-        version = distribution.version
-    except PackageNotFoundError:
-        logger.warning("Package metadata not found for %s", PROJECT_NAME)
-        version = "unknown"
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
-    system_name = platform.system()
+    payload = service.info_or_unknown()
     return (
         f"{PROJECT_NAME}\n\n"
-        f"Version: {version}\n"
-        f"Python: {python_version} ({python_implementation})\n"
-        f"Platform: {system_name}"
+        f"Version: {payload['application_version']}\n"
+        f"Python: {payload['python_version']} ({payload['python_implementation']})\n"
+        f"Platform: {payload['platform']}"
     )
 
 

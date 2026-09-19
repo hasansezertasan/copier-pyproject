@@ -38,6 +38,9 @@ New feature code goes inside an existing layer:
 
 | What you are adding | Where it goes |
 | ------------------- | ------------- |
+{%- if primary_component %}
+| Data every interface reports (version, runtime info, ...) | `core/app.py` |
+{%- endif %}
 | Business logic, domain models, app behavior | `core/` |
 | External integrations (APIs, storage, brokers) | `core/` |
 | Config / settings | `core/config.py` |
@@ -65,6 +68,12 @@ The layering is enforced in CI by import-linter (`[tool.importlinter]` in
 `pyproject.toml`), whose contract is **exhaustive**: a subpackage not listed in
 its `layers` fails `tox run -e style`. `core` may import `utils`; `utils` imports
 nothing internal.
+{%- if primary_component %}
+`core/app.py` holds the version/runtime payload every interface renders; each
+interface is an adapter over it and decides only how to transport, present, and
+fail. Put a fact that more than one interface must report there, not in one of
+them.
+{%- endif %}
 {%- if il_components | length > 1 %}
 The interface packages ({{ il_components | join('/') }}) may import `core` but
 are independent siblings — they may not import each other.

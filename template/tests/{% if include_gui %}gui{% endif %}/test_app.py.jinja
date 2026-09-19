@@ -4,21 +4,13 @@ from __future__ import annotations
 
 import platform
 import sys
-from importlib.metadata import Distribution, PackageNotFoundError
+from importlib.metadata import Distribution
 from types import SimpleNamespace
 
 import pytest
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.gui import app as gui_app
-
-
-class _MissingDistribution:
-    """Stub whose ``from_name`` always reports missing package metadata."""
-
-    @staticmethod
-    def from_name(name: str) -> Distribution:
-        raise PackageNotFoundError(name)
 
 
 def test_build_info_message_contains_metadata() -> None:
@@ -32,12 +24,9 @@ def test_build_info_message_contains_metadata() -> None:
     assert platform.system() in message
 
 
-def test_build_info_message_handles_missing_metadata(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+@pytest.mark.usefixtures("missing_metadata")
+def test_build_info_message_handles_missing_metadata() -> None:
     """The message degrades to an "unknown" version when metadata is missing."""
-    monkeypatch.setattr(gui_app, "Distribution", _MissingDistribution)
-
     message = gui_app.build_info_message()
 
     assert "Version: unknown" in message

@@ -103,7 +103,7 @@ requires-python = ">=3.10"
 dependencies = [
   "typer>=0.20.0",
   # >=6.0.0 for `Static.content`, which the headless pilot test asserts on
-  # (ADR-032). Earlier releases expose only `Static.renderable`, and 6.0.0
+  # (ADR-035). Earlier releases expose only `Static.renderable`, and 6.0.0
   # onward returns None for it — there is no spelling that spans both.
   "textual>=6.0.0",
   "typing-extensions>=4.4.0",
@@ -171,6 +171,9 @@ test = [
   # wedged container/broker fails with a traceback instead of hanging until the
   # CI job timeout kills the run with no diagnostics.
   "pytest-timeout>=2.3",
+]
+benchmarks = [
+  "pytest-codspeed>=4.0",
 ]
 docs = [
   "sphinx==8.1.3",
@@ -282,14 +285,14 @@ name = "cz_conventional_commits"
 
 [tool.pytest.ini_options]
 # addopts = "-rXs --strict-config --strict-markers"
-# `integration` tests need a real kafka (started via testcontainers,
-# Docker required), so they are deselected by default. A CLI `-m integration`
-# overrides this addopts default; CI runs them in a dedicated Ubuntu-only job.
-addopts = "-v --tb=short -m 'not integration'"
+# Integration and benchmark tests need explicit opt-in runners, so neither is
+# included in the regular suite.
+addopts = "-v --tb=short -m 'not (integration or benchmark)'"
 # One marker per component, auto-applied by tests/conftest.py from each test's
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
 # jobs (issue #160, ADR-028); `integration` (ADR-008) is one axis of the scheme.
 markers = [
+  "benchmark: performance benchmark (run with tox -e benchmark)",
   "integration: requires a real broker via testcontainers (run with -m integration)",
   "core: core/shared component tests",
   "cli: CLI component tests",
@@ -305,11 +308,9 @@ filterwarnings = [
   # Starlette's TestClient emits a forward-compat deprecation about httpx/httpx2.
   # It is harmless for tests, so don't let `error` promote it to a failure.
   "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
-  # Starlette still annotates its TestClient portal factory with the
-  # `anyio.abc.BlockingPortal` alias, which anyio deprecates on attribute
-  # access — so importing `fastapi.testclient` raises under `error`. Upstream's
-  # to fix; ignore by message so an alias we introduce ourselves still errors.
-  "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+  # Starlette's TestClient references anyio.abc.BlockingPortal, deprecated in anyio 4.15+.
+  # The warning originates inside starlette.testclient and is harmless for tests.
+  "ignore:The anyio\\.abc\\.BlockingPortal alias is deprecated:DeprecationWarning",
   # testcontainers applies its own deprecated @wait_container_is_ready decorator at
   # import time. The warning is internal to the library and not actionable here, so
   # don't let `error` promote it to a collection/test failure (ADR-008). The
@@ -386,6 +387,11 @@ ignore_decorators = [
   # FastStream subscriber callbacks (any broker variable name) are invoked by the
   # framework, including the collector subscribers in the worker tests.
   "@*.subscriber",
+  # A fixture used through ``@pytest.mark.usefixtures("name")`` -- or from
+  # another test module -- is only ever named in a string, which vulture cannot
+  # see. Unused fixtures are caught properly by ``pytest --dead-fixtures`` in
+  # the tox ``style`` env, so this delegates rather than suppresses.
+  "@pytest.fixture",
 ]
 # Public API surfaces vulture cannot see being used: ``main`` entry points are
 # referenced only via pyproject scripts, ``model_config`` is consumed by
@@ -513,6 +519,8 @@ convention = "pep257"
 # Tests legitimately use asserts/magic values, reach into package internals, and
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
+# Benchmarks are collected by path, not imported as a package.
+"benchmarks/**/*.py" = ["INP001"]
 "examples/**/*.py" = ["INP001"]
 # Documentation examples are importable modules tested by
 # ``tests/test_docs_examples.py``; they are not application packages.
@@ -611,7 +619,7 @@ disable = [
   # are deliberately lazy so import-linter's layering contract holds and a
   # framework is only imported when the code path that needs it actually runs.
   # Textual is the exception: the TUI imports it at module scope so `InfoApp`
-  # can be defined there and driven by the headless pilot (ADR-032).
+  # can be defined there and driven by the headless pilot (ADR-035).
   "import-outside-toplevel",
   # W0706 — the generated TUI entry point explicitly re-raises
   # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the
@@ -847,7 +855,6 @@ set_env = { PYTHONUNBUFFERED = "1" }
 # separate builder executes the occasional ``>>>`` snippet that belongs inline
 # with prose.
 commands = [["sphinx-build", "-b", "doctest", "docs", "docs/_build/doctest"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Run documentation doctests"
 runner = "uv-venv-runner"
@@ -873,6 +880,16 @@ commands = [
 ]
 dependency_groups = ["tool"]
 description = "Setup environment for profiling with py-spy, scalene, and cProfile"
+runner = "uv-venv-runner"
+
+# On-demand only: benchmark timings are reported by the dedicated CodSpeed
+# workflow and deliberately stay outside the correctness/coverage suite.
+[tool.tox.env.benchmark]
+commands = [["pytest", "-m", "benchmark", "benchmarks", { replace = "posargs", extend = true }]]
+# Reuse pytest's base plugins/configuration (notably pytest-asyncio) so this
+# explicit runner behaves like the normal test environment.
+dependency_groups = ["test", "benchmarks"]
+description = "Run performance benchmarks locally."
 runner = "uv-venv-runner"
 
 [tool.tox.env.cli]

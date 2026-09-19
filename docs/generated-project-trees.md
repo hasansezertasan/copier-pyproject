@@ -131,7 +131,7 @@ tools/build_docs.py
 
 ## tool
 
-119 files.
+120 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -244,6 +244,7 @@ tests/cli/__init__.py
 tests/cli/test_app.py
 tests/conftest.py
 tests/core/__init__.py
+tests/core/test_app.py
 tests/core/test_config.py
 tests/core/test_dirs.py
 tests/core/test_logging_setup.py
@@ -257,7 +258,7 @@ tools/build_docs.py
 
 ## web
 
-116 files.
+121 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -354,6 +355,8 @@ pyproject.toml
 src/example/__init__.py
 src/example/__main__.py
 src/example/__metadata__.py
+src/example/cli/__init__.py
+src/example/cli/app.py
 src/example/core/__init__.py
 src/example/core/app.py
 src/example/core/config.py
@@ -365,8 +368,11 @@ src/example/utils/app.py
 src/example/web/__init__.py
 src/example/web/app.py
 tests/__init__.py
+tests/cli/__init__.py
+tests/cli/test_app.py
 tests/conftest.py
 tests/core/__init__.py
+tests/core/test_app.py
 tests/core/test_config.py
 tests/core/test_dirs.py
 tests/core/test_logging_setup.py
@@ -380,7 +386,7 @@ tools/build_docs.py
 
 ## full
 
-174 files.
+177 files.
 
 ```text
 .all-contributorsrc
@@ -432,6 +438,7 @@ tools/build_docs.py
 .github/rulesets/main.json
 .github/settings.yml
 .github/workflows/all-contributors.yml
+.github/workflows/benchmarks.yml
 .github/workflows/check-branch-name.yml
 .github/workflows/check-linked-issues.yml
 .github/workflows/check-pr-title.yml
@@ -470,6 +477,7 @@ CLAUDE.md
 Dockerfile
 LICENSE
 README.md
+benchmarks/test_version_lookup.py
 cobo.lock
 docs/check_warnings.py
 docs/cli-reference.md
@@ -538,6 +546,7 @@ tests/cli/__init__.py
 tests/cli/test_app.py
 tests/conftest.py
 tests/core/__init__.py
+tests/core/test_app.py
 tests/core/test_config.py
 tests/core/test_dirs.py
 tests/core/test_logging_setup.py

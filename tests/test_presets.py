@@ -78,8 +78,16 @@ def test_preset_tool_seeds_cli_tui_and_settings(
 def test_preset_web_seeds_web_settings_and_db(
     render: Callable[..., Path],
 ) -> None:
+    # ``cli`` here is the *minimal launcher*, not the CLI feature: a web project
+    # always has a console root so ``run``/``dev`` have somewhere to live
+    # (ADR-032). ``include_cli`` itself stays off, which the absent
+    # ``version``/``info`` commands below pin.
     root = render(preset="web")
-    assert _components(root) == {"web"}
+    assert _components(root) == {"web", "cli"}
+    launcher = (root / "src" / PKG / "cli" / "app.py").read_text(encoding="utf-8")
+    assert "def show_version()" not in launcher
+    assert "def run(" in launcher
+    assert "def dev(" in launcher
     assert _pydantic_settings_enabled(root)
     assert "postgres:" in _compose(root)
 

@@ -20,7 +20,7 @@ Always included in every generated project:
 
 On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). Published docs are **versioned** — each release deploys under its version slug (`docs_version_granularity`: `minor` `X.Y`, `major` `X`, or `full` `X.Y.Z`) with an in-page version switcher and a `latest` alias, and every page footer shows its git "last updated" date (see ADR-027). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
 
-Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, smokeshow (a tokenless, account-free coverage-HTML mirror for public repos), MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), and repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App).
+Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), CodSpeed-backed performance benchmarks, standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, smokeshow (a tokenless, account-free coverage-HTML mirror for public repos), MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), and repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App).
 
 ## Inputs
 
@@ -51,7 +51,7 @@ Copier will prompt for:
 - `short_description`
 - `package_keywords` (extra comma-separated PyPI keywords; tooling/component keywords are added automatically)
 - `include_cli` (include Typer CLI)
-- `include_web` (include web API; its OpenAPI schema is generated into the docs)
+- `include_web` (include web API; its OpenAPI schema is generated into the docs, and the project gets `pkg run` / `pkg dev` launch verbs — see [ADR-032](docs/adr/032-uniform-run-dev-launch-verbs.md))
 - `web_framework` (fastapi/litestar - when `include_web` is enabled)
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)
@@ -60,6 +60,7 @@ Copier will prompt for:
 - `worker_broker` (kafka/nats/rabbitmq/redis - when `include_worker` is enabled)
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
+- `include_benchmarks` (include pytest-codspeed benchmarks and a non-blocking CodSpeed CI workflow)
 - `include_examples` (include an `examples/` folder with simple and advanced usage stubs)
 - `include_docs` (Sphinx docs site — `docs/` tree, `docs-*` tox envs, docs CI + versioned Pages deploy + version switcher; on by default)
   - `docs_version_granularity` (asked when `include_docs`: `minor` `X.Y` (default) / `major` `X` / `full` `X.Y.Z` — the per-release docs directory slug)

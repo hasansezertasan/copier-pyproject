@@ -40,7 +40,7 @@
 
 - [Screenshots](#screenshots)
 - [Installation](#installation)
-{%- if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_profiling or include_c_extensions %}
+{%- if include_cli or include_web or include_gui or include_tui or include_mcp or include_worker or include_profiling or include_benchmarks or include_c_extensions %}
 - [Usage](#usage)
 {%- endif %}
 - [Support](#support-heart)
@@ -99,7 +99,7 @@ Or with `pip`:
 pip install {{github_repo_name}}
 ```
 {% endif %}
-{%- if is_app or include_profiling or include_c_extensions %}
+{%- if is_app or include_profiling or include_benchmarks or include_c_extensions %}
 ## Usage
 {%- if include_cli %}
 
@@ -133,10 +133,15 @@ An interactive terminal user interface displays project information. Press 'q' t
 ### Web
 
 ```bash
-{{github_repo_name}}{% if primary_component != 'web' %} web{% endif %}
+{{github_repo_name}} run              # serve on the configured bind
+{{github_repo_name}} dev              # same, with autoreload, bound to localhost
+{{github_repo_name}} run pkg.mod:app  # serve a different ASGI application
 ```
 
 {% if web_framework == "fastapi" %}Open <http://127.0.0.1:8000/docs> for the interactive API documentation.{% else %}Open <http://127.0.0.1:8000/schema> for the interactive API documentation.{% endif %}
+
+Host and port come from `{{ github_repo_name | upper | replace("-", "_") }}_HOST` / `{{ github_repo_name | upper | replace("-", "_") }}_PORT`; `dev` always binds `127.0.0.1`.
+{%- if primary_component != 'web' %} `{{github_repo_name}} web` is the component-named alias for `{{github_repo_name}} run` with no target.{% endif %}
 {%- endif %}
 {%- if include_mcp %}
 
@@ -196,6 +201,21 @@ View cProfile results with:
 ```bash
 snakeviz profile.prof
 ```
+{%- endif %}
+{%- if include_benchmarks %}
+
+### Benchmarks
+
+Run the opt-in benchmark suite locally:
+
+```bash
+tox run -e benchmark
+```
+
+The CodSpeed workflow reports simulated CPU-performance deltas on pushes and
+pull requests when ``CODSPEED_TOKEN`` is configured. Add project-specific hot
+paths under ``benchmarks/``; benchmark results are intentionally not a merge
+gate.
 {%- endif %}
 {%- if include_c_extensions %}
 

@@ -1,12 +1,16 @@
-# ADR-032: Headless testing and injected driver seams for interactive components
+# ADR-035: Headless testing and injected driver seams for interactive components
 
 ## Status
 
 Accepted (2026-09). Resolves issue #176. Builds on
 [ADR-008](008-worker-broker-testing-strategy.md) (worker testing strategy),
 [ADR-014](014-import-linter-for-architecture-contracts.md) (layering contracts),
-and [ADR-019](019-components-as-cli-subcommands.md) (secondary components as CLI
-subcommands).
+[ADR-019](019-components-as-cli-subcommands.md) (secondary components as CLI
+subcommands), [ADR-032](032-uniform-run-dev-launch-verbs.md) (the `run`/`dev`
+verbs whose launch path the web seam wraps), and
+[ADR-033](033-shared-app-service-components-as-adapters.md) (the shared
+`core.app` service, which is what the `missing_metadata` fixture patches to
+reach every component's metadata-failure path at once).
 
 ## Context
 
@@ -66,8 +70,14 @@ keyword-only parameter defaulting to that helper:
     separately from CPython on most Linux distributions, so "not installed" is a
     real failure that deserves its own message rather than the generic one.
 - **Web (`web/app.py`)**:
-  - `_run_server(host: str, port: int) -> None: # pragma: no cover` runs `uvicorn.run`.
-  - `main` accepts `runner: Callable[[str, int], None] = _run_server`.
+  - `_run_server(target, *, host, port, reload) -> None: # pragma: no cover` runs
+    `uvicorn.run`. It wraps only that call, so the target resolution
+    (`resolve_app_path`), bind resolution (`resolve_bind`), and the `dev_mode`
+    loopback/reload policy of ADR-032 all stay measured.
+  - `run_server` and `main` accept `runner: _ServerRunner = _run_server`. The
+    seam is a `Protocol` rather than a `Callable[...]` alias because `reload` is
+    keyword-only — `select = ["ALL"]` keeps ruff's `FBT` rules on, so a
+    positional `bool` is not an option.
 - **MCP (`mcp/app.py`)**:
   - `_stdio_transport() -> None: # pragma: no cover` and `_run_server_loop() -> None: # pragma: no cover`
     manage stdio streams and event loop execution.
@@ -113,7 +123,9 @@ Test suites in `tests/<component>/test_app.py` take advantage of these seams:
   `_default_dialog_driver` itself, pinning the happy path
   (`withdraw` → `showinfo` → `destroy`) and that the root is destroyed when
   either step raises.
-- **Web**: Tests for `main()` verify bind resolution and runner invocation.
+- **Web**: Tests for `main()` verify the default target and bind reach the
+  runner, and a `dev_mode` test pins that it overrides a non-loopback
+  `{PROJECT}_HOST` and asks for autoreload.
 - **MCP**: Tests for `run_server()` and `main()` verify transport and runner execution.
 - **Worker**: Tests directly await `on_startup()` and `on_shutdown()` and assert
   on the emitted log records (not bare invocation, which would pass through any

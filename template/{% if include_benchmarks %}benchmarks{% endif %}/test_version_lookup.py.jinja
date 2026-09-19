@@ -1,0 +1,11 @@
+"""A small example benchmark; replace or extend it with real hot paths."""
+
+from importlib.metadata import version
+
+import pytest
+
+
+@pytest.mark.benchmark
+def test_distribution_version_lookup(benchmark: object) -> None:
+    """Measure installed-distribution metadata lookup as a starter benchmark."""
+    benchmark(version, "{{github_repo_name}}")  # type: ignore[operator]

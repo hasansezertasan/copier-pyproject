@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 import os
-import platform
-from importlib.metadata import Distribution, PackageNotFoundError
 from typing import TYPE_CHECKING
 {% if web_framework == "fastapi" %}
 from fastapi import FastAPI, HTTPException
@@ -17,10 +15,19 @@ from litestar.openapi.datastructures import ResponseSpec
 {%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from typing import Protocol
+
+    class _ServerRunner(Protocol):
+        """Signature of the callable that starts the web server."""
+
+        def __call__(
+            self, target: str, *, host: str, port: int, reload: bool
+        ) -> None: ...
+
 
 logger = get_logger()
 {% if web_framework == "fastapi" %}
@@ -42,8 +49,8 @@ def get_version() -> str:
         HTTPException: If the package metadata is unavailable.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        resolved = service.version()
+    except service.MetadataUnavailableError:
         logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise HTTPException(
             status_code=503,
@@ -51,7 +58,7 @@ def get_version() -> str:
         ) from None
     logger.info("HTTP GET `/version` called.")
     logger.info("Version displayed successfully.")
-    return distribution.version
+    return resolved
 
 
 @app.get("/info", responses={503: {"description": "Package metadata is unavailable."}})
@@ -65,22 +72,14 @@ def get_info() -> JSONResponse:
         HTTPException: If the package metadata is unavailable.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise HTTPException(
             status_code=503,
             detail=f"Package metadata for '{PROJECT_NAME}' is unavailable",
         ) from None
     logger.info("HTTP GET `/info` called.")
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
-    payload = {
-        "application_version": distribution.version,
-        "python_version": python_version,
-        "python_implementation": python_implementation,
-        "platform": platform.system(),
-    }
     logger.info("Application information displayed successfully.")
     return JSONResponse(content=payload)
 {%- elif web_framework == "litestar" %}
@@ -105,8 +104,8 @@ def get_version() -> str:
         HTTPException: If the package metadata is unavailable.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        resolved = service.version()
+    except service.MetadataUnavailableError:
         logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise LitestarHTTPException(
             status_code=503,
@@ -114,7 +113,7 @@ def get_version() -> str:
         ) from None
     logger.info("HTTP GET `/version` called.")
     logger.info("Version displayed successfully.")
-    return distribution.version
+    return resolved
 
 
 @get(
@@ -136,23 +135,16 @@ def get_info() -> dict[str, str]:
         HTTPException: If the package metadata is unavailable.
     """
     try:
-        distribution = Distribution.from_name(PROJECT_NAME)
-    except PackageNotFoundError:
+        payload = service.info()
+    except service.MetadataUnavailableError:
         logger.exception("Package metadata not found for %s", PROJECT_NAME)
         raise LitestarHTTPException(
             status_code=503,
             detail=f"Package metadata for '{PROJECT_NAME}' is unavailable",
         ) from None
     logger.info("HTTP GET `/info` called.")
-    python_version = platform.python_version()
-    python_implementation = platform.python_implementation()
     logger.info("Application information displayed successfully.")
-    return {
-        "application_version": distribution.version,
-        "python_version": python_version,
-        "python_implementation": python_implementation,
-        "platform": platform.system(),
-    }
+    return payload
 
 
 app = Litestar(route_handlers=[get_version, get_info])
@@ -187,25 +179,97 @@ def resolve_bind() -> tuple[str, int]:
     return host, port
 
 
-def _run_server(host: str, port: int) -> None:  # pragma: no cover
-    """Run the uvicorn server loop.
+#: The ASGI application ``{{github_repo_name}} run`` / ``{{github_repo_name}} dev``
+#: start when given no explicit target. Spelled as a uvicorn import string
+#: rather than passed as an object because autoreload re-imports the app in a
+#: child process, so only the string form can reload (see ADR-032).
+DEFAULT_APP_PATH = "{{github_repo_name}}.web.app:app"
 
-    The irreducible blocking call separated from bind resolution and launch glue.
+#: Development mode always binds loopback, whatever ``{PROJECT}_HOST`` says: a
+#: reloading server runs unreviewed code on save, so it belongs on the
+#: developer's own machine. Matches ``fastapi dev``.
+DEV_HOST = "127.0.0.1"
+
+
+def resolve_app_path(app_path: str | None = None) -> str:
+    """Resolve the ASGI application to run into a uvicorn import string.
+
+    Args:
+        app_path: An explicit ``"module:attribute"`` import string, or ``None``
+            to run this project's own web application.
+
+    Returns:
+        str: The import string to hand to uvicorn.
+
+    Raises:
+        SystemExit: If ``app_path`` is not a ``module:attribute`` pair.
+    """
+    if app_path is None:
+        return DEFAULT_APP_PATH
+    module_name, separator, attribute = app_path.partition(":")
+    # ``":" in attribute`` rejects ``module:attr:extra``, which ``partition``
+    # would otherwise accept with a non-empty module and attribute and hand to
+    # uvicorn to fail in its own words.
+    if not separator or not module_name or not attribute or ":" in attribute:
+        msg = f"Invalid application path {app_path!r}; expected 'module:attribute'."
+        # Log before exiting so the cause reaches structured log sinks, not just
+        # the SystemExit message printed to stderr by the interpreter.
+        logger.error(msg)
+        raise SystemExit(msg)
+    return app_path
+
+
+def _run_server(  # pragma: no cover
+    target: str, *, host: str, port: int, reload: bool
+) -> None:
+    """Execute the uvicorn server loop.
+
+    The irreducible blocking call, separated from the target and bind
+    resolution so both stay measured (ADR-035).
     """
     import uvicorn  # noqa: PLC0415
 
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(target, host=host, port=port, reload=reload)
 
 
-def main(*, runner: Callable[[str, int], None] = _run_server) -> None:
+def run_server(
+    app_path: str | None = None,
+    *,
+    dev_mode: bool = False,
+    runner: _ServerRunner = _run_server,
+) -> None:
+    """Run the web application with uvicorn.
+
+    Args:
+        app_path: An explicit ``"module:attribute"`` import string, or ``None``
+            to run this project's own web application.
+        dev_mode: When ``True``, enable autoreload and bind loopback.
+        runner: Callable that starts the server. Defaults to the real uvicorn
+            loop; injected in tests to avoid blocking on it.
+    """
+    target = resolve_app_path(app_path)
+    host, port = resolve_bind()
+    runner(target, host=DEV_HOST if dev_mode else host, port=port, reload=dev_mode)
+
+
+def main(*, runner: _ServerRunner = _run_server) -> None:
     """Entry point for the web application.
 
     Args:
-        runner: Callable that starts the web server given ``(host, port)``.
-            Defaults to running uvicorn. Injected in tests to avoid blocking.
+        runner: Callable that starts the server. Defaults to the real uvicorn
+            loop; injected in tests to avoid blocking on it.
     """
-    host, port = resolve_bind()
-    runner(host, port)
+    run_server(runner=runner)
 
 
-__all__ = ["app", "get_info", "get_version", "main", "resolve_bind"]
+__all__ = [
+    "DEFAULT_APP_PATH",
+    "DEV_HOST",
+    "app",
+    "get_info",
+    "get_version",
+    "main",
+    "resolve_app_path",
+    "resolve_bind",
+    "run_server",
+]

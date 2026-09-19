@@ -223,7 +223,7 @@ while still gaining real-broker coverage on Linux.
     irreducible blocking calls (`_run_app`, `_run_server`, `_stdio_transport`,
     and `__main__` dispatchers), the c-extension
     `except ImportError` fallback, and the worker's module-level metadata fallback.
-    (Note: As of [ADR-032](032-headless-testing-for-interactive-components.md),
+    (Note: As of [ADR-035](035-headless-testing-for-interactive-components.md),
     the surrounding entrypoints, UI widgets, worker lifecycle hooks, and CLI
     subcommands use injected driver seams and are tested without pragmas.)
 

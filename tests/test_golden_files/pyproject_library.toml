@@ -474,7 +474,7 @@ disable = [
   # are deliberately lazy so import-linter's layering contract holds and a
   # framework is only imported when the code path that needs it actually runs.
   # Textual is the exception: the TUI imports it at module scope so `InfoApp`
-  # can be defined there and driven by the headless pilot (ADR-032).
+  # can be defined there and driven by the headless pilot (ADR-035).
   "import-outside-toplevel",
   # W0706 — the generated TUI entry point explicitly re-raises
   # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the
@@ -699,7 +699,6 @@ set_env = { PYTHONUNBUFFERED = "1" }
 # separate builder executes the occasional ``>>>`` snippet that belongs inline
 # with prose.
 commands = [["sphinx-build", "-b", "doctest", "docs", "docs/_build/doctest"]]
-extras = ["all"]
 dependency_groups = ["docs"]
 description = "Run documentation doctests"
 runner = "uv-venv-runner"
