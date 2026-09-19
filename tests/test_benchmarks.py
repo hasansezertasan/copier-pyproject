@@ -41,3 +41,14 @@ def test_benchmark_scaffold_is_separate_and_non_blocking(
 
     ci = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "benchmarks" not in ci
+
+
+def test_benchmarks_only_readme_has_usage_section(render: Callable[..., Path]) -> None:
+    """A benchmarks-only project must render the `Usage` anchor its TOC links to."""
+    readme = (render(preset="library", include_benchmarks=True) / "README.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "- [Usage](#usage)" in readme
+    assert "\n## Usage\n" in readme
+    assert "\n### Benchmarks\n" in readme
