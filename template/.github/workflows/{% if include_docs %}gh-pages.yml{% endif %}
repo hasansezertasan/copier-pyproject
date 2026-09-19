@@ -74,6 +74,15 @@ jobs:
         # the same tag always renders the same docs output (reproducible-builds.org).
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
       - name: Fetch gh-pages branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # actions/checkout runs with `persist-credentials: false` (artipacked),
+        # so raw git has no credentials: on a PRIVATE repo an unauthenticated
+        # `ls-remote`/`fetch` fails outright. Pass the token per invocation via
+        # an in-memory http.extraheader — the same header actions/checkout uses
+        # internally — so nothing is written to .git/config for a later step (or
+        # an uploaded artifact) to pick up.
+        #
         # `git fetch ... || echo` would swallow a transport error as if the branch
         # were simply absent: build_docs.py would then assemble a site with no
         # prior versions and the deploy below (clean, minus pr-preview/**) would
@@ -81,12 +90,15 @@ jobs:
         # tell the two apart — exit 2 is "no such ref", anything else is a real
         # failure worth aborting on.
         run: |
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           set +e
-          git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1
+          git -c "http.https://github.com/.extraheader=$auth" \
+            ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1
           rc=$?
           set -e
           if [ "$rc" -eq 0 ]; then
-            git fetch origin gh-pages:gh-pages
+            git -c "http.https://github.com/.extraheader=$auth" \
+              fetch origin gh-pages:gh-pages
           elif [ "$rc" -eq 2 ]; then
             echo "gh-pages does not exist yet — first deploy, nothing to preserve"
           else

@@ -75,7 +75,12 @@ def test_gh_pages_fetch_distinguishes_absent_from_broken(
     for name in ("gh-pages.yml", "release.yml"):
         workflow = _read(root, ".github", "workflows", name)
         assert "git fetch origin gh-pages:gh-pages || echo" not in workflow
-        assert "git ls-remote --exit-code --heads origin gh-pages" in workflow
+        assert "ls-remote --exit-code --heads origin gh-pages" in workflow
+        # persist-credentials: false leaves raw git unauthenticated, so on a
+        # private repo both the probe and the fetch need the token supplied
+        # per-invocation — otherwise the guard aborts every deploy.
+        assert 'http.https://github.com/.extraheader=$auth' in workflow
+        assert "GH_TOKEN:" in workflow
 
 
 def test_manual_redeploy_targets_a_published_release(
@@ -157,6 +162,11 @@ def test_setup_doc_contains_the_publish_environment_policy(
     # types both as booleans, so these two must use the typed -F form.
     assert "-F 'deployment_branch_policy[protected_branches]=false'" in setup
     assert "-F 'deployment_branch_policy[custom_branch_policies]=true'" in setup
+    # Policies are a separate collection the environment PUT does not clear, so
+    # a pre-existing wildcard would stay eligible beside `main`. Delete first,
+    # and assert the collection is exactly one `main` branch policy.
+    assert "-X DELETE" in setup
+    assert '== ["branch:main"]' in setup
     assert "DO NOT REMOVE workflow_dispatch" in _read(
         root, ".github", "workflows", "release.yml"
     )

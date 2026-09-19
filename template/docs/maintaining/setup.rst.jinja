@@ -256,26 +256,38 @@ this before the first release: GitHub auto-creates the environment
 also be carrying a stale, unreferenced publish environment from its previous
 workflow.
 
-**[AGENT]**
+**[AGENT]** The branch/tag policies are a *separate collection* — switching the
+environment to ``custom_branch_policies`` does not clear whatever is already in
+it, and adding ``main`` only appends. A pre-existing wildcard (say ``*``, the
+default someone clicks through in the UI) would stay eligible alongside it, so
+delete every policy first and re-add exactly one:
 
 .. code-block:: sh
 
    gh api -X PUT repos/{{github_user}}/{{github_repo_name}}/environments/publish \
      -F 'deployment_branch_policy[protected_branches]=false' \
      -F 'deployment_branch_policy[custom_branch_policies]=true'
+   gh api --paginate repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
+     --jq '.branch_policies[].id' |
+     while read -r id; do
+       gh api -X DELETE "repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies/$id"
+     done
    gh api -X POST repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
      -f name=main -f type=branch
 
-**[CHECK]**
+**[CHECK]** The collection must be *exactly* one branch policy named ``main`` —
+asserting only that ``main`` is present would pass with a wildcard sitting next
+to it:
 
 .. code-block:: sh
 
-   gh api repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
-     --jq 'any(.branch_policies[]; .name == "main")' | grep -qx true
+   gh api --paginate repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
+     --jq '[.branch_policies[] | "\(.type // "branch"):\(.name)"] == ["branch:main"]' | grep -qx true
 
 UI equivalent: **Settings → Environments → publish → Deployment branches and
-tags** — choose **Selected branches and tags** and add ``main``. While you are
-there, delete any leftover environment a previous release workflow created.
+tags** — choose **Selected branches and tags**, delete every rule already listed
+(including any ``*``), then add ``main``. While you are there, delete any
+leftover environment a previous release workflow created.
 
 Coverage reporting (Codecov)
 ----------------------------
