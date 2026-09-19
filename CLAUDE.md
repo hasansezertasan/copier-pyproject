@@ -316,13 +316,39 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   wheel/sdist), so they are `*/`-anchored — a `src/**`-only pattern silently
   reports the installed copy at 0%. Verify via a real `tox run`, never editable
   `pytest` ([ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md)).
+- **A required status context must actually report, and must actually gate.**
+  Three shapes of this bug have shipped: a `[bot]` skip on
+  `task-completed-check.yml` left *no* `Task Completed Checker` check run behind
+  (requiring the job name instead does not work — the job is green with boxes
+  unticked, so it must publish the check run itself); the Sphinx warning gate
+  lived only in `docs-preview.yml`, which forks skip and nothing requires, so
+  `tox -e docs-build` now runs in `ci.yml`'s `docs-doctest` job that `check`
+  aggregates (`fetch-depth: 0`, or `sphinx-last-updated-by-git` fails it); and
+  the Codecov project status is scoped to `flags: [unit]`, so the upload must
+  pass `flags: unit` or the 99% target is never computed. When you add a gate,
+  check *which context a protected branch sees* — not that the job runs.
+- **Never remove `workflow_dispatch` from `release.yml`.** It looks like a
+  publish-escalation surface (a manual run executes the file from the selected
+  branch, so the `release_created` guard is not a mitigation), but
+  `finalize-release` re-dispatches the workflow with `gh workflow run` to
+  reconcile the phantom release PR, and that API requires the trigger. The
+  containment is the `publish` environment's deployment-branch policy, which
+  GitHub evaluates outside the workflow file — a `setup.rst` `[AGENT]` step.
+- **A failed `gh-pages` fetch must abort, never fall through.** `git fetch
+  origin gh-pages:gh-pages || echo ...` swallows a transport error as "branch
+  absent"; `build_docs.py` then assembles a site with no prior versions and the
+  clean-on-deploy *deletes* every published version. Both deploy paths use an
+  `ls-remote --exit-code` guard (exit 2 = absent, anything else aborts), and
+  `preserve_from_gh_pages()` raises for a version slug it cannot read back —
+  only the `latest` alias is optional (ADR-027).
 - **Docs deploys must preserve the version-slug directories** (numeric, e.g.
   `0.3/` — no leading `v`). Both `release.yml` `deploy-docs` and the manual
   `gh-pages.yml` build only the current version and re-supply prior versions from
   `gh-pages` via `tools/build_docs.py`; a naive root publish with only
   `clean-exclude: pr-preview/**` would wipe every version directory. The manual
-  workflow checks out the latest release tag first (never HEAD). Old versions are
-  never rebuilt
+  workflow checks out the latest *published* release's tag first (via
+  `gh api .../releases/latest`, never HEAD and never `git describe`, which would
+  pick up a draft release's tag). Old versions are never rebuilt
   ([ADR-027](docs/adr/027-versioned-documentation-and-last-updated-stamps.md)).
 
 ### CI/CD Workflows — index
@@ -343,8 +369,10 @@ Detail (jobs, gating, security posture) in `docs/template-architecture.md`.
 | `docs-linkcheck.yml` | weekly link check (non-blocking) | [011](docs/adr/011-docs-linting-and-cross-platform-filename-safety.md) |
 | Renovate `copier` manager | downstream template updates (not a workflow) | [015](docs/adr/015-template-self-versioning-and-copier-update-automation.md) |
 
-Required status checks on generated repos: `check-pr-title`,
-`check-linked-issues`, **Validate branch name**, and **Task Completed Checker**.
+Required status checks on generated repos (context names, not workflow files):
+**check** (`ci.yml`'s aggregate gate — the only one covering the code),
+**Validate PR title**, **Validate branch name**, **Verify linked issue**, and
+**Task Completed Checker** (the check run, not its job `Check PR task list`).
 
 ### Workflow hardening rules
 

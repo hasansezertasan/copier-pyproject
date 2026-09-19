@@ -66,17 +66,40 @@ a later event has happened:
 3. **PyPI trusted publishing** — register the **pending** publisher *before* the
    first release, or the first `pypi-publish` job fails. Owner + repo + workflow
    `release.yml` + environment `publish` must match exactly.
-4. **Branch protection / required status checks** — set the four contexts by name
-   (`Validate PR title`, `Validate branch name`, `Verify linked issue`,
-   `Task Completed Checker`). The `gh api .../branches/main/protection` call accepts
+4. **Branch protection / required status checks** — set the five contexts by name
+   (`check`, `Validate PR title`, `Validate branch name`, `Verify linked issue`,
+   `Task Completed Checker`). `check` is `ci.yml`'s aggregate gate and the only
+   one that says anything about the *code* — omit it and a PR whose whole test
+   suite failed still satisfies protection. `Task Completed Checker` is the name
+   of the **check run**, not of its job (`Check PR task list`), which is green
+   even with boxes unticked. The `gh api .../branches/main/protection` call accepts
    contexts by name even before they have run; the **UI picker only lists a context
    after that check has run at least once** (open one throwaway PR first if using
    the UI). Requires a public repo or GitHub Pro for private.
-5. **Release immutability** — UI-only toggle (Settings → General). Protects
+
+   Two timing traps come with it. The four metadata checks are
+   `pull_request_target`, which GitHub sources from the **base** branch, so the
+   first PR — the one that adds them — reports none of them: apply protection
+   *after* that PR lands, or admin-merge it. And release-please runs with the
+   implicit `GITHUB_TOKEN`, whose events start no workflow runs, so a release PR
+   reports nothing until a human **closes and reopens it** (every required context
+   listens for `reopened`; editing the body misses `check-branch-name.yml` and
+   `ci.yml`).
+5. **Restrict the `publish` environment to `main`** — `release.yml` carries
+   `workflow_dispatch`, and a manual run executes the workflow file *from the
+   selected branch*, so the in-file `release_created` guard cannot stop someone
+   with write access from dispatching a guard-free copy off an unprotected branch
+   and minting a PyPI token from `pypi-publish`'s `id-token: write`. The trigger
+   is load-bearing (`finalize-release` re-dispatches through it), so the
+   containment is the environment's deployment-branch policy, which GitHub
+   evaluates outside the workflow file. Do it *before* the first release: GitHub
+   auto-creates the environment **unprotected** on first use. Pass the two
+   booleans with `gh api -F` (typed), not `-f` (string).
+6. **Release immutability** — UI-only toggle (Settings → General). Protects
    published tags/assets.
-6. **Renovate App install** — inert config until installed; unblocks both routine
+7. **Renovate App install** — inert config until installed; unblocks both routine
    dependency PRs **and** the copier-update manager (next).
-7. **Optional secrets / Apps** — only those the setup doc lists for this
+8. **Optional secrets / Apps** — only those the setup doc lists for this
    project (see the conditional table below).
 
 Two steps are **deferred until after the first release**, because they depend on an
@@ -126,6 +149,9 @@ this skill is the cross-project guide (dependency order, timing traps, gotchas).
 |---|--------|-----|
 | 1 | `default_workflow_permissions` — copying the **template repo's** `=write` into a **generated** project | Generated projects use least-privilege **`read`** + `can_approve_pull_request_reviews=true`; per-job workflows grant their own write scopes |
 | 2 | Status-check contexts don't appear in the branch-protection **UI picker** until each check has run once | Use the `gh api .../protection` call (sets by name up-front), or open one throwaway PR first |
+| 2a | Protection applied before the scaffolding lands → the **first PR can never satisfy it** (the four `pull_request_target` checks come from the base branch, which doesn't have them yet) | Apply protection after that first merge, or admin-merge it once |
+| 2b | A **release PR reports no contexts at all** — release-please's `GITHUB_TOKEN` events start no workflow runs | Close and reopen the PR as a human (`reopened` fires all five); editing the body misses two of them |
+| 2c | Requiring the task-list **job** name (`Check PR task list`) instead of the **check run** (`Task Completed Checker`) | The job is green with boxes unticked — require the check run, which is the actual verdict |
 | 3 | Enabling **Pages** on a new repo fails — `gh-pages` branch doesn't exist yet | Defer Pages until *after* the first release runs `deploy-docs`; it creates the branch |
 | 4 | **PyPI publisher registered late** — after the first tag → first release's publish job fails | Register the *pending* publisher before the first release |
 | 5 | Merge policy left as merge-commit/rebase → release-please misses or mis-bumps releases | Squash-only, squash message = **PR title**; this is the only config release-please reads correctly |

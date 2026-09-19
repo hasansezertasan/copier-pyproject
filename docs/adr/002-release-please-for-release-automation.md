@@ -111,6 +111,27 @@ release-please should be wired:
   inline in `release.yml` (not a reusable `cd.yml`), the PyPI Trusted
   Publisher must register `release.yml` as the workflow filename. README and
   CLAUDE.md are updated accordingly.
+- **`workflow_dispatch` on `release.yml` is load-bearing, and the containment is
+  the environment — not the workflow file.** `finalize-release`'s re-dispatch
+  needs the trigger to exist, and it is the documented exception to
+  `GITHUB_TOKEN` loop-prevention (which is why that step needs no PAT). But a
+  manual run executes the workflow file **from the selected branch**, so the
+  `release_created` guard cannot stop someone with write access from pushing a
+  guard-free `release.yml` to an unprotected branch, dispatching it, and minting
+  a PyPI trusted-publishing token from `pypi-publish`'s `id-token: write`.
+  Deleting the trigger would break release-PR reconciliation, so instead the
+  `publish` environment carries a deployment-branch policy limited to `main`,
+  which GitHub evaluates outside the workflow file. GitHub auto-creates that
+  environment **unprotected** on first use, so `docs/maintaining/setup.rst`
+  ships it as an `[AGENT]` step with a `[CHECK]`, next to the PyPI registration.
+- **Release PRs report no required contexts until a human reopens them.**
+  release-please runs with the implicit `GITHUB_TOKEN`, and events created with
+  that token do not start workflow runs — the same rule that forces `deploy-docs`
+  inline. A PAT or App token would fix it but is a standing credential with write
+  access to `main`; closing and reopening the release PR (every required context
+  listens for `reopened`) is the cheaper side of that trade and is documented in
+  `setup.rst`. Editing the PR body is not equivalent — it misses
+  `check-branch-name.yml` and `ci.yml`, neither of which listens for `edited`.
 - **`draft: true` requires `force-tag-creation: true`** (and
   `release-please-action` v5.0.0). GitHub withholds a draft release's git tag until
   it is published, so without this the `build` job would run before the tag exists

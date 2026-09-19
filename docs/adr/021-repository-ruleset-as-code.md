@@ -39,8 +39,12 @@ only — the ADR-009 posture), scaffolding two artifacts:
   active`, targeting `~DEFAULT_BRANCH`; rules `deletion`, `non_fast_forward`,
   `required_linear_history`, a `pull_request` rule (squash-only merges, thread
   resolution required, **`required_approving_review_count: 0`**), and
-  `required_status_checks` (strict) listing the template's actual CI job names
-  (the Trivy context only when `include_web`). `bypass_actors: []`.
+  `required_status_checks` (strict) listing the template's actual check names
+  (the Trivy context only when `include_web`). `bypass_actors: []`. These are
+  mostly job names, with one deliberate exception: the task-list gate is
+  required as **`Task Completed Checker`**, the *check run* the action
+  publishes, not as its job name `Check PR task list` — the job succeeds even
+  when boxes are unticked, so requiring it would not gate anything.
 - `.github/workflows/ruleset-sync.yml` — an App-free, idempotent sync workflow
   (list → find by name → PUT/POST) mirroring `label-sync.yml`. It authenticates
   with a `REPO_ADMIN_TOKEN` fine-grained PAT (`Administration: read & write`) and

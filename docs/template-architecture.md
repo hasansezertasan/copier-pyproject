@@ -800,11 +800,20 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      An `include_cli` render gets a dedicated three-OS `cli-installed` job, so
      the real console script is checked without receiving pytest marker args.
      Every `ci.yml` job is draft-gated, and `ready_for_review` starts a fresh run.
-   - **Doctests keep their own job.** Because the component `test-*` jobs pass
+   - **Docs keep their own job.** Because the component `test-*` jobs pass
      `tox run -- -m …` (which replaces tox's default env list), an
      `include_docs` render gets a dedicated `docs-doctest` job running
-     `tox run -e docs-doctest`; it is part of the `check` gate
-     ([ADR-028](adr/028-tested-documentation-examples.md)). Per-component
+     `tox run -e docs-build` then `tox run -e docs-doctest`; it is part of the
+     `check` gate ([ADR-028](adr/028-tested-documentation-examples.md)). The
+     `docs-build` step is what makes the Sphinx warning gate *gate*: it pairs
+     `sphinx-build -w` with `docs/check_warnings.py`, whereas `docs-doctest` is
+     `-b doctest` with no `-W`. `docs-preview.yml` runs the same gate but is
+     skipped for fork PRs and is not a required context, so it can never block a
+     merge on its own
+     ([ADR-027](adr/027-versioned-documentation-and-last-updated-stamps.md)).
+     The job checks out at `fetch-depth: 0` — `sphinx-last-updated-by-git` warns
+     "Git clone too shallow" on a depth-1 clone and the gate turns that into an
+     error. Per-component
      examples (`cli_usage.py`, `web_usage.py`, …) are Jinja-gated on their
      toggle and `literalinclude`d into the corresponding `usage.rst` section;
      `tests/test_docs_examples.py` rglobs every `docs/examples/*.py` and
@@ -908,8 +917,19 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `clean-exclude: pr-preview/**` so a release never wipes the live PR previews
      `docs-preview.yml` maintains under that path (see ADR-010 below); the numeric
      version-slug directories (e.g. `0.3/`) are re-supplied in `./site` each run.
-     The manual `gh-pages.yml` checks out the latest release tag before building
-     so a manual redeploy never overwrites released docs with unreleased `main`.
+     The manual `gh-pages.yml` checks out the latest **published** release's tag
+     before building so a manual redeploy never overwrites released docs with
+     unreleased `main` — via `gh api .../releases/latest`, not `git describe`,
+     which would pick up the tag release-please creates while the release is
+     still a draft. `setup-python`/`setup-uv` run *after* that checkout so the
+     tagged docs build on the interpreter the release shipped on. Both jobs
+     fetch `gh-pages` through an `ls-remote` guard (exit 2 = absent, anything
+     else aborts): a swallowed transport error would make `build_docs.py`
+     assemble a site with no prior versions, and the clean-on-deploy would then
+     delete the whole published archive. `preserve_from_gh_pages()` enforces the
+     same rule one layer up — a version slug came from a `git ls-tree` of the
+     branch, so failing to read it back raises instead of silently dropping it
+     (only the `latest` alias is optional).
    - `notify-released-issues` (`needs: finalize-release`): a single
      `actions/github-script` step that maps the release's commit range
      (previous published tag → this tag) to the PRs that carried it, resolves each
@@ -934,6 +954,12 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    `pull_request_target` (least-privilege `checks: write` + `pull-requests: read`)
    so the check also runs on fork PRs; wrap throwaway lists in
    `<!-- ignore-task-list-start -->` / `<!-- ignore-task-list-end -->` to skip them.
+   The required context is the **check run** the action publishes (`Task
+   Completed Checker`), not the job name (`Check PR task list`) — the job is
+   green even when boxes are unticked. Because a check run is the whole verdict,
+   the `[bot]`-author skip would leave *no* context at all and block every
+   Renovate/release PR forever, so a follow-up step publishes that check run as a
+   success on bot PRs.
 6. **Branch-name linting** (`check-branch-name.yml`): validates the PR's **head
    branch name** (`github.head_ref`) against the
    [Conventional Branch](https://conventionalbranch.org/) format
@@ -949,8 +975,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    never blocked. Branch names never reach `main` (squash-merge uses the PR
    title), so this is repo hygiene — not load-bearing for release-please. Keep it
    as a required status check (context: **Validate branch name**) alongside
-   `check-pr-title`, `check-linked-issues`, and **Task Completed Checker**
-   (`task-completed-check.yml`).
+   **Validate PR title**, **Verify linked issue**, **Task Completed Checker**
+   (`task-completed-check.yml`), and **check** — `ci.yml`'s aggregate gate, the
+   only one of the five that says anything about the code.
 7. **Supply-chain security** (always included, static workflows):
    - `codeql.yml`: CodeQL analysis on push/PR to `main` + weekly schedule.
      Job-level visibility gate — code scanning needs GitHub Advanced Security on
