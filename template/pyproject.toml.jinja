@@ -686,6 +686,10 @@ convention = "pep257"
 # Tests legitimately use asserts/magic values, reach into package internals, and
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
+{%- if include_benchmarks %}
+# Benchmarks are collected by path, not imported as a package.
+"benchmarks/**/*.py" = ["INP001"]
+{%- endif %}
 {%- if include_examples %}
 "examples/**/*.py" = ["INP001"]
 {%- endif %}
