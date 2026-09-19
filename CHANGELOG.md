@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.4.0...v1.5.0) (2026-09-19)
+
+
+### 🚀 Features
+
+* **template:** rework the component entrypoint surface ([#268](https://github.com/hasansezertasan/copier-pyproject/issues/268), [#177](https://github.com/hasansezertasan/copier-pyproject/issues/177), [#178](https://github.com/hasansezertasan/copier-pyproject/issues/178)) ([f91170c](https://github.com/hasansezertasan/copier-pyproject/commit/f91170c607adf84f660c035c6fb5b18e26297785))
+
 ## [1.4.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.3.0...v1.4.0) (2026-09-18)
 
 
