@@ -84,6 +84,7 @@ preset_map:
       - include_worker
       - include_c_extensions
       - include_profiling
+      - include_benchmarks
       - include_examples
       - include_launcher
       - include_compiler
@@ -165,6 +166,12 @@ include_profiling:
   type: bool
   default: "{{ 'include_profiling' in preset_map[preset] }}"
   help: "Include profiling and performance tools (py-spy, scalene, cProfile)?"
+include_benchmarks:
+  type: bool
+  default: "{{ 'include_benchmarks' in preset_map[preset] }}"
+  help: >-
+    Include pytest-codspeed benchmarks and a non-blocking CodSpeed CI workflow?
+    Requires registering the repository with CodSpeed and adding CODSPEED_TOKEN.
 include_launcher:
   type: bool
   default: "{{ 'include_launcher' in preset_map[preset] }}"

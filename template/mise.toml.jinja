@@ -65,6 +65,12 @@ run = "uv run --locked tox run -e docs-server"
 description = "Run documentation doctests"
 run = "uv run --locked tox run -e docs-doctest"
 {%- endif %}
+{%- if include_benchmarks %}
+
+[tasks.benchmark]
+description = "Run performance benchmarks locally"
+run = "uv run --locked tox run -e benchmark"
+{%- endif %}
 {% raw %}
 
 [tasks.prek]
