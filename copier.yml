@@ -492,6 +492,15 @@ sole_component_preflight:
   type: json
   when: false
   default: "{{ ((((['pydantic', 'pydantic_settings'] if include_pydantic_settings else []) + component_preflight[sole_component]) | unique | list) if sole_component else []) | tojson }}"
+# True when the sole component's whole allowlist is Tk, i.e. a GUI project with
+# no settings stack. There the per-module hint choice would be a branch nothing
+# can take and the `uv sync` hint a string nothing can reach, so `__main__.py`
+# emits the Tk hint unconditionally and `tests/test_main.py` asserts only that
+# one. Read by both, so they cannot disagree about which shape is rendered.
+sole_component_tk_only:
+  type: bool
+  when: false
+  default: "{{ sole_component == 'gui' and (sole_component_dependencies | reject('in', ['tkinter', '_tkinter']) | list | length == 0) }}"
 # Single source of truth for which prebuilt binary the brew/scoop packaging
 # references when several executable toggles are enabled. Precedence
 # freezer > compiler > launcher (freezer/compiler are self-contained; launcher

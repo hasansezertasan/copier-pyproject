@@ -69,6 +69,11 @@ import re
 {%- endif %}
 {%- if root_dependencies or sole_component %}
 import sys
+{%- endif %}
+{%- if sole_component == "gui" %}
+import types
+{%- endif %}
+{%- if root_dependencies or sole_component %}
 from typing import TYPE_CHECKING
 {%- endif %}
 {%- if root_dependencies or sole_component or not is_app %}
@@ -84,7 +89,23 @@ if TYPE_CHECKING:
 {%- endif %}
 
 
-def test_main_is_callable() -> None:
+{% if sole_component == "gui" %}@pytest.fixture
+def tk_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Let the Tk preflight succeed on an interpreter built without Tk.
+
+    ``_load_component`` imports ``tkinter`` eagerly so a Tk-less interpreter
+    gets the system-level hint instead of a late ``GuiDisplayError`` — correct
+    behaviour, but it makes any test that merely *calls* the loader depend on
+    the runner's Tk, which headless CI images routinely lack. These tests are
+    about the wiring, so stub the module in; the tests that *are* about a
+    missing Tk drive it through ``sys.meta_path`` and need no real Tk either.
+    """
+    monkeypatch.setitem(sys.modules, "tkinter", types.ModuleType("tkinter"))
+    monkeypatch.setitem(sys.modules, "_tkinter", types.ModuleType("_tkinter"))
+
+
+@pytest.mark.usefixtures("tk_available")
+{% endif %}def test_main_is_callable() -> None:
     """The package exposes a callable ``main()`` entrypoint.
 
     Every standalone-executable build (launcher / freezer / compiler — see
@@ -254,7 +275,7 @@ def test_console_root_preserves_unrelated_import_errors(
 
 
 {{ fmt.py_collection("_SOLE_DEPENDENCIES", sole_component_dependencies) }}
-{%- if sole_component == "gui" %}
+{%- if sole_component == "gui" and not sole_component_tk_only %}
 # The two modules whose absence is a *system* problem rather than a stale
 # dependency sync, so the guard must answer them with the Tk hint instead.
 _TK_MODULES = ("tkinter", "_tkinter")
@@ -345,7 +366,11 @@ def test_sole_component_reports_missing_dependency(
     assert "{{ component_label[sole_component] }}" in err
     assert dependency in err
     assert "Traceback" not in err
-{%- if sole_component == "gui" %}
+{%- if sole_component_tk_only %}
+    # Every dependency here is Tk, which is a system package -- ``uv sync``
+    # would be the wrong advice for any of them.
+    assert "python3-tk" in err
+{%- elif sole_component == "gui" %}
     # Tk is a system package, so ``uv sync`` is the wrong advice for it.
     assert ("python3-tk" if dependency in _TK_MODULES else "uv sync") in err
 {%- else %}
@@ -353,7 +378,8 @@ def test_sole_component_reports_missing_dependency(
 {%- endif %}
 
 
-def test_sole_component_preserves_unrelated_import_errors(
+{% if sole_component == "gui" %}@pytest.mark.usefixtures("tk_available")
+{% endif %}def test_sole_component_preserves_unrelated_import_errors(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """A missing module that is not a component dependency keeps its diagnostics.

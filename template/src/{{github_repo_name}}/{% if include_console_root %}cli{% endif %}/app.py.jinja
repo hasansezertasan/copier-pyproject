@@ -512,24 +512,22 @@ via the default callback.
 """
 # mypy: disable-error-code="misc"
 
+{# Collected rather than emitted as a chain of inline conditionals: a CLI-only
+    project imports nothing here from the standard library, and an empty chain
+    left two blank lines before ``import typer`` -- which ruff's isort rewrites,
+    so the file would not be formatter-canonical (ADR-030). -#}
+{%- set _stdlib = [] -%}
+{%- if need_import_guard %}{% set _ = _stdlib.append("import contextlib") %}{% endif -%}
+{%- if preflight_used %}{% set _ = _stdlib.append("import importlib") %}{% endif -%}
+{%- if include_gui %}{% set _ = _stdlib.append("import sys") %}{% endif -%}
+{%- set _typing = [] -%}
+{%- if need_import_guard %}{% set _ = _typing.append("TYPE_CHECKING") %}{% endif -%}
+{%- if include_web %}{% set _ = _typing.append("Annotated") %}{% set _ = _typing.append("TypeAlias") %}{% endif -%}
+{%- if _typing %}{% set _ = _stdlib.append("from typing import " ~ _typing | join(", ")) %}{% endif -%}
 from __future__ import annotations
-
-{% if need_import_guard -%}
-import contextlib
-{% endif -%}
-{% if preflight_used -%}
-import importlib
-{% endif -%}
-{% if include_gui -%}
-import sys
-{% endif -%}
-{% if need_import_guard and include_web -%}
-from typing import TYPE_CHECKING, Annotated, TypeAlias
-{% elif need_import_guard -%}
-from typing import TYPE_CHECKING
-{% elif include_web -%}
-from typing import Annotated, TypeAlias
-{% endif %}
+{% if _stdlib %}
+{% for line in _stdlib %}{{ line }}
+{% endfor %}{% endif %}
 import typer
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME

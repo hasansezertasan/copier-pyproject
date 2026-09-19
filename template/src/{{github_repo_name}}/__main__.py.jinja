@@ -129,6 +129,11 @@ def main() -> None:  # pragma: no cover
     source ``cli/app.py`` reads. -#}
 {%- set _summaries = {"gui": "Launch the GUI application.", "tui": "Launch the TUI application.", "web": "Run the web application.", "mcp": "Run the MCP server.", "worker": "Run the message queue worker."} -%}
 {%- set _returns_code = sole_component in ["gui", "tui"] -%}
+{#- ``sole_component_tk_only`` (computed in ``copier.yml``, shared with
+    ``tests/test_main.py``): a GUI project with no settings stack has *only* Tk
+    in its allowlist, so the per-module hint choice would be a branch nothing
+    can take and the sync hint a string nothing can reach. -#}
+{%- set _tk_only = sole_component_tk_only -%}
 {%- set _entry_type = "int" if _returns_code else "None" %}
 
 import importlib
@@ -144,14 +149,18 @@ from collections.abc import Callable
 # the fix is a re-sync, never an extra.
 {{ fmt.py_collection("_COMPONENT_DEPENDENCIES", sole_component_dependencies) }}
 _MISSING_DEPENDENCY = "Error: The {{ component_label[sole_component] }} component requires '{missing}', which is not available in this environment. {hint}"  # noqa: E501
+{%- if not _tk_only %}
 _SYNC_HINT = "Component dependencies ship with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+{%- endif %}
 {%- if sole_component == "gui" %}
 # ``tkinter`` is the one exception: it is a standard-library extension module,
 # not a distribution, so ``uv sync`` cannot install it. Missing means this
 # interpreter was built without Tk -- a system-level fix. Homebrew's
 # ``python-tk`` aliases the newest Python's formula, so the bare name would
 # install Tk for the wrong interpreter; pin it to the running version.
+{%- if not _tk_only %}
 _TK_MODULES = ("tkinter", "_tkinter")
+{%- endif %}
 _TK_HINT = f"'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}`), or use a Python build that includes Tk."  # noqa: E501
 {%- endif %}
 
@@ -181,7 +190,7 @@ def _load_component() -> Callable[[], {{ _entry_type }}]:
         missing = exc.name
         if missing is None or missing not in _COMPONENT_DEPENDENCIES:
             raise
-        hint = {% if sole_component == "gui" %}_TK_HINT if missing in _TK_MODULES else _SYNC_HINT{% else %}_SYNC_HINT{% endif %}
+        hint = {% if _tk_only %}_TK_HINT{% elif sole_component == "gui" %}_TK_HINT if missing in _TK_MODULES else _SYNC_HINT{% else %}_SYNC_HINT{% endif %}
         _ = sys.stderr.write(
             _MISSING_DEPENDENCY.format(missing=missing, hint=hint) + "\n"
         )
