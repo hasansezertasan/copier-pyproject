@@ -21,6 +21,11 @@ words:
   - ghalint
   - megalinter
   - prek
+{%- if include_ai_rulez %}
+  # ai-rulez, and the blake3 content hash it stamps into every file it generates
+  - rulez
+  - blake
+{%- endif %}
   - unticked
   - zizmor
   - zuban

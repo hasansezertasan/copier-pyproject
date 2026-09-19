@@ -128,6 +128,20 @@ hooks = [
   # `style` group pin (its PyPI wrapper has no separate upstream pre-commit repo
   # revision worth tracking here).
   { id = "detect-secrets", name = "detect-secrets (pre-commit secret scan)", entry = "uv run --locked --group style detect-secrets-hook --baseline .secrets.baseline", language = "system", pass_filenames = true },
+{%- if include_ai_rulez %}
+  # ai-rulez regenerates the agent instruction files every host reads (AGENTS.md,
+  # CLAUDE.md, ...) from the `.ai-rulez/` sources, which are the only thing anyone
+  # edits. It is a *fixing* hook, so it behaves like the formatters above: it
+  # rewrites what drifted and fails the run when it had to, which is what keeps
+  # the committed output honest — there is no `--check` mode for preset output
+  # (ai-rulez's own `verify` covers plugin bundles only). Upstream ships
+  # pre-commit hooks, but they carry a second version pin; going through the uv
+  # `agents` group keeps one (ADR-035). It reads the whole `.ai-rulez/` tree and
+  # writes a fixed output set, so filenames are not passed; the `files` gate
+  # keeps it off unrelated commits while CI's `--all-files` run always reaches it
+  # — including when someone hand-edits a generated file the gate does not match.
+  { id = "ai-rulez", name = "ai-rulez (regenerate agent instruction files)", entry = "uv run --locked --group agents ai-rulez generate", language = "system", files = '^\.ai-rulez/', pass_filenames = false },
+{%- endif %}
 ]
 
 [[repos]]
@@ -203,7 +217,13 @@ hooks = [{ id = "zizmor" }]
 [[repos]]
 repo = "https://github.com/adrienverge/yamllint.git"
 rev = "v1.38.0"
-hooks = [{ id = "yamllint", args = ["-c", ".github/yamllint.yaml"] }]
+# `.copier-answers.yml` is excluded for the same reason the yamlfmt hook below
+# excludes it: copier owns the file ("NEVER EDIT MANUALLY") and writes block
+# sequences unindented, which yamllint's `indentation` rule rejects. The only
+# way to satisfy the linter would be to hand-edit a file the next `copier
+# update` overwrites, so the gate can only ever produce an unfixable failure —
+# it fires the moment any answer is a list (e.g. `ai_rulez_presets`).
+hooks = [{ id = "yamllint", exclude = "^\\.copier-answers\\.yml$", args = ["-c", ".github/yamllint.yaml"] }]
 
 [[repos]]
 repo = "https://github.com/DavidAnson/markdownlint-cli2"

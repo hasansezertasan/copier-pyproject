@@ -14,6 +14,7 @@ includes uncommitted working-tree changes (Copier emits a
 
 from __future__ import annotations
 
+from itertools import count
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
@@ -36,7 +37,16 @@ def render(tmp_path: Path) -> Callable[..., Path]:
     ``render(include_worker=True, worker_broker="redis")``.
     """
 
+    # Each call gets its own directory. A test that renders two shapes to
+    # compare them (e.g. a toggle on vs. off) would otherwise render the second
+    # *over* the first and inspect a merged tree, where a file the second shape
+    # does not produce is still there from the first — passing assertions that
+    # should fail, and failing ones that should pass.
+    renders = count(1)
+
     def _render(**answers: Any) -> Path:
-        return render_project(tmp_path / "rendered", **answers)
+        nth = next(renders)
+        suffix = "" if nth == 1 else f"-{nth}"
+        return render_project(tmp_path / f"rendered{suffix}", **answers)
 
     return _render

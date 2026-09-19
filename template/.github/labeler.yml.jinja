@@ -2,7 +2,13 @@
 # Add 'documentation' label to any changes within 'docs' folder or any subfolders
 documentation:
   - changed-files:
+{%- if include_ai_rulez %}
+      # The .ai-rulez sources are the agent-facing documentation; the files they
+      # generate are build output nobody edits by hand.
+      - any-glob-to-any-file: ['docs/**', '.ai-rulez/**']
+{%- else %}
       - any-glob-to-any-file: docs/**
+{%- endif %}
 # Add 'release' label to any PR where the head branch name starts with 'release'
 release:
   - head-branch: ['^release']

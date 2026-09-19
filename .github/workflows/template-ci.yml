@@ -36,6 +36,15 @@ jobs:
           - name: full-preset
             data: >-
               --data preset=full --data web_framework=fastapi --data worker_broker=redis
+          # The ai-rulez shape (ADR-035): the `.ai-rulez/` sources replace
+          # AGENTS.md/CLAUDE.md, and `ai-rulez generate` writes the per-host
+          # files. A console root plus one sibling interface so the generated
+          # package-structure rule renders its conditional rows and both of its
+          # layering paragraphs. `full-preset` also enables the toggle, but only
+          # this scenario runs the generator (see the convergence step below).
+          - name: ai-rulez
+            data: >-
+              --data include_ai_rulez=true --data include_cli=true --data include_mcp=true
           # Exercise the other web framework and broker branches.
           - name: litestar-kafka
             data: >-
@@ -140,6 +149,28 @@ jobs:
         working-directory: ../rendered
         run: |
           for hook in yamlfmt end-of-file-fixer trailing-whitespace; do
+            uv run --group prek prek run "$hook" --all-files --show-diff-on-failure
+          done
+          git diff --exit-code
+      - name: Generate the agent instruction files and verify they converge
+        # The generated project ships `.ai-rulez/` sources; the host files
+        # (AGENTS.md, CLAUDE.md, .github/copilot-instructions.md, the per-host
+        # copies of the repo-setup skill) are build output, so nothing in the
+        # render can be inspected for them — they exist only after a generate.
+        #
+        # Two generators write into the same tree here: ai-rulez, and the
+        # project's own fixing hooks. If they disagree on a single byte the
+        # repository never converges — every `prek run` rewrites what the last
+        # `ai-rulez generate` wrote, and back. Prove they agree the same way the
+        # formatter-canonical step above does: run the fixers over the generated
+        # output and gate on `git diff`, not on hook exit codes (ADR-030/035).
+        if: matrix.scenario.name == 'ai-rulez'
+        working-directory: ../rendered
+        run: |
+          uv run --group agents ai-rulez generate
+          # Newly generated files are untracked, and `git diff` ignores those.
+          git add -A
+          for hook in end-of-file-fixer trailing-whitespace markdownlint-cli2 typos; do
             uv run --group prek prek run "$hook" --all-files --show-diff-on-failure
           done
           git diff --exit-code
