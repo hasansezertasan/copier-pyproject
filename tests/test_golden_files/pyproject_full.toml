@@ -516,6 +516,8 @@ convention = "pep257"
 # Tests legitimately use asserts/magic values, reach into package internals, and
 # don't need return-value documentation on their fixtures and helpers.
 "tests/**/*.py" = ["S101", "PLR2004", "PLC2701", "DOC201"]
+# Benchmarks are collected by path, not imported as a package.
+"benchmarks/**/*.py" = ["INP001"]
 "examples/**/*.py" = ["INP001"]
 # Documentation examples are importable modules tested by
 # ``tests/test_docs_examples.py``; they are not application packages.
