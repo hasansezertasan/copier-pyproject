@@ -268,7 +268,16 @@ hooks = [{ id = "checkmake" }]
 [[repos]]
 repo = "https://github.com/google/yamlfmt"
 rev = "v0.21.0"
+{%- if include_ai_rulez %}
+# `.continue/prompts/` joins the copier-owned answers file for the same reason,
+# one step further along: yamlfmt prepends the `---` document start ai-rulez does
+# not emit, and the next `generate` strips it back off. A *fixing* hook that
+# disagrees with a generator does not fail once — the two rewrite each other
+# forever (ADR-030/035 §7). Inert unless the `continue-dev` host is selected.
+hooks = [{ id = "yamlfmt", exclude = "^(\\.copier-answers\\.yml|\\.continue/prompts/.*)$", args = ["-conf", ".github/yamlfmt.yml"] }]
+{%- else %}
 hooks = [{ id = "yamlfmt", exclude = "^\\.copier-answers\\.yml$", args = ["-conf", ".github/yamlfmt.yml"] }]
+{%- endif %}
 
 [[repos]]
 repo = "https://github.com/commitizen-tools/commitizen"

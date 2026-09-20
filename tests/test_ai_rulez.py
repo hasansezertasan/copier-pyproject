@@ -241,7 +241,7 @@ def test_generator_owned_paths_are_skipped_by_the_linters(
     """
     root = render(include_ai_rulez=True)
     prek = (root / "prek.toml").read_text(encoding="utf-8")
-    for hook in ("trailing-whitespace", "yamllint"):
+    for hook in ("trailing-whitespace", "yamllint", "yamlfmt"):
         line = next(ln for ln in prek.splitlines() if f'id = "{hook}"' in ln)
         assert GENERATOR_OWNED["continue-dev"].replace("\\", "") in line.replace(
             "\\", ""
