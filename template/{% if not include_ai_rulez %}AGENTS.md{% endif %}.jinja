@@ -1,0 +1,30 @@
+{% import "_macros.jinja" as fmt %}{#- Every section body below is a macro shared with the ``.ai-rulez/`` rule and
+    context sources this file is replaced by when ``include_ai_rulez`` is on, so
+    the two renderings can never drift (ADR-035). -#}
+# Agent Instructions
+
+Guidance for AI coding agents working in this repository.
+
+## Package Manager
+
+{{ fmt.agent_package_manager() }}
+
+## Commands
+
+{{ fmt.agent_commands() }}
+
+## External References
+
+{{ fmt.agent_external_references() }}
+
+## Package Structure
+
+{{ fmt.agent_package_structure(github_repo_name, interface_components, include_console_root, primary_component) }}
+
+## Key Conventions
+
+{{ fmt.agent_conventions(github_repo_name) }}
+
+## Pull Requests
+
+{{ fmt.agent_pull_requests() }}

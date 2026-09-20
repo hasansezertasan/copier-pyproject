@@ -169,6 +169,21 @@ Common tasks are exposed as mise tasks (`mise run test`, `mise run style`,
 `mise run lint`, `mise run format`, …); run `mise tasks` to list them. The full
 lint/type-check suite is `uv run --locked tox run -e style`, and the fast git
 hook gate is `uv run --locked tox run -e prek`.
+{%- if include_ai_rulez %}
+
+The agent instruction files every AI coding tool reads (`AGENTS.md`,
+`CLAUDE.md`, `.github/copilot-instructions.md`, …) are **generated** from the
+sources in `.ai-rulez/` by [ai-rulez](https://github.com/Goldziher/ai-rulez) —
+each one opens with a banner saying so. Edit the source, never the output, and
+regenerate:
+
+```bash
+uv run --locked --group agents ai-rulez generate
+```
+
+The `ai-rulez` git hook runs that for you whenever you change `.ai-rulez/`, and
+CI fails if the committed output is missing or out of date.
+{%- endif %}
 
 <!-- TODO @{{github_user}}: add any project-specific setup (IDE, services, env vars) -->
 

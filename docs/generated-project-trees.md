@@ -386,11 +386,17 @@ tools/build_docs.py
 
 ## full
 
-177 files.
+181 files.
 
 ```text
+.ai-rulez/config.toml
+.ai-rulez/context/commands.md
+.ai-rulez/context/references.md
+.ai-rulez/rules/package-structure.md
+.ai-rulez/rules/project-conventions.md
+.ai-rulez/rules/pull-requests.md
+.ai-rulez/skills/repo-setup/SKILL.md
 .all-contributorsrc
-.claude/skills/repo-setup/SKILL.md
 .copier-answers.yml
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
@@ -471,9 +477,7 @@ tools/build_docs.py
 .taplo.toml
 .vscode/extensions.json
 .vscode/launch.json
-AGENTS.md
 CITATION.cff
-CLAUDE.md
 Dockerfile
 LICENSE
 README.md

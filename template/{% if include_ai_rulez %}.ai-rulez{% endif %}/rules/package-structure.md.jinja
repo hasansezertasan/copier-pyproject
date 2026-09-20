@@ -1,0 +1,7 @@
+{% import "_macros.jinja" as fmt %}---
+priority: high
+---
+
+# Package structure
+
+{{ fmt.agent_package_structure(github_repo_name, interface_components, include_console_root, primary_component) }}

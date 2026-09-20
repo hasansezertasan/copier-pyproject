@@ -231,6 +231,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_all_contributors` | all-contributors config + workflow + README section | [009](docs/adr/009-optional-external-quality-community-integrations.md) |
 | `include_smokeshow` | tokenless coverage-HTML host (smokeshow step in the `coverage-combine` job; public repos only) | [026](docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md) |
 | `include_megalinter` | MegaLinter lean-complement CI layer | [013](docs/adr/013-megalinter-opt-in-lean-complement.md) |
+| `include_ai_rulez` | agent instructions authored once under `.ai-rulez/` and generated per host (`ai_rulez_presets`); replaces the hand-written `AGENTS.md`/`CLAUDE.md` pair, and the generated files are build output the template never renders | [035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md) |
 | `include_homebrew` | Homebrew tap dispatch (`is_app`-gated) | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
 | `include_scoop` | Scoop bucket dispatch | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
 | `include_repo_settings` | `.github/settings.yml` via Settings App | [018](docs/adr/018-repository-settings-as-code.md) |
@@ -257,7 +258,9 @@ orchestrator ([ADR-003](docs/adr/003-tox-as-canonical-lint-runner.md)),
 a style-env-only semgrep SAST pass over `src/`
 ([ADR-032](docs/adr/032-semgrep-sast-in-the-style-env.md)),
 editorconfig-checker, ghalint, `SUPPORT.md`, `.gitattributes`, `.git_archival.txt`,
-and `AGENTS.md`/`CLAUDE.md` onboarding files.
+and agent onboarding files — `AGENTS.md`/`CLAUDE.md` by default, or the
+`.ai-rulez/` sources they are generated from when `include_ai_rulez`
+([ADR-035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md)).
 
 ### Load-bearing invariants
 
@@ -290,10 +293,14 @@ Do not break these — each is a real footgun with the detail/why in its ADR:
   ([ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)).
 - **Shared Jinja helpers live in `_macros.jinja`** at the repo root — outside
   `_subdirectory`, so it is an input copier can never render into a project.
-  Templates import it on their first line. It currently carries
-  `py_collection()`, which emits a tuple/list literal in the byte form
-  ruff-format produces; a second hand-rolled copy of that width logic is the
-  drift this replaced ([ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)).
+  Templates import it on their first line. It carries `py_collection()`, which
+  emits a tuple/list literal in the byte form ruff-format produces (a second
+  hand-rolled copy of that width logic is the drift this replaced —
+  [ADR-030](docs/adr/030-generated-files-must-be-formatter-canonical.md)), and
+  the `agent_*()` prose macros, which are the **one** source for the agent
+  instructions whether they render as `AGENTS.md` or as the `.ai-rulez/` rule
+  sources ([ADR-035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md)).
+  Edit the prose there, never in one of the two renderings.
 - **One render entrypoint.** `tools/render.py` is the only place `copier.run_copy`
   is called (harness fixture, CI matrix, docs artifacts, watch loop, mise tasks);
   adding a second `copier copy` spelling is the drift this replaced
@@ -412,7 +419,8 @@ approve pull requests** enabled.
 The generated project's `docs/maintaining/setup.rst` is the one-time "Repository
 setup" guide (`[AGENT]`/`[HUMAN]`/`[CHECK]`-tagged, driven by the shipped
 `repo-setup` skill — [ADR-022](docs/adr/022-maintainer-setup-as-single-doc-home.md),
-[ADR-023](docs/adr/023-repo-setup-skill.md)); keep it in sync when these
+[ADR-023](docs/adr/023-repo-setup-skill.md); shipped to Claude alone, or to every
+selected host when `include_ai_rulez`); keep it in sync when these
 requirements change. This repo carries a symmetric repo-local
 `.claude/skills/repo-setup/` for its own bootstrap. Bump rules and this repo's own
 self-versioning are detailed in `docs/template-architecture.md` and ADR-015.

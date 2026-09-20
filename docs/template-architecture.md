@@ -152,6 +152,48 @@ Optional components (all boolean):
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
   [ADR-013](adr/013-megalinter-opt-in-lean-complement.md).
+- `include_ai_rulez` - agent instructions authored once and generated per host,
+  `default: false` (seeded on by the `full` preset). With it **off** the project
+  keeps the hand-written `AGENTS.md` + `CLAUDE.md` pair and the Claude-only
+  `repo-setup` skill, unchanged. With it **on** the template renders
+  [ai-rulez](https://github.com/Goldziher/ai-rulez) sources instead —
+  `.ai-rulez/config.toml`, three rules (package structure, key conventions, pull
+  requests), two context files (commands, external references) and the
+  `repo-setup` skill — and `ai-rulez generate` fans them out to the hosts named
+  by the `ai_rulez_presets` multiselect (default `claude`, `codex`, `copilot`;
+  `cursor`, `gemini`, `windsurf`, `cline`, `continue-dev`, `amp`, `junie`,
+  `opencode`, `hermes` and `antigravity` are also offered).
+
+  The generated files are **build output the template never renders**:
+  `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md` and the per-host
+  copies of the skill appear on the adopter's first `ai-rulez generate` and are
+  committed from there on, which keeps `copier update`'s 3-way merge on the
+  small rule sources instead of one monolithic instruction file. The prose
+  itself lives in `_macros.jinja`, shared with the `AGENTS.md` rendering, so the
+  two shapes cannot drift.
+
+  Wiring: `ai-rulez==4.11.5` pinned in its own `agents` dependency group (not
+  `style`, which `dev` drags in everywhere); a prek **fixing** hook that
+  regenerates on any `.ai-rulez/` change; `ai-rulez validate` in the tox `style`
+  env; and a `ci.yml` step that fails when the working tree — untracked files
+  included — is not clean after the hooks, which is what catches a project that
+  never committed the generated output at all. `gitignore = false` is mandatory
+  (ai-rulez would otherwise rewrite the cobo-sealed `.gitignore`), and
+  `builtins = false` because every builtin domain restates or contradicts a gate
+  the generated project already enforces.
+
+  Because the output is not copier-managed, **both** update directions need a
+  manual step and both are documented in ADR-035 §8. Turning the toggle *on*
+  (which the first `copier update` of a `full`-preset project does by default)
+  removes `AGENTS.md`/`CLAUDE.md` and generates nothing, so
+  `_message_after_update` prints `uv lock` + `ai-rulez generate` and CI stays red
+  until their output is committed. Turning it *off* leaves every previously
+  generated host file behind, so `ai-rulez clean --force --keep-gitignore` must
+  run **before** the update, while the `.ai-rulez/` sources it reads still exist.
+  A few hosts also need the generated project's own linters to skip the paths
+  ai-rulez owns (`.mdc` and `.continue/prompts/`) — those excludes render only
+  under the toggle. See
+  [ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md).
 - `include_homebrew` - Homebrew tap distribution, `default: false` and
   `when: "{{ is_app }}"`-gated (only offered for app-like projects, not a
   library). The generated
@@ -305,6 +347,9 @@ for `.git_archival.txt`), and AI-agent onboarding
 files — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that
 `@AGENTS.md`-imports it so there is a single source of truth (no divergent copies).
 `AGENTS.md` intentionally carries **no** commit-attribution/`Co-Authored-By` block.
+When `include_ai_rulez` is enabled, that pair is replaced by the `.ai-rulez/`
+sources both files are generated from, alongside every other host's native
+config ([ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md)).
 
 Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
 `node`/`node-date`/`describe-name` `$Format:...$` template). Paired with the
@@ -499,7 +544,7 @@ can never render it into a generated project — no `_exclude` override required
 (which would replace copier's default exclude list wholesale). Templates import
 it on their first line.
 
-It currently carries `py_collection(name, items, kind)`, which emits a Python
+It carries `py_collection(name, items, kind)`, which emits a Python
 tuple or list literal in the exact byte form ruff-format produces: one line when
 the whole statement fits in 88 columns, otherwise one element per line with a
 trailing comma. The right form depends on values only known at render time (the
@@ -508,6 +553,16 @@ that always picks one ships a file the adopter's first `prek run --all-files`
 rewrites — see [ADR-030](adr/030-generated-files-must-be-formatter-canonical.md).
 Used by `__main__.py`, `cli/app.py` and `tests/test_main.py` for `__all__`, the
 component dependency allowlists, and the guard tuples.
+
+It also carries the `agent_*()` macros — the agent-instruction prose (commands,
+package structure, conventions, pull requests, external references). They exist
+because that prose has **two** renderings: the hand-written `AGENTS.md`, and the
+`.ai-rulez/` rule and context sources when `include_ai_rulez` is on. Both call
+the same macro, so a toggle meant to remove per-host duplication downstream
+cannot introduce per-shape duplication inside the template
+([ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md)). The
+`repo-setup` skill needs no macro: it is one file whose *path* the toggle picks.
+Edit the prose in `_macros.jinja`, never in one of the two renderings.
 
 ## Generated Project Structure
 
@@ -1227,8 +1282,12 @@ sync when these requirements change. See
 [ADR-022](adr/022-maintainer-setup-as-single-doc-home.md).
 
 Generated projects also ship a **`repo-setup` skill**
-(`template/.claude/skills/repo-setup/SKILL.md` → `.claude/skills/repo-setup/` in
-the generated project) — a resume-driver that reads `docs/maintaining/setup.rst`,
+— one template file, under a directory name the `include_ai_rulez` toggle
+picks: `.claude/skills/repo-setup/` in the generated project by default, or
+`.ai-rulez/skills/repo-setup/` when the toggle is on, from which
+`ai-rulez generate` writes a copy for every selected host. It is a
+resume-driver that
+reads `docs/maintaining/setup.rst`,
 runs each step's idempotent **`[CHECK]`** block (exit 0 = already done), auto-runs
 red `[AGENT]` steps, and hands off `[HUMAN]` steps — classifying each step as
 required / deferred (Pages, pre-first-release) / optional so the walk never
