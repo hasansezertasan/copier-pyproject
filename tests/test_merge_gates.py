@@ -194,5 +194,9 @@ def test_setup_doc_enables_the_dependency_graph(
     setup = _read(render(), "docs", "maintaining", "setup.rst")
     assert "Dependency graph\n----------------" in setup
     # A scriptable [CHECK] does exist even though the toggle is not scriptable:
-    # the SBOM export is served only while the graph is on.
-    assert "dependency-graph/sbom" in setup
+    # the dependency-review API answers 403 while the graph is off. Probe the
+    # endpoint `dependency-review-action` itself calls, not the SBOM export —
+    # that one also tracks the graph but closes down on 2026-11-13, which would
+    # turn a green setup into a red one on a date nobody is watching.
+    assert "dependency-graph/compare/main...main" in setup
+    assert "dependency-graph/sbom" not in setup

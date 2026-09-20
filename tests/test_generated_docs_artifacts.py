@@ -37,6 +37,12 @@ def _gitignore(root: Path) -> str:
 def test_generating_shapes_ignore_the_tree(
     render: Callable[..., Path], answers: dict[str, Any]
 ) -> None:
+    """Every shape whose ``conf.py`` writes the tree must also ignore it.
+
+    Asserting both halves in one test is the point: the defect was the two
+    conditions drifting apart, so a test that only checked ``.gitignore`` would
+    still pass once a future toggle starts generating without a matching rule.
+    """
     root = render(include_docs=True, **answers)
     assert "_generated_dir.mkdir" in _conf_py(root)
     assert "docs/_generated/" in _gitignore(root)

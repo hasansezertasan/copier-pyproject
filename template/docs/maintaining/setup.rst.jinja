@@ -235,13 +235,16 @@ analysis** on the older settings layout) → **Dependency graph**. UI-only:
 ``security_and_analysis[dependency_graph][status]`` and silently no-ops, so there
 is no ``[AGENT]`` command.
 
-**[CHECK]** The SBOM export is served only while the graph is enabled, so a 200
-here is the graph:
+**[CHECK]** Ask the dependency-review API itself — the same endpoint
+``dependency-review-action`` calls, so a clean exit here is exactly the state the
+workflow needs. It answers ``403`` while the graph is off. A self-compare needs
+no second ref, so this works on a repository with nothing merged yet. (Not the
+SBOM export, which also tracks the graph but is closing down on 2026-11-13.)
 
 .. code-block:: sh
 
-   gh api repos/{{github_user}}/{{github_repo_name}}/dependency-graph/sbom \
-     --jq '.sbom.SPDXID' | grep -qx SPDXRef-DOCUMENT
+   gh api --silent \
+     repos/{{github_user}}/{{github_repo_name}}/dependency-graph/compare/main...main
 
 PyPI trusted publishing
 -----------------------

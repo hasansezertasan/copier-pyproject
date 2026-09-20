@@ -102,8 +102,12 @@ a later event has happened:
    without it ("Dependency review is not supported on this repository"), it does
    not pass vacuously, so the check is red on the very first PR. The `PATCH
    /repos/{owner}/{repo}` call accepts
-   `security_and_analysis[dependency_graph][status]` and silently no-ops — the
-   scriptable `[CHECK]` is a 200 from `.../dependency-graph/sbom`.
+   `security_and_analysis[dependency_graph][status]` and silently no-ops — but
+   the `[CHECK]` is scriptable: `gh api --silent
+   .../dependency-graph/compare/main...main`, the same endpoint
+   `dependency-review-action` calls, which answers 403 while the graph is off.
+   Not the SBOM export (`.../dependency-graph/sbom`), which tracks the graph too
+   but is closing down on 2026-11-13.
 8. **Renovate App install** — inert config until installed; unblocks both routine
    dependency PRs **and** the copier-update manager (next).
 9. **Optional secrets / Apps** — only those the setup doc lists for this
