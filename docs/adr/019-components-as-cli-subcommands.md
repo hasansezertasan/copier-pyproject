@@ -77,10 +77,12 @@ Names follow the component modules, except the TUI keeps the friendlier
 `interactive` (unchanged from before): `interactive`, `gui`, `web`, `mcp`,
 `worker`. Every subcommand body — and the launcher's default callback — is a
 lazy `from <pkg>.<name>.app import main; main()`, so the layering contract and
-import-time boundaries hold and `typer`/component imports stay deferred. These
-launch bodies carry `# pragma: no cover` (they block on a server loop / mainloop
-/ stdio); a `--help` smoke test and, under `include_cli`, the `version`/`info`
-tests keep the module covered under the `fail_under = 99` gate.
+import-time boundaries hold and `typer`/component imports stay deferred.
+These launch bodies are tested by mocking the target component `main` entry point
+(see [ADR-035](035-headless-testing-for-interactive-components.md)), removing
+blanket `# pragma: no cover` from the subcommands. A `--help` smoke test and,
+under `include_cli`, the `version`/`info` tests keep the entire module covered
+under the `fail_under = 99` gate.
 
 ## Consequences
 

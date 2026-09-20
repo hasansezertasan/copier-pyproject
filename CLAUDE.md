@@ -477,15 +477,16 @@ above — never a multi-line block here.
 9. Keep the component's coverage at the `fail_under = 99` gate (see
    [ADR-008](docs/adr/008-worker-broker-testing-strategy.md)). Because
    `.example-input.yml` uses the `library` preset (no interface components), a
-   component's coverage is only
-   validated when you generate it explicitly — do that and run the suite. Unit-test
+   component's coverage is only validated when you generate it explicitly — do that and run the suite. Unit-test
    the business logic *including reachable error handling* (metadata-failure
    paths are tested via the shared `missing_metadata` fixture — see the
-   web/cli/gui/tui/mcp tests); only for genuinely untestable blocking
-   entrypoints add `# pragma: no cover` to the specific launch/display function
-   (as the `main()` entrypoints, the CLI launcher subcommands, the GUI/TUI
-   `_display_*` helpers, and the worker lifecycle hooks do). Do **not** add
-   blanket `exclude_lines` regexes for these — see the convention below.
+   web/cli/gui/tui/mcp tests); only for genuinely untestable irreducible
+   blocking calls add `# pragma: no cover` to the specific helper function
+   (as the `_run_server`, `_run_app`, and `_stdio_transport` helpers, and the
+   `__main__` dispatchers do). Interactive components isolate these
+   blocking calls behind injected default drivers/runners so that setup, teardown,
+   and CLI dispatching can be driven deterministically under headless CI (see ADR-035).
+   Do **not** add blanket `exclude_lines` regexes for these — see the convention below.
 10. Wire the component into the per-component marker + path-filter surfaces
    ([ADR-028](docs/adr/028-per-component-markers-and-path-filtered-ci.md)), which
    must stay in lockstep: register the marker in `pyproject.toml.jinja`
@@ -498,14 +499,15 @@ above — never a multi-line block here.
 
 ### Coverage exclusion convention
 
-Generated projects enforce `fail_under = 99`. Entrypoints that start a blocking
-loop (`main()`, `run_server`, real tkinter/textual/uvicorn/stdio code) cannot
-run under headless CI, so each carries a per-site `# pragma: no cover` (the
-web/MCP/worker `main()` entrypoints and `__main__` dispatchers, the MCP
-`run_server`, the CLI `interactive`/`gui`/`web` subcommands, the GUI/TUI
-`_display_*` helpers, the worker lifecycle hooks, the c-extension
-`except ImportError` fallback, and the worker's module-level metadata
-fallback). The logic those entrypoints call is always unit-tested.
+Generated projects enforce `fail_under = 99`. Entrypoints that start an irreducible
+blocking loop (textual event loop, uvicorn server, faststream loop, or stdio
+stream) cannot run under headless CI, so each carries a per-site `# pragma: no cover`
+restricted to the leaf runner helper (e.g. `_run_server`, `_run_app`, `_stdio_transport`,
+along with the top-level `__main__` dispatchers, the c-extension
+`except ImportError` fallback, and the worker's module-level metadata fallback).
+All surrounding setup, UI widgets, lifecycle hooks, error handlers, and CLI subcommand
+dispatchers are tested via injected drivers or headless pilots (see ADR-035).
+The logic those entrypoints call is always unit-tested.
 
 Do **not** exclude these via blanket `[tool.coverage.report] exclude_lines`
 regexes (`def main\(`, `except PackageNotFoundError`, ...): a regex matching a

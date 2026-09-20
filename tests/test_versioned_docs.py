@@ -43,7 +43,7 @@ def test_granularity_bakes_into_build_script(
 ) -> None:
     root = render(include_docs=True, docs_version_granularity=granularity)
     build_docs = (root / "tools" / "build_docs.py").read_text(encoding="utf-8")
-    assert f'VERSION_GRANULARITY = "{granularity}"' in build_docs
+    assert f'DEFAULT_VERSION_GRANULARITY = "{granularity}"' in build_docs
 
 
 def test_versions_json_is_gitignored(render: Callable[..., Path]) -> None:
@@ -123,9 +123,46 @@ def test_manual_gh_pages_checks_out_release_tag(render: Callable[..., Path]) -> 
     workflow = (
         render(include_docs=True) / ".github" / "workflows" / "gh-pages.yml"
     ).read_text(encoding="utf-8")
-    # Must build the tagged source, not the dispatched HEAD (ADR-027).
-    assert "git describe --tags" in workflow
-    assert "git checkout" in workflow
+    # Must build the tagged source, not the dispatched HEAD (ADR-027) -- and the
+    # tag must come from the releases/latest endpoint, which excludes the drafts
+    # `git describe --tags` would happily pick up.
+    assert (
+        'gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name' in workflow
+    )
+    assert 'git checkout --force --detach "$tag"' in workflow
+
+
+def test_build_script_granularity_is_env_overridable(
+    render: Callable[..., Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A manual redeploy passes the tag's granularity through the environment."""
+    root = render(include_docs=True, docs_version_granularity="major")
+
+    monkeypatch.setenv("DOCS_VERSION_GRANULARITY", "minor")
+    overridden = _load_build_docs(root, "override")
+    assert overridden.DEFAULT_VERSION_GRANULARITY == "major"
+    assert overridden.slugify("1.2.3") == "1.2"
+
+    monkeypatch.delenv("DOCS_VERSION_GRANULARITY")
+    baked = _load_build_docs(root, "baked")
+    assert baked.slugify("1.2.3") == "1"
+
+
+def test_manual_gh_pages_keeps_the_tags_granularity(
+    render: Callable[..., Path],
+) -> None:
+    """Rebuilding a tag must not move it to a slug a later answer would give it."""
+    workflow = (
+        render(include_docs=True) / ".github" / "workflows" / "gh-pages.yml"
+    ).read_text(encoding="utf-8")
+    swap = workflow.index('git checkout "$dispatch_ref" -- tools/build_docs.py')
+    read_tag_value = workflow.index('VERSION_GRANULARITY = "([a-z]+)"')
+    # The tag's own value has to be read *before* its script is replaced.
+    assert read_tag_value < swap
+    assert "DOCS_VERSION_GRANULARITY=$granularity" in workflow
+    # Matches both the current constant and the bare pre-override spelling a
+    # tag cut before this change carries.
+    assert 's/^(DEFAULT_)?VERSION_GRANULARITY = "([a-z]+)"$/\\2/p' in workflow
 
 
 def test_switcher_urls_prefixed_with_repo_path(render: Callable[..., Path]) -> None:

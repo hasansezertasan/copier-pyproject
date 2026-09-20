@@ -48,6 +48,16 @@ class _TkExtensionMissingFinder:
             raise ModuleNotFoundError(_TK_EXTENSION_MESSAGE, name="_tkinter")
         return None
 {%- endmacro -%}
+{%- macro _gui_preflight_bypass() %}
+    # The GUI launcher preflights Tkinter before importing its entry point. The
+    # preflight failure contract is covered separately; a dispatch test must
+    # reach the replacement entry point on Tk-less Linux CI runners.
+
+    def skip_preflight(_: str) -> None:
+        """Let this dispatch-only test proceed without an installed Tkinter."""
+
+    monkeypatch.setattr(cli_app, "_preflight", skip_preflight)
+{%- endmacro -%}
 {%- macro _web_test_helpers() -%}
 _RUNTIME_MISSING_MODULE = "No module named 'user_plugin'"
 _NESTED_DEPENDENCY_MESSAGE = "No module named 'click'"
@@ -747,12 +757,54 @@ def test_run_without_a_target_uses_the_project_application(
 
     assert run_calls == [(None, False)]
 {%- endif %}
+{%- for name in subcommands if name != 'web' %}
+
+
+def test_subcommand_{{ name }}_dispatches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The `{{ name }}` subcommand invokes the {{ name }} component entry point."""
+    called = False
+{%- if name == "gui" %}{{ _gui_preflight_bypass() }}{%- endif %}
+{% if name in ["interactive", "gui"] %}
+    def mock_main() -> int:
+        nonlocal called
+        called = True
+        return 0
+{%- else %}
+    def mock_main() -> None:
+        nonlocal called
+        called = True
+{%- endif %}
+
+    {% if name == "interactive" -%}
+    target_mod = importlib.import_module("{{github_repo_name}}.tui.app")
+    {%- else -%}
+    target_mod = importlib.import_module("{{github_repo_name}}.{{ name }}.app")
+    {%- endif %}
+    monkeypatch.setattr(target_mod, "main", mock_main)
+    {%- if name in ["interactive", "gui"] %}
+    with pytest.raises(SystemExit) as excinfo:
+        app(["{{ name }}"])
+    assert excinfo.value.code == 0
+    {%- else %}
+    app(["{{ name }}"])
+    {%- endif %}
+    assert called
+{%- endfor %}
+{%- if "web" in subcommands %}
+
+
+def test_subcommand_web_dispatches(run_calls: list[tuple[str | None, bool]]) -> None:
+    """The `web` subcommand is `run` with no target and no autoreload."""
+    app(["web"])
+
+    assert run_calls == [(None, False)]
+{%- endif %}
 {%- else -%}
 """Test cases for the {{github_repo_name}} Typer root."""
 
 from __future__ import annotations
 
-{% if need_import_guard or include_web -%}
+{% if need_import_guard or include_web or subcommands -%}
 import importlib
 {% endif -%}
 {% if include_web or include_tui or include_gui or include_mcp or include_worker -%}
@@ -1262,5 +1314,77 @@ def test_run_without_a_target_uses_the_project_application(
 
     assert result.exit_code == 0
     assert run_calls == [(None, False)]
+{%- endif %}
+{%- for name in subcommands if name != 'web' %}
+
+
+def test_subcommand_{{ name }}_dispatches(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The `{{ name }}` subcommand invokes the {{ name }} component entry point."""
+    called = False
+{%- if name == "gui" %}{{ _gui_preflight_bypass() }}{%- endif %}
+{% if name in ["interactive", "gui"] %}
+    def mock_main() -> int:
+        nonlocal called
+        called = True
+        return 0
+{%- else %}
+    def mock_main() -> None:
+        nonlocal called
+        called = True
+{%- endif %}
+
+    {% if name == "interactive" -%}
+    target_mod = importlib.import_module("{{github_repo_name}}.tui.app")
+    {%- else -%}
+    target_mod = importlib.import_module("{{github_repo_name}}.{{ name }}.app")
+    {%- endif %}
+    monkeypatch.setattr(target_mod, "main", mock_main)
+    result: Result = runner.invoke(app, ["{{ name }}"])
+    assert result.exit_code == 0
+    assert called
+{%- endfor %}
+{%- if "web" in subcommands %}
+
+
+def test_subcommand_web_dispatches(
+    runner: CliRunner, run_calls: list[tuple[str | None, bool]]
+) -> None:
+    """The `web` subcommand is `run` with no target and no autoreload."""
+    result: Result = runner.invoke(app, ["web"])
+
+    assert result.exit_code == 0
+    assert run_calls == [(None, False)]
+{%- endif %}
+{%- if not include_cli %}
+
+
+def test_default_invokes_primary(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Bare invocation launches the primary component."""
+    called = False
+{%- if primary_component == "gui" %}{{ _gui_preflight_bypass() }}{%- endif %}
+{% if primary_component in ["tui", "gui"] %}
+    def mock_main() -> int:
+        nonlocal called
+        called = True
+        return 0
+{%- else %}
+    def mock_main() -> None:
+        nonlocal called
+        called = True
+{%- endif %}
+
+    {% if primary_component == "tui" -%}
+    target_mod = importlib.import_module("{{github_repo_name}}.tui.app")
+    {%- else -%}
+    target_mod = importlib.import_module("{{github_repo_name}}.{{ primary_component }}.app")
+    {%- endif %}
+    monkeypatch.setattr(target_mod, "main", mock_main)
+    result: Result = runner.invoke(app, [])
+    assert result.exit_code == 0
+    assert called
 {%- endif %}
 {%- endif %}

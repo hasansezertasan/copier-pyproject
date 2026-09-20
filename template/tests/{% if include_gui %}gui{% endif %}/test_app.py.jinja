@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import platform
+import sys
 from importlib.metadata import Distribution
+from types import SimpleNamespace
 
 import pytest
 
@@ -40,35 +42,131 @@ def test_main_can_skip_gui(capsys: pytest.CaptureFixture[str]) -> None:
     assert PROJECT_NAME in captured.out
 
 
-def test_main_displays_window(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_displays_window() -> None:
     """When the window displays successfully, ``main`` returns 0.
 
-    The display helper is stubbed (no real Tkinter under headless CI); this
-    pins the success path — helper called once with the info message, exit 0.
+    The display driver is injected; this pins the success path — driver called
+    once with title and info message, exit 0.
     """
-    displayed: list[str] = []
-    monkeypatch.setattr(gui_app, "_display_message", displayed.append)
-
-    exit_code = gui_app.main()
+    displayed: list[tuple[str, str]] = []
+    exit_code = gui_app.main(
+        dialog_driver=lambda title, msg: displayed.append((title, msg))
+    )
 
     assert exit_code == 0
     assert len(displayed) == 1
-    assert PROJECT_NAME in displayed[0]
+    assert PROJECT_NAME in displayed[0][0]
+    assert PROJECT_NAME in displayed[0][1]
 
 
-def test_main_handles_display_errors(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_main_handles_display_errors(capsys: pytest.CaptureFixture[str]) -> None:
     """Errors while showing the GUI should fall back to stdout."""
-    error_message = "boom"
 
-    def _raise_display_error(_: str) -> None:
-        raise gui_app.GuiDisplayError(error_message)
+    def _raise_display_error(_: str, __: str) -> None:
+        msg = "boom"
+        raise RuntimeError(msg)
 
-    monkeypatch.setattr(gui_app, "_display_message", _raise_display_error)
-
-    exit_code = gui_app.main()
+    exit_code = gui_app.main(dialog_driver=_raise_display_error)
     captured = capsys.readouterr()
 
     assert exit_code == 1
     assert PROJECT_NAME in captured.out
+
+
+class _TkStub:
+    """Stands in for both ``tkinter.Tk`` and ``tkinter.messagebox``.
+
+    Calling the instance returns itself, so ``tk.Tk()`` yields the same
+    recorder the dialog call lands on.
+    """
+
+    def __init__(self, failing: str | None) -> None:
+        self.failing = failing
+        self.events: list[str] = []
+        self.shown: list[tuple[str, str]] = []
+
+    def _step(self, name: str) -> None:
+        self.events.append(name)
+        if self.failing == name:
+            msg = f"{name} failed"
+            raise RuntimeError(msg)
+
+    def __call__(self) -> _TkStub:
+        return self
+
+    def withdraw(self) -> None:
+        self._step("withdraw")
+
+    def destroy(self) -> None:
+        self.events.append("destroy")
+
+    def showinfo(self, title: str, message: str) -> None:
+        self.shown.append((title, message))
+        self._step("showinfo")
+
+
+def _install_tkinter_stub(
+    monkeypatch: pytest.MonkeyPatch, failing: str | None
+) -> _TkStub:
+    """Replace ``tkinter`` with a stub that records calls and fails on demand.
+
+    Returns:
+        _TkStub: The recorder, exposing ``events`` and ``shown``.
+    """
+    stub = _TkStub(failing)
+    # A SimpleNamespace stands in for the module: ``import tkinter as tk`` binds
+    # whatever ``sys.modules`` holds, and ``from tkinter import messagebox`` is a
+    # plain attribute lookup on it.
+    monkeypatch.setitem(
+        sys.modules, "tkinter", SimpleNamespace(Tk=stub, messagebox=stub)
+    )
+    return stub
+
+
+def test_default_dialog_driver_shows_and_destroys_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The happy path withdraws the root, shows the dialog, then destroys it."""
+    stub = _install_tkinter_stub(monkeypatch, failing=None)
+
+    gui_app._default_dialog_driver("Title", "Body")  # noqa: SLF001
+
+    assert stub.events == ["withdraw", "showinfo", "destroy"]
+    assert stub.shown == [("Title", "Body")]
+
+
+@pytest.mark.parametrize("failure_point", ["withdraw", "showinfo"])
+def test_default_dialog_driver_destroys_root_after_failure(
+    monkeypatch: pytest.MonkeyPatch, failure_point: str
+) -> None:
+    """The temporary Tk root is always destroyed after dialog setup failures."""
+    stub = _install_tkinter_stub(monkeypatch, failing=failure_point)
+
+    with pytest.raises(RuntimeError, match=f"{failure_point} failed"):
+        gui_app._default_dialog_driver("title", "message")  # noqa: SLF001
+
+    assert stub.events[-1] == "destroy"
+
+
+def test_display_message_reports_missing_tkinter() -> None:
+    """A missing Tkinter install surfaces as a specific ``GuiDisplayError``."""
+
+    def _raise_import_error(_: str, __: str) -> None:
+        msg = "No module named 'tkinter'"
+        raise ImportError(msg)
+
+    with pytest.raises(gui_app.GuiDisplayError, match="Tkinter is not available"):
+        gui_app._display_message(  # noqa: SLF001
+            "info", dialog_driver=_raise_import_error
+        )
+
+
+@pytest.mark.parametrize("exc_type", [KeyboardInterrupt, SystemExit])
+def test_main_propagates_interrupt(exc_type: type[BaseException]) -> None:
+    """``KeyboardInterrupt`` and ``SystemExit`` propagate out of ``main``."""
+
+    def _raise_interrupt(_: str, __: str) -> None:
+        raise exc_type
+
+    with pytest.raises(exc_type):
+        gui_app.main(dialog_driver=_raise_interrupt)

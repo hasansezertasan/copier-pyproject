@@ -13,7 +13,15 @@ from litestar.testing import TestClient
 {%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.web.app import DEFAULT_APP_PATH, app, resolve_app_path, resolve_bind
+from {{github_repo_name}}.web.app import (
+    DEFAULT_APP_PATH,
+    DEV_HOST,
+    app,
+    main,
+    resolve_app_path,
+    resolve_bind,
+    run_server,
+)
 
 # Mirror the env prefix the implementation derives from the project name.
 ENV_PREFIX = f"{PROJECT_NAME.upper().replace('-', '_')}_"
@@ -290,3 +298,33 @@ def test_openapi_schema_available(client: TestClient) -> None:
     openapi_response = client.get("/schema/openapi.json")
     assert openapi_response.status_code == 200, "OpenAPI schema should be available"
 {%- endif %}
+
+
+def test_main_launches_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``main`` resolves the default target and bind, then invokes the runner."""
+    monkeypatch.delenv(f"{ENV_PREFIX}HOST", raising=False)
+    monkeypatch.delenv(f"{ENV_PREFIX}PORT", raising=False)
+    captured: list[tuple[str, str, int, bool]] = []
+
+    def runner(target: str, *, host: str, port: int, reload: bool) -> None:
+        captured.append((target, host, port, reload))
+
+    main(runner=runner)
+
+    assert captured == [(DEFAULT_APP_PATH, "127.0.0.1", 8000, False)]
+
+
+def test_run_server_dev_mode_forces_loopback_and_reload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``dev_mode`` overrides a non-loopback host and asks for autoreload."""
+    monkeypatch.setenv(f"{ENV_PREFIX}HOST", "0.0.0.0")  # noqa: S104
+    monkeypatch.setenv(f"{ENV_PREFIX}PORT", "9000")
+    captured: list[tuple[str, str, int, bool]] = []
+
+    def runner(target: str, *, host: str, port: int, reload: bool) -> None:
+        captured.append((target, host, port, reload))
+
+    run_server("other.module:asgi", dev_mode=True, runner=runner)
+
+    assert captured == [("other.module:asgi", DEV_HOST, 9000, True)]

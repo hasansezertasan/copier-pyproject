@@ -922,7 +922,13 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      unreleased `main` — via `gh api .../releases/latest`, not `git describe`,
      which would pick up the tag release-please creates while the release is
      still a draft. `setup-python`/`setup-uv` run *after* that checkout so the
-     tagged docs build on the interpreter the release shipped on. Both jobs
+     tagged docs build on the interpreter the release shipped on. It then
+     restores `tools/build_docs.py` from the dispatch ref (orchestration, like
+     the workflow file itself) but carries the tag's baked
+     `DEFAULT_VERSION_GRANULARITY` across that swap via
+     `DOCS_VERSION_GRANULARITY`, so a granularity answer changed since the last
+     release cannot republish that tag under a second slug and repoint `latest`
+     at the duplicate. Both jobs
      fetch `gh-pages` through an `ls-remote` guard (exit 2 = absent, anything
      else aborts): a swallowed transport error would make `build_docs.py`
      assemble a site with no prior versions, and the clean-on-deploy would then

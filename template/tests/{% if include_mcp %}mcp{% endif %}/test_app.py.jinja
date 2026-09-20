@@ -8,7 +8,7 @@ from importlib.metadata import Distribution
 import pytest
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
-from {{github_repo_name}}.mcp.app import call_tool, list_tools
+from {{github_repo_name}}.mcp.app import call_tool, list_tools, main, run_server
 
 
 @pytest.mark.asyncio
@@ -73,3 +73,28 @@ async def test_tool_reports_missing_metadata() -> None:
     assert result[0].type == "text"
     assert "metadata not found" in result[0].text
     assert PROJECT_NAME in result[0].text
+
+
+@pytest.mark.asyncio
+async def test_run_server_custom_transport() -> None:
+    """``run_server`` executes the injected transport."""
+    called = False
+
+    async def mock_transport() -> None:  # noqa: RUF029
+        nonlocal called
+        called = True
+
+    await run_server(transport=mock_transport)
+    assert called
+
+
+def test_main_invokes_runner() -> None:
+    """``main`` executes the server via the provided runner."""
+    called = False
+
+    def mock_runner() -> None:
+        nonlocal called
+        called = True
+
+    main(runner=mock_runner)
+    assert called

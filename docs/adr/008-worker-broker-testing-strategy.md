@@ -219,14 +219,13 @@ while still gaining real-broker coverage on Linux.
     paths that carry real behavior now have unit tests: the web `/version` and
     `/info` 503 responses, the CLI `version`/`info` exit-code-1 contract, the
     GUI/TUI "Version: unknown" degradation, and the MCP error-text response.
-  - **Genuinely untestable code carries a per-site `# pragma: no cover`**: the
-    blocking process entrypoints (`main()` in the web/MCP/worker apps and the
-    `__main__` dispatchers, the MCP `run_server`), the raw display/launch
-    functions (`_display_message`, `_display_tui`, the CLI
-    `interactive`/`gui`/`web` subcommands), the worker lifecycle hooks, the
-    c-extension `except ImportError` fallback, and the worker's module-level
-    metadata fallback (unreachable wherever tests run — the package is always
-    installed there).
+  - **Genuinely untestable code carries a per-site `# pragma: no cover`**:
+    irreducible blocking calls (`_run_app`, `_run_server`, `_stdio_transport`,
+    and `__main__` dispatchers), the c-extension
+    `except ImportError` fallback, and the worker's module-level metadata fallback.
+    (Note: As of [ADR-035](035-headless-testing-for-interactive-components.md),
+    the surrounding entrypoints, UI widgets, worker lifecycle hooks, and CLI
+    subcommands use injected driver seams and are tested without pragmas.)
 
   An earlier iteration excluded these via blanket `[tool.coverage.report]
   exclude_lines` regexes (`def main(`, `async def run_server`,

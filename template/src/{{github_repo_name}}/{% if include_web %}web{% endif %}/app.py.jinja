@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 {% if web_framework == "fastapi" %}
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
@@ -16,6 +17,17 @@ from litestar.openapi.datastructures import ResponseSpec
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
+
+if TYPE_CHECKING:
+    from typing import Protocol
+
+    class _ServerRunner(Protocol):
+        """Signature of the callable that starts the web server."""
+
+        def __call__(
+            self, target: str, *, host: str, port: int, reload: bool
+        ) -> None: ...
+
 
 logger = get_logger()
 {% if web_framework == "fastapi" %}
@@ -207,34 +219,47 @@ def resolve_app_path(app_path: str | None = None) -> str:
     return app_path
 
 
-def run_server(  # pragma: no cover
-    app_path: str | None = None, *, dev_mode: bool = False
+def _run_server(  # pragma: no cover
+    target: str, *, host: str, port: int, reload: bool
+) -> None:
+    """Execute the uvicorn server loop.
+
+    The irreducible blocking call, separated from the target and bind
+    resolution so both stay measured (ADR-035).
+    """
+    import uvicorn  # noqa: PLC0415
+
+    uvicorn.run(target, host=host, port=port, reload=reload)
+
+
+def run_server(
+    app_path: str | None = None,
+    *,
+    dev_mode: bool = False,
+    runner: _ServerRunner = _run_server,
 ) -> None:
     """Run the web application with uvicorn.
-
-    Excluded from coverage: it blocks on the uvicorn server loop. The target and
-    bind resolution it relies on (``resolve_app_path``, ``resolve_bind``) are
-    unit-tested separately.
 
     Args:
         app_path: An explicit ``"module:attribute"`` import string, or ``None``
             to run this project's own web application.
         dev_mode: When ``True``, enable autoreload and bind loopback.
+        runner: Callable that starts the server. Defaults to the real uvicorn
+            loop; injected in tests to avoid blocking on it.
     """
-    import uvicorn  # noqa: PLC0415
-
     target = resolve_app_path(app_path)
     host, port = resolve_bind()
-    uvicorn.run(target, host=DEV_HOST if dev_mode else host, port=port, reload=dev_mode)
+    runner(target, host=DEV_HOST if dev_mode else host, port=port, reload=dev_mode)
 
 
-def main() -> None:  # pragma: no cover
+def main(*, runner: _ServerRunner = _run_server) -> None:
     """Entry point for the web application.
 
-    Excluded from coverage: it delegates to ``run_server``, which blocks on the
-    uvicorn server loop.
+    Args:
+        runner: Callable that starts the server. Defaults to the real uvicorn
+            loop; injected in tests to avoid blocking on it.
     """
-    run_server()
+    run_server(runner=runner)
 
 
 __all__ = [

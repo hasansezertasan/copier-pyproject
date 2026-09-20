@@ -31,7 +31,9 @@ def test_task_check_publishes_its_required_context_for_bots(
     workflow = _read(render(), ".github", "workflows", "task-completed-check.yml")
     assert "-f name='Task Completed Checker'" in workflow
     assert "-f conclusion=success" in workflow
-    assert workflow.count("endsWith(github.event.pull_request.user.login, '[bot]')") == 2
+    assert (
+        workflow.count("endsWith(github.event.pull_request.user.login, '[bot]')") == 2
+    )
 
 
 def test_warning_gate_runs_in_a_check_aggregated_job(
@@ -166,7 +168,11 @@ def test_setup_doc_contains_the_publish_environment_policy(
     # a pre-existing wildcard would stay eligible beside `main`. Delete first,
     # and assert the collection is exactly one `main` branch policy.
     assert "-X DELETE" in setup
-    assert '== ["branch:main"]' in setup
+    # `--paginate` applies `--jq` once per page, so the exactness check compares
+    # the accumulated lines: a per-page `== ["branch:main"]` piped to
+    # `grep -qx true` would pass on a final page that holds only `main`.
+    assert '[ "$policies" = "branch:main" ]' in setup
+    assert '"\\(.type // "branch"):\\(.name)"' in setup
     assert "DO NOT REMOVE workflow_dispatch" in _read(
         root, ".github", "workflows", "release.yml"
     )
