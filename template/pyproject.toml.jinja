@@ -274,7 +274,11 @@ test = [
   "pytest-xdist[psutil]==3.8.0",
   "pytest==9.1.1",
   "pytest-sugar",
+{%- if async_style == "asyncio" %}
   "pytest-asyncio>=0.23.0",
+{%- elif async_style == "anyio" %}
+  "anyio[trio]>=4.0",
+{%- endif %}
   "dirty-equals",
   "inline-snapshot",
   "pytest-deadfixtures==3.1.0",
@@ -477,7 +481,11 @@ markers = [
   "worker: worker component tests",
 {%- endif %}
 ]
-asyncio_mode = "auto"
+{%- if async_style == "asyncio" %}
+# Strict mode requires explicit @pytest.mark.asyncio annotations, making async
+# test collection intentional instead of silently accepting unmarked coroutines.
+asyncio_mode = "strict"
+{%- endif %}
 filterwarnings = [
   "error",
 {%- if include_web and web_framework == "fastapi" %}
@@ -1149,8 +1157,9 @@ runner = "uv-venv-runner"
 # workflow and deliberately stay outside the correctness/coverage suite.
 [tool.tox.env.benchmark]
 commands = [["pytest", "-m", "benchmark", "benchmarks", { replace = "posargs", extend = true }]]
-# Reuse pytest's base plugins/configuration (notably pytest-asyncio) so this
-# explicit runner behaves like the normal test environment.
+# Reuse pytest's base plugins/configuration (including the selected async test
+# runner, when enabled) so this explicit runner behaves like the normal test
+# environment.
 dependency_groups = ["test", "benchmarks"]
 description = "Run performance benchmarks locally."
 runner = "uv-venv-runner"

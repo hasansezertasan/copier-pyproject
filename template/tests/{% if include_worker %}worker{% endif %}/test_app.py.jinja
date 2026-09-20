@@ -108,7 +108,11 @@ def test_build_broker_env_var_fallback(
 TestBroker = {{ worker_broker_spec.test_cls }}
 
 
-@pytest.mark.asyncio
+{% if async_style == "anyio" -%}
+# FastStream is asyncio-native. Keep these tests off AnyIO's Trio backend.
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+{% endif -%}
+@pytest.mark.{{ async_test_marker }}
 async def test_handle_version_request() -> None:
     """A version request is consumed and a version response is published.
 
@@ -137,7 +141,10 @@ async def test_handle_version_request() -> None:
     assert "platform" in published
 
 
-@pytest.mark.asyncio
+{% if async_style == "anyio" -%}
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+{% endif -%}
+@pytest.mark.{{ async_test_marker }}
 async def test_client_broker_does_not_answer_requests() -> None:
     """``build_client_broker`` registers no request handler, so it never self-replies.
 
@@ -163,7 +170,10 @@ async def test_client_broker_does_not_answer_requests() -> None:
     assert responses == []
 
 
-@pytest.mark.asyncio
+{% if async_style == "anyio" -%}
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+{% endif -%}
+@pytest.mark.{{ async_test_marker }}
 async def test_malformed_request_is_rejected() -> None:
     """A payload that fails request validation yields no response.
 
@@ -187,7 +197,10 @@ async def test_malformed_request_is_rejected() -> None:
     assert responses == []
 
 
-@pytest.mark.asyncio
+{% if async_style == "anyio" -%}
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+{% endif -%}
+@pytest.mark.{{ async_test_marker }}
 async def test_lifecycle_hooks(caplog: pytest.LogCaptureFixture) -> None:
     """Startup and shutdown lifecycle hooks log their transitions."""
     with caplog.at_level(logging.INFO, logger=PROJECT_NAME):

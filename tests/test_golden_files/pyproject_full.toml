@@ -323,7 +323,9 @@ markers = [
   "mcp: MCP component tests",
   "worker: worker component tests",
 ]
-asyncio_mode = "auto"
+# Strict mode requires explicit @pytest.mark.asyncio annotations, making async
+# test collection intentional instead of silently accepting unmarked coroutines.
+asyncio_mode = "strict"
 filterwarnings = [
   "error",
   # Starlette's TestClient emits a forward-compat deprecation about httpx/httpx2.
@@ -933,8 +935,9 @@ runner = "uv-venv-runner"
 # workflow and deliberately stay outside the correctness/coverage suite.
 [tool.tox.env.benchmark]
 commands = [["pytest", "-m", "benchmark", "benchmarks", { replace = "posargs", extend = true }]]
-# Reuse pytest's base plugins/configuration (notably pytest-asyncio) so this
-# explicit runner behaves like the normal test environment.
+# Reuse pytest's base plugins/configuration (including the selected async test
+# runner, when enabled) so this explicit runner behaves like the normal test
+# environment.
 dependency_groups = ["test", "benchmarks"]
 description = "Run performance benchmarks locally."
 runner = "uv-venv-runner"

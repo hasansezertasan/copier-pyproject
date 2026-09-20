@@ -11,7 +11,7 @@ from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.mcp.app import call_tool, list_tools, main, run_server
 
 
-@pytest.mark.asyncio
+@pytest.mark.{{ async_test_marker }}
 async def test_list_tools_returns_expected_tools() -> None:
     """Test that list_tools returns the expected tools."""
     tools = await list_tools()
@@ -23,7 +23,7 @@ async def test_list_tools_returns_expected_tools() -> None:
     assert "info" in tool_names
 
 
-@pytest.mark.asyncio
+@pytest.mark.{{ async_test_marker }}
 async def test_version_tool_returns_version() -> None:
     """Test that the version tool returns the correct version."""
     result = await call_tool("version", {})
@@ -36,7 +36,7 @@ async def test_version_tool_returns_version() -> None:
     assert result[0].text == expected_version
 
 
-@pytest.mark.asyncio
+@pytest.mark.{{ async_test_marker }}
 async def test_info_tool_returns_runtime_info() -> None:
     """Test that the info tool returns runtime information."""
     result = await call_tool("info", {})
@@ -52,14 +52,14 @@ async def test_info_tool_returns_runtime_info() -> None:
     assert platform.system() in info_text
 
 
-@pytest.mark.asyncio
+@pytest.mark.{{ async_test_marker }}
 async def test_unknown_tool_raises_error() -> None:
     """Test that calling an unknown tool raises ValueError."""
     with pytest.raises(ValueError, match="Unknown tool"):
         await call_tool("unknown_tool", {})
 
 
-@pytest.mark.asyncio
+@pytest.mark.{{ async_test_marker }}
 @pytest.mark.usefixtures("missing_metadata")
 async def test_tool_reports_missing_metadata() -> None:
     """Tools return an actionable error text when package metadata is missing.
@@ -75,7 +75,7 @@ async def test_tool_reports_missing_metadata() -> None:
     assert PROJECT_NAME in result[0].text
 
 
-@pytest.mark.asyncio
+@pytest.mark.{{ async_test_marker }}
 async def test_run_server_custom_transport() -> None:
     """``run_server`` executes the injected transport."""
     called = False
