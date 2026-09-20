@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Use for the one-time repository + external-service setup a project scaffolded from the hasansezertasan/copier-pyproject Copier template needs before its automation works — trusted publishing, branch protection / required checks, squash-merge policy, "Actions can open PRs", release immutability, GitHub Pages, Renovate, and the optional secrets/App installs (CODECOV_TOKEN, DOCKERHUB, HOMEBREW_TAP_TOKEN, SCOOP_BUCKET_TOKEN, SONAR_TOKEN, Settings/Sourcery/all-contributors). Reach for it whenever a generated project's release-please PR never opens, PyPI publish fails, docs 404 on Pages, Renovate/copier-update PRs never appear, or someone asks to "wire up releases", "configure the repo", or "finish setup" — this config is invisible to CI (a green sweep proves nothing), so it is never caught automatically.
+description: Use for the one-time repository + external-service setup a project scaffolded from the hasansezertasan/copier-pyproject Copier template needs before its automation works — trusted publishing, branch protection / required checks, squash-merge policy, "Actions can open PRs", release immutability, the dependency graph, GitHub Pages, Renovate, and the optional secrets/App installs (CODECOV_TOKEN, DOCKERHUB, HOMEBREW_TAP_TOKEN, SCOOP_BUCKET_TOKEN, SONAR_TOKEN, Settings/Sourcery/all-contributors). Reach for it whenever a generated project's release-please PR never opens, PyPI publish fails, docs 404 on Pages, Renovate/copier-update PRs never appear, or someone asks to "wire up releases", "configure the repo", or "finish setup" — this config is invisible to CI (a green sweep proves nothing), so it is never caught automatically.
 ---
 
 # Set up a copier-pyproject project's repository & release automation
@@ -97,9 +97,20 @@ a later event has happened:
    booleans with `gh api -F` (typed), not `-f` (string).
 6. **Release immutability** — UI-only toggle (Settings → General). Protects
    published tags/assets.
-7. **Renovate App install** — inert config until installed; unblocks both routine
+7. **Dependency graph** — UI-only toggle (Settings → Advanced Security, or "Code
+   security and analysis" on the older layout). `dependency-review.yml` *errors*
+   without it ("Dependency review is not supported on this repository"), it does
+   not pass vacuously, so the check is red on the very first PR. The `PATCH
+   /repos/{owner}/{repo}` call accepts
+   `security_and_analysis[dependency_graph][status]` and silently no-ops — but
+   the `[CHECK]` is scriptable: `gh api --silent
+   .../dependency-graph/compare/main...main`, the same endpoint
+   `dependency-review-action` calls, which answers 403 while the graph is off.
+   Not the SBOM export (`.../dependency-graph/sbom`), which tracks the graph too
+   but is closing down on 2026-11-13.
+8. **Renovate App install** — inert config until installed; unblocks both routine
    dependency PRs **and** the copier-update manager (next).
-8. **Optional secrets / Apps** — only those the setup doc lists for this
+9. **Optional secrets / Apps** — only those the setup doc lists for this
    project (see the conditional table below).
 
 Two steps are **deferred until after the first release**, because they depend on an

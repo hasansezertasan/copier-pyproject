@@ -1069,7 +1069,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      **fails on high+ severity** vulnerabilities and comments a summary on failure.
      Job-level `if: github.event.repository.visibility == 'public'` — the action needs
      GitHub Advanced Security on private repos, so it would otherwise fail every
-     PR there; skipping keeps private forks green.
+     PR there; skipping keeps private forks green. Needs the repository's
+     **dependency graph** enabled — with it off the action errors ("Dependency
+     review is not supported on this repository") rather than passing empty, so
+     it is a `[HUMAN]` step in `docs/maintaining/setup.rst` (UI-only: the
+     `security_and_analysis[dependency_graph]` PATCH silently no-ops).
    - `check-security.yml.jinja`: an active scanning pass on PR/push to `main` +
      weekly cron, complementing the three above (which are SAST / repo-posture /
      PR-diff). Jobs:

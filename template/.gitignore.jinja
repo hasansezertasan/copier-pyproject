@@ -359,10 +359,12 @@ __marimo__/
 # Cython-generated C source (regenerated from _c_extension.pyx at build time)
 /src/{{github_repo_name}}/_c_extension.c
 {%- endif %}
-{%- if include_worker or include_web %}
-# Interface schemas emitted from docs/conf.py on every docs build (the worker's
-# AsyncAPI and/or the web app's OpenAPI spec — see the "* interface" pages);
-# regenerated, never committed.
+{%- if include_docs and (include_worker or include_web or (include_cli and cli_framework == "typer")) %}
+# Reference material emitted from docs/conf.py on every docs build (the worker's
+# AsyncAPI, the web app's OpenAPI spec, and/or the Typer CLI reference Markdown —
+# see the "* interface" and "CLI reference" pages); regenerated, never committed.
+# This condition must track the generator guard in docs/conf.py: an artifact that
+# is written but not ignored is swept up by `git add -A` after any local build.
 docs/_generated/
 {%- endif %}
 {%- if include_docs %}

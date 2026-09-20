@@ -215,6 +215,37 @@ immutability** (currently a UI-only toggle).
 **[CHECK]** No scriptable check — confirm under **Settings → General** that
 release immutability is enabled.
 
+Dependency graph
+----------------
+
+``dependency-review.yml`` diffs a pull request's dependency manifests against the
+base branch and fails it on a newly introduced vulnerable or disallowed-license
+dependency. It reads GitHub's dependency graph for the repository; with the graph
+off, the action does not pass vacuously — it errors, so the check is red on the
+first pull request:
+
+.. code-block:: text
+
+   Dependency review is not supported on this repository.
+   Please ensure that Dependency graph is enabled
+
+**[HUMAN]** Enable it under **Settings → Advanced Security** (**Code security and
+analysis** on the older settings layout) → **Dependency graph**. UI-only:
+``PATCH /repos/{owner}/{repo}`` accepts
+``security_and_analysis[dependency_graph][status]`` and silently no-ops, so there
+is no ``[AGENT]`` command.
+
+**[CHECK]** Ask the dependency-review API itself — the same endpoint
+``dependency-review-action`` calls, so a clean exit here is exactly the state the
+workflow needs. It answers ``403`` while the graph is off. A self-compare needs
+no second ref, so this works on a repository with nothing merged yet. (Not the
+SBOM export, which also tracks the graph but is closing down on 2026-11-13.)
+
+.. code-block:: sh
+
+   gh api --silent \
+     repos/{{github_user}}/{{github_repo_name}}/dependency-graph/compare/main...main
+
 PyPI trusted publishing
 -----------------------
 
