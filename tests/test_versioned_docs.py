@@ -126,7 +126,9 @@ def test_manual_gh_pages_checks_out_release_tag(render: Callable[..., Path]) -> 
     # Must build the tagged source, not the dispatched HEAD (ADR-027) -- and the
     # tag must come from the releases/latest endpoint, which excludes the drafts
     # `git describe --tags` would happily pick up.
-    assert 'gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name' in workflow
+    assert (
+        'gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name' in workflow
+    )
     assert 'git checkout --force --detach "$tag"' in workflow
 
 

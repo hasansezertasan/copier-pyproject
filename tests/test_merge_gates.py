@@ -31,7 +31,9 @@ def test_task_check_publishes_its_required_context_for_bots(
     workflow = _read(render(), ".github", "workflows", "task-completed-check.yml")
     assert "-f name='Task Completed Checker'" in workflow
     assert "-f conclusion=success" in workflow
-    assert workflow.count("endsWith(github.event.pull_request.user.login, '[bot]')") == 2
+    assert (
+        workflow.count("endsWith(github.event.pull_request.user.login, '[bot]')") == 2
+    )
 
 
 def test_warning_gate_runs_in_a_check_aggregated_job(
