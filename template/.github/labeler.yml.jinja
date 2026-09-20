@@ -9,6 +9,55 @@ documentation:
 {%- else %}
       - any-glob-to-any-file: docs/**
 {%- endif %}
+# Apply area labels from the component and cross-cutting paths a PR changes.
+# Keep each component rule gated so generated projects never receive labels for
+# packages they do not contain.
+area:core:
+  - changed-files:
+      - any-glob-to-any-file: ['src/{{github_repo_name}}/core/**', 'src/{{github_repo_name}}/utils/**', 'tests/core/**', 'tests/test_*.py']
+{%- if include_console_root %}
+area:cli:
+  - changed-files:
+      - any-glob-to-any-file: ['src/{{github_repo_name}}/cli/**', 'tests/cli/**']
+{%- endif %}
+{%- if include_gui %}
+area:gui:
+  - changed-files:
+      - any-glob-to-any-file: ['src/{{github_repo_name}}/gui/**', 'tests/gui/**']
+{%- endif %}
+{%- if include_tui %}
+area:tui:
+  - changed-files:
+      - any-glob-to-any-file: ['src/{{github_repo_name}}/tui/**', 'tests/tui/**']
+{%- endif %}
+{%- if include_web %}
+area:web:
+  - changed-files:
+      - any-glob-to-any-file: ['src/{{github_repo_name}}/web/**', 'tests/web/**']
+{%- endif %}
+{%- if include_mcp %}
+area:mcp:
+  - changed-files:
+      - any-glob-to-any-file: ['src/{{github_repo_name}}/mcp/**', 'tests/mcp/**']
+{%- endif %}
+{%- if include_worker %}
+area:worker:
+  - changed-files:
+      - any-glob-to-any-file: ['src/{{github_repo_name}}/worker/**', 'tests/worker/**']
+{%- endif %}
+area:docs:
+  - changed-files:
+{%- if include_ai_rulez %}
+      - any-glob-to-any-file: ['docs/**', '.ai-rulez/**', '*.md', '*.rst']
+{%- else %}
+      - any-glob-to-any-file: ['docs/**', '*.md', '*.rst']
+{%- endif %}
+area:ci:
+  - changed-files:
+      - any-glob-to-any-file: .github/workflows/**
+area:deps:
+  - changed-files:
+      - any-glob-to-any-file: ['pyproject.toml', 'uv.lock']
 # Add 'release' label to any PR where the head branch name starts with 'release'
 release:
   - head-branch: ['^release']

@@ -8,13 +8,36 @@ label name agrees (lower-case) between ``labels.yml`` and ``labeler.yml`` so
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 EXPECTED_LABELS = {
-    "no-issue", "release", "bug", "documentation", "duplicate", "enhancement",
-    "good first issue", "help wanted", "invalid", "question", "wontfix",
-    "automated", "dependencies", "github_actions", "tests", "examples",
+    "no-issue",
+    "release",
+    "bug",
+    "documentation",
+    "duplicate",
+    "enhancement",
+    "good first issue",
+    "help wanted",
+    "invalid",
+    "question",
+    "wontfix",
+    "automated",
+    "dependencies",
+    "github_actions",
+    "tests",
+    "examples",
+    "area:core",
+    "area:cli",
+    "area:gui",
+    "area:tui",
+    "area:web",
+    "area:mcp",
+    "area:worker",
+    "area:docs",
+    "area:ci",
+    "area:deps",
 }
 
 
@@ -46,3 +69,50 @@ def test_documentation_case_agrees(render: Callable[..., Path]) -> None:
     labeler = (root / ".github" / "labeler.yml").read_text("utf-8")
     assert "\ndocumentation:" in labeler
     assert "\nDocumentation:" not in labeler
+
+
+def test_area_labels_have_matching_rules(render: Callable[..., Path]) -> None:
+    root = render(preset="full")
+    names = _label_names(root)
+    labeler = (root / ".github" / "labeler.yml").read_text("utf-8")
+    area_labels = {name for name in names if name.startswith("area:")}
+    assert area_labels == {
+        "area:core",
+        "area:cli",
+        "area:gui",
+        "area:tui",
+        "area:web",
+        "area:mcp",
+        "area:worker",
+        "area:docs",
+        "area:ci",
+        "area:deps",
+    }
+    for label in area_labels:
+        assert f"\n{label}:" in labeler
+
+
+def test_area_component_rules_only_render_for_included_components(
+    render: Callable[..., Path],
+) -> None:
+    labeler = (render(preset="library") / ".github" / "labeler.yml").read_text("utf-8")
+    assert "\narea:core:" in labeler
+    assert "\narea:docs:" in labeler
+    assert "\narea:ci:" in labeler
+    assert "\narea:deps:" in labeler
+    for component in ("cli", "gui", "tui", "web", "mcp", "worker"):
+        assert f"\narea:{component}:" not in labeler
+
+
+def test_area_docs_includes_ai_rulez_when_enabled(
+    render: Callable[..., Path],
+) -> None:
+    labeler = (render(include_ai_rulez=True) / ".github" / "labeler.yml").read_text(
+        "utf-8"
+    )
+    assert "['docs/**', '.ai-rulez/**', '*.md', '*.rst']" in labeler
+
+
+def test_area_core_color_is_a_string(render: Callable[..., Path]) -> None:
+    labels = (render() / ".github" / "labels.yml").read_text("utf-8")
+    assert 'color: "5319e7"' in labels
