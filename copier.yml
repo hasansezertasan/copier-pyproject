@@ -12,6 +12,15 @@ _message_before_copy: >-
   Pick a preset, then press Enter through the toggles to accept its defaults, or tune any of them. The preset only sets defaults — every toggle is still asked and saved (a few sub-questions stay conditional on their parent toggle).
 _message_after_copy: >-
   Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, CLAUDE.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions, PyPI trusted publishing).
+# An update that answers `include_ai_rulez` yes — including the first update of a
+# `full`-preset project, where the new question defaults to yes — deletes the
+# copier-managed AGENTS.md/CLAUDE.md and replaces them with `.ai-rulez/` sources
+# whose output only exists after a `generate`. There are no `_tasks` to run it
+# (ADR-015), so the update lands with no agent instruction files at all. CI says
+# so loudly, but only after a push; say it here, while the maintainer is still
+# looking. See ADR-035 "Migrating an existing project" for the reverse direction.
+_message_after_update: >-
+  {% if include_ai_rulez %}This project now authors its agent instructions under .ai-rulez/. Run: (1) uv lock (the new `agents` dependency group) (2) uv run --group agents ai-rulez generate, then commit both — AGENTS.md, CLAUDE.md and the per-host files are build output, so until you do the repository has no agent instruction files and the `hooks` CI job fails.{% endif %}
 # ── ① Identity ──────────────────────────────────────────────────────────────
 github_user:
   type: str
@@ -261,11 +270,13 @@ ai_rulez_presets:
     - hermes
     - antigravity
   when: "{{ include_ai_rulez }}"
-  # An empty selection renders a config ai-rulez accepts and generates *nothing*
-  # from, leaving the project with sources no host reads — a silent downgrade
-  # from the AGENTS.md the toggle replaced, so it is rejected at prompt time.
+  # An empty selection renders a config ai-rulez itself rejects ("at least one
+  # preset is required"), so every `ai-rulez generate` and the tox `style` env's
+  # `ai-rulez validate` would fail from the first run. Catch it at prompt time
+  # instead, where the answer can still be changed, rather than handing the
+  # adopter a scaffold whose lint gate is red before they touch it.
   validator: >-
-    {% if include_ai_rulez and not ai_rulez_presets %} Pick at least one host. With no preset, `ai-rulez generate` writes no agent instruction files at all and the project ends up with .ai-rulez/ sources nothing reads. {% endif %}
+    {% if include_ai_rulez and not ai_rulez_presets %} Pick at least one host. ai-rulez rejects a config with no presets, so `ai-rulez generate` and the tox `style` env would both fail until one is chosen. {% endif %}
   help: >-
     Which AI coding hosts should `ai-rulez generate` write native config for? claude renders CLAUDE.md + .claude/, codex renders AGENTS.md + .codex/, copilot renders .github/copilot-instructions.md + .github/skills/ (the one GitHub itself reads server-side). Each extra host adds committed files to the repository root.
 include_repo_settings:

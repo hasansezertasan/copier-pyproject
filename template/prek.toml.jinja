@@ -41,7 +41,16 @@ hooks = [
   # verbatim, but upstream github/gitignore ships trailing whitespace on some
   # comment lines. Exclude it so the hook does not break the seal (cobo owns
   # this file — see ADR-012).
+{%- if include_ai_rulez %}
+  # `.continue/prompts/` is the same shape: ai-rulez owns those bytes, and its
+  # generated YAML header ships two trailing-space comment lines. Stripping them
+  # here would be undone by the next `ai-rulez generate`, so the hook and the
+  # generator would rewrite each other forever — the non-convergence ADR-030
+  # forbids. The path is inert unless the `continue-dev` host is selected.
+  { id = "trailing-whitespace", exclude = '^(\.gitignore|\.continue/prompts/.*)$' },
+{%- else %}
   { id = "trailing-whitespace", exclude = '^\.gitignore$' },
+{%- endif %}
   { id = "check-merge-conflict", args = [
     "--assume-in-merge",
   ] },
@@ -223,7 +232,16 @@ rev = "v1.38.0"
 # way to satisfy the linter would be to hand-edit a file the next `copier
 # update` overwrites, so the gate can only ever produce an unfixable failure —
 # it fires the moment any answer is a list (e.g. `ai_rulez_presets`).
+{%- if include_ai_rulez %}
+# `.continue/prompts/` is excluded on the same "a generator owns these bytes"
+# grounds: ai-rulez's generated YAML header carries trailing spaces (a
+# `trailing-spaces` *error*, not a warning) and no `---` document start, and
+# hand-fixing either is undone by the next `generate`. Inert unless the
+# `continue-dev` host is selected.
+hooks = [{ id = "yamllint", exclude = "^(\\.copier-answers\\.yml|\\.continue/prompts/.*)$", args = ["-c", ".github/yamllint.yaml"] }]
+{%- else %}
 hooks = [{ id = "yamllint", exclude = "^\\.copier-answers\\.yml$", args = ["-c", ".github/yamllint.yaml"] }]
+{%- endif %}
 
 [[repos]]
 repo = "https://github.com/DavidAnson/markdownlint-cli2"

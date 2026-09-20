@@ -149,12 +149,65 @@ SHA-pins its actions, and the reason the pin is exact rather than a range.
 
 A `.ai-rulez` scenario in `template-ci.yml` renders the toggle on, runs
 `ai-rulez generate`, then runs the generated project's own fixing hooks
-(`end-of-file-fixer`, `trailing-whitespace`, `markdownlint-cli2` — which ships
-`fix: true` — and `typos`) over the result and gates on `git diff`. Two
-generators writing the same tree that disagree on one byte would leave a
+(`yamlfmt`, `end-of-file-fixer`, `trailing-whitespace`, `markdownlint-cli2` —
+which ships `fix: true` — and `typos`) over the result and gates on `git diff`.
+Two generators writing the same tree that disagree on one byte would leave a
 repository that never converges: every `prek run` rewriting what the last
-`generate` wrote, and back. ADR-030 demands the proof; the hooks currently leave
-both the sources and the output untouched.
+`generate` wrote, and back. ADR-030 demands the proof.
+
+The scenario selects **every** offered host, not the three defaults. The width of
+the gate is the width of the output it sees, and the defaults
+(`claude`/`codex`/`copilot`) emit markdown alone — which converges. Two hosts do
+not, and both were found only once the scenario covered them:
+
+- `continue-dev` writes the one YAML file ai-rulez emits, and its generated
+  header carries two trailing-space comment lines. `trailing-whitespace` strips
+  them, the next `generate` puts them back — the loop above, exactly.
+- `cursor` writes `.cursor/rules/*.mdc`: markdown with frontmatter, whose
+  2-space list continuations fail `editorconfig-checker` because the anchored
+  `\.md$` exclude does not reach the extra `c`.
+
+A *checking* hook rejecting generated output is the worse of the two failures: it
+cannot be satisfied at all, because the edit that would satisfy it is erased by
+the next `generate`. That is the `.copier-answers.yml` shape, and it gets the
+`.copier-answers.yml` answer — the hook skips the path a generator owns
+(`.continue/prompts/` for `trailing-whitespace`/`yamllint`/`ec`, `.mdc` for
+`ec`). Those excludes render only under the toggle and are inert unless the host
+that produces the path is selected. So the scenario now also runs the checking
+hooks (`check-json`, `yamllint`, and `editorconfig-checker` via `tox -e style`)
+and gates on their exit codes, which `git diff` cannot speak for.
+
+### 8. Migrating an existing project, in both directions
+
+Neither direction is automatic — the template has no `_tasks` (ADR-015) — so both
+are documented and both fail loudly rather than silently:
+
+**Turning it on.** `include_ai_rulez` is seeded by the `full` preset, so the
+first `copier update` of a `full`-preset project answers the new question `yes`
+by default. That update deletes the copier-managed `AGENTS.md`/`CLAUDE.md`, adds
+the `.ai-rulez/` sources and the `agents` dependency group, and runs no
+generator — leaving the project with no agent instruction files. Dropping the
+toggle from `full` was rejected: `full` means every toggle, and a preset that
+quietly omits one is a worse surprise than a loud one. Instead
+`_message_after_update` prints the two commands (`uv lock`, then
+`ai-rulez generate`) and CI is red until their output is committed.
+
+**Turning it off.** The host files are *not* copier-managed, so an update that
+answers `no` re-renders `AGENTS.md`/`CLAUDE.md` but leaves every other generated
+file (`.github/copilot-instructions.md`, `.codex/skills/…`, `.cursor/rules/…`)
+committed and stale, still feeding instructions to the hosts that read them.
+ai-rulez records exactly what it wrote in `.ai-rulez/.generated-manifest.json`
+and `ai-rulez clean` is the inverse of `generate`, so the retirement is
+mechanical — but it must run **before** the update, while the sources it reads
+still exist:
+
+```bash
+uv run --group agents ai-rulez clean --force --keep-gitignore  # first
+copier update                                                  # then answer no
+```
+
+`--keep-gitignore` is belt-and-braces: `gitignore = false` means there is no
+ai-rulez block to remove, and `.gitignore` is cobo-sealed (ADR-012).
 
 ## Consequences
 
@@ -169,6 +222,16 @@ both the sources and the output untouched.
   banner instead.
 - MegaLinter's cspell dictionary gains `rulez`/`blake` under the toggle; cspell
   is report-only (ADR-013), so this is noise reduction, not a gate.
+- MegaLinter's `COPYPASTE_JSCPD` will report the generated host files as clones
+  of each other, which they are — three renderings of one source is the whole
+  point. It is left unexcluded on purpose: the exclusion would have to spell out
+  ai-rulez's per-host output paths, the same second copy the `.gitattributes`
+  decision below refuses, and MegaLinter runs with `DISABLE_ERRORS: true`
+  (ADR-013), so the cost is a Security-tab finding rather than a red job.
+- `ai-rulez generate` writes `.ai-rulez/.generated-manifest.json` — a generated
+  file inside the source tree. It is committed (it is what `ai-rulez clean`
+  reads), it is covered by the prek hook's `^\.ai-rulez/` gate and the
+  `documentation` labeler glob, and its content is stable for a fixed host set.
 - `ai_rulez_presets` is the template's first **list-valued** answer, which
   surfaced a latent defect: copier writes block sequences unindented, so
   `.copier-answers.yml` fails the generated project's own yamllint

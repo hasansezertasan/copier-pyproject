@@ -254,9 +254,11 @@ sast = [
 # `style` wholesale, so folding it in would install it into every developer and
 # CI environment for a tool only the prek `ai-rulez` hook and the tox `style`
 # env invoke. The PyPI package is a small launcher that downloads the matching
-# Go binary (checksum-verified) into a user cache on first run, so the install
-# itself is cheap but the first invocation needs network. Still a single
-# version source, same as every other pin (ADR-035).
+# Go binary into a user cache on first run, so the install itself is cheap but
+# the first invocation needs network. That download verifies a checksum when it
+# can fetch one and prints a warning and proceeds when it cannot, so treat it as
+# best-effort rather than a guarantee. Still a single version source, same as
+# every other pin (ADR-035).
 agents = [
   "ai-rulez==4.11.5",
 ]

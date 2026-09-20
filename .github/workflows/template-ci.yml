@@ -42,9 +42,15 @@ jobs:
           # package-structure rule renders its conditional rows and both of its
           # layering paragraphs. `full-preset` also enables the toggle, but only
           # this scenario runs the generator (see the convergence step below).
+          #
+          # *Every* offered host, not the three defaults: the convergence gate is
+          # only as wide as the output it sees, and the defaults happen to emit
+          # markdown alone. `cursor` (`.mdc`) and `continue-dev` (YAML) are the
+          # two that ever produced output the generated project's own gates
+          # rejected, so leaving them out is what let that ship.
           - name: ai-rulez
             data: >-
-              --data include_ai_rulez=true --data include_cli=true --data include_mcp=true
+              --data include_ai_rulez=true --data include_cli=true --data include_mcp=true --data 'ai_rulez_presets=[claude,codex,copilot,cursor,gemini,windsurf,cline,continue-dev,amp,junie,opencode,hermes,antigravity]'
           # Exercise the other web framework and broker branches.
           - name: litestar-kafka
             data: >-
@@ -170,10 +176,19 @@ jobs:
           uv run --group agents ai-rulez generate
           # Newly generated files are untracked, and `git diff` ignores those.
           git add -A
-          for hook in end-of-file-fixer trailing-whitespace markdownlint-cli2 typos; do
+          for hook in yamlfmt end-of-file-fixer trailing-whitespace markdownlint-cli2 typos; do
             uv run --group prek prek run "$hook" --all-files --show-diff-on-failure
           done
           git diff --exit-code
+          # The *checking* hooks rewrite nothing, so `git diff` cannot speak for
+          # them — gate on their exit codes instead. A checking hook that rejects
+          # generated output is worse than a non-convergent fixing one: the only
+          # edit that would satisfy it is erased by the next `generate`, so the
+          # failure is unfixable (the `.copier-answers.yml` shape). `ec` is not
+          # listed because the `Style checks` step below runs it (ADR-003).
+          for hook in check-json yamllint; do
+            uv run --group prek prek run "$hook" --all-files
+          done
       - name: Style checks
         working-directory: ../rendered
         run: uv run tox run -e style

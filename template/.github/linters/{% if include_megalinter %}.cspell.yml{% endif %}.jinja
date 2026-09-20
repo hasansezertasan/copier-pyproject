@@ -16,15 +16,17 @@ allowCompoundWords: true
 words:
   # Tooling referenced in the generated docs
   - basedpyright
+{%- if include_ai_rulez %}
+  # blake: the blake3 content hash ai-rulez stamps into every file it generates
+  - blake
+{%- endif %}
   - cobo
   - codespell
   - ghalint
   - megalinter
   - prek
 {%- if include_ai_rulez %}
-  # ai-rulez, and the blake3 content hash it stamps into every file it generates
   - rulez
-  - blake
 {%- endif %}
   - unticked
   - zizmor

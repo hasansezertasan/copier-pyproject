@@ -180,7 +180,19 @@ Optional components (all boolean):
   never committed the generated output at all. `gitignore = false` is mandatory
   (ai-rulez would otherwise rewrite the cobo-sealed `.gitignore`), and
   `builtins = false` because every builtin domain restates or contradicts a gate
-  the generated project already enforces. See
+  the generated project already enforces.
+
+  Because the output is not copier-managed, **both** update directions need a
+  manual step and both are documented in ADR-035 §8. Turning the toggle *on*
+  (which the first `copier update` of a `full`-preset project does by default)
+  removes `AGENTS.md`/`CLAUDE.md` and generates nothing, so
+  `_message_after_update` prints `uv lock` + `ai-rulez generate` and CI stays red
+  until their output is committed. Turning it *off* leaves every previously
+  generated host file behind, so `ai-rulez clean --force --keep-gitignore` must
+  run **before** the update, while the `.ai-rulez/` sources it reads still exist.
+  A few hosts also need the generated project's own linters to skip the paths
+  ai-rulez owns (`.mdc` and `.continue/prompts/`) — those excludes render only
+  under the toggle. See
   [ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md).
 - `include_homebrew` - Homebrew tap distribution, `default: false` and
   `when: "{{ is_app }}"`-gated (only offered for app-like projects, not a

@@ -16,6 +16,8 @@ covers the generate-and-converge half, ADR-024).
 
 from __future__ import annotations
 
+import json
+import re
 import tomllib
 from pathlib import Path
 from typing import Callable
@@ -42,7 +44,17 @@ GENERATED = (
     ".claude/skills/repo-setup/SKILL.md",
     ".codex/skills/repo-setup/SKILL.md",
     ".github/skills/repo-setup/SKILL.md",
+    # Written *inside* the source tree, and still `generate`'s output: it is the
+    # record `ai-rulez clean` reads to retire the host files (ADR-035 §8).
+    ".ai-rulez/.generated-manifest.json",
 )
+# Paths whose bytes ai-rulez owns and whose linters must therefore skip them —
+# a violation there is unfixable, since the next `generate` erases the fix.
+# Keyed by the host that produces the path (ADR-035 §7).
+GENERATOR_OWNED = {
+    "cursor": "\\.mdc$",
+    "continue-dev": "\\.continue/prompts/",
+}
 
 
 def _config(root: Path) -> dict[str, object]:
@@ -126,7 +138,13 @@ def test_presets_answer_drives_the_generated_host_set(
 
 
 def test_no_host_selected_is_rejected(render: Callable[..., Path]) -> None:
-    """Empty presets render a config ai-rulez happily generates nothing from."""
+    """Empty presets render a config ai-rulez itself refuses to load.
+
+    Its ``validatePresets`` errors with "at least one preset is required", so
+    both ``ai-rulez generate`` and the tox ``style`` env's ``ai-rulez validate``
+    would fail from the first run. The prompt-time validator moves that failure
+    to the one moment the answer can still be changed.
+    """
     with pytest.raises(ValueError, match="Pick at least one host"):
         render(include_ai_rulez=True, ai_rulez_presets=[])
 
@@ -204,9 +222,49 @@ def test_answers_file_stays_lint_clean_with_a_list_answer(
     prek = (root / "prek.toml").read_text(encoding="utf-8")
     for hook in ("yamllint", "yamlfmt"):
         line = next(ln for ln in prek.splitlines() if f'id = "{hook}"' in ln)
-        assert r'exclude = "^\\.copier-answers\\.yml$"' in line, (
+        assert re.search(r"exclude = \"[^\"]*copier-answers[^\"]*\"", line), (
             f"the {hook} hook must skip the copier-owned answers file"
         )
+
+
+def test_generator_owned_paths_are_skipped_by_the_linters(
+    render: Callable[..., Path],
+) -> None:
+    """ai-rulez owns some bytes its own project's linters would reject.
+
+    ``cursor`` writes ``.mdc`` (markdown, whose list continuations fail ec's
+    indent check) and ``continue-dev`` writes YAML whose generated header
+    carries trailing spaces. A *fixing* hook there never converges and a
+    *checking* one is unfixable, because the next ``generate`` erases the edit —
+    the same bind ``.copier-answers.yml`` is in, so it gets the same answer
+    (ADR-035 §7).
+    """
+    root = render(include_ai_rulez=True)
+    prek = (root / "prek.toml").read_text(encoding="utf-8")
+    for hook in ("trailing-whitespace", "yamllint"):
+        line = next(ln for ln in prek.splitlines() if f'id = "{hook}"' in ln)
+        assert GENERATOR_OWNED["continue-dev"].replace("\\", "") in line.replace(
+            "\\", ""
+        ), f"the {hook} hook must skip the ai-rulez-owned .continue/prompts/"
+
+    ec_exclude = json.loads(
+        (root / ".editorconfig-checker.json").read_text(encoding="utf-8")
+    )["Exclude"]
+    for pattern in GENERATOR_OWNED.values():
+        assert any(pattern in entry for entry in ec_exclude), (
+            f"editorconfig-checker must skip {pattern}"
+        )
+
+
+def test_generator_owned_skips_are_absent_when_the_toggle_is_off(
+    render: Callable[..., Path],
+) -> None:
+    """They are toggle-gated, so the off render stays byte-identical."""
+    root = render(include_ai_rulez=False)
+    for path in ("prek.toml", ".editorconfig-checker.json"):
+        text = (root / path).read_text(encoding="utf-8")
+        assert ".continue/prompts" not in text
+        assert "mdc" not in text
 
 
 def test_ci_fails_when_generated_output_was_never_committed(
