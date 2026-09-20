@@ -1,10 +1,11 @@
 """The gates that only fail *silently* when they regress.
 
 Each assertion here stands for a defect where CI stayed green while the gate it
-names stopped gating, or a destructive deploy lost its guard (issues #300/#301):
-a required status context that reports nothing, a Sphinx warning check that runs
-where nothing requires it, a swallowed ``git fetch`` failure that deletes the
-published documentation archive.
+names stopped gating, or a destructive deploy lost its guard (issues #299/#300/
+#301): a required status context that reports nothing, a Sphinx warning check
+that runs where nothing requires it, a swallowed ``git fetch`` failure that
+deletes the published documentation archive, a workflow that errors out because
+the setup guide never asked for the repository setting it needs.
 """
 
 from __future__ import annotations
@@ -176,3 +177,22 @@ def test_setup_doc_contains_the_publish_environment_policy(
     assert "DO NOT REMOVE workflow_dispatch" in _read(
         root, ".github", "workflows", "release.yml"
     )
+
+
+def test_setup_doc_enables_the_dependency_graph(
+    render: Callable[..., Path],
+) -> None:
+    """``dependency-review`` errors without it rather than passing empty.
+
+    The graph is a UI-only toggle — ``PATCH /repos/{owner}/{repo}`` accepts
+    ``security_and_analysis[dependency_graph][status]`` and silently no-ops — so
+    it can only ship as a ``[HUMAN]`` step. Left out of the guide, the
+    ``Dependency review`` check is red on a generated project's first pull
+    request with "Dependency review is not supported on this repository"
+    (issue #299).
+    """
+    setup = _read(render(), "docs", "maintaining", "setup.rst")
+    assert "Dependency graph\n----------------" in setup
+    # A scriptable [CHECK] does exist even though the toggle is not scriptable:
+    # the SBOM export is served only while the graph is on.
+    assert "dependency-graph/sbom" in setup

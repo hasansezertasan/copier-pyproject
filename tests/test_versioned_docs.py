@@ -10,6 +10,7 @@ from types import ModuleType
 from typing import Callable
 
 import pytest
+import yaml
 
 GRANULARITIES = ["minor", "major", "full"]
 
@@ -207,3 +208,68 @@ def test_is_version_dir_filters_non_versions(render: Callable[..., Path]) -> Non
     assert not module._is_version_dir("latest")
     assert not module._is_version_dir("pr-preview")
     assert not module._is_version_dir("index.html")
+
+
+def test_docs_preview_checks_out_full_history(render: Callable[..., Path]) -> None:
+    """A shallow clone makes every page warn, and the build promotes it to error.
+
+    ``sphinx-last-updated-by-git`` stamps each page from its last commit; on the
+    depth-1 default it emits ``Git clone too shallow`` per page, which the
+    preview's warning gate turns into a failure — so the very first pull request
+    of a generated project had a red ``Docs Preview`` (issue #299).
+    """
+    workflow = yaml.safe_load(
+        (
+            render(include_docs=True) / ".github" / "workflows" / "docs-preview.yml"
+        ).read_text(encoding="utf-8")
+    )
+    checkouts = [
+        step
+        for job in workflow["jobs"].values()
+        for step in job["steps"]
+        if "actions/checkout" in step.get("uses", "")
+    ]
+    assert checkouts
+    assert all(step["with"]["fetch-depth"] == 0 for step in checkouts)
+
+
+def test_build_script_extracts_through_the_tar_data_filter(
+    render: Callable[..., Path],
+) -> None:
+    """An unfiltered ``extractall`` is a high CodeQL ``py/tarslip`` alert.
+
+    The archive is this script's own ``git archive`` output so it is not
+    exploitable, but the alert lands on the first pull request of every
+    generated project (issue #299). There must be no unfiltered call left — not
+    even on a version-gated fallback branch, which is what CodeQL flagged.
+    """
+    script = (render(include_docs=True) / "tools" / "build_docs.py").read_text(
+        encoding="utf-8"
+    )
+    calls = [line.strip() for line in script.splitlines() if ".extractall(" in line]
+    assert calls == ['tar.extractall(out, filter="data")']
+
+
+def test_preserve_from_gh_pages_extracts_the_subtree(
+    render: Callable[..., Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The safe filter must not break the path the deploy actually depends on."""
+    build_docs = _load_build_docs(render(include_docs=True), "preserve")
+    repo = tmp_path / "gh-pages-repo"
+    (repo / "0.1" / "sub").mkdir(parents=True)
+    (repo / "0.1" / "sub" / "index.html").write_text("published\n", encoding="utf-8")
+    for args in (
+        ["init", "-q", "--initial-branch=gh-pages"],
+        ["add", "-A"],
+        ["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "x"],
+    ):
+        subprocess.run(["git", *args], cwd=repo, check=True)
+
+    monkeypatch.chdir(repo)
+    out = tmp_path / "site"
+    out.mkdir()
+    build_docs.preserve_from_gh_pages("0.1", out, "gh-pages")
+
+    assert (out / "0.1" / "sub" / "index.html").read_text(
+        encoding="utf-8"
+    ) == "published\n"
