@@ -56,7 +56,7 @@
   color: b392f0
   description: Example application changes
 - name: area:core
-  color: 5319e7
+  color: "5319e7"
   description: Core package, utilities, or core tests
 - name: area:cli
   color: 006b75

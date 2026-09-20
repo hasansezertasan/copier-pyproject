@@ -102,3 +102,17 @@ def test_area_component_rules_only_render_for_included_components(
     assert "\narea:deps:" in labeler
     for component in ("cli", "gui", "tui", "web", "mcp", "worker"):
         assert f"\narea:{component}:" not in labeler
+
+
+def test_area_docs_includes_ai_rulez_when_enabled(
+    render: Callable[..., Path],
+) -> None:
+    labeler = (render(include_ai_rulez=True) / ".github" / "labeler.yml").read_text(
+        "utf-8"
+    )
+    assert "['docs/**', '.ai-rulez/**', '*.md', '*.rst']" in labeler
+
+
+def test_area_core_color_is_a_string(render: Callable[..., Path]) -> None:
+    labels = (render() / ".github" / "labels.yml").read_text("utf-8")
+    assert 'color: "5319e7"' in labels

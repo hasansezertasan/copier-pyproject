@@ -47,7 +47,11 @@ area:worker:
 {%- endif %}
 area:docs:
   - changed-files:
+{%- if include_ai_rulez %}
+      - any-glob-to-any-file: ['docs/**', '.ai-rulez/**', '*.md', '*.rst']
+{%- else %}
       - any-glob-to-any-file: ['docs/**', '*.md', '*.rst']
+{%- endif %}
 area:ci:
   - changed-files:
       - any-glob-to-any-file: .github/workflows/**
