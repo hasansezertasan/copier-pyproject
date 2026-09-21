@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.5.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.4.0...v1.5.0) (2026-09-21)
+
+
+### 🚀 Features
+
+* add async testing style toggle ([#314](https://github.com/hasansezertasan/copier-pyproject/issues/314)) ([e83cbfa](https://github.com/hasansezertasan/copier-pyproject/commit/e83cbfa3c49105fd04371ad20cfcb5cf43f1180f))
+* **copilot:** pre-provision coding agent environment ([#317](https://github.com/hasansezertasan/copier-pyproject/issues/317)) ([205891f](https://github.com/hasansezertasan/copier-pyproject/commit/205891ff9b4403575b15bd7380d593491186e903))
+* **template:** add a semgrep SAST job to the security workflow ([#303](https://github.com/hasansezertasan/copier-pyproject/issues/303)) ([5747f84](https://github.com/hasansezertasan/copier-pyproject/commit/5747f84a19a4615900b05fe3e88882c2e3fcadd8))
+* **template:** add opt-in ai-rulez agent-instruction sources ([#310](https://github.com/hasansezertasan/copier-pyproject/issues/310)) ([91aa60f](https://github.com/hasansezertasan/copier-pyproject/commit/91aa60f4b42127e0bf7aaffb6a49ad8ed9135791))
+* **template:** add opt-in performance benchmarking with CodSpeed ([#304](https://github.com/hasansezertasan/copier-pyproject/issues/304)) ([aed4d1d](https://github.com/hasansezertasan/copier-pyproject/commit/aed4d1d34e5a9b7e80b443438924f0b3890884f8))
+* **template:** attach Sigstore build provenance ([#318](https://github.com/hasansezertasan/copier-pyproject/issues/318)) ([58117be](https://github.com/hasansezertasan/copier-pyproject/commit/58117be9aba09eed947f28420ec042b52b570203))
+* **template:** collect the generated README as a doctest surface ([#315](https://github.com/hasansezertasan/copier-pyproject/issues/315)) ([f3c3e31](https://github.com/hasansezertasan/copier-pyproject/commit/f3c3e31a52cddaa340808979f39b2cc77d97aff9))
+* **template:** drive interactive components headlessly via injected seams ([#308](https://github.com/hasansezertasan/copier-pyproject/issues/308)) ([94cc8de](https://github.com/hasansezertasan/copier-pyproject/commit/94cc8de74893d271bcde5f56dcedb241cb895fe0))
+* **template:** label PRs by changed area ([#313](https://github.com/hasansezertasan/copier-pyproject/issues/313)) ([320fb4f](https://github.com/hasansezertasan/copier-pyproject/commit/320fb4f56f7d35532af729eae9f1fcd371a6829c))
+* **template:** rework the component entrypoint surface ([#268](https://github.com/hasansezertasan/copier-pyproject/issues/268), [#177](https://github.com/hasansezertasan/copier-pyproject/issues/177), [#178](https://github.com/hasansezertasan/copier-pyproject/issues/178)) ([f91170c](https://github.com/hasansezertasan/copier-pyproject/commit/f91170c607adf84f660c035c6fb5b18e26297785))
+
+
+### 🐛 Bug Fixes
+
+* **template:** clear the gates that fail on a generated project's first PR ([#311](https://github.com/hasansezertasan/copier-pyproject/issues/311)) ([03b5d80](https://github.com/hasansezertasan/copier-pyproject/commit/03b5d80999204e347060f412282f6fdffa6bf7b1))
+* **template:** make the required gates report and the docs deploy fail loud ([#307](https://github.com/hasansezertasan/copier-pyproject/issues/307)) ([d58b17d](https://github.com/hasansezertasan/copier-pyproject/commit/d58b17debfdf8c104ca4de6b3bb53397988d1c98))
+
 ## [1.4.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.3.0...v1.4.0) (2026-09-18)
 
 
