@@ -41,8 +41,15 @@ jobs:
     needs: release-please
     timeout-minutes: 15
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
+    # This environment's external main-only deployment policy protects both
+    # package publishing and attestation minting from branch dispatches.
+    environment: publish
+    env:
+      ATTEST_BUILD_PROVENANCE: {% raw %}${{ github.repository_visibility == 'public' || vars.ENABLE_PRIVATE_ATTESTATIONS == 'true' }}{% endraw %}
     permissions:
+      attestations: write  # IMPORTANT: Publish Sigstore build provenance to GitHub
       contents: read  # IMPORTANT: actions/checkout needs read access to the repo
+      id-token: write  # IMPORTANT: Mint the Sigstore signing certificate
 {%- if include_c_extensions %}
     name: Build the Package on {% raw %}${{ matrix.os }}{% endraw %}
     runs-on: {% raw %}${{ matrix.os }}{% endraw %}
@@ -86,19 +93,56 @@ jobs:
       - name: Build the source distribution
         if: {% raw %}${{ matrix.os == 'ubuntu-latest' }}{% endraw %}
         run: uv build --sdist --no-sources --quiet
+      - name: Attest build provenance
+        if: env.ATTEST_BUILD_PROVENANCE == 'true'
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Stage provenance bundle
+        if: env.ATTEST_BUILD_PROVENANCE == 'true'
+        env:
+          BUNDLE_PATH: {% raw %}${{ steps.attest.outputs.bundle-path }}{% endraw %}
+          PROVENANCE_BUNDLE_NAME: build-provenance-{% raw %}${{ matrix.os }}{% endraw %}.sigstore.json
+        shell: bash
+        run: cp "$BUNDLE_PATH" "$PROVENANCE_BUNDLE_NAME"
       - name: Upload package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: package-distributions-{% raw %}${{ matrix.os }}{% endraw %}
           path: dist/
+      - name: Upload provenance bundle
+        if: env.ATTEST_BUILD_PROVENANCE == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        with:
+          name: build-provenance-{% raw %}${{ matrix.os }}{% endraw %}
+          path: build-provenance-{% raw %}${{ matrix.os }}{% endraw %}.sigstore.json
 {%- else %}
       - name: Build the Package
         run: uv build --no-sources --quiet
+      - name: Attest build provenance
+        if: env.ATTEST_BUILD_PROVENANCE == 'true'
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Stage provenance bundle
+        if: env.ATTEST_BUILD_PROVENANCE == 'true'
+        env:
+          BUNDLE_PATH: {% raw %}${{ steps.attest.outputs.bundle-path }}{% endraw %}
+        shell: bash
+        run: cp "$BUNDLE_PATH" build-provenance.sigstore.json
       - name: Upload package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
           name: package-distributions
           path: dist/
+      - name: Upload provenance bundle
+        if: env.ATTEST_BUILD_PROVENANCE == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        with:
+          name: build-provenance
+          path: build-provenance.sigstore.json
 {%- endif %}
   pypi-publish:
     runs-on: ubuntu-latest
@@ -455,6 +499,13 @@ jobs:
         with:
           name: {{github_repo_name}}-sbom
           path: dist/
+      - name: Download provenance bundles
+        if: {% raw %}${{ github.repository_visibility == 'public' || vars.ENABLE_PRIVATE_ATTESTATIONS == 'true' }}{% endraw %}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        with:
+          pattern: build-provenance*
+          path: dist/provenance/
+          merge-multiple: true
       - name: Attach Build Artifacts to the draft release
         env:
           GITHUB_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
