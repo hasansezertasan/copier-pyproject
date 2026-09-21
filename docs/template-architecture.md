@@ -883,6 +883,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      toggle and `literalinclude`d into the corresponding `usage.rst` section;
      `tests/test_docs_examples.py` rglobs every `docs/examples/*.py` and
      imports them all, so a broken import fails the suite.
+     The top-level `README.md` is separately collected by the ordinary pytest
+     run as the intentionally small Markdown doctest surface; other Markdown
+     files are not collected (ADR-028).
    - **Per-component coverage gates**
      ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md), decomposing
      [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):

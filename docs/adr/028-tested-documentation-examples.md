@@ -23,9 +23,19 @@ dedicated `docs-doctest` job wired into the `check` gate — the per-component
 `test-*` jobs pass `tox run -- -m <marker>`, which replaces tox's default env
 list, so doctests would otherwise never run.
 
+Markdown follows a separate, pytest-native convention: the generated top-level
+`README.md` is a `testpaths` entry and pytest collects only that filename with
+`--doctest-glob=README.md`. Its `pycon` examples therefore run in the ordinary
+test suite, while other Markdown files remain prose unless they are explicitly
+adopted as a doctest surface. Pytest enables `ELLIPSIS`,
+`IGNORE_EXCEPTION_DETAIL`, and `NORMALIZE_WHITESPACE` for those examples.
+
 ## Consequences
 
 Documentation code now fails the same local and CI checks as a stale import in
 the application. Examples remain close to the docs and out of built wheels;
 users who need distributable demonstrations can use the independent
 `include_examples` scaffold option.
+
+The Sphinx builder owns `.rst` prose and pytest owns the curated Markdown
+surface; neither collector overlaps the other.

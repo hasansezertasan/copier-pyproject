@@ -99,6 +99,18 @@ Or with `pip`:
 pip install {{github_repo_name}}
 ```
 {% endif %}
+### Verify the installation
+
+The package root is importable after installation:
+
+```pycon
+>>> from {{github_repo_name}} import __doc__
+>>> isinstance(__doc__, str)
+True
+
+```
+
+<!-- TODO @{{github_user}}: Add project-specific, runnable examples here. -->
 {%- if is_app or include_profiling or include_benchmarks or include_c_extensions %}
 ## Usage
 {%- if include_cli %}
