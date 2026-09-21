@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import yaml
 
 
-def _release_workflow(root: Path) -> dict[str, object]:
+def _release_workflow(root: Path) -> dict[str, Any]:
     text = (root / ".github" / "workflows" / "release.yml").read_text(
         encoding="utf-8"
     )
