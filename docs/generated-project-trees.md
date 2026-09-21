@@ -13,7 +13,7 @@ page drifts from a fresh render.
 
 ## library
 
-111 files.
+112 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -62,6 +62,7 @@ page drifts from a fresh render.
 .github/workflows/check-security.yml
 .github/workflows/ci.yml
 .github/workflows/codeql.yml
+.github/workflows/copilot-setup-steps.yml
 .github/workflows/dependency-review.yml
 .github/workflows/docs-linkcheck.yml
 .github/workflows/docs-preview.yml
@@ -131,7 +132,7 @@ tools/build_docs.py
 
 ## tool
 
-120 files.
+121 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -180,6 +181,7 @@ tools/build_docs.py
 .github/workflows/check-security.yml
 .github/workflows/ci.yml
 .github/workflows/codeql.yml
+.github/workflows/copilot-setup-steps.yml
 .github/workflows/dependency-review.yml
 .github/workflows/docs-linkcheck.yml
 .github/workflows/docs-preview.yml
@@ -258,7 +260,7 @@ tools/build_docs.py
 
 ## web
 
-121 files.
+122 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -308,6 +310,7 @@ tools/build_docs.py
 .github/workflows/check-security.yml
 .github/workflows/ci.yml
 .github/workflows/codeql.yml
+.github/workflows/copilot-setup-steps.yml
 .github/workflows/dependency-review.yml
 .github/workflows/docs-linkcheck.yml
 .github/workflows/docs-preview.yml
@@ -386,7 +389,7 @@ tools/build_docs.py
 
 ## full
 
-181 files.
+182 files.
 
 ```text
 .ai-rulez/config.toml
@@ -451,6 +454,7 @@ tools/build_docs.py
 .github/workflows/check-security.yml
 .github/workflows/ci.yml
 .github/workflows/codeql.yml
+.github/workflows/copilot-setup-steps.yml
 .github/workflows/dependency-review.yml
 .github/workflows/docs-linkcheck.yml
 .github/workflows/docs-preview.yml
