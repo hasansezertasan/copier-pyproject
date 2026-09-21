@@ -180,8 +180,7 @@ async_style:
   validator: >-
     {% if async_style == 'none' and (include_tui or include_mcp or include_worker) %} The selected components render async tests, so choose asyncio or anyio. Select none only for a synchronous test suite. {% endif %}
   help: >-
-    Async test runner for generated tests. asyncio uses pytest-asyncio strict
-    mode and explicit markers; anyio runs marked tests on both asyncio and trio.
+    Async test runner for generated tests. asyncio uses pytest-asyncio strict mode and explicit markers; anyio runs marked tests on both asyncio and trio.
 async_test_marker:
   type: str
   when: false
