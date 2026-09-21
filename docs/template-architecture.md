@@ -949,9 +949,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      Release (`draft: true` in `.github/release-please-config.json`). Exposes
      `release_created`, `tag_name`, `version` as outputs.
    - All later jobs gate on `needs.release-please.outputs.release_created == 'true'`.
-   - `build`: builds with uv. When `include_c_extensions` is set, runs as a
-     per-platform `fail-fast: false` matrix (Ubuntu/Windows/macOS) producing the
-     multi-platform Cython wheels + sdist; `pypi-publish` uploads them all.
+   - `build`: builds with uv and creates GitHub-hosted, Sigstore-signed build
+     provenance plus a release-attachable bundle for every distribution. When
+     `include_c_extensions` is set, runs as a per-platform `fail-fast: false`
+     matrix (Ubuntu/Windows/macOS) producing and attesting the multi-platform
+     Cython wheels + sdist; `pypi-publish` uploads the distributions only.
    - `pypi-publish`: trusted publishing (`id-token: write`, environment `publish`).
    - `build-launcher` (when `include_launcher`, PyCrucible) / `build-freezer`
      (when `include_freezer`, PyInstaller) / `build-compiler` (when
@@ -963,7 +965,8 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      [ADR-007](adr/007-standalone-executable-toggles.md)). Docker tags feed
      `needs.release-please.outputs.tag_name` into the metadata-action `value=`
      because a push-triggered run has no tag ref.
-   - `attach-github-release`: uploads artifacts to the still-draft release.
+   - `attach-github-release`: uploads distributions, provenance bundles, the
+     SBOM, and optional executables to the still-draft release.
    - `finalize-release`: un-drafts the release and reconciles the phantom
      next-release PR (close + re-dispatch — bounded to one re-run).
    - `deploy-docs` (`needs: finalize-release`): runs `tools/build_docs.py site`
