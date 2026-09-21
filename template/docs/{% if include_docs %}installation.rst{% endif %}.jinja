@@ -61,16 +61,20 @@ Or if you prefer to use ``pip``:
 Verify release provenance
 -------------------------
 
-Release distributions include Sigstore-signed build provenance. After
-downloading a wheel or source distribution, verify that GitHub's release
-workflow built it from this repository:
+Public-repository release distributions include Sigstore-signed build
+provenance. After downloading a wheel or source distribution, verify that the
+release workflow built it from ``main`` in this repository:
 
 .. code-block:: sh
 
-   gh attestation verify <downloaded-distribution> --repo {{github_user}}/{{github_repo_name}}
+   gh attestation verify <downloaded-distribution> \
+     --repo {{github_user}}/{{github_repo_name}} \
+     --signer-workflow {{github_user}}/{{github_repo_name}}/.github/workflows/release.yml \
+     --source-ref refs/heads/main
 
 Artifact attestations are available for public repositories on current GitHub
-plans. Private and internal repositories require GitHub Enterprise Cloud.
+plans. Private and internal repositories require GitHub Enterprise Cloud and
+the repository variable ``ENABLE_PRIVATE_ATTESTATIONS=true``.
 
 From source
 -----------

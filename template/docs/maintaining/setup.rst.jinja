@@ -271,7 +271,9 @@ Restrict the ``publish`` environment to ``main``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``pypi-publish`` job holds ``id-token: write`` against the ``publish``
-environment, and ``release.yml`` carries ``workflow_dispatch``. A manual run
+environment. The ``build`` job uses the same environment while minting build
+provenance attestations. Because ``release.yml`` carries ``workflow_dispatch``,
+a manual run
 executes the workflow file **from the branch you select**, so the
 ``release_created`` guard inside the file is not a mitigation: anyone with write
 access could push a ``release.yml`` with that guard removed to an unprotected
@@ -305,6 +307,14 @@ delete every policy first and re-add exactly one:
    done
    gh api -X POST repos/{{github_user}}/{{github_repo_name}}/environments/publish/deployment-branch-policies \
      -f name=main -f type=branch
+
+Artifact attestations are enabled automatically for public repositories. For a
+private or internal repository on GitHub Enterprise Cloud, opt in after
+confirming artifact attestations are available:
+
+.. code-block:: sh
+
+   gh variable set ENABLE_PRIVATE_ATTESTATIONS --body true --repo {{github_user}}/{{github_repo_name}}
 
 **[CHECK]** The collection must be *exactly* one branch policy named ``main`` —
 asserting only that ``main`` is present would pass with a wildcard sitting next

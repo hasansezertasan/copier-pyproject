@@ -949,8 +949,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      Release (`draft: true` in `.github/release-please-config.json`). Exposes
      `release_created`, `tag_name`, `version` as outputs.
    - All later jobs gate on `needs.release-please.outputs.release_created == 'true'`.
-   - `build`: builds with uv and creates GitHub-hosted, Sigstore-signed build
-     provenance plus a release-attachable bundle for every distribution. When
+   - `build`: runs behind the main-only `publish` environment, builds with uv,
+     and creates GitHub-hosted, Sigstore-signed build provenance plus a
+     release-attachable bundle for every distribution in public repositories
+     (or Enterprise private repositories opted in through
+     `ENABLE_PRIVATE_ATTESTATIONS`). When
      `include_c_extensions` is set, runs as a per-platform `fail-fast: false`
      matrix (Ubuntu/Windows/macOS) producing and attesting the multi-platform
      Cython wheels + sdist; `pypi-publish` uploads the distributions only.

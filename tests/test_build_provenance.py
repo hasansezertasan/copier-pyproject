@@ -20,6 +20,11 @@ def test_release_attests_distributions(render: Callable[..., Path]) -> None:
     jobs = workflow["jobs"]
     build = jobs["build"]
 
+    assert build["environment"] == "publish"
+    assert "github.repository_visibility == 'public'" in build["env"][
+        "ATTEST_BUILD_PROVENANCE"
+    ]
+    assert "ENABLE_PRIVATE_ATTESTATIONS" in build["env"]["ATTEST_BUILD_PROVENANCE"]
     assert build["permissions"] == {
         "attestations": "write",
         "contents": "read",
@@ -27,6 +32,7 @@ def test_release_attests_distributions(render: Callable[..., Path]) -> None:
     }
     attest = next(step for step in build["steps"] if step.get("id") == "attest")
     assert attest["uses"].startswith("actions/attest-build-provenance@")
+    assert attest["if"] == "env.ATTEST_BUILD_PROVENANCE == 'true'"
     assert attest["with"]["subject-path"] == "dist/*"
 
     attach_steps = jobs["attach-github-release"]["steps"]
@@ -54,5 +60,7 @@ def test_installation_documents_provenance_verification(
 ) -> None:
     root = render(preset="library", include_docs=True)
     installation = (root / "docs" / "installation.rst").read_text(encoding="utf-8")
-    assert "gh attestation verify <downloaded-distribution> --repo octocat/example" in installation
-    assert "Private and internal repositories require GitHub Enterprise Cloud" in installation
+    assert "gh attestation verify <downloaded-distribution>" in installation
+    assert "--signer-workflow octocat/example/.github/workflows/release.yml" in installation
+    assert "--source-ref refs/heads/main" in installation
+    assert "ENABLE_PRIVATE_ATTESTATIONS=true" in installation
