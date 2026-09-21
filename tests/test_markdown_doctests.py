@@ -2,10 +2,31 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+import tomllib
 from collections.abc import Callable
 from pathlib import Path
 
-import tomllib
+NESTED_README = "# Fixture notes\n\nIllustrative only:\n\n```pycon\n>>> 1 + 1\n3\n```\n"
+
+
+def _pytest(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """Run pytest inside a rendered project, reading its own pyproject config.
+
+    The package is not installed into the harness environment, so ``src`` goes
+    on ``PYTHONPATH`` -- enough for the README's import example, and it keeps
+    the rendered project's real ``addopts``/``testpaths`` in play.
+    """
+    return subprocess.run(  # noqa: S603
+        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", *args],
+        cwd=root,
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 def test_readme_is_the_only_markdown_doctest_target(
@@ -22,8 +43,43 @@ def test_readme_is_the_only_markdown_doctest_target(
     )
 
 
-def test_readme_ships_a_passing_doctest(render: Callable[..., Path]) -> None:
-    readme = (render(preset="library") / "README.md").read_text(encoding="utf-8")
+def test_readme_doctest_actually_runs_and_passes(render: Callable[..., Path]) -> None:
+    """Execute the rendered README, not just grep it.
 
-    assert "```pycon\n>>> from example import __doc__" in readme
-    assert ">>> isinstance(__doc__, str)\nTrue" in readme
+    A broken import, a fence swallowed into the expected output, or a
+    collection mismatch all look identical to a text assertion.
+    """
+    root = render(preset="library")
+
+    result = _pytest(root, "README.md")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "1 passed" in result.stdout
+
+
+def test_markdown_under_tests_is_not_collected(render: Callable[..., Path]) -> None:
+    """``--doctest-glob`` matches basenames, so ``tests/`` must opt out.
+
+    Otherwise a fixture-directory README becomes a test the first time it
+    contains a ``>>>`` line -- here a deliberately wrong one.
+    """
+    root = render(preset="library")
+    nested = root / "tests" / "sub"
+    nested.mkdir(parents=True)
+    (nested / "README.md").write_text(NESTED_README, encoding="utf-8")
+    (root / "tests" / "README.md").write_text(NESTED_README, encoding="utf-8")
+
+    # Two ``-q`` cancel the rendered ``addopts`` ``-v`` and drop --collect-only
+    # to bare node ids.
+    result = _pytest(root, "--collect-only", "-q", "-q")
+
+    collected = [line for line in result.stdout.splitlines() if "README.md" in line]
+    assert collected == ["README.md::README.md"], result.stdout
+
+
+def test_prek_pytest_hook_collects_the_readme(render: Callable[..., Path]) -> None:
+    """An explicit ``pytest tests`` target would bypass the README testpath."""
+    root = render(preset="library")
+    prek = (root / "prek.toml").read_text(encoding="utf-8")
+
+    assert 'entry = "uv run --locked pytest"' in prek

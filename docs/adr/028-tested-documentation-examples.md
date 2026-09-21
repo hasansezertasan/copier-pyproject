@@ -30,6 +30,22 @@ test suite, while other Markdown files remain prose unless they are explicitly
 adopted as a doctest surface. Pytest enables `ELLIPSIS`,
 `IGNORE_EXCEPTION_DETAIL`, and `NORMALIZE_WHITESPACE` for those examples.
 
+Two mechanics make that boundary hold rather than merely describe it:
+
+- `--doctest-glob` matches a **basename**, and `tests` is a recursive
+  `testpaths` entry, so any future `tests/**/README.md` would be collected the
+  moment it contained a `>>>` line. `tests/conftest.py` sets
+  `collect_ignore_glob = ["*.md"]`, keeping the root README the whole surface.
+- The generated prek `pytest` hook runs bare `pytest`, not `pytest tests`. An
+  explicit target replaces `testpaths`, which would let a broken README doctest
+  pass the advertised local hook and surface only in a later tox/CI run.
+
+doctest cannot see Markdown: it ends an example's expected output at the first
+blank line, so a closing ``` immediately after an output line is read as part
+of that output. Every README example therefore leaves a blank line before its
+closing fence, and the README's authoring TODO states the rule where the next
+example gets written.
+
 ## Consequences
 
 Documentation code now fails the same local and CI checks as a stale import in
