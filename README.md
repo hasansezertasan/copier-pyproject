@@ -58,6 +58,7 @@ Copier will prompt for:
 - `include_mcp` (include MCP server support)
 - `include_worker` (include message queue worker using FastStream; its AsyncAPI message-interface schema is generated into the docs)
 - `worker_broker` (kafka/nats/rabbitmq/redis - when `include_worker` is enabled)
+- `async_style` (async test runner for generated tests: `none` / `asyncio` / `anyio`; defaults to `asyncio` when web/tui/mcp/worker is enabled, `none` otherwise — see [ADR-036](docs/adr/036-async-testing-style.md))
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
 - `include_benchmarks` (include pytest-codspeed benchmarks and a non-blocking CodSpeed CI workflow)

@@ -245,6 +245,16 @@ Framework/broker choices (when parent option is enabled):
 - `web_framework` - fastapi/litestar (when `include_web` is true)
 - `worker_broker` - kafka/nats/rabbitmq/redis (when `include_worker` is true)
 
+Testing choices:
+
+- `async_style` - `none`/`asyncio`/`anyio`. Async test runner for generated tests:
+  `none` (synchronous tests only), `asyncio` (pytest-asyncio strict mode with explicit
+  markers), or `anyio` (runs marked tests across both asyncio and trio backends).
+  Defaults to `asyncio` when `include_web`, `include_tui`, `include_mcp`, or `include_worker`
+  is enabled, and `none` otherwise. When TUI, MCP, or worker is enabled, validation
+  constrains the choice to `asyncio` or `anyio` because those components ship async tests.
+  See [ADR-036](adr/036-async-testing-style.md).
+
 Devcontainer services:
 
 - `include_postgres` - PostgreSQL service

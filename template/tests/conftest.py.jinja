@@ -18,7 +18,7 @@ from __future__ import annotations
 {% if primary_component %}from importlib.metadata import PackageNotFoundError
 {% endif %}from pathlib import Path
 from typing import TYPE_CHECKING
-{%- if primary_component or async_style == "anyio" %}
+{%- if primary_component %}
 
 import pytest
 
@@ -26,10 +26,9 @@ from {{github_repo_name}}.core import app as service
 {%- endif %}
 
 if TYPE_CHECKING:
-{%- if not primary_component and async_style != "anyio" %}
+{%- if not primary_component %}
     import pytest
-{%- endif %}
-{%- if primary_component %}
+{%- else %}
     from importlib.metadata import Distribution
 {%- endif %}
 
@@ -76,7 +75,7 @@ def pytest_collection_modifyitems(
         component = rel.parts[0] if len(rel.parts) > 1 else "core"
         if component in _COMPONENT_DIRS:
             item.add_marker(component)
-{%- if async_style == "anyio" %}
+{%- if async_style == "anyio" and (include_web or include_tui or include_mcp or include_worker) %}
 
 
 @pytest.fixture(params=["asyncio", "trio"])

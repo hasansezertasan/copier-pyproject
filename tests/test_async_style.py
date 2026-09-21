@@ -75,3 +75,49 @@ def test_async_components_default_to_asyncio_and_use_explicit_markers(
     assert "pytest-asyncio>=0.23.0" in pyproject["dependency-groups"]["test"]
     assert pyproject["tool"]["pytest"]["ini_options"]["asyncio_mode"] == "strict"
     assert "@pytest.mark.asyncio" in tui_tests
+
+
+def test_anyio_library_omits_unused_service_and_empty_type_checking(
+    render: Callable[..., Path],
+) -> None:
+    root = render(async_style="anyio")
+    conftest = (root / "tests" / "conftest.py").read_text(encoding="utf-8")
+
+    assert "service" not in conftest
+    assert "anyio_backend" not in conftest
+    assert "if TYPE_CHECKING:\n    import pytest" in conftest
+
+
+def test_anyio_cli_omits_unused_backend_fixture(
+    render: Callable[..., Path],
+) -> None:
+    root = render(include_cli=True, async_style="anyio")
+    conftest = (root / "tests" / "conftest.py").read_text(encoding="utf-8")
+
+    assert "anyio_backend" not in conftest
+    assert "service" in conftest
+
+
+@pytest.mark.parametrize(
+    ("style", "expected_imports", "forbidden_imports", "has_smoke_test"),
+    [
+        ("none", [], ["anyio", "asyncio", "sniffio"], False),
+        ("asyncio", ["import asyncio"], ["anyio", "sniffio"], True),
+        ("anyio", ["import anyio.lowlevel", "import sniffio"], ["import asyncio"], True),
+    ],
+)
+def test_web_async_style_imports_and_smoke_test(
+    render: Callable[..., Path],
+    style: str,
+    expected_imports: list[str],
+    forbidden_imports: list[str],
+    has_smoke_test: bool,
+) -> None:
+    root = render(include_web=True, async_style=style)
+    web_tests = (root / "tests" / "web" / "test_app.py").read_text(encoding="utf-8")
+
+    for item in expected_imports:
+        assert item in web_tests
+    for item in forbidden_imports:
+        assert item not in web_tests
+    assert ("def test_async_test_runner_is_available" in web_tests) is has_smoke_test
