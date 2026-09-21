@@ -438,18 +438,18 @@ name = "cz_conventional_commits"
 {%- if include_worker and include_benchmarks %}
 # Integration and benchmark tests need explicit opt-in runners, so neither is
 # included in the regular suite.
-addopts = "-v --tb=short -m 'not (integration or benchmark)'"
+addopts = "-v --tb=short --doctest-glob=README.md -m 'not (integration or benchmark)'"
 {%- elif include_worker %}
 # `integration` tests need a real {{worker_broker}} (started via testcontainers,
 # Docker required), so they are deselected by default. A CLI `-m integration`
 # overrides this addopts default; CI runs them in a dedicated Ubuntu-only job.
-addopts = "-v --tb=short -m 'not integration'"
+addopts = "-v --tb=short --doctest-glob=README.md -m 'not integration'"
 {%- elif include_benchmarks %}
 # Benchmarks run separately because their timing-oriented plugin is not part of
 # the normal test dependency group and performance is not a correctness gate.
-addopts = "-v --tb=short -m 'not benchmark'"
+addopts = "-v --tb=short --doctest-glob=README.md -m 'not benchmark'"
 {%- else %}
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --doctest-glob=README.md"
 {%- endif %}
 # One marker per component, auto-applied by tests/conftest.py from each test's
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
@@ -506,7 +506,10 @@ filterwarnings = [
   "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning:testcontainers",
 {%- endif %}
 ]
-testpaths = ["tests"]
+# The project README is the deliberately small Markdown doctest surface. Other
+# Markdown files can use illustrative snippets without becoming pytest inputs.
+testpaths = ["tests", "README.md"]
+doctest_optionflags = "ELLIPSIS IGNORE_EXCEPTION_DETAIL NORMALIZE_WHITESPACE"
 xfail_strict = true
 
 

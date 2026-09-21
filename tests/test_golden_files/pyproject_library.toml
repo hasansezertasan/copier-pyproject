@@ -214,7 +214,7 @@ name = "cz_conventional_commits"
 
 [tool.pytest.ini_options]
 # addopts = "-rXs --strict-config --strict-markers"
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --doctest-glob=README.md"
 # One marker per component, auto-applied by tests/conftest.py from each test's
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
 # jobs (issue #160, ADR-028); `integration` (ADR-008) is one axis of the scheme.
@@ -224,7 +224,10 @@ markers = [
 filterwarnings = [
   "error",
 ]
-testpaths = ["tests"]
+# The project README is the deliberately small Markdown doctest surface. Other
+# Markdown files can use illustrative snippets without becoming pytest inputs.
+testpaths = ["tests", "README.md"]
+doctest_optionflags = "ELLIPSIS IGNORE_EXCEPTION_DETAIL NORMALIZE_WHITESPACE"
 xfail_strict = true
 
 

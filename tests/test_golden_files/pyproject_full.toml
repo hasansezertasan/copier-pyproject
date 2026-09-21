@@ -308,7 +308,7 @@ name = "cz_conventional_commits"
 # addopts = "-rXs --strict-config --strict-markers"
 # Integration and benchmark tests need explicit opt-in runners, so neither is
 # included in the regular suite.
-addopts = "-v --tb=short -m 'not (integration or benchmark)'"
+addopts = "-v --tb=short --doctest-glob=README.md -m 'not (integration or benchmark)'"
 # One marker per component, auto-applied by tests/conftest.py from each test's
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
 # jobs (issue #160, ADR-028); `integration` (ADR-008) is one axis of the scheme.
@@ -342,7 +342,10 @@ filterwarnings = [
   # module so the same message from anywhere else still errors.
   "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning:testcontainers",
 ]
-testpaths = ["tests"]
+# The project README is the deliberately small Markdown doctest surface. Other
+# Markdown files can use illustrative snippets without becoming pytest inputs.
+testpaths = ["tests", "README.md"]
+doctest_optionflags = "ELLIPSIS IGNORE_EXCEPTION_DETAIL NORMALIZE_WHITESPACE"
 xfail_strict = true
 
 
