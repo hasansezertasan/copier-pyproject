@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-{%- if async_style == "asyncio" %}
+{% if async_style == "asyncio" -%}
 import asyncio
-{%- endif %}
+{% endif -%}
 import platform
 from importlib.metadata import Distribution
 
-{%- if async_style == "anyio" %}
+{% if async_style == "anyio" -%}
 import anyio.lowlevel
-{%- endif %}
+{% endif -%}
 import pytest
 {%- if async_style == "anyio" %}
 import sniffio

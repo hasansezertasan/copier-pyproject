@@ -140,3 +140,14 @@ def test_web_async_style_imports_and_smoke_test(
     for item in forbidden_imports:
         assert item not in web_tests
     assert ("def test_async_test_runner_is_available" in web_tests) is has_smoke_test
+
+
+@pytest.mark.parametrize("style", ["none", "asyncio", "anyio"])
+def test_web_async_style_renders_ruff_formatted_imports(
+    render: Callable[..., Path], style: str
+) -> None:
+    root = render(include_web=True, async_style=style)
+    web_tests = root / "tests" / "web" / "test_app.py"
+
+    rendered = web_tests.read_text(encoding="utf-8")
+    assert "from importlib.metadata import Distribution\n\n" in rendered
