@@ -5,13 +5,14 @@ on:
   push:
     paths:
       - .github/workflows/copilot-setup-steps.yml
-permissions:
-  contents: read
+permissions: {}
 jobs:
   # GitHub Copilot coding agent requires this exact job ID.
   copilot-setup-steps:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
