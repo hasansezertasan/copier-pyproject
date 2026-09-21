@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+{% if async_style == "asyncio" -%}
+import asyncio
+{% endif -%}
 import platform
 from importlib.metadata import Distribution
 
+{% if async_style == "anyio" -%}
+import anyio.lowlevel
+{% endif -%}
 import pytest
+{%- if async_style == "anyio" %}
+import sniffio
+{%- endif %}
 {% if web_framework == "fastapi" -%}
 from fastapi.testclient import TestClient
 {%- elif web_framework == "litestar" -%}
@@ -41,6 +50,19 @@ def test_resolve_bind_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resolve_bind() == ("127.0.0.1", 8000)
 
 
+{% if async_style != "none" -%}
+@pytest.mark.{{ async_test_marker }}
+async def test_async_test_runner_is_available() -> None:
+    """Exercise the configured async runner without coupling to a backend."""
+{%- if async_style == "anyio" %}
+    await anyio.lowlevel.checkpoint()
+    assert sniffio.current_async_library() in {"asyncio", "trio"}
+{%- else %}
+    await asyncio.sleep(0)
+{%- endif %}
+
+
+{% endif -%}
 def test_resolve_bind_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     """Host and port are overridable via the prefixed environment variables."""
     monkeypatch.setenv(f"{ENV_PREFIX}HOST", "10.0.0.5")

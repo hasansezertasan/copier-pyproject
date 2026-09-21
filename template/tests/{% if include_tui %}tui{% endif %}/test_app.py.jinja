@@ -42,7 +42,11 @@ def test_build_info_message_handles_missing_metadata() -> None:
     assert PROJECT_NAME in message
 
 
-@pytest.mark.asyncio
+{% if async_style == "anyio" -%}
+# Textual's headless pilot runs on asyncio rather than Trio.
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+{% endif -%}
+@pytest.mark.{{ async_test_marker }}
 async def test_info_app_headless() -> None:
     """The TUI InfoApp layout renders metadata and quits on 'q'.
 

@@ -167,6 +167,24 @@ worker_broker:
     - redis
   when: "{{ include_worker }}"
   help: "Choose the message broker to use"
+async_style:
+  type: str
+  choices:
+    "None (synchronous tests only)": none
+    "asyncio (pytest-asyncio)": asyncio
+    "anyio (asyncio and trio)": anyio
+  # The async-capable components below ship async tests. Defaulting them to an
+  # explicit runner keeps a freshly rendered project runnable, while a library
+  # with no such component stays dependency-free.
+  default: "{{ 'asyncio' if include_web or include_tui or include_mcp or include_worker else 'none' }}"
+  validator: >-
+    {% if async_style == 'none' and (include_tui or include_mcp or include_worker) %} The selected components render async tests, so choose asyncio or anyio. Select none only for a synchronous test suite. {% endif %}
+  help: >-
+    Async test runner for generated tests. asyncio uses pytest-asyncio strict mode and explicit markers; anyio runs marked tests on both asyncio and trio.
+async_test_marker:
+  type: str
+  when: false
+  default: "{{ 'anyio' if async_style == 'anyio' else 'asyncio' }}"
 # ── ④ Packaging / build ─────────────────────────────────────────────────────
 include_c_extensions:
   type: bool

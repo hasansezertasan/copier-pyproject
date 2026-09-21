@@ -99,6 +99,12 @@ def _broker_url() -> Iterator[str]:
 {%- endif %}
 
 
+{% if async_style == "anyio" -%}
+# FastStream's brokers use asyncio APIs internally, and this integration test
+# deliberately uses asyncio's timeout and polling primitives.
+@pytest.mark.parametrize("anyio_backend", ["asyncio"])
+{% endif -%}
+@pytest.mark.{{ async_test_marker }}
 async def test_worker_roundtrip_against_real_broker() -> None:
     """Consume a request and publish a response over a real broker.
 

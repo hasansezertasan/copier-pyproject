@@ -28,8 +28,7 @@ from {{github_repo_name}}.core import app as service
 if TYPE_CHECKING:
 {%- if not primary_component %}
     import pytest
-{%- endif %}
-{%- if primary_component %}
+{%- else %}
     from importlib.metadata import Distribution
 {%- endif %}
 
@@ -76,6 +75,14 @@ def pytest_collection_modifyitems(
         component = rel.parts[0] if len(rel.parts) > 1 else "core"
         if component in _COMPONENT_DIRS:
             item.add_marker(component)
+{%- if async_style == "anyio" and (include_web or include_mcp) %}
+
+
+@pytest.fixture(params=["asyncio", "trio"])
+def anyio_backend(request: pytest.FixtureRequest) -> str:
+    """Run AnyIO-marked tests against both supported event-loop backends."""
+    return str(request.param)
+{%- endif %}
 {%- if primary_component %}
 
 

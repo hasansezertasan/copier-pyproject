@@ -120,7 +120,6 @@ test = [
   "pytest-xdist[psutil]==3.8.0",
   "pytest==9.1.1",
   "pytest-sugar",
-  "pytest-asyncio>=0.23.0",
   "dirty-equals",
   "inline-snapshot",
   "pytest-deadfixtures==3.1.0",
@@ -222,7 +221,6 @@ addopts = "-v --tb=short"
 markers = [
   "core: core/shared component tests",
 ]
-asyncio_mode = "auto"
 filterwarnings = [
   "error",
 ]
