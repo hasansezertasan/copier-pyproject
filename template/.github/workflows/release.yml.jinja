@@ -94,8 +94,11 @@ jobs:
         with:
           subject-path: dist/*
       - name: Stage provenance bundle
+        env:
+          BUNDLE_PATH: {% raw %}${{ steps.attest.outputs.bundle-path }}{% endraw %}
+          PROVENANCE_BUNDLE_NAME: build-provenance-{% raw %}${{ matrix.os }}{% endraw %}.sigstore.json
         shell: bash
-        run: cp "{% raw %}${{ steps.attest.outputs.bundle-path }}{% endraw %}" "build-provenance-{% raw %}${{ matrix.os }}{% endraw %}.sigstore.json"
+        run: cp "$BUNDLE_PATH" "$PROVENANCE_BUNDLE_NAME"
       - name: Upload package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
@@ -115,8 +118,10 @@ jobs:
         with:
           subject-path: dist/*
       - name: Stage provenance bundle
+        env:
+          BUNDLE_PATH: {% raw %}${{ steps.attest.outputs.bundle-path }}{% endraw %}
         shell: bash
-        run: cp "{% raw %}${{ steps.attest.outputs.bundle-path }}{% endraw %}" build-provenance.sigstore.json
+        run: cp "$BUNDLE_PATH" build-provenance.sigstore.json
       - name: Upload package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
         with:
