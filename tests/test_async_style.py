@@ -59,10 +59,13 @@ def test_anyio_style_pins_only_asyncio_native_component_tests(
         root / "tests" / "worker" / "test_integration.py"
     ).read_text(encoding="utf-8")
 
+    conftest = (root / "tests" / "conftest.py").read_text(encoding="utf-8")
+
     backend_pin = 'pytest.mark.parametrize("anyio_backend", ["asyncio"])'
     assert worker_tests.count(backend_pin) == 4
     assert integration_tests.count(backend_pin) == 1
     assert tui_tests.count(backend_pin) == 1
+    assert "anyio_backend" not in conftest
 
 
 def test_async_components_default_to_asyncio_and_use_explicit_markers(
@@ -96,6 +99,22 @@ def test_anyio_cli_omits_unused_backend_fixture(
 
     assert "anyio_backend" not in conftest
     assert "service" in conftest
+
+
+@pytest.mark.parametrize(
+    "component_kwargs",
+    [
+        {"include_tui": True},
+        {"include_worker": True},
+    ],
+)
+def test_anyio_shadowed_fixtures_omitted_from_conftest(
+    render: Callable[..., Path], component_kwargs: dict[str, bool]
+) -> None:
+    root = render(async_style="anyio", **component_kwargs)
+    conftest = (root / "tests" / "conftest.py").read_text(encoding="utf-8")
+
+    assert "anyio_backend" not in conftest
 
 
 @pytest.mark.parametrize(

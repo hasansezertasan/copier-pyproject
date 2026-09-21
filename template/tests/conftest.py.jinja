@@ -75,7 +75,7 @@ def pytest_collection_modifyitems(
         component = rel.parts[0] if len(rel.parts) > 1 else "core"
         if component in _COMPONENT_DIRS:
             item.add_marker(component)
-{%- if async_style == "anyio" and (include_web or include_tui or include_mcp or include_worker) %}
+{%- if async_style == "anyio" and (include_web or include_mcp) %}
 
 
 @pytest.fixture(params=["asyncio", "trio"])
