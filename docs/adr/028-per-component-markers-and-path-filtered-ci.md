@@ -54,9 +54,12 @@ fan-out (mirroring the import-linter layering, [ADR-014](014-import-linter-for-a
 `worker-integration` gains the same gate, skipping its container spin-up on
 unrelated PRs.
 
-`check` already uses `re-actors/alls-green` with `toJSON(needs)`, which treats
-**skipped** jobs as non-failing — so path-skipped and draft-skipped jobs keep the
-merge gate green with no aggregator change.
+`check` uses `re-actors/alls-green` with `toJSON(needs)`, which counts a
+**skipped** job as a failure unless it is named in `allowed-skips`. The gate
+therefore lists every path-gated job there (`test-<c>` and `coverage-<c>` per
+component, plus `worker-integration`), rendered from the same component list as
+`needs`, so a path-skipped component keeps the merge gate green while a real
+failure still fails it. Draft PRs skip `check` itself, so they need no entry.
 
 ### 3. Coverage decomposition (supersedes ADR-026's single union gate)
 

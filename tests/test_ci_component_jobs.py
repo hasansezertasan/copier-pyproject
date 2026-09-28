@@ -83,6 +83,35 @@ def test_check_needs_lists_component_jobs(render: Callable[..., Path]) -> None:
     assert "test-web" in needs
 
 
+def _allowed_skips(check: dict[str, Any]) -> set[str]:
+    step = check["steps"][0]["with"]
+    return {j.strip() for j in step.get("allowed-skips", "").split(",") if j.strip()}
+
+
+def _path_gated(ci: dict[str, Any]) -> set[str]:
+    return {
+        name
+        for name in ci["jobs"]["check"]["needs"]
+        if "needs.changes.outputs" in str(ci["jobs"][name].get("if", ""))
+    }
+
+
+@pytest.mark.parametrize("preset", ["library", "tool", "web", "full"])
+def test_check_allows_exactly_the_path_gated_skips(
+    render: Callable[..., Path], preset: str
+) -> None:
+    # alls-green fails on any skipped job not in ``allowed-skips`` (issue #324).
+    ci = _ci(render, preset=preset)
+    assert _allowed_skips(ci["jobs"]["check"]) == _path_gated(ci)
+
+
+def test_check_allows_worker_integration_skip(render: Callable[..., Path]) -> None:
+    ci = _ci(render, preset="library", include_worker=True, worker_broker="redis")
+    allowed = _allowed_skips(ci["jobs"]["check"])
+    assert allowed == _path_gated(ci)
+    assert "worker-integration" in allowed
+
+
 def test_matrix_asymmetric_without_c_extensions(render: Callable[..., Path]) -> None:
     ci = _ci(render, preset="library")
     include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]

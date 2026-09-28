@@ -897,7 +897,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `fail_under = 99` **scoped** to the subtree (`--include="*/<pkg>/<c>/*,*/tests/<c>/*"`;
      `coverage-core` instead `--omit`s every component). The union principle is
      preserved *within* each component (its cross-OS cells), not across all code —
-     so a path-skipped, unchanged component keeps the `check` gate green. A central
+     and `check` lists each path-gated job in alls-green's `allowed-skips` (a skip
+     otherwise counts as a failure), so a path-skipped, unchanged component keeps
+     the `check` gate green. A central
      non-gating `coverage-report` job (`if: !cancelled() && draft != true`) merges whatever ran,
      renders combined HTML/XML, and handles Codecov/smokeshow. `relative_files =
      true` (pyproject) lets cross-runner paths merge, complementing the
