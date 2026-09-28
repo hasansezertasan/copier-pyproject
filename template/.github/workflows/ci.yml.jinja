@@ -818,7 +818,7 @@ jobs:
 {%- for c in comp_names %}{% set _ = gated_jobs.extend(['test-' ~ c, 'coverage-' ~ c]) %}{% endfor %}
 {%- if include_worker %}{% set _ = gated_jobs.append('worker-integration') %}{% endif %}
 {%- if gated_jobs %}
-          # alls-green counts a skipped job as a failure unless it is listed
+          # The gate counts a skipped job as a failure unless it is listed
           # here. These jobs are path-gated by `changes`, so they skip whenever
           # their component (and core) is untouched. Real failures still fail.
           allowed-skips: {{ gated_jobs | join(', ') }}
