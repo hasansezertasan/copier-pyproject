@@ -67,7 +67,7 @@ from collections.abc import Callable
 # environment that has not been re-synced would otherwise fail here with a bare
 # ``ModuleNotFoundError`` before any launcher code executes.
 {{ fmt.py_collection("_ROOT_DEPENDENCIES", root_dependencies) }}
-_MISSING_ROOT_DEPENDENCY = "Error: The {{github_repo_name}} command requires the '{missing}' package, which is not installed. It ships with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
+_MISSING_ROOT_DEPENDENCY = "Error: The {{github_repo_name}} command requires the '{missing}' package, which could not be imported. It ships with '{{github_repo_name}}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
 
 
 {{ _preflight_fn() }}
