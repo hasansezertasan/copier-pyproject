@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.0...v1.5.1) (2026-09-28)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** let the check gate tolerate path-skipped component jobs ([#325](https://github.com/hasansezertasan/copier-pyproject/issues/325)) ([4c69448](https://github.com/hasansezertasan/copier-pyproject/commit/4c694487034157176eec4dab8589776b211602e2))
+
 ## [1.5.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.4.0...v1.5.0) (2026-09-21)
 
 
