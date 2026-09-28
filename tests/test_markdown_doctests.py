@@ -83,3 +83,15 @@ def test_prek_pytest_hook_collects_the_readme(render: Callable[..., Path]) -> No
     prek = (root / "prek.toml").read_text(encoding="utf-8")
 
     assert 'entry = "uv run --locked pytest"' in prek
+
+
+def test_vulture_ignores_the_conftest_collect_ignore_glob(
+    render: Callable[..., Path],
+) -> None:
+    # pytest reads ``collect_ignore_glob`` by name, so vulture sees it as unused
+    # and fails the generated project's prek hook unless it is whitelisted.
+    project = render()
+    conftest = (project / "tests" / "conftest.py").read_text(encoding="utf-8")
+    assert "collect_ignore_glob = " in conftest
+    pyproject = tomllib.loads((project / "pyproject.toml").read_text(encoding="utf-8"))
+    assert "collect_ignore_glob" in pyproject["tool"]["vulture"]["ignore_names"]
