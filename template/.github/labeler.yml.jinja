@@ -48,9 +48,9 @@ area:worker:
 area:docs:
   - changed-files:
 {%- if include_ai_rulez %}
-      - any-glob-to-any-file: ['docs/**', '.ai-rulez/**', '*.md', '*.rst']
+      - any-glob-to-any-file: ['docs/**', '.ai-rulez/**', '**/*.md', '**/*.rst']
 {%- else %}
-      - any-glob-to-any-file: ['docs/**', '*.md', '*.rst']
+      - any-glob-to-any-file: ['docs/**', '**/*.md', '**/*.rst']
 {%- endif %}
 area:ci:
   - changed-files:
