@@ -1,4 +1,4 @@
-"""No generated package module is a docstring-only placeholder.
+"""No generated package module is an empty placeholder (docstring and filler only).
 
 An empty module has no importers and no tests, and nothing downstream flags it
 (not vulture, not coverage), so a placeholder stays in every generated project
@@ -22,23 +22,35 @@ import pytest
 PKG = "example"
 
 
+def _is_filler(node: ast.stmt) -> bool:
+    """Whether a statement adds nothing: ``pass``, ``...``, a ``__future__`` import."""
+    if isinstance(node, ast.Pass):
+        return True
+    if isinstance(node, ast.ImportFrom):
+        return node.module == "__future__"
+    return (
+        isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Constant)
+        and node.value.value is Ellipsis
+    )
+
+
 def _is_placeholder(path: Path) -> bool:
-    """Whether the module's body is empty apart from an optional docstring."""
-    body = ast.parse(path.read_text(encoding="utf-8")).body
-    if body and ast.get_docstring(ast.Module(body=body, type_ignores=[])):
-        body = body[1:]
-    return not body
+    """Whether the module holds nothing beyond a docstring and filler."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    body = tree.body[1:] if ast.get_docstring(tree) is not None else tree.body
+    return all(_is_filler(node) for node in body)
 
 
 @pytest.mark.parametrize("preset", ["library", "tool", "web", "full"])
-def test_no_docstring_only_modules(
+def test_no_placeholder_modules(
     render: Callable[..., Path],
     preset: str,
 ) -> None:
     src = render(preset=preset) / "src" / PKG
+    modules = [path for path in src.rglob("*.py") if path.name != "__init__.py"]
+    assert modules, f"no modules found under {src}"
     placeholders = sorted(
-        str(path.relative_to(src))
-        for path in src.rglob("*.py")
-        if path.name != "__init__.py" and _is_placeholder(path)
+        str(path.relative_to(src)) for path in modules if _is_placeholder(path)
     )
     assert placeholders == []

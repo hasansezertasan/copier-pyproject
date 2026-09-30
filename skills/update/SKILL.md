@@ -43,6 +43,14 @@ a new tag. The PR looks routine but has a specific hazard:
    git grep -nE '^(<<<<<<<|>>>>>>>)' ; find . -name '*.rej' -not -path './.git/*'
    ```
    If either is non-empty, the PR is **not** mergeable as-is — reconcile below.
+   Also list what the update **deleted**: when the template drops a file
+   (e.g. the empty `utils/app.py` placeholder, #321), copier removes your copy
+   even if you put real code in it — no marker, no `.rej`:
+   ```bash
+   git diff --name-only --diff-filter=D origin/main...HEAD
+   ```
+   Restore any deleted file that carries your own code
+   (`git checkout origin/main -- <file>`), or move that code somewhere else first.
 
 2. **Diff the answers for silently-added features.** Renovate answered any new
    question with its default:
@@ -154,7 +162,8 @@ a fresh, usually-tiny merge, committed separately.
 | 6 | A dropped `exclude_patterns` in `docs/conf.py` publishes internal specs to Pages | Re-add custom `exclude_patterns`; diff `docs/conf.py` |
 | 7 | Plain `--pretend` reports "diverged" only because template HEAD moved | Pin with `--vcs-ref=<your _commit>` |
 | 8 | `Verify linked issue` CI check fails a chore/update PR with no issue | Apply the `no-issue` label |
-| 9 | `mise` shim can't resolve copier (`No version is set for shim: copier`) | Use `uvx copier@latest update` |
+| 9 | Template dropped a file you had edited → copier deletes it silently (no conflict) | `git diff --name-only --diff-filter=D origin/main...HEAD`; restore or relocate your code |
+| 10 | `mise` shim can't resolve copier (`No version is set for shim: copier`) | Use `uvx copier@latest update` |
 
 ## Common mistakes
 
