@@ -119,8 +119,10 @@ error text and the GUI/TUI degradation alike — replacing the per-module
   strings, the same status codes and exit codes.
 - Components gain a dependency on `core.app`. That is the direction the
   import-linter contract already mandates, so the contract needed no edit.
-- A library project (no runnable component) renders `core/app.py` as the
-  placeholder it was, so it gains nothing to maintain.
+- A library project (no runnable component) does not render `core/app.py`
+  at all, so it gains nothing to maintain. (This originally said it kept the
+  empty placeholder; #321 dropped it, since a docstring-only module has no
+  importers, no tests, and reads as guidance about where code goes.)
 
 ## Alternatives considered
 

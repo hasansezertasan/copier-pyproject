@@ -593,8 +593,9 @@ Subpackages (each with `__init__.py` and `app.py`):
     Each component is an adapter over it — the CLI exits 1, the web app answers
     503, the MCP tool returns error text, the GUI/TUI show `unknown`, the worker
     falls back to `0.0.0` — so the payload and the metadata lookup exist once
-    rather than once per component. Renders as an empty placeholder for a
-    library with no runnable component. Its failure path is exercised through
+    rather than once per component. Rendered only when a runnable component
+    exists (`primary_component`); a library has nothing to report through it,
+    so it ships no placeholder (#321). Its failure path is exercised through
     the shared `missing_metadata` fixture in `tests/conftest.py`, which reaches
     every component's error branch by patching this one module
     ([ADR-033](adr/033-shared-app-service-components-as-adapters.md)).
@@ -608,7 +609,10 @@ Subpackages (each with `__init__.py` and `app.py`):
     the documented fields, types, defaults, constraints, and env-var names never
     drift from the model. The docs dependency group gains `autodoc-pydantic` under
     the `include_pydantic_settings` guard.
-- `utils/` - Utility functions (always included)
+- `utils/` - Dependency-free helpers (always included, as a bare
+  `__init__.py`: the layer ships so the exhaustive import-linter contract
+  names it, but no placeholder module — `tests/test_placeholder_modules.py`
+  fails any docstring-only module under `src/`, #321)
 - `cli/` - the `pkg` Typer root (present when `include_console_root`). With
   `include_cli` it is the full CLI (`version`/`info` commands + component
   subcommands); without `include_cli` it is a minimal launcher (component

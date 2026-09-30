@@ -13,7 +13,7 @@ page drifts from a fresh render.
 
 ## library
 
-112 files.
+110 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -111,13 +111,11 @@ src/example/__init__.py
 src/example/__main__.py
 src/example/__metadata__.py
 src/example/core/__init__.py
-src/example/core/app.py
 src/example/core/config.py
 src/example/core/dirs.py
 src/example/core/logging_setup.py
 src/example/py.typed
 src/example/utils/__init__.py
-src/example/utils/app.py
 tests/__init__.py
 tests/conftest.py
 tests/core/__init__.py
@@ -132,7 +130,7 @@ tools/build_docs.py
 
 ## tool
 
-121 files.
+120 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -240,7 +238,6 @@ src/example/py.typed
 src/example/tui/__init__.py
 src/example/tui/app.py
 src/example/utils/__init__.py
-src/example/utils/app.py
 tests/__init__.py
 tests/cli/__init__.py
 tests/cli/test_app.py
@@ -260,7 +257,7 @@ tools/build_docs.py
 
 ## web
 
-122 files.
+121 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -367,7 +364,6 @@ src/example/core/dirs.py
 src/example/core/logging_setup.py
 src/example/py.typed
 src/example/utils/__init__.py
-src/example/utils/app.py
 src/example/web/__init__.py
 src/example/web/app.py
 tests/__init__.py
@@ -389,7 +385,7 @@ tools/build_docs.py
 
 ## full
 
-182 files.
+181 files.
 
 ```text
 .ai-rulez/config.toml
@@ -544,7 +540,6 @@ src/example/py.typed
 src/example/tui/__init__.py
 src/example/tui/app.py
 src/example/utils/__init__.py
-src/example/utils/app.py
 src/example/web/__init__.py
 src/example/web/app.py
 src/example/worker/__init__.py
