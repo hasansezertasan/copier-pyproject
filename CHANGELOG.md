@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.2](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.1...v1.5.2) (2026-09-30)
+
+
+### 🐛 Bug Fixes
+
+* **template:** fix three defects found reviewing a v1.5.1 update ([#330](https://github.com/hasansezertasan/copier-pyproject/issues/330)) ([7f16736](https://github.com/hasansezertasan/copier-pyproject/commit/7f16736eb7a35868d13e24b2abe31583464cfdad))
+* **template:** let vulture ignore the conftest's collect_ignore_glob ([#328](https://github.com/hasansezertasan/copier-pyproject/issues/328)) ([887b045](https://github.com/hasansezertasan/copier-pyproject/commit/887b045a72bb6a996322304d814716bb338f92aa))
+
 ## [1.5.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.0...v1.5.1) (2026-09-28)
 
 
