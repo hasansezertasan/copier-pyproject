@@ -469,3 +469,21 @@ def test_no_stray_empty_basename_files_homebrew_without_executable(
     ``primary_executable``-gated filenames inside the Homebrew bundle."""
     strays = _find_stray_dotfiles(render(preset="tool", include_homebrew=True))
     assert strays == [], f"stray empty-basename files (homebrew, no exe): {strays}"
+
+
+@pytest.mark.parametrize("include_freezer", [False, True])
+def test_typos_skips_the_copier_answers_file(
+    render: Callable[..., Path], include_freezer: bool
+) -> None:
+    """The answers file's ``_commit`` hash must never fail the typos check.
+
+    Rendered from an untagged ref, ``_commit`` is a ``git describe`` string whose
+    hex hash can contain a fragment typos reads as a misspelled word (#334).
+    Parametrized on the freezer so the exclusion survives beside the other
+    ``[tool.typos]`` table it renders.
+    """
+    root = render(include_freezer=include_freezer)
+    pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    excluded = pyproject["tool"]["typos"]["files"]["extend-exclude"]
+    assert (root / ".copier-answers.yml").is_file()
+    assert ".copier-answers.yml" in excluded
