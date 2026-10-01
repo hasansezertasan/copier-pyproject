@@ -43,9 +43,9 @@ a new tag. The PR looks routine but has a specific hazard:
    git grep -nE '^(<<<<<<<|>>>>>>>)' ; find . -name '*.rej' -not -path './.git/*'
    ```
    If either is non-empty, the PR is **not** mergeable as-is — reconcile below.
-   Also list what the update **deleted**: when the template drops a file
-   (e.g. the empty `utils/app.py` placeholder, #321), copier removes your copy
-   even if you put real code in it — no marker, no `.rej`:
+   Also list what the update **deleted**: when the template drops a file it
+   has not protected with `_exclude`, copier removes your copy even if you put
+   real code in it — no marker, no `.rej`:
    ```bash
    git diff --name-only --diff-filter=D origin/main...HEAD
    ```

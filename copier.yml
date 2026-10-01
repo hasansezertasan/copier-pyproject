@@ -1,5 +1,26 @@
 ---
 _subdirectory: template
+# Paths the template used to render and has since dropped. Without this,
+# `copier update` deletes the adopter's copy, even if they put real code in it
+# (no conflict, no `.rej`). Excluding the path leaves the existing copy alone,
+# and fresh copies are unaffected because the template no longer has the file.
+# Remove an entry if the template ever renders that path again.
+#
+# `_exclude` replaces copier's default list rather than extending it, so the
+# first eight entries re-list those defaults; `tests/test_copier_exclude.py`
+# keeps them in sync with copier.
+_exclude:
+  - "copier.yaml"
+  - "copier.yml"
+  - "~*"
+  - "*.py[co]"
+  - "__pycache__"
+  - ".git"
+  - ".DS_Store"
+  - ".svn"
+  # #321: docstring-only placeholders.
+  - "src/{{ github_repo_name }}/utils/app.py"
+  - "{% if not primary_component %}src/{{ github_repo_name }}/core/app.py{% endif %}"
 # No `_tasks`: defining any task marks the template "unsafe", which forces
 # `copier ... --trust`. The hosted Mend Renovate App runs `copier update` with
 # scripts disabled (no `--trust`), so a task-bearing template would break

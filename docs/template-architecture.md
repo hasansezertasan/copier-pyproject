@@ -595,7 +595,8 @@ Subpackages (each with an `__init__.py`):
     falls back to `0.0.0` — so the payload and the metadata lookup exist once
     rather than once per component. Rendered only when a runnable component
     exists (`primary_component`); a library has nothing to report through it,
-    so it ships no placeholder (#321). Its failure path is exercised through
+    so it ships no placeholder (#321; `_exclude` keeps an existing project's
+    copy on `copier update`). Its failure path is exercised through
     the shared `missing_metadata` fixture in `tests/conftest.py`, which reaches
     every component's error branch by patching this one module
     ([ADR-033](adr/033-shared-app-service-components-as-adapters.md)).
@@ -614,7 +615,8 @@ Subpackages (each with an `__init__.py`):
   contract names it, but with no placeholder module in it.
   `tests/test_placeholder_modules.py` fails any non-`__init__.py` module under
   `src/` whose body is empty apart from a docstring, `pass`/`...`, or a
-  `__future__` import, #321)
+  `__future__` import, #321. `copier.yml`'s `_exclude` lists the dropped
+  path so `copier update` leaves an existing project's copy alone)
 - `cli/` - the `pkg` Typer root (present when `include_console_root`). With
   `include_cli` it is the full CLI (`version`/`info` commands + component
   subcommands); without `include_cli` it is a minimal launcher (component
