@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.3](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.2...v1.5.3) (2026-10-01)
+
+
+### 🐛 Bug Fixes
+
+* **template:** exclude .copier-answers.yml from typos ([#335](https://github.com/hasansezertasan/copier-pyproject/issues/335)) ([9fa3df5](https://github.com/hasansezertasan/copier-pyproject/commit/9fa3df552e7ed6ec204c102a32eae42ca50c4c57))
+* **template:** stop generating docstring-only placeholder modules ([#333](https://github.com/hasansezertasan/copier-pyproject/issues/333)) ([527c4de](https://github.com/hasansezertasan/copier-pyproject/commit/527c4dea91113219bc88fb85ee6c9865fc2c26c1))
+
 ## [1.5.2](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.1...v1.5.2) (2026-09-30)
 
 
