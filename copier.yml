@@ -1,5 +1,9 @@
 ---
 _subdirectory: template
+# copier only honors `_exclude` when deciding what `copier update` deletes from
+# 9.10.3 on; 9.6.0 to 9.10.2 still delete an excluded path the adopter edited.
+# Requiring it makes an older copier refuse to run instead of losing that code.
+_min_copier_version: "9.10.3"
 # Paths the template used to render and has since dropped. Without this,
 # `copier update` deletes the adopter's copy, even if they put real code in it
 # (no conflict, no `.rej`). Excluding the path leaves the existing copy alone,
