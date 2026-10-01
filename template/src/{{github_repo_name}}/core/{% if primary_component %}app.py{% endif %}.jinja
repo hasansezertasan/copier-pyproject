@@ -1,4 +1,3 @@
-{%- if primary_component -%}
 """The application payload every interface component renders.
 
 The CLI command, the web endpoint, the MCP tool, the GUI/TUI panel and the
@@ -118,6 +117,3 @@ def _payload(resolved_version: str) -> dict[str, str]:
         "python_implementation": platform.python_implementation(),
         "platform": platform.system(),
     }
-{%- else -%}
-"""Core application logic for the project."""
-{%- endif %}

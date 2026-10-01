@@ -59,8 +59,8 @@ Issue #178 proposed a new `base/` package "alongside or just above `core`".
 import-linter contract, so a `base/` layer would add a name without adding a
 boundary — and `core/app.py` already existed as the empty stub for exactly this.
 The `layers` contract is unchanged; `exhaustive` stays satisfied. The module
-renders only when a runnable component is enabled, so a library project keeps
-the placeholder rather than gaining code nothing calls.
+renders only when a runnable component is enabled, so a library project does
+not gain code nothing calls (#321 later dropped the stub it used to keep).
 
 ### Functions, not an `AppService` class
 
@@ -119,8 +119,10 @@ error text and the GUI/TUI degradation alike — replacing the per-module
   strings, the same status codes and exit codes.
 - Components gain a dependency on `core.app`. That is the direction the
   import-linter contract already mandates, so the contract needed no edit.
-- A library project (no runnable component) renders `core/app.py` as the
-  placeholder it was, so it gains nothing to maintain.
+- A library project (no runnable component) does not render `core/app.py`
+  at all, so it gains nothing to maintain. (This originally said it kept the
+  empty placeholder; #321 dropped it, since a docstring-only module has no
+  importers, no tests, and reads as guidance about where code goes.)
 
 ## Alternatives considered
 
