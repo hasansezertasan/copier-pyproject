@@ -78,6 +78,25 @@ def test_preset_pyproject_is_valid_toml(
     _assert_pyproject_is_toml(render(preset=preset))
 
 
+def test_root_toml_has_no_schema_directive(render: Callable[..., Path]) -> None:
+    """No root TOML makes the ``style`` env's ``taplo lint`` hit the network.
+
+    taplo 0.9.3 downloads a ``#:schema`` URL on every lint, even with
+    ``--no-schema``, so one flaky fetch failed the required ``check`` gate
+    (issue #337). ``*.toml`` is the glob ``style`` lints.
+    """
+    root = render(preset="full")
+    offenders = [
+        path.name
+        for path in root.glob("*.toml")
+        if any(
+            line.startswith("#:schema")
+            for line in path.read_text(encoding="utf-8").splitlines()
+        )
+    ]
+    assert offenders == []
+
+
 @pytest.mark.parametrize("preset", PRESETS)
 def test_import_linter_contract_covers_every_subpackage(
     render: Callable[..., Path], preset: str
