@@ -12,6 +12,7 @@ copier; ``tomllib`` is stdlib (3.11+).
 
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 from typing import Any, Callable
@@ -76,6 +77,25 @@ def test_preset_pyproject_is_valid_toml(
     render: Callable[..., Path], preset: str
 ) -> None:
     _assert_pyproject_is_toml(render(preset=preset))
+
+
+def test_root_toml_has_no_schema_directive(render: Callable[..., Path]) -> None:
+    """No root TOML makes the ``style`` env's ``taplo lint`` hit the network.
+
+    taplo 0.9.3 downloads a ``#:schema`` URL on every lint, even with
+    ``--no-schema``, so one flaky fetch failed the required ``check`` gate
+    (issue #337). ``*.toml`` is the glob ``style`` lints.
+    """
+    root = render(preset="full")
+    offenders = [
+        path.name
+        for path in root.glob("*.toml")
+        if any(
+            re.match(r"\s*#:\s*schema\b", line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+        )
+    ]
+    assert offenders == []
 
 
 @pytest.mark.parametrize("preset", PRESETS)
