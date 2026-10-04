@@ -163,6 +163,8 @@ CI runs on macOS/Linux/Windows via `.github/workflows/ci.yml.jinja`.
 
 Versions are derived from git tags by hatch-vcs (`dynamic = ["version"]`), so release-please never edits a static version literal and `uv.lock` cannot desync. `bump-minor-pre-major` keeps pre-1.0 projects pre-1.0.
 
+Pause merges that change `.github/workflows/` (including Renovate action-pin updates) from merging a release PR until the entire Release run finishes. With `GITHUB_TOKEN`, workflow differences between the release commit and current `main` can block tag or release creation with a 403. The generated [repository setup guide](template/docs/maintaining/setup.rst.jinja) explains how to restore matching workflows, recover the release, and re-apply the changes. See [#332](https://github.com/hasansezertasan/copier-pyproject/issues/332).
+
 ### PyPI Trusted Publishing setup
 
 Enable PyPI once per project for `.github/workflows/release.yml`:

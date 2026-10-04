@@ -132,6 +132,16 @@ release-please should be wired:
   listens for `reopened`) is the cheaper side of that trade and is documented in
   `setup.rst`. Editing the PR body is not equivalent — it misses
   `check-branch-name.yml` and `ci.yml`, neither of which listens for `edited`.
+- **Workflow changes must wait until the entire Release run finishes.** A merge
+  that changes `.github/workflows/` after the release PR merges can leave the
+  release commit's workflows different from current `main`. GitHub's
+  [release API](https://docs.github.com/en/rest/releases/releases#create-a-release)
+  requires workflow write access for this case, which `GITHUB_TOKEN` cannot
+  receive. [#332](https://github.com/hasansezertasan/copier-pyproject/issues/332)
+  records a stuck tag/release creation (403) and successful recovery after
+  reverting the intervening workflow change. We retain `GITHUB_TOKEN` and
+  document the merge pause and recovery in generated `docs/maintaining/setup.rst`;
+  adopters need no additional credential setup.
 - **`draft: true` requires `force-tag-creation: true`** (and
   `release-please-action` v5.0.0). GitHub withholds a draft release's git tag until
   it is published, so without this the `build` job would run before the tag exists
