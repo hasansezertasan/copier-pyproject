@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.3](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.2...v1.5.3) (2026-10-04)
+
+
+### 🐛 Bug Fixes
+
+* **template:** align mise Python and initialize docs context ([#340](https://github.com/hasansezertasan/copier-pyproject/issues/340)) ([2eb5b1d](https://github.com/hasansezertasan/copier-pyproject/commit/2eb5b1de121fe8cb73cfb9ae3b1e43c092efa50c))
+* **template:** exclude .copier-answers.yml from typos ([#335](https://github.com/hasansezertasan/copier-pyproject/issues/335)) ([9fa3df5](https://github.com/hasansezertasan/copier-pyproject/commit/9fa3df552e7ed6ec204c102a32eae42ca50c4c57))
+* **template:** keep Taplo lint offline for generated prek config ([#338](https://github.com/hasansezertasan/copier-pyproject/issues/338)) ([35b0abb](https://github.com/hasansezertasan/copier-pyproject/commit/35b0abb94c69fe04aec455ab73833aaa04d800a2))
+* **template:** stop generating docstring-only placeholder modules ([#333](https://github.com/hasansezertasan/copier-pyproject/issues/333)) ([527c4de](https://github.com/hasansezertasan/copier-pyproject/commit/527c4dea91113219bc88fb85ee6c9865fc2c26c1))
+
+
+### 📝 Documentation
+
+* **release:** explain workflow race prevention and recovery ([#339](https://github.com/hasansezertasan/copier-pyproject/issues/339)) ([4a48210](https://github.com/hasansezertasan/copier-pyproject/commit/4a48210ae3c5d79bd36baccc7333b53289227e6b))
+
 ## [1.5.2](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.1...v1.5.2) (2026-09-30)
 
 
