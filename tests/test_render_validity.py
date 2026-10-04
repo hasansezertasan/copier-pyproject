@@ -12,6 +12,7 @@ copier; ``tomllib`` is stdlib (3.11+).
 
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 from typing import Any, Callable
@@ -90,7 +91,7 @@ def test_root_toml_has_no_schema_directive(render: Callable[..., Path]) -> None:
         path.name
         for path in root.glob("*.toml")
         if any(
-            line.startswith("#:schema")
+            re.match(r"\s*#:\s*schema\b", line)
             for line in path.read_text(encoding="utf-8").splitlines()
         )
     ]
