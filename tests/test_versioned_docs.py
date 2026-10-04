@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -13,6 +15,36 @@ import pytest
 import yaml
 
 GRANULARITIES = ["minor", "major", "full"]
+
+
+@pytest.mark.parametrize("current", [None, "0.2"])
+def test_conf_html_context_with_versions(
+    render: Callable[..., Path], monkeypatch: pytest.MonkeyPatch, current: str | None
+) -> None:
+    root = render(include_docs=True)
+    monkeypatch.delenv("DOCS_BUILD_VERSION_SLUG", raising=False)
+    if current is not None:
+        monkeypatch.setenv("DOCS_BUILD_VERSION_SLUG", current)
+    versions_file = root / "docs" / "_static" / "versions.json"
+    versions_file.parent.mkdir(parents=True, exist_ok=True)
+    versions_file.write_text(
+        json.dumps({"latest": "0.3", "versions": ["0.3", "0.2"]}), encoding="utf-8"
+    )
+    conf = runpy.run_path(str(root / "docs" / "conf.py"))
+    assert conf["html_context"] == {
+        "current_version": current or "0.3",
+        "versions": [
+            ["latest", "/example/latest/"],
+            ["0.3", "/example/0.3/"],
+            ["0.2", "/example/0.2/"],
+        ],
+    }
+
+
+def test_conf_html_context_without_versions(render: Callable[..., Path]) -> None:
+    root = render(include_docs=True)
+    conf = runpy.run_path(str(root / "docs" / "conf.py"))
+    assert conf["html_context"] == {}
 
 
 def _load_build_docs(root: Path, name: str) -> ModuleType:
