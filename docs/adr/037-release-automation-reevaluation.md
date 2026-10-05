@@ -339,8 +339,8 @@ its changelog through a PR and creates the tag from the merge, so it needs only
 `GITHUB_TOKEN`. A CI-driven `cz bump` or git-cliff pipeline instead has to:
 
 - push a bump/changelog commit straight to `main`, which a protected branch
-  (the `full` preset's ruleset, ADR-021) rejects unless the pusher has a
-  bypass, which `GITHUB_TOKEN` cannot be given;
+  (the `full` preset's ruleset, ADR-021) rejects unless the pushing identity
+  is granted a bypass — itself a new standing exception;
 - have the tag start the release, but a tag pushed with `GITHUB_TOKEN` does not
   trigger `push: tags` workflows (GitHub's loop prevention); and, for git-cliff,
 - accept that a changelog committed *after* the tag leaves the tagged commit
