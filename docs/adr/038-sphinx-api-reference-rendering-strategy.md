@@ -80,8 +80,9 @@ No Sphinx directive exists — these are the build path for a port.
 
 | Package | Scope | Health | Fit |
 | --- | --- | --- | --- |
-| [`@asyncapi/html-template`](https://github.com/asyncapi/html-template) + [`@asyncapi/generator`](https://github.com/asyncapi/generator) | Official spec → static HTML / Markdown | Active, official org | Canonical `asyncapi.yaml` → browsable docs; Markdown output could feed MyST |
-| `@asyncapi/react-component` | Embeddable renderer both templates use | Active, official org | The swagger-ui-dist analog to wrap in a Sphinx directive |
+| [`@asyncapi/generator`](https://github.com/asyncapi/generator) + [`@asyncapi/html-template`](https://github.com/asyncapi/html-template) | Official spec → static HTML | Active, official org | Canonical `asyncapi.yaml` → browsable docs |
+| [`@asyncapi/generator`](https://github.com/asyncapi/generator) + [`@asyncapi/markdown-template`](https://github.com/asyncapi/markdown-template) | Official spec → Markdown | Active, official org | Markdown output could feed MyST `{include}` |
+| `@asyncapi/react-component` | Embeddable renderer `html-template` uses | Active, official org | The swagger-ui-dist analog to wrap in a Sphinx directive |
 
 #### pydantic
 
@@ -150,8 +151,9 @@ Per reference:
   renderer) would be novel and is the strongest candidate for an upstream
   contribution, but is out of scope here. The realistic build path for such a
   port is the official AsyncAPI stack — `@asyncapi/react-component` (the
-  embeddable renderer) or `@asyncapi/generator` + `@asyncapi/html-template`
-  (spec → static HTML/Markdown, the latter feedable into MyST).
+  embeddable renderer), `@asyncapi/generator` + `@asyncapi/html-template`
+  (spec → static HTML), or `@asyncapi/generator` +
+  `@asyncapi/markdown-template` (spec → Markdown, feedable into MyST).
 
 ## Rationale
 
