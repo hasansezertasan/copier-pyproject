@@ -168,7 +168,7 @@ Conventional Commits).
 | Python Semantic Release | Orchestrator | Python (Docker action, no Node) | Yes if `importlib` + no `version_toml` | Immediate | No (shares the bug) | Python-native but no gain |
 | cocogitto (`cog bump`) | Orchestrator | Rust (libgit2) | Yes (tag-based) | Via extra step | Unverified | Node-free, unproven on RC |
 | knope | Orchestrator | Rust | — | — | — | Requires changesets authoring |
-| git-cliff | Changelog engine | Rust | Yes (tag-sourced) | No (pair with `gh release`) | **No** (no prerelease marking; open #1380, now 2.15.0) | Not an orchestrator |
+| git-cliff | Changelog engine | Rust | Yes (tag-sourced) | No (pair with `gh release`) | **Range yes** (`ignore_tags`); no prerelease version calc (#1380) | Not an orchestrator |
 | semantic-release (JS) | Orchestrator | Node | — | Immediate | No | Excluded by the no-Node constraint (as release-it was in ADR-002) |
 | changesets | Orchestrator | Node | — | — | — | JS-ecosystem; extra changeset files |
 | hatch-regex-commit | (version source) | Hatch plugin | **No** (static regex source, mutually exclusive with hatch-vcs) | No | No | Disqualified |
@@ -176,7 +176,8 @@ Conventional Commits).
 ### Pain point 1: RC to stable changelog range
 
 **Verdict: a genuine release-please limitation with no built-in config remedy.
-Only Commitizen (of the researched tools) demonstrably fixes it.**
+Commitizen fixes it with one setting; git-cliff can produce the right range with
+configuration but leaves prerelease *version* calculation to the orchestrator.**
 
 Evidence for release-please (all primary):
 
@@ -226,9 +227,15 @@ Per-alternative behavior:
   first read as evidence
   ([#362](https://github.com/cocogitto/cocogitto/issues/362), closed) is about
   bump computation from prerelease tags, not the changelog range.
-- **git-cliff — cannot address it** at all: no prerelease-marking mechanism yet
-  (open [#1380](https://github.com/orhun/git-cliff/issues/1380); first
-  milestoned 2.14.0, it slipped to 2.15.0 and 2.14.2 shipped without it).
+- **git-cliff — can produce the range, but does not version prereleases.**
+  `ignore_tags` (or `--ignore-tags`) folds the matched tags' commits into the
+  next tag, so ignoring `-rc` tags when cutting a stable yields notes from the
+  last stable; an explicit commit range (`git cliff v1.1.0..v1.2.0`) does the
+  same ([git config docs](https://git-cliff.org/docs/configuration/git)). What
+  it lacks is prerelease *version calculation* for `--bumped-version`
+  ([#1380](https://github.com/orhun/git-cliff/issues/1380), open; milestoned
+  2.15.0), so the orchestrator must compute RC numbers and choose the tag
+  filter per release (ignore RCs for a stable cut, not for an RC cut).
 
 ### Pain point 2: stale draft-release comment link
 
@@ -273,10 +280,10 @@ A git-cliff pipeline is necessarily a **tag-push / manual-dispatch** model:
 Effort is **high**: a new `cliff.toml` must reproduce the 11-section emoji
 `changelog-sections` taxonomy; the "is there anything to release" gate, tag
 creation, changelog commit-back, and release creation are all hand-written; and
-**it does not fix pain point 1** (no prerelease support; #1380 is milestoned
-2.15.0). The
-net result would be *more* custom workflow code than today while leaving the
-motivating problem unsolved. git-cliff's realistic role is as the changelog
+pain point 1 is fixable only by hand — the orchestrator must compute RC version
+numbers itself (#1380) and pass `--ignore-tags` for stable cuts. The net result
+would be *more* custom workflow code than today, with pain point 1 solved by
+that custom code rather than by the tool. git-cliff's realistic role is as the changelog
 *component inside* a hand-rolled orchestrator, not as a drop-in replacement.
 
 ### Commitizen as a replacement
@@ -299,10 +306,17 @@ release configuration (reversing ADR-004's deliberate reduction):
 name = "cz_conventional_commits"
 version_provider = "scm"           # no version literal; hatch-vcs compatible
 tag_format = "v$version"
+version_scheme = "semver2"         # v1.2.0-rc.0, not PEP 440 v1.2.0rc0
 update_changelog_on_bump = true
 changelog_merge_prerelease = true  # fixes pain point 1 (cz >= 4.11.3; template pins 4.17.0)
 major_version_zero = true          # mirrors bump-minor-pre-major
 ```
+
+`version_scheme = "semver2"` matters: Commitizen defaults to `pep440`, which
+tags prereleases as `v1.2.0rc0`, but the `docker-publish` job parses the tag
+with docker/metadata-action's `type=semver`, which requires a valid SemVer
+string. release-please emits SemVer prerelease tags today, so the sketch keeps
+them.
 
 Effort is **medium** and lower than git-cliff: no bespoke version math, the
 changelog reuses commit types (no second config dialect), gating is mostly
@@ -322,7 +336,7 @@ reviewable Release PR** that ADR-002 valued.
 | "Should release?" gate | No (fully bespoke) | Mostly built-in | Yes (`release_created`) |
 | Creates GitHub Release | No (`gh release`) | No (`gh release`) | Yes (draft) |
 | Reviewable Release PR | Lost | Lost | Yes (its model) |
-| Fixes pain point 1 (RC) | No | Yes | No |
+| Fixes pain point 1 (RC) | With custom code (`ignore_tags` + own RC math) | Yes (one setting) | No |
 | Fixes pain point 2 (link) | Incidental | Incidental | No (accepted) |
 | Already in the stack | No | Yes | Yes |
 | Net effort | High | Medium | Baseline |
@@ -366,13 +380,14 @@ No option is selected. They are recorded for discussion.
    SBOM/artifact attach around `gh release`, lose the Release PR, and reverse
    ADR-004. Medium effort on the most safety-critical workflow the template
    ships. Would supersede ADR-002's tool choice and reverse ADR-004.
-3. **Adopt git-cliff inside a hand-rolled orchestrator.** Highest effort; does
-   **not** fix pain point 1 today. Only worth considering if the changelog
+3. **Adopt git-cliff inside a hand-rolled orchestrator.** Highest effort; fixes
+   pain point 1 only through that orchestrator's own RC versioning and
+   per-release `--ignore-tags` choice. Only worth considering if the changelog
    *formatting* (git-cliff's templating) becomes a first-class requirement
    independent of the release model. Not recommended on current evidence.
 4. **Record research only; defer.** Keep this ADR at Proposed, change nothing,
-   and revisit when git-cliff ships prerelease support (#1380, 2.15.0), or when the
-   RC-release workflow becomes frequent enough that the manual workaround is
+   and revisit when git-cliff ships prerelease version calculation (#1380,
+   2.15.0), or when the RC-release workflow becomes frequent enough that the manual workaround is
    painful in practice.
 
 ## Decision drivers and open questions
@@ -407,7 +422,8 @@ No option is selected. They are recorded for discussion.
   change; a release credential (or a maintainer-local bump) is chosen; a live
   release must validate the new tag → build → attach → publish ordering.
 - **If option 3 is chosen:** as option 2 plus a bespoke orchestrator and a
-  `cliff.toml`, and pain point 1 remains open until git-cliff ships #1380.
+  `cliff.toml`, and RC version calculation stays hand-written until git-cliff
+  ships #1380.
 - **If option 4 is chosen:** status stays Proposed; nothing changes; the ADR is
   the durable record of why the alternatives were not adopted *yet*.
 
@@ -449,6 +465,7 @@ Primary sources cited above, grouped by tool.
   [issue #362](https://github.com/cocogitto/cocogitto/issues/362).
 - knope: [repo](https://github.com/knope-dev/knope).
 - git-cliff:
+  [git configuration (`ignore_tags`/`count_tags`)](https://git-cliff.org/docs/configuration/git),
   [issue #1380](https://github.com/orhun/git-cliff/issues/1380),
   [issue #692](https://github.com/orhun/git-cliff/issues/692),
   [issue #588](https://github.com/orhun/git-cliff/issues/588).
