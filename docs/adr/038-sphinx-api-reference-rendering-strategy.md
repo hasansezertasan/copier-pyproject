@@ -11,13 +11,19 @@ API-doc extensions surveyed below are (mostly) **not** adopted.
 ## Context
 
 The docs subsystem ([ADR-025](025-optional-docs-subsystem.md)) auto-generates
-four reference pages, all following one deliberate pattern: when `include_docs`
-is set, `docs/conf.py` shells the **live app object** at build time into a
-gitignored `docs/_generated/` directory (the Typer, Litestar and FastStream
-generators are subprocesses run with `check=True`; FastAPI's `app.openapi()` is
-called in-process — either way a broken app breaks the build), and the
-reference page pulls the artifact in. No schema files are hand-maintained or
-committed. Because `ci.yml`'s `docs-doctest` job runs `tox -e docs-build` under
+four reference pages. What they share is one property: when `include_docs` is
+set, each is derived from the **live app object** at build time, and no schema
+or reference file is hand-maintained or committed. The mechanism differs:
+
+- **Subprocess dump** (Typer CLI, Litestar OpenAPI, FastStream AsyncAPI):
+  `docs/conf.py` runs the generator with `check=True`, writing into the
+  gitignored `docs/_generated/` directory, and the page includes the artifact.
+- **In-process dump** (FastAPI OpenAPI): `docs/conf.py` imports the app, calls
+  `app.openapi()`, and writes the schema into `docs/_generated/`.
+- **Direct autodoc** (pydantic config): `configuration.rst` uses
+  `autopydantic_settings` on the live model; there is no `_generated/` artifact.
+
+Either way a broken app breaks the build. Because `ci.yml`'s `docs-doctest` job runs `tox -e docs-build` under
 the required `check` gate, a generator failure blocks the merge, not just a
 preview.
 
@@ -106,8 +112,8 @@ Per reference:
 - **CLI (Typer): keep `typer … utils docs`.** `sphinxcontrib-typer` renders more
   richly but was already weighed and rejected in ADR-006: it adds an extension,
   and it covers only Typer — `cli_framework == argparse` would still need
-  separate handling, breaking the uniform "shell the live app into
-  `_generated/`" pattern. No change. **Noted gap:** the CLI reference page is
+  separate handling, so it buys no consistency across `cli_framework` values.
+  No change. **Noted gap:** the CLI reference page is
   produced *only* for `cli_framework == typer`; an `argparse` CLI currently gets
   no generated reference. [`sphinx-argparse-cli`](https://github.com/tox-dev/sphinx-argparse-cli)
   (tox-dev, sub-command-aware) is the cleanest candidate to close that gap if we
@@ -145,9 +151,12 @@ Per reference:
 
 ## Rationale
 
-- **The current pattern's value is uniformity.** All four generators shell the
-  live app into `_generated/`; a per-reference extension erodes that. The bar for
-  adopting one is a rendering upgrade large enough to justify the divergence.
+- **The current pattern's value is the live-source property.** Every reference
+  is derived from the live app at build time with nothing committed, using only
+  the generator each framework already ships (plus `autodoc-pydantic` for
+  config). Each additional extension is one more docs dependency to pin and keep
+  compatible, so the bar for adopting one is a rendering upgrade large enough
+  to justify it.
 - **That bar is only met for OpenAPI/AsyncAPI**, where today's output is a raw
   spec dump — not for CLI/config, which already render properly.
 - **Posture rules out the JS/CDN OpenAPI options.** Native-rST rendering is the
