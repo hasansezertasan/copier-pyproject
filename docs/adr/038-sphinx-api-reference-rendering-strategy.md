@@ -1,8 +1,9 @@
-# ADR-027: Sphinx API-reference rendering strategy (Typer / pydantic / OpenAPI / AsyncAPI)
+# ADR-038: Sphinx API-reference rendering strategy (Typer / pydantic / OpenAPI / AsyncAPI)
 
 ## Status
 
-Accepted (2026-08). Extends [ADR-006](006-sphinx-shibuya-for-documentation.md),
+Accepted (2026-08; renumbered from 027 and refreshed against template 1.5.3 on
+2026-10-05). Extends [ADR-006](006-sphinx-shibuya-for-documentation.md),
 which chose Sphinx + Shibuya and weighed the *CLI* generator only, to cover all
 four auto-generated reference pages and to record why the third-party Sphinx
 API-doc extensions surveyed below are (mostly) **not** adopted.
@@ -12,9 +13,13 @@ API-doc extensions surveyed below are (mostly) **not** adopted.
 The docs subsystem ([ADR-025](025-optional-docs-subsystem.md)) auto-generates
 four reference pages, all following one deliberate pattern: when `include_docs`
 is set, `docs/conf.py` shells the **live app object** at build time into a
-gitignored `docs/_generated/` directory (each subprocess runs `check=True`, so a
-failure breaks the build), and the reference page pulls the artifact in. No
-schema files are hand-maintained or committed.
+gitignored `docs/_generated/` directory (the Typer, Litestar and FastStream
+generators are subprocesses run with `check=True`; FastAPI's `app.openapi()` is
+called in-process — either way a broken app breaks the build), and the
+reference page pulls the artifact in. No schema files are hand-maintained or
+committed. Because `ci.yml`'s `docs-doctest` job runs `tox -e docs-build` under
+the required `check` gate, a generator failure blocks the merge, not just a
+preview.
 
 The four generators are **not** at the same rendering quality, which is the crux
 of this decision:
@@ -23,8 +28,8 @@ of this decision:
 | --- | --- | --- | --- |
 | CLI (Typer) | `include_cli` + `cli_framework == typer` | `python -m typer … utils docs` → `cli.md` | Structured Markdown (MyST `{include}`) |
 | Config (pydantic) | `include_pydantic_settings` | `autodoc-pydantic` `.. autopydantic_settings::` on the live model | Structured autodoc directive |
-| OpenAPI (web) | `include_web` | Litestar `… schema openapi` / FastAPI `app.openapi()` dump → `openapi.yaml` | **Raw YAML** (`.. literalinclude::`) |
-| AsyncAPI (worker) | `include_worker` | `faststream docs gen --yaml` → `asyncapi.yaml` | **Raw YAML** (`.. literalinclude::`) |
+| OpenAPI (web) | `include_web` | Litestar `… schema openapi` / FastAPI `app.openapi()` dump → `openapi.yaml` | **Raw YAML** (`.. literalinclude::` in `web-interface.rst`) |
+| AsyncAPI (worker) | `include_worker` | `faststream docs gen --yaml` → `asyncapi.yaml` | **Raw YAML** (`.. literalinclude::` in `worker-interface.rst`) |
 
 The CLI and config references are genuinely *rendered* documentation. The
 OpenAPI and AsyncAPI references are, today, a syntax-highlighted spec file pasted
@@ -34,7 +39,7 @@ API-doc ecosystem.
 
 ### Packages surveyed
 
-| Package | Scope | Health (2026-08) | Fit |
+| Package | Scope | Health (re-checked 2026-10) | Fit |
 | --- | --- | --- | --- |
 | [`sphinxcontrib-typer`](https://github.com/sphinx-contrib/typer) | `.. typer::` renders a Typer app (html/svg/text) | Healthy, MIT | Redundant — see below |
 | [`sphinxcontrib-openapi`](https://github.com/sphinx-contrib/openapi) | `.. openapi::` renders a spec to native rST via httpdomain (2.0/3.0/3.1) | Mature (~126★), active | **Best fit for a future OpenAPI upgrade** |
@@ -46,7 +51,8 @@ API-doc ecosystem.
 
 ### Additional candidates surveyed (second pass)
 
-**CLI**
+#### CLI
+
 | Package | Scope | Health | Fit |
 | --- | --- | --- | --- |
 | [`sphinx-argparse-cli`](https://github.com/tox-dev/sphinx-argparse-cli) | `sphinx_argparse_cli` directive, sub-command-friendly | Active, tox-dev org | **Best candidate to fill the `argparse` gap** (see below) |
@@ -54,26 +60,34 @@ API-doc ecosystem.
 | [`sphinxcontrib-autoprogram`](https://github.com/sphinx-contrib/autoprogram) | Expands an `ArgumentParser` into `program`/`option` | Mature, low activity | argparse only |
 | [`sphinxcontrib-programoutput`](https://pypi.org/project/sphinxcontrib-programoutput/) | Embeds any command's `--help` stdout | Mature, low activity | Framework-agnostic but unstructured |
 
-**OpenAPI**
+#### OpenAPI
+
 | Package | Scope | Health | Fit |
 | --- | --- | --- | --- |
 | [`sphinx-rapidoc`](https://pypi.org/project/sphinx-rapidoc/) | RapiDoc web-component renderer | Young (2025), low adoption | JS embed — same offline/CSP concern as ReDoc/Swagger |
 | [`sphinxcontrib-swaggerui`](https://pypi.org/project/sphinxcontrib-swaggerui/) | `swaggerui` directive, vendors swagger-ui assets | Stale (single release, 2023) | Vendored (no CDN) but low-maintenance risk |
 
-**AsyncAPI** (no Sphinx directive exists — these are the build path for a port)
+#### AsyncAPI
+
+No Sphinx directive exists — these are the build path for a port.
+
 | Package | Scope | Health | Fit |
 | --- | --- | --- | --- |
 | [`@asyncapi/html-template`](https://github.com/asyncapi/html-template) + [`@asyncapi/generator`](https://github.com/asyncapi/generator) | Official spec → static HTML / Markdown | Active, official org | Canonical `asyncapi.yaml` → browsable docs; Markdown output could feed MyST |
 | `@asyncapi/react-component` | Embeddable renderer both templates use | Active, official org | The swagger-ui-dist analog to wrap in a Sphinx directive |
 
-**pydantic**
+#### pydantic
+
 | Package | Scope | Health | Fit |
 | --- | --- | --- | --- |
 | [`pydantic-kitbash`](https://github.com/canonical/pydantic-kitbash) | Canonical's model → config-reference directive | New/niche, active (Canonical) | Closest live alternative to autodoc-pydantic |
 | [`sphinx-jsonschema`](https://github.com/lnoor/sphinx-jsonschema) | Renders any JSON Schema (`model_json_schema()`) as tables | Mature, maintained | Low-dep fallback route |
 | [`sphinx-pydantic`](https://github.com/Zsailer/sphinx-pydantic) | `pydantic` directive via sphinx-jsonschema | **Abandoned** (no release since ~2020) | Do not adopt |
 
-**Embeddable API-UI bundles** (portable to a Sphinx directive, incl. the `openapipages` idea)
+#### Embeddable API-UI bundles
+
+Portable to a Sphinx directive, including the `openapipages` idea.
+
 | Package | Scope | Health |
 | --- | --- | --- |
 | [`@scalar/api-reference`](https://github.com/scalar/scalar) | Single-file, no-build OpenAPI UI | Very active |
