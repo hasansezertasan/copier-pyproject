@@ -26,7 +26,8 @@ The template standardized on **release-please** (ADR-002) and reduced
 **Commitizen** to a commit-authoring/linting helper only (ADR-004). In the
 generated `template/.github/workflows/release.yml.jinja`, release-please is not
 merely "the release tool" — it performs **five distinct responsibilities**, and
-fourteen downstream jobs are bolted directly to its outputs:
+up to fourteen downstream jobs (some render only with their toggle) are bolted
+directly to its outputs:
 
 1. Parses Conventional Commits and **computes the next version**.
 2. Opens and maintains the **reviewable Release PR** (accumulate-then-merge).
@@ -41,9 +42,10 @@ fourteen downstream jobs are bolted directly to its outputs:
    `notify-released-issues`.
 
 Two consequences of release-please's model are load-bearing complexity in the
-workflow today: the **draft → attach SBOM/artifacts/Sigstore provenance →
-un-draft** sequence (because release-please creates the GitHub Release atomically at PR-merge time,
-before the build artifacts exist), and the **phantom-PR reconciliation** in
+workflow today: the **draft → attach SBOM/artifacts/Sigstore provenance
+([#318](https://github.com/hasansezertasan/copier-pyproject/pull/318)) →
+un-draft** sequence (because release-please creates the GitHub Release
+atomically at PR-merge time, before the build artifacts exist), and the **phantom-PR reconciliation** in
 `finalize-release` (because release-please derives its commit range from the
 latest *published* release and ignores drafts). Versioning is git-tag-sourced
 via hatch-vcs (`dynamic = ["version"]`), so release-please never edits a static
@@ -162,12 +164,12 @@ Conventional Commits).
 | Tool | Layer | Runtime | hatch-vcs fit | GitHub Release | Fixes RC changelog | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
 | release-please (incumbent) | Orchestrator | Pure GHA | Yes (git-tag sourced) | Yes (draft) | No | Baseline |
-| Commitizen (`cz bump`) | Helper → Orchestrator | Python (installed) | Yes (`scm` provider, read-only) | No (add `gh release`) | **Yes** (`changelog_merge_prerelease`) | Strongest replacement |
+| Commitizen (`cz bump`) | Helper → Orchestrator | Python (installed) | Yes (`scm` provider; no version literal) | No (add `gh release`) | **Yes** (`changelog_merge_prerelease`) | Strongest replacement |
 | Python Semantic Release | Orchestrator | Python (Docker action, no Node) | Yes if `importlib` + no `version_toml` | Immediate | No (shares the bug) | Python-native but no gain |
 | cocogitto (`cog bump`) | Orchestrator | Rust (libgit2) | Yes (tag-based) | Via extra step | Unverified | Node-free, unproven on RC |
 | knope | Orchestrator | Rust | — | — | — | Requires changesets authoring |
 | git-cliff | Changelog engine | Rust | Yes (tag-sourced) | No (pair with `gh release`) | **No** (no prerelease marking; open #1380, now 2.15.0) | Not an orchestrator |
-| semantic-release (JS) | Orchestrator | Node | — | Immediate | No | Node runtime; rejected in ADR-002 lineage |
+| semantic-release (JS) | Orchestrator | Node | — | Immediate | No | Excluded by the no-Node constraint (as release-it was in ADR-002) |
 | changesets | Orchestrator | Node | — | — | — | JS-ecosystem; extra changeset files |
 | hatch-regex-commit | (version source) | Hatch plugin | **No** (static regex source, mutually exclusive with hatch-vcs) | No | No | Disqualified |
 
@@ -208,7 +210,7 @@ Per-alternative behavior:
   `changelog_merge_prerelease` "Collects changes from prereleases into the next
   non-prerelease version"
   ([changelog docs](https://commitizen-tools.github.io/commitizen/commands/changelog/)).
-  A long-standing bug where it was ignored during `cz bump --changelog`
+  A bug where it was ignored during `cz bump --changelog`
   ([#1694](https://github.com/commitizen-tools/commitizen/issues/1694)) was
   **fixed in v4.11.3, 2026-01-13** ("fix the issue that
   `changelog_merge_prerelease` not working on `cz bump`",
@@ -281,8 +283,10 @@ motivating problem unsolved. git-cliff's realistic role is as the changelog
 
 `cz bump` is a **release orchestrator**: in one command it computes the version
 from commits, creates the git tag, and writes `CHANGELOG.md`. With
-`version_provider = "scm"` it is **read-only on files** (tags only), matching
-hatch-vcs exactly. It does not open a Release PR and does not create a GitHub
+`version_provider = "scm"` it **never edits a version literal** (the version
+lives only in the tag), matching hatch-vcs exactly — though with
+`update_changelog_on_bump` it still writes `CHANGELOG.md` and makes a bump
+commit. It does not open a Release PR and does not create a GitHub
 Release, so a `gh release` step is added. `cz bump` also signals "nothing to
 release" (a NONE/no-op result), so the release gate is largely built-in rather
 than bespoke.
@@ -293,10 +297,10 @@ release configuration (reversing ADR-004's deliberate reduction):
 ```toml
 [tool.commitizen]
 name = "cz_conventional_commits"
-version_provider = "scm"           # read-only; hatch-vcs compatible
+version_provider = "scm"           # no version literal; hatch-vcs compatible
 tag_format = "v$version"
 update_changelog_on_bump = true
-changelog_merge_prerelease = true  # fixes pain point 1 (needs cz >= 4.11.3)
+changelog_merge_prerelease = true  # fixes pain point 1 (cz >= 4.11.3; template pins 4.17.0)
 major_version_zero = true          # mirrors bump-minor-pre-major
 ```
 
@@ -329,6 +333,22 @@ disappears (release-please's signature feature per ADR-002), replaced by a
 tag-push / dispatch trigger. **What both alternatives remove:** the
 draft → un-draft dance *and* the phantom-PR reconciliation, so the workflow gets
 simpler in those two places.
+
+**What both alternatives must newly solve — credentials.** release-please lands
+its changelog through a PR and creates the tag from the merge, so it needs only
+`GITHUB_TOKEN`. A CI-driven `cz bump` or git-cliff pipeline instead has to:
+
+- push a bump/changelog commit straight to `main`, which a protected branch
+  (the `full` preset's ruleset, ADR-021) rejects unless the pusher has a
+  bypass, which `GITHUB_TOKEN` cannot be given;
+- have the tag start the release, but a tag pushed with `GITHUB_TOKEN` does not
+  trigger `push: tags` workflows (GitHub's loop prevention); and, for git-cliff,
+- accept that a changelog committed *after* the tag leaves the tagged commit
+  without its own changelog entry.
+
+Each likely needs a PAT or GitHub App token — the standing write credential
+ADR-002 deliberately avoided — unless the maintainer runs the bump locally and
+pushes the tag themselves.
 
 ## Options under consideration
 
@@ -366,10 +386,13 @@ No option is selected. They are recorded for discussion.
 - **Template blast radius.** `release.yml` fans out to every generated project;
   any change is validated only by rendering + `actionlint` until a live release
   exercises it (the ADR-002 validation limit and cobo#49 precedent).
-- **Unresolved by research:** cocogitto's RC-range changelog behavior; knope's trigger model (a claim was refuted, leaving it
-  unconfirmed); and whether a Commitizen migration can faithfully reproduce the
-  draft-attach-SBOM-provenance ordering — an implementation spike would settle
-  it.
+- **Is a release credential acceptable?** Options 2 and 3 likely need a PAT or
+  App token to push to protected `main` and to trigger the tag workflow (see
+  "What both alternatives must newly solve"), or a maintainer-local bump.
+- **Unresolved by research:** cocogitto's RC-range changelog behavior; knope's
+  trigger model (a claim was refuted, leaving it unconfirmed); and whether a
+  Commitizen migration can faithfully reproduce the tag → build → attach
+  SBOM/provenance → publish ordering — an implementation spike would settle it.
 
 ## Consequences
 
@@ -381,7 +404,8 @@ No option is selected. They are recorded for discussion.
   reverses ADR-004; `release.yml`, `pyproject.toml` `[tool.commitizen]`, the
   removal of `release-please-config.json` / `-manifest.json`, README, CLAUDE.md,
   and CONTRIBUTING (PyPI Trusted Publishing still targets `release.yml`) all
-  change; a live release must validate the new draft-attach ordering.
+  change; a release credential (or a maintainer-local bump) is chosen; a live
+  release must validate the new tag → build → attach → publish ordering.
 - **If option 3 is chosen:** as option 2 plus a bespoke orchestrator and a
   `cliff.toml`, and pain point 1 remains open until git-cliff ships #1380.
 - **If option 4 is chosen:** status stays Proposed; nothing changes; the ADR is
