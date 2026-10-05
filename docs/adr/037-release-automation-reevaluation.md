@@ -1,8 +1,11 @@
-# ADR-019: Re-evaluating Release Automation — Changelog Engines vs Release Orchestrators
+# ADR-037: Re-evaluating Release Automation — Changelog Engines vs Release Orchestrators
 
 ## Status
 
 **Proposed — under discussion. No decision has been made.**
+
+Last refreshed 2026-10-05 against template 1.5.3 (`release.yml`,
+`release-please-action` v5.0.0) and the upstream issue states cited below.
 
 This ADR is a *research record*. It captures a deliberate re-evaluation of the
 release-automation tooling chosen in
@@ -23,7 +26,7 @@ The template standardized on **release-please** (ADR-002) and reduced
 **Commitizen** to a commit-authoring/linting helper only (ADR-004). In the
 generated `template/.github/workflows/release.yml.jinja`, release-please is not
 merely "the release tool" — it performs **five distinct responsibilities**, and
-roughly eleven downstream jobs are bolted directly to its outputs:
+fourteen downstream jobs are bolted directly to its outputs:
 
 1. Parses Conventional Commits and **computes the next version**.
 2. Opens and maintains the **reviewable Release PR** (accumulate-then-merge).
@@ -38,13 +41,25 @@ roughly eleven downstream jobs are bolted directly to its outputs:
    `notify-released-issues`.
 
 Two consequences of release-please's model are load-bearing complexity in the
-workflow today: the **draft → attach SBOM/artifacts → un-draft** sequence
-(because release-please creates the GitHub Release atomically at PR-merge time,
+workflow today: the **draft → attach SBOM/artifacts/Sigstore provenance →
+un-draft** sequence (because release-please creates the GitHub Release atomically at PR-merge time,
 before the build artifacts exist), and the **phantom-PR reconciliation** in
 `finalize-release` (because release-please derives its commit range from the
 latest *published* release and ignores drafts). Versioning is git-tag-sourced
 via hatch-vcs (`dynamic = ["version"]`), so release-please never edits a static
 version literal and `uv.lock` cannot desync.
+
+A third constraint landed after this research began and is **not specific to
+release-please**: a merge that changes `.github/workflows/` after the release PR
+merges but before the Release run finishes can make GitHub's release API refuse
+tag/release creation with a 403, because `GITHUB_TOKEN` cannot be granted
+workflow write access
+([#332](https://github.com/hasansezertasan/copier-pyproject/issues/332)). ADR-002
+now documents the merge pause and recovery
+([#339](https://github.com/hasansezertasan/copier-pyproject/pull/339)). Any
+candidate that creates the tag or release from a workflow with `GITHUB_TOKEN`
+inherits this; only a model where a maintainer pushes the tag from their own
+clone would plausibly sidestep it (not verified).
 
 ### Why we are re-opening the decision
 
@@ -131,9 +146,11 @@ load-bearing claims were re-checked by hand against the per-agent transcripts:
 the Commitizen `changelog_merge_prerelease` fix, the Python Semantic Release
 source-code trace, and the npm-team manual-workaround quote each appear in
 multiple independent verifier transcripts quoting primary sources. cocogitto's
-RC-range behavior did **not** survive into the verified top-25; the raw
-extraction leans toward "cocogitto shares the bug" (issue #362) but this is
-recorded here at only moderate confidence.
+RC-range behavior did **not** survive into the verified top-25. The raw
+extraction leaned toward "cocogitto shares the bug" on the strength of
+cocogitto issue #362, but on re-check that issue concerns *version computation* from a
+prerelease tag (not the changelog range) and was closed as completed on
+2025-10-21, so it is no evidence either way.
 
 ## Findings: the candidate landscape
 
@@ -147,9 +164,9 @@ Conventional Commits).
 | release-please (incumbent) | Orchestrator | Pure GHA | Yes (git-tag sourced) | Yes (draft) | No | Baseline |
 | Commitizen (`cz bump`) | Helper → Orchestrator | Python (installed) | Yes (`scm` provider, read-only) | No (add `gh release`) | **Yes** (`changelog_merge_prerelease`) | Strongest replacement |
 | Python Semantic Release | Orchestrator | Python (Docker action, no Node) | Yes if `importlib` + no `version_toml` | Immediate | No (shares the bug) | Python-native but no gain |
-| cocogitto (`cog bump`) | Orchestrator | Rust (libgit2) | Yes (tag-based) | Via extra step | Likely no (moderate confidence, #362) | Node-free, unproven on RC |
+| cocogitto (`cog bump`) | Orchestrator | Rust (libgit2) | Yes (tag-based) | Via extra step | Unverified | Node-free, unproven on RC |
 | knope | Orchestrator | Rust | — | — | — | Requires changesets authoring |
-| git-cliff | Changelog engine | Rust | Yes (tag-sourced) | No (pair with `gh release`) | **No** (no prerelease marking; open #1380, 2.14.0) | Not an orchestrator |
+| git-cliff | Changelog engine | Rust | Yes (tag-sourced) | No (pair with `gh release`) | **No** (no prerelease marking; open #1380, now 2.15.0) | Not an orchestrator |
 | semantic-release (JS) | Orchestrator | Node | — | Immediate | No | Node runtime; rejected in ADR-002 lineage |
 | changesets | Orchestrator | Node | — | — | — | JS-ecosystem; extra changeset files |
 | hatch-regex-commit | (version source) | Hatch plugin | **No** (static regex source, mutually exclusive with hatch-vcs) | No | No | Disqualified |
@@ -203,11 +220,13 @@ Per-alternative behavior:
   `elements` to exactly that `unreleased` set — i.e. only commits since the last
   RC
   ([release_history.html](https://python-semantic-release.readthedocs.io/en/latest/_modules/semantic_release/changelog/release_history.html)).
-- **cocogitto — likely shares it** (moderate confidence, issue #362); did not
-  reach the verified top-25.
+- **cocogitto — unverified.** Did not reach the verified top-25; the issue
+  first read as evidence
+  ([#362](https://github.com/cocogitto/cocogitto/issues/362), closed) is about
+  bump computation from prerelease tags, not the changelog range.
 - **git-cliff — cannot address it** at all: no prerelease-marking mechanism yet
-  (open [#1380](https://github.com/orhun/git-cliff/issues/1380), milestoned
-  2.14.0).
+  (open [#1380](https://github.com/orhun/git-cliff/issues/1380); first
+  milestoned 2.14.0, it slipped to 2.15.0 and 2.14.2 shipped without it).
 
 ### Pain point 2: stale draft-release comment link
 
@@ -252,7 +271,8 @@ A git-cliff pipeline is necessarily a **tag-push / manual-dispatch** model:
 Effort is **high**: a new `cliff.toml` must reproduce the 11-section emoji
 `changelog-sections` taxonomy; the "is there anything to release" gate, tag
 creation, changelog commit-back, and release creation are all hand-written; and
-**it does not fix pain point 1** (no prerelease support until 2.14.0). The
+**it does not fix pain point 1** (no prerelease support; #1380 is milestoned
+2.15.0). The
 net result would be *more* custom workflow code than today while leaving the
 motivating problem unsolved. git-cliff's realistic role is as the changelog
 *component inside* a hand-rolled orchestrator, not as a drop-in replacement.
@@ -331,7 +351,7 @@ No option is selected. They are recorded for discussion.
    *formatting* (git-cliff's templating) becomes a first-class requirement
    independent of the release model. Not recommended on current evidence.
 4. **Record research only; defer.** Keep this ADR at Proposed, change nothing,
-   and revisit when git-cliff 2.14.0 ships prerelease support, or when the
+   and revisit when git-cliff ships prerelease support (#1380, 2.15.0), or when the
    RC-release workflow becomes frequent enough that the manual workaround is
    painful in practice.
 
@@ -346,10 +366,10 @@ No option is selected. They are recorded for discussion.
 - **Template blast radius.** `release.yml` fans out to every generated project;
   any change is validated only by rendering + `actionlint` until a live release
   exercises it (the ADR-002 validation limit and cobo#49 precedent).
-- **Unresolved by research:** cocogitto's exact RC-range behavior (moderate
-  confidence only); knope's trigger model (a claim was refuted, leaving it
+- **Unresolved by research:** cocogitto's RC-range changelog behavior; knope's trigger model (a claim was refuted, leaving it
   unconfirmed); and whether a Commitizen migration can faithfully reproduce the
-  draft-attach-SBOM ordering — an implementation spike would settle it.
+  draft-attach-SBOM-provenance ordering — an implementation spike would settle
+  it.
 
 ## Consequences
 
@@ -363,7 +383,7 @@ No option is selected. They are recorded for discussion.
   and CONTRIBUTING (PyPI Trusted Publishing still targets `release.yml`) all
   change; a live release must validate the new draft-attach ordering.
 - **If option 3 is chosen:** as option 2 plus a bespoke orchestrator and a
-  `cliff.toml`, and pain point 1 remains open until git-cliff 2.14.0.
+  `cliff.toml`, and pain point 1 remains open until git-cliff ships #1380.
 - **If option 4 is chosen:** status stays Proposed; nothing changes; the ADR is
   the durable record of why the alternatives were not adopted *yet*.
 
@@ -414,5 +434,8 @@ Primary sources cited above, grouped by tool.
 - Internal:
   [#143](https://github.com/hasansezertasan/copier-pyproject/issues/143),
   [#152](https://github.com/hasansezertasan/copier-pyproject/pull/152),
+  [#318](https://github.com/hasansezertasan/copier-pyproject/pull/318),
+  [#332](https://github.com/hasansezertasan/copier-pyproject/issues/332),
+  [#339](https://github.com/hasansezertasan/copier-pyproject/pull/339),
   [ADR-002](002-release-please-for-release-automation.md),
   [ADR-004](004-commitizen-as-commit-helper-not-release-tool.md).
