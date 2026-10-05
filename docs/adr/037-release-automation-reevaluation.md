@@ -309,8 +309,16 @@ tag_format = "v$version"
 version_scheme = "semver2"         # v1.2.0-rc.0, not PEP 440 v1.2.0rc0
 update_changelog_on_bump = true
 changelog_merge_prerelease = true  # fixes pain point 1 (cz >= 4.11.3; template pins 4.17.0)
-major_version_zero = true          # mirrors bump-minor-pre-major
+major_version_zero = true          # mirrors bump-minor-pre-major; 0.x only
 ```
+
+`major_version_zero` is **not** a drop-in for release-please's
+`bump-minor-pre-major`: release-please's option silently stops applying after
+1.0, whereas Commitizen
+[documents](https://commitizen-tools.github.io/commitizen/commands/bump/#--major-version-zero)
+that `cz bump` fails on a 1.x+ version while it is set. The template would have
+to render it only for pre-1.0 projects (or the migration would have to remove
+it before the first 1.0 bump).
 
 `version_scheme = "semver2"` matters: Commitizen defaults to `pep440`, which
 tags prereleases as `v1.2.0rc0`, but the `docker-publish` job parses the tag
@@ -361,8 +369,14 @@ its changelog through a PR and creates the tag from the merge, so it needs only
   without its own changelog entry.
 
 Each likely needs a PAT or GitHub App token — the standing write credential
-ADR-002 deliberately avoided — unless the maintainer runs the bump locally and
-pushes the tag themselves.
+ADR-002 deliberately avoided. Running the bump locally is **not** a clean escape
+hatch under the `full` preset either: its ruleset has `bypass_actors: []`,
+requires a PR, and allows only squash merges, so a maintainer cannot push the
+bump commit to `main` directly, and squash-merging it through a PR rewrites its
+SHA, leaving the locally created tag off `main`. A local flow would need a
+two-step "changelog PR, then tag the merged SHA" sequence (e.g. `cz bump
+--files-only`/`cz changelog` in the PR, then tag after merge) or a ruleset
+bypass.
 
 ## Options under consideration
 
