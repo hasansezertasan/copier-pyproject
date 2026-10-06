@@ -294,9 +294,17 @@ from commits, creates the git tag, and writes `CHANGELOG.md`. With
 lives only in the tag), matching hatch-vcs exactly — though with
 `update_changelog_on_bump` it still writes `CHANGELOG.md` and makes a bump
 commit. It does not open a Release PR and does not create a GitHub
-Release, so a `gh release` step is added. `cz bump` also signals "nothing to
-release" (a NONE/no-op result), so the release gate is largely built-in rather
-than bespoke.
+Release, so a `gh release` step is added.
+
+`cz bump` also signals "nothing to release", but it does so by raising
+`NoneIncrementExit` with exit status 21 rather than a silent exit 0 (see
+[Commitizen exit codes](https://commitizen-tools.github.io/commitizen/exit_codes/)).
+In CI, the replacement workflow cannot treat status 21 as a failure, nor can it
+simply swallow it: it must explicitly catch status 21 as a clean no-op and
+synthesize a boolean job output (mirroring release-please's `release_created`) to
+gate the fourteen downstream jobs (build, PyPI, Docker, Sigstore, etc.). Without
+that custom status trap and output bridge, a no-bump push either fails CI on
+exit 21 or runs the downstream release jobs after a blindly ignored error.
 
 The `[tool.commitizen]` block grows from today's single `name` line back to a
 release configuration (reversing ADR-004's deliberate reduction):
@@ -335,14 +343,16 @@ built-in changelog parser (4.17.0) only recognizes `feat`, `fix`, `refactor`,
 `[tool.commitizen]` (or a custom changelog template) — a second, smaller config
 dialect to maintain.
 
-Effort is **medium** and lower than git-cliff: no bespoke version math, gating
-is mostly built-in, and the tool is already installed; the changelog still
-needs the category mapping above, but it stays inside `pyproject.toml` rather
-than a separate `cliff.toml`. The real costs are architectural,
-not lines of code: it **reverses ADR-004** (Commitizen becomes a release tool
-again — the tag/changelog conflict that ADR-004 avoided is moot once
-release-please is gone, but the narrative must be rewritten), and it **loses the
-reviewable Release PR** that ADR-002 valued.
+Effort is **medium** and lower than git-cliff: no bespoke version math, the tool
+is already installed, and the version calculation relies on Commitizen rather
+than custom git log parsing; however, the workflow still needs custom shell
+handling to trap exit 21 (`NoneIncrementExit`) into a `release_created` output
+for the fourteen downstream jobs, and the changelog needs the category mapping
+above (in `pyproject.toml` rather than a separate `cliff.toml`). The real costs
+are architectural, not lines of code: it **reverses ADR-004** (Commitizen
+becomes a release tool again — the tag/changelog conflict that ADR-004 avoided
+is moot once release-please is gone, but the narrative must be rewritten), and it
+**loses the reviewable Release PR** that ADR-002 valued.
 
 ### Effort and fit, side by side
 
@@ -351,7 +361,7 @@ reviewable Release PR** that ADR-002 valued.
 | Replaces version calc | Partial (`--bumped-version`) | Yes (native) | Yes |
 | Creates git tag | No (scripted) | Yes (`cz bump`) | Yes |
 | Writes CHANGELOG | Yes (new `cliff.toml`) | Yes (needs `change_type_map` etc. for docs/test/build/ci/deps) | Yes |
-| "Should release?" gate | No (fully bespoke) | Mostly built-in | Yes (`release_created`) |
+| "Should release?" gate | No (fully bespoke) | Partial (exits 21; needs custom trap + output bridge for 14 jobs) | Yes (`release_created`) |
 | Creates GitHub Release | No (`gh release`) | No (`gh release`) | Yes (draft) |
 | Reviewable Release PR | Lost | Lost | Yes (its model) |
 | Fixes pain point 1 (RC) | With custom code (`ignore_tags` + own RC math) | Yes (one setting) | No |
@@ -475,6 +485,7 @@ Primary sources cited above, grouped by tool.
   [version_provider](https://commitizen-tools.github.io/commitizen/config/version_provider/),
   [bump](https://commitizen-tools.github.io/commitizen/commands/bump/),
   [changelog](https://commitizen-tools.github.io/commitizen/commands/changelog/),
+  [exit codes](https://commitizen-tools.github.io/commitizen/exit_codes/),
   [issue #1694](https://github.com/commitizen-tools/commitizen/issues/1694),
   [CHANGELOG](https://github.com/commitizen-tools/commitizen/blob/master/CHANGELOG.md),
   [commitizen-action](https://github.com/commitizen-tools/commitizen-action).
