@@ -393,28 +393,33 @@ tag-push / dispatch trigger. **What both alternatives remove:** the
 draft → un-draft dance *and* the phantom-PR reconciliation, so the workflow gets
 simpler in those two places.
 
-**What both alternatives must newly solve — credentials.** release-please lands
-its changelog through a PR and creates the tag from the merge, so it needs only
-`GITHUB_TOKEN`. A CI-driven `cz bump` or git-cliff pipeline instead has to:
+**What both alternatives must newly solve — credentials and triggers.** release-please
+lands its changelog through a PR and creates the tag from the merge, so it needs only
+`GITHUB_TOKEN`. A CI-driven replacement instead faces credential constraints depending
+on the architecture:
 
-- push a bump/changelog commit straight to `main`, which a protected branch
-  (the `full` preset's ruleset, ADR-021) rejects unless the pushing identity
-  is granted a bypass — itself a new standing exception;
-- have the tag start the release, but a tag pushed with `GITHUB_TOKEN` does not
-  trigger `push: tags` workflows (GitHub's loop prevention); and, for git-cliff,
-- accept that a changelog committed *after* the tag leaves the tagged commit
-  without its own changelog entry.
+- **Bypassing branch protection:** pushing a bump/changelog commit straight to `main`
+  is rejected by protected branch rulesets (such as the `full` preset, ADR-021) unless
+  the pushing identity is granted a bypass — requiring a PAT or GitHub App token with
+  standing bypass permissions, which ADR-002 deliberately avoided;
+- **Workflow trigger model:** if the design splits release steps across workflows
+  (e.g. git-cliff's canonical `push: tags` workflow), a tag pushed using `GITHUB_TOKEN`
+  does not trigger subsequent workflow runs due to GitHub's loop prevention, requiring
+  a PAT or App token. Conversely, if Commitizen preserves the template's single-workflow
+  fan-out where downstream jobs run in the same workflow and check out the new tag ref,
+  no secondary workflow trigger is needed; and
+- **Changelog ordering (git-cliff):** a changelog committed *after* the tag leaves the
+  tagged commit without its own changelog entry.
 
-Each likely needs a PAT or GitHub App token — the standing write credential
-ADR-002 deliberately avoided. Running the bump locally is **not** a clean escape
-hatch under the `full` preset either: its ruleset has `bypass_actors: []`,
-requires a PR, and allows only squash merges, so a maintainer cannot push the
-bump commit to `main` directly, and squash-merging it through a PR rewrites its
-SHA, leaving the locally created tag off `main`. A local flow would need a
-two-step "changelog PR, then tag the merged SHA" sequence (e.g. calculating the
-next tag and generating the changelog via
-`cz changelog --unreleased-version="<tag>"` in a PR, then tagging the merged
-commit on `main`) or a ruleset bypass.
+Thus, a standing privileged credential (PAT or GitHub App token) is required if branch
+protection must be bypassed or if the design relies on a separate tag-triggered workflow.
+Running the bump locally is **not** a clean escape hatch under the `full` preset either:
+its ruleset has `bypass_actors: []`, requires a PR, and allows only squash merges, so a
+maintainer cannot push the bump commit to `main` directly, and squash-merging it through
+a PR rewrites its SHA, leaving the locally created tag off `main`. A local flow would need a
+two-step "changelog PR, then tag the merged SHA" sequence (e.g. calculating the next tag
+and generating the changelog via `cz changelog --unreleased-version="<tag>"` in a PR,
+then tagging the merged commit on `main`) or a ruleset bypass.
 
 ## Options under consideration
 
@@ -453,9 +458,10 @@ No option is selected. They are recorded for discussion.
 - **Template blast radius.** `release.yml` fans out to every generated project;
   any change is validated only by rendering + `actionlint` until a live release
   exercises it (the ADR-002 validation limit and cobo#49 precedent).
-- **Is a release credential acceptable?** Options 2 and 3 likely need a PAT or
-  App token to push to protected `main` and to trigger the tag workflow (see
-  "What both alternatives must newly solve"), or a maintainer-local bump.
+- **Is a release credential acceptable?** Options 2 and 3 need a PAT or App
+  token to push to protected `main` (and to trigger a tag workflow if split
+  across workflows; see "What both alternatives must newly solve"), or a
+  maintainer-local bump.
 - **Unresolved by research:** cocogitto's RC-range changelog behavior; and
   whether a Commitizen migration can faithfully reproduce the tag → build →
   attach SBOM/provenance → publish ordering — an implementation spike would
