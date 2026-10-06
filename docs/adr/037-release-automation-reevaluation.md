@@ -335,24 +335,29 @@ string. release-please emits SemVer prerelease tags today, so the sketch keeps
 them.
 
 The sketch is **not** changelog-complete as shown. `cz_conventional_commits`'
-built-in changelog parser (4.17.0) only recognizes `feat`, `fix`, `refactor`,
-`perf`, and breaking changes, while the template's
+built-in parser (4.17.0) only extracts `feat`, `fix`, `refactor`, `perf`, and
+breaking changes into changelog context, while the template's
 `release-please-config.json` publishes emoji sections for `docs`, `test`,
-`build`, `ci`, and `deps` too. Keeping that taxonomy requires overriding
-`changelog_pattern`, `change_type_map`, and `change_type_order` in
-`[tool.commitizen]` (or a custom changelog template) — a second, smaller config
-dialect to maintain.
+`build`, `ci`, and `deps` too. Because a changelog template can only format
+commits that the parser retained, a custom Jinja template cannot restore categories
+filtered out by the built-in parser. Keeping the template's taxonomy requires
+switching from `name = "cz_conventional_commits"` to `name = "cz_customize"` with
+a full `[tool.commitizen.customize]` table (defining `schema_pattern`,
+`bump_pattern`, `bump_map`, `changelog_pattern`, `change_type_map`, and
+`change_type_order`) or authoring a custom Commitizen plugin — adding
+significant custom configuration or plugin maintenance that narrows the effort
+gap with git-cliff.
 
 Effort is **medium** and lower than git-cliff: no bespoke version math, the tool
 is already installed, and the version calculation relies on Commitizen rather
 than custom git log parsing; however, the workflow still needs custom shell
 handling to trap exit 21 (`NoneIncrementExit`) into a `release_created` output
-for the fourteen downstream jobs, and the changelog needs the category mapping
-above (in `pyproject.toml` rather than a separate `cliff.toml`). The real costs
-are architectural, not lines of code: it **reverses ADR-004** (Commitizen
-becomes a release tool again — the tag/changelog conflict that ADR-004 avoided
-is moot once release-please is gone, but the narrative must be rewritten), and it
-**loses the reviewable Release PR** that ADR-002 valued.
+for the fourteen downstream jobs, and the changelog needs the `cz_customize`
+parser table above (in `pyproject.toml` rather than a separate `cliff.toml`).
+The real costs are architectural, not lines of code: it **reverses ADR-004**
+(Commitizen becomes a release tool again — the tag/changelog conflict that
+ADR-004 avoided is moot once release-please is gone, but the narrative must be
+rewritten), and it **loses the reviewable Release PR** that ADR-002 valued.
 
 ### Effort and fit, side by side
 
@@ -360,7 +365,7 @@ is moot once release-please is gone, but the narrative must be rewritten), and i
 | --- | --- | --- | --- |
 | Replaces version calc | Partial (`--bumped-version`) | Yes (native) | Yes |
 | Creates git tag | No (scripted) | Yes (`cz bump`) | Yes |
-| Writes CHANGELOG | Yes (new `cliff.toml`) | Yes (needs `change_type_map` etc. for docs/test/build/ci/deps) | Yes |
+| Writes CHANGELOG | Yes (new `cliff.toml`) | Yes (needs `cz_customize` or plugin for docs/test/build/ci/deps) | Yes |
 | "Should release?" gate | No (fully bespoke) | Partial (exits 21; needs custom trap + output bridge for 14 jobs) | Yes (`release_created`) |
 | Creates GitHub Release | No (`gh release`) | No (`gh release`) | Yes (draft) |
 | Reviewable Release PR | Lost | Lost | Yes (its model) |
@@ -394,9 +399,9 @@ hatch under the `full` preset either: its ruleset has `bypass_actors: []`,
 requires a PR, and allows only squash merges, so a maintainer cannot push the
 bump commit to `main` directly, and squash-merging it through a PR rewrites its
 SHA, leaving the locally created tag off `main`. A local flow would need a
-two-step "changelog PR, then tag the merged SHA" sequence (e.g. `cz bump
---files-only`/`cz changelog` in the PR, then tag after merge) or a ruleset
-bypass.
+two-step "changelog PR, then tag the merged SHA" sequence (e.g. generating the
+changelog via `cz changelog` in a PR, then tagging the merged commit on `main`)
+or a ruleset bypass.
 
 ## Options under consideration
 
@@ -486,6 +491,7 @@ Primary sources cited above, grouped by tool.
   [bump](https://commitizen-tools.github.io/commitizen/commands/bump/),
   [changelog](https://commitizen-tools.github.io/commitizen/commands/changelog/),
   [exit codes](https://commitizen-tools.github.io/commitizen/exit_codes/),
+  [cz_customize](https://commitizen-tools.github.io/commitizen/customization/config_file/),
   [issue #1694](https://github.com/commitizen-tools/commitizen/issues/1694),
   [CHANGELOG](https://github.com/commitizen-tools/commitizen/blob/master/CHANGELOG.md),
   [commitizen-action](https://github.com/commitizen-tools/commitizen-action).
