@@ -167,7 +167,7 @@ Conventional Commits).
 | Commitizen (`cz bump`) | Helper → Orchestrator | Python (installed) | Yes (`scm` provider; no version literal) | No (add `gh release`) | **Yes** (`changelog_merge_prerelease`) | Strongest replacement |
 | Python Semantic Release | Orchestrator | Python (Docker action, no Node) | Yes if `importlib` + no `version_toml` | Immediate | No (shares the bug) | Python-native but no gain |
 | cocogitto (`cog bump`) | Orchestrator | Rust (libgit2) | Yes (tag-based) | Via extra step | Unverified | Node-free, unproven on RC |
-| knope | Orchestrator | Rust | — | — | — | Requires changesets authoring |
+| knope | Orchestrator | Rust | Yes (tag-derived with empty `versioned_files`) | Yes (`Release` step) | No (starts from latest tag) | Rust orchestrator; supports CC and PR bot, but shares RC truncation |
 | git-cliff | Changelog engine | Rust | Yes (tag-sourced) | No (pair with `gh release`) | **Range yes** (`ignore_tags`); no prerelease version calc (#1380) | Not an orchestrator |
 | semantic-release (JS) | Orchestrator | Node | — | Immediate | No | Excluded by the no-Node constraint (as release-it was in ADR-002) |
 | changesets | Orchestrator | Node | — | — | — | JS-ecosystem; extra changeset files |
@@ -227,6 +227,14 @@ Per-alternative behavior:
   first read as evidence
   ([#362](https://github.com/cocogitto/cocogitto/issues/362), closed) is about
   bump computation from prerelease tags, not the changelog range.
+- **knope — shares the truncation behavior without changesets.** `PrepareRelease`
+  natively parses Conventional Commits and supports tag-derived versioning
+  without versioned files (fitting hatch-vcs), while Knope Bot provides release
+  PRs. However, `PrepareRelease` documents the most recent SemVer tag as its
+  unconditional starting point for commit gathering, with no mechanism analogous
+  to `changelog_merge_prerelease` or `ignore_tags` to fold RC commits into a
+  stable release — so an intervening RC tag truncates stable notes just like
+  release-please unless maintainers manually author separate change files.
 - **git-cliff — can produce the range, but does not version prereleases.**
   `ignore_tags` (or `--ignore-tags`) folds the matched tags' commits into the
   next tag, so ignoring `-rc` tags when cutting a stable yields notes from the
@@ -448,10 +456,10 @@ No option is selected. They are recorded for discussion.
 - **Is a release credential acceptable?** Options 2 and 3 likely need a PAT or
   App token to push to protected `main` and to trigger the tag workflow (see
   "What both alternatives must newly solve"), or a maintainer-local bump.
-- **Unresolved by research:** cocogitto's RC-range changelog behavior; knope's
-  trigger model (a claim was refuted, leaving it unconfirmed); and whether a
-  Commitizen migration can faithfully reproduce the tag → build → attach
-  SBOM/provenance → publish ordering — an implementation spike would settle it.
+- **Unresolved by research:** cocogitto's RC-range changelog behavior; and
+  whether a Commitizen migration can faithfully reproduce the tag → build →
+  attach SBOM/provenance → publish ordering — an implementation spike would
+  settle it.
 
 ## Consequences
 
@@ -509,7 +517,11 @@ Primary sources cited above, grouped by tool.
   [bump docs](https://docs.cocogitto.io/guide/bump.html),
   [changelog docs](https://docs.cocogitto.io/guide/changelog.html),
   [issue #362](https://github.com/cocogitto/cocogitto/issues/362).
-- knope: [repo](https://github.com/knope-dev/knope).
+- knope:
+  [repo](https://github.com/knope-dev/knope),
+  [PrepareRelease](https://knope.tech/reference/config-file/steps/prepare-release/),
+  [package versioning](https://knope.tech/reference/concepts/package/),
+  [bot workflow](https://knope.tech/tutorials/bot-workflow/).
 - git-cliff:
   [git configuration (`ignore_tags`/`count_tags`)](https://git-cliff.org/docs/configuration/git),
   [issue #1380](https://github.com/orhun/git-cliff/issues/1380),
