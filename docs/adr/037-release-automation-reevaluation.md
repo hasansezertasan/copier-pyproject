@@ -326,9 +326,19 @@ with docker/metadata-action's `type=semver`, which requires a valid SemVer
 string. release-please emits SemVer prerelease tags today, so the sketch keeps
 them.
 
-Effort is **medium** and lower than git-cliff: no bespoke version math, the
-changelog reuses commit types (no second config dialect), gating is mostly
-built-in, and the tool is already installed. The real costs are architectural,
+The sketch is **not** changelog-complete as shown. `cz_conventional_commits`'
+built-in changelog parser (4.17.0) only recognizes `feat`, `fix`, `refactor`,
+`perf`, and breaking changes, while the template's
+`release-please-config.json` publishes emoji sections for `docs`, `test`,
+`build`, `ci`, and `deps` too. Keeping that taxonomy requires overriding
+`changelog_pattern`, `change_type_map`, and `change_type_order` in
+`[tool.commitizen]` (or a custom changelog template) — a second, smaller config
+dialect to maintain.
+
+Effort is **medium** and lower than git-cliff: no bespoke version math, gating
+is mostly built-in, and the tool is already installed; the changelog still
+needs the category mapping above, but it stays inside `pyproject.toml` rather
+than a separate `cliff.toml`. The real costs are architectural,
 not lines of code: it **reverses ADR-004** (Commitizen becomes a release tool
 again — the tag/changelog conflict that ADR-004 avoided is moot once
 release-please is gone, but the narrative must be rewritten), and it **loses the
@@ -340,7 +350,7 @@ reviewable Release PR** that ADR-002 valued.
 | --- | --- | --- | --- |
 | Replaces version calc | Partial (`--bumped-version`) | Yes (native) | Yes |
 | Creates git tag | No (scripted) | Yes (`cz bump`) | Yes |
-| Writes CHANGELOG | Yes (new `cliff.toml`) | Yes (reuses commit types) | Yes |
+| Writes CHANGELOG | Yes (new `cliff.toml`) | Yes (needs `change_type_map` etc. for docs/test/build/ci/deps) | Yes |
 | "Should release?" gate | No (fully bespoke) | Mostly built-in | Yes (`release_created`) |
 | Creates GitHub Release | No (`gh release`) | No (`gh release`) | Yes (draft) |
 | Reviewable Release PR | Lost | Lost | Yes (its model) |
