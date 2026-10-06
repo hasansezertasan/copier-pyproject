@@ -343,8 +343,12 @@ commits that the parser retained, a custom Jinja template cannot restore categor
 filtered out by the built-in parser. Keeping the template's taxonomy requires
 switching from `name = "cz_conventional_commits"` to `name = "cz_customize"` with
 a full `[tool.commitizen.customize]` table (defining `schema_pattern`,
-`bump_pattern`, `bump_map`, `changelog_pattern`, `change_type_map`, and
-`change_type_order`) or authoring a custom Commitizen plugin — adding
+`bump_pattern`, `bump_map`, `commit_parser`, `changelog_pattern`, `change_type_map`,
+and `change_type_order` — without `commit_parser`, changelog generation exits with
+`NoPatternMapError`) or authoring a custom Commitizen plugin. Moreover, because
+`cz_customize` does not inherit the built-in authoring prompts, retaining
+interactive `cz commit` support requires recreating `questions` and
+`message_template` in the config or maintaining a dedicated plugin. This adds
 significant custom configuration or plugin maintenance that narrows the effort
 gap with git-cliff.
 
