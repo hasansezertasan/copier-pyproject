@@ -399,9 +399,10 @@ hatch under the `full` preset either: its ruleset has `bypass_actors: []`,
 requires a PR, and allows only squash merges, so a maintainer cannot push the
 bump commit to `main` directly, and squash-merging it through a PR rewrites its
 SHA, leaving the locally created tag off `main`. A local flow would need a
-two-step "changelog PR, then tag the merged SHA" sequence (e.g. generating the
-changelog via `cz changelog` in a PR, then tagging the merged commit on `main`)
-or a ruleset bypass.
+two-step "changelog PR, then tag the merged SHA" sequence (e.g. calculating the
+next tag and generating the changelog via
+`cz changelog --unreleased-version="<tag>"` in a PR, then tagging the merged
+commit on `main`) or a ruleset bypass.
 
 ## Options under consideration
 
