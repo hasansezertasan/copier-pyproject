@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.4...v1.6.0) (2026-10-08)
+
+
+### 🚀 Features
+
+* **template:** add interactive adoption and update audits ([#349](https://github.com/hasansezertasan/copier-pyproject/issues/349)) ([0abcffc](https://github.com/hasansezertasan/copier-pyproject/commit/0abcffc525ed4a558ecb80649a1b6e9a231c5ff5))
+
 ## [1.5.4](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.3...v1.5.4) (2026-10-08)
 
 
