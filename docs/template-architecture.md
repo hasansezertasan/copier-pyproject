@@ -362,6 +362,17 @@ When `include_ai_rulez` is enabled, that file is replaced by the `.ai-rulez/`
 sources the host-specific files are generated from, alongside every other host's native
 config ([ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md)).
 
+The default `AGENTS.md`-only shape requires Claude Code v2.1.277 or later for
+direct loading (v2.1.281 or later for sessions such as Amazon Bedrock or those
+with telemetry disabled). Claude Code's default instruction mode skips
+`AGENTS.md` if a `CLAUDE.md`, `.claude/CLAUDE.md`, or `CLAUDE.local.md` exists in
+the working directory or an ancestor; the global `~/.claude/CLAUDE.md` does not
+count. Adopters retaining those project or ancestor files can set **Project
+instructions** to `claude-md-and-agents-md` in `/config`. Older clients or
+sessions with AGENTS.md support disabled need an adopter-maintained `CLAUDE.md`
+containing `@AGENTS.md`. The template does not render that compatibility wrapper.
+See the [official loading rules](https://code.claude.com/docs/en/memory#when-claude-code-reads-agents-md).
+
 Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
 `node`/`node-date`/`describe-name` `$Format:...$` template). Paired with the
 `.gitattributes` `export-subst` entry, `git archive`/GitHub source tarballs (the

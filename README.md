@@ -91,6 +91,23 @@ Copier will prompt for:
 4. Initialize git in the destination: `cd <destination> && git init` (the template intentionally defines no Copier tasks, so it does not auto-init — see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 5. Open the generated README (rendered from `template/README.md.jinja`) and clear the `TODO @...` markers in `README.md`, `pyproject.toml`, docs, and workflows.
 
+### Claude Code instruction loading
+
+The default generated project uses `AGENTS.md` without a `CLAUDE.md` wrapper.
+Direct loading requires Claude Code **v2.1.277 or later**; use **v2.1.281 or
+later** for sessions such as Amazon Bedrock or those with telemetry disabled.
+By default, a `CLAUDE.md`, `.claude/CLAUDE.md`, or `CLAUDE.local.md` in the
+working directory or an ancestor prevents automatic `AGENTS.md` loading.
+Your global `~/.claude/CLAUDE.md` does not prevent it.
+
+If you keep one of those project or ancestor files, open `/config` and set
+**Project instructions** to `claude-md-and-agents-md` to load both.
+For an older client or a session with AGENTS.md support disabled, add a local
+`CLAUDE.md` containing `@AGENTS.md` instead.
+See [Claude Code's instruction-loading documentation](https://code.claude.com/docs/en/memory#when-claude-code-reads-agents-md)
+for the full rules. Opting into `include_ai_rulez` instead generates the
+selected hosts' native instruction files.
+
 ## Adopt into an existing project (Claude Code plugin)
 
 The `copier copy` flow above is for **new** projects. Adopting this template into an **existing or already-published** package is a different job: `copier copy` overwrites source, config, docs, and CI, so it must be run as a migrate-and-reconcile rather than a scaffold.
