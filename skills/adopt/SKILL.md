@@ -58,8 +58,15 @@ entire job.** Run copier, let it overwrite everything, then restore your side fr
    - **release-please manifest** — set `.github/release-please-manifest.json` to your
      **actual current released version** (not the template's `0.1.0`), or the first
      release mis-computes the next version.
-   - Delete superseded originals: `mkdocs.yml`, `requirements.docs.txt`,
-     `.pre-commit-config.yaml`, old release-drafter/dependabot/`cd.yml`.
+   - Before deleting `.pre-commit-config.yaml` or old quality/security workflows,
+     use the generated `template-adoption` skill to inventory every old check.
+     Record retained/replaced/missing/omitted/optional coverage, file filters,
+     environments, stages, suppressions, and feedback timing. Tool-name overlap
+     does not prove equivalence; preserve custom checks and ask before accepting
+     lost coverage or moving feedback from local hooks to CI.
+   - Delete originals such as `mkdocs.yml`, `requirements.docs.txt`, old
+     release-drafter/dependabot/`cd.yml` only after their behavior and references
+     have been reconciled and the adopter agrees to the consequential changes.
 
 4. **Gate ruff BEFORE it runs.** The template sets `fix=true` + `unsafe-fixes=true` +
    `select=ALL`. The first `ruff check` (or any hook) **rewrites `src/**` in place**,

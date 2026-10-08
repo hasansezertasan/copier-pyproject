@@ -136,6 +136,12 @@ jobs:
             exit 1
           fi
           uv run --group prek prek run zizmor --all-files --show-diff-on-failure
+      - name: Validate rendered configuration schemas and file hygiene
+        working-directory: ../rendered
+        run: |
+          for hook in check-github-actions check-github-workflows check-github-issue-forms check-github-issue-config check-renovate check-dependabot check-xml check-executables-have-shebangs check-symlinks; do
+            uv run --group prek prek run "$hook" --all-files --show-diff-on-failure
+          done
       - name: Verify rendered files are formatter-canonical
         # A generated file shipped in a form the generated project's OWN fixing
         # hooks would rewrite fails that project's `hooks` CI job on its very
@@ -148,13 +154,14 @@ jobs:
         # worktree is unchanged — `git diff`, not the hooks' exit codes, is the
         # gate, because a fixing hook that silently rewrites a file and still
         # exits 0 would sail through an exit-code-only check. Same shape as the
-        # zizmor step above: these hooks are `builtin` or the yamlfmt binary, so
-        # nothing has to install the generated project. The remaining fixers are
+        # zizmor step above: these hooks do not need the generated project
+        # installed (the new text fixers use an isolated Python hook env).
+        # The remaining fixers are
         # covered by `tox -e style` in check mode (ruff-format --check, taplo
         # --check). Relies on the `git init`/`git add -A` done above.
         working-directory: ../rendered
         run: |
-          for hook in yamlfmt end-of-file-fixer trailing-whitespace; do
+          for hook in yamlfmt end-of-file-fixer trailing-whitespace fix-byte-order-marker mixed-line-ending; do
             uv run --group prek prek run "$hook" --all-files --show-diff-on-failure
           done
           git diff --exit-code
@@ -176,7 +183,7 @@ jobs:
           uv run --group agents ai-rulez generate
           # Newly generated files are untracked, and `git diff` ignores those.
           git add -A
-          for hook in yamlfmt end-of-file-fixer trailing-whitespace markdownlint-cli2 typos; do
+          for hook in yamlfmt end-of-file-fixer trailing-whitespace fix-byte-order-marker mixed-line-ending markdownlint-cli2 typos; do
             uv run --group prek prek run "$hook" --all-files --show-diff-on-failure
           done
           git diff --exit-code

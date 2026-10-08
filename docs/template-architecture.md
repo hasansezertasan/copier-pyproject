@@ -1,5 +1,8 @@
 # Template Architecture Reference
 
+For generated hooks, retained replacements, optional checks, and feedback timing,
+see the [generated-project check coverage audit](hook-coverage.md).
+
 Deep reference for the `copier-pyproject` template — the detail that used to
 live in `CLAUDE.md`. `CLAUDE.md` is now a lean router: it keeps the load-bearing
 agent instructions inline and points here for the "what gets rendered" detail and
