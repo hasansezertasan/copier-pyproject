@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.6.0...v1.7.0) (2026-10-08)
+
+
+### 🚀 Features
+
+* **hooks:** restore generated-project check coverage ([#355](https://github.com/hasansezertasan/copier-pyproject/issues/355)) ([1dd3ed9](https://github.com/hasansezertasan/copier-pyproject/commit/1dd3ed93e5e9a9d73f6e9bbf215cfef56d39b741))
+
+
+### 📝 Documentation
+
+* capture project rationale with Keep the Why ([#352](https://github.com/hasansezertasan/copier-pyproject/issues/352)) ([10124ed](https://github.com/hasansezertasan/copier-pyproject/commit/10124edc5c4ed8529b0a0b504df1c013bed8aa58))
+
 ## [1.6.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.4...v1.6.0) (2026-10-08)
 
 
