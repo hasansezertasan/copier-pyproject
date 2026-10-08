@@ -121,3 +121,33 @@ toolchain or rewrite generated projects during CI.
 - The number of type checkers invoked by the `style` env (mypy, pyright, ty,
   pyrefly) is a separate concern not addressed here; see future work on trimming
   preview-stage checkers.
+
+## Taplo checks do not fetch schemas from generated TOML directives
+
+**Id:** 152edfc1-817e-4265-ac23-53d2a730cd5f
+**Type:** workaround
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [issue #337](https://github.com/hasansezertasan/copier-pyproject/issues/337), [PR #338](https://github.com/hasansezertasan/copier-pyproject/pull/338); commit [9e86cb8](https://github.com/hasansezertasan/copier-pyproject/commit/9e86cb8fcd8ccebc667d70391531c5a33ccc8de4)
+**Verification:** corroborated — generated root TOML omits schema directives while the style environment retains Taplo syntax and formatting checks
+**Revisit when:** Taplo provides a verified way to retain editor directives without fetching their schemas during checks
+
+Generated root TOML no longer carries the remote schema directive. Editors can
+use SchemaStore's filename mapping, while Taplo still checks syntax and canonical
+formatting without that schema fetch.
+
+**Reason:** a transient remote schema failure could fail the required style gate
+on unchanged source. The investigation found that Taplo 0.9.3 still fetched an
+explicit directive's URL with its no-schema flag, so the apparent offline switch
+did not solve this failure mode.
+
+**Rejected alternative:** retain the directive and rely on the no-schema flag.
+It was tested and rejected because the fetch still occurred. Vendoring a schema
+was discussed with a maintenance cost, but the reviewed sources do not establish
+an explicit verdict on that alternative.
+
+This constraint applies to the Taplo pass, not to every style tool:
+[ADR-032](032-semgrep-sast-in-the-style-env.md) separately accepts Semgrep's
+registry dependency. The formatter-canonical requirement remains in
+[ADR-030](030-generated-files-must-be-formatter-canonical.md).

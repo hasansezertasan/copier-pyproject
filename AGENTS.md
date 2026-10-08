@@ -55,6 +55,15 @@ Key architecture:
 - The `example/` directory is a gitignored, locally-generated rendering (see `.gitignore`); regenerate it from `.example-input.yml` to smoke-test the template. Note: `.example-input.yml` uses the `library` preset (no interface components), so the run commands below for CLI/web/etc. apply only after enabling those options (or to any other generated project)
 - Generated projects use uv for dependency management, hatchling for builds, tox for testing, and include full CI/CD automation
 
+## Keep the Why
+
+This project records the reasoning behind its code with the Keep the Why
+skill ([Keep the Why](https://keepthewhy.com)) — the `.keep-the-why` file at the project
+root is its config. Before doing anything else in a session, whatever the
+first request is about, load the `keep-the-why` skill using the agent's
+skill tool, or read `.agents/skills/keep-the-why/SKILL.md` and follow it,
+including the `references/*.md` files it points to for the situation at hand.
+
 ## Development Commands
 
 ### Testing the Template
