@@ -1,5 +1,14 @@
 # AGENTS.md
 
+## Keep the Why
+
+This project records the reasoning behind its code with the Keep the Why
+skill ([Keep the Why](https://keepthewhy.com)) — the `.keep-the-why` file at the project
+root is its config. Before doing anything else in a session, whatever the
+first request is about, load the `keep-the-why` skill using the agent's
+skill tool, or read `.agents/skills/keep-the-why/SKILL.md` and follow it,
+including the `references/*.md` files it points to for the situation at hand.
+
 ## Development Commands
 
 ```bash

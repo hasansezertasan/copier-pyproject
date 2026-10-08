@@ -21,7 +21,7 @@ alls = "alls"
 copie = "copie"
 
 # Excluded paths:
-# - `skills/` holds vendored Claude Code plugin skill documentation (SKILL.md)
+# - `skills/` and `.agents/skills/` hold vendored skill documentation (SKILL.md)
 #   that mirrors an externally-maintained skill. It is dense with tool names,
 #   CLI flags, and intentional hyphenated compounds (`mis-computes`, `mis-bumps`)
 #   that typos splits and misreads.
@@ -30,4 +30,4 @@ copie = "copie"
 # The typos hook auto-writes fixes, so both must be excluded to keep it from
 # rewriting generated/vendored content.
 [files]
-extend-exclude = ["skills/", "CHANGELOG.md"]
+extend-exclude = ["skills/", ".agents/skills/", "CHANGELOG.md"]

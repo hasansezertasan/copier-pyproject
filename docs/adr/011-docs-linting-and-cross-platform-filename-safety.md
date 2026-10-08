@@ -93,3 +93,36 @@ reserved for the type/lint/format tools.
   lint-suite and CI/CD sections note `sphinx-lint`, `check-case-conflict`, and
   the `docs-linkcheck.yml` workflow.
 - No new `copier.yml` variable — all three are always rendered.
+
+## Sphinx warnings use an exact, reviewable allowlist
+
+**Id:** 2a555902-38e7-47d4-a231-445a8e6caa0f
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [issue #187](https://github.com/hasansezertasan/copier-pyproject/issues/187), [PR #242](https://github.com/hasansezertasan/copier-pyproject/pull/242); commit [ab6a857](https://github.com/hasansezertasan/copier-pyproject/commit/ab6a8575d401f41fb35ab98a1bf50a2a1ff29fe7); `docs/template-architecture.md`, Sphinx warning gate
+**Verification:** corroborated — the rendered warning checker compares normalized sets in both directions, and the docs-build environment invokes it
+**Revisit when:** Sphinx changes warning formatting or a previously unavoidable warning disappears
+
+The docs-build gate captures Sphinx warnings and compares them with a committed
+allowlist. It rejects both new unexpected warnings and expected warnings that
+are no longer emitted. The default allowlist is empty. Normalization removes
+machine-specific path prefixes and folds Windows separators, while preserving
+line numbers. Sphinx's `nitpicky` mode remains off.
+
+**Reason:** an individually justified upstream warning should not force a choice
+between permanently red documentation builds and broad warning suppression.
+Exact entries make exceptions reviewable; the reverse comparison prevents
+obsolete exceptions from accumulating silently.
+
+**Rejected alternative:** make every warning fatal directly through Sphinx's
+warning-as-error mode. It was superseded by the allowlist so unavoidable
+exceptions can coexist with a regression gate.
+
+**Alternative deferred:** enable `nitpicky` immediately. The issue anticipated
+a noisy initial cross-reference cleanup and left this for a separate pass.
+Removing line numbers was also considered but not selected; no further reason
+for that choice was established in the reviewed sources.
+
+[ADR-027](027-versioned-documentation-and-last-updated-stamps.md) records why
+this gate belongs in the required CI path, rather than only in docs previews.
