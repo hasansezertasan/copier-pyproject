@@ -103,11 +103,15 @@ def test_pull_request_template_uses_concise_checklist(
 ) -> None:
     """The PR template has one checklist and relies on its title for type."""
     root = render()
-    template = (root / ".github" / "PULL_REQUEST_TEMPLATE.md").read_text(
+    template = (root / ".github" / "pull_request_template.md").read_text(
         encoding="utf-8"
     )
 
     assert "## Types of changes" not in template
+    assert (
+        "Check every box to confirm the item is complete or not applicable."
+        in template
+    )
     assert (
         "I have read the contributor guidelines and self-reviewed my changes."
         in template

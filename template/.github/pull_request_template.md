@@ -20,7 +20,7 @@
 
 ## Checklist before requesting a review
 
-<!--- Check each item that applies. If you're unsure, ask for help. -->
+<!--- Check every box to confirm the item is complete or not applicable. -->
 
 - [ ] I have read the contributor guidelines and self-reviewed my changes.
 - [ ] I have updated documentation where needed.
