@@ -2,6 +2,7 @@
 
 Run through the rendered project's prek group so its version remains canonical:
 uv run --group prek python /path/to/tools/verify_hook_coverage.py prek.toml
+Requires an include_ai_rulez=true render to probe its generated-output exclusions.
 """
 
 from __future__ import annotations
@@ -11,6 +12,12 @@ import subprocess
 import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+
+def require(condition: bool, message: str) -> None:
+    """Keep verification active even when Python optimization is enabled."""
+    if not condition:
+        raise AssertionError(message)
 
 
 def run_hook(root: Path, identifier: str) -> subprocess.CompletedProcess[str]:
@@ -45,12 +52,15 @@ def verify_fixture(
     subprocess.run(["git", "add", "--", filename], cwd=root, check=True)
     try:
         result = run_hook(root, identifier)
-        assert result.returncode == int(fails), result.stdout + result.stderr
-        assert ("Skipped" in result.stdout) == skipped, result.stdout
-        assert target.read_bytes() == (content if corrected is None else corrected)
+        require(result.returncode == int(fails), result.stdout + result.stderr)
+        require(("Skipped" in result.stdout) == skipped, result.stdout)
+        require(
+            target.read_bytes() == (content if corrected is None else corrected),
+            f"Unexpected bytes after {identifier}: {filename}",
+        )
         if corrected is not None:
-            assert run_hook(root, identifier).returncode == 0
-            assert target.read_bytes() == corrected
+            require(run_hook(root, identifier).returncode == 0, "Second pass failed")
+            require(target.read_bytes() == corrected, "Second pass changed bytes")
     finally:
         target.unlink()
         subprocess.run(
@@ -120,6 +130,14 @@ def verify_hooks(config_path: Path) -> None:
             (
                 "check-github-actions",
                 ".github/actions/probe/action.yml",
+                b"name: Probe\ndescription: Probe\nruns:\n  using: composite\n"
+                b"  steps:\n    - shell: bash\n      run: 'true'\n",
+                False,
+                False,
+            ),
+            (
+                "check-github-actions",
+                ".github/actions/probe/action.yml",
                 b"name: Probe\n",
                 True,
                 False,
@@ -183,6 +201,14 @@ def verify_hooks(config_path: Path) -> None:
             corrected=b"one\ntwo\nthree\n",
         )
         verify_fixture(root, "mixed-line-ending", "windows.bat", b"one\r\ntwo\r\n")
+        verify_fixture(
+            root,
+            "mixed-line-ending",
+            "mixed-crlf.txt",
+            b"one\r\ntwo\nthree\r\n",
+            fails=True,
+            corrected=b"one\r\ntwo\r\nthree\r\n",
+        )
         for identifier in ("fix-byte-order-marker", "mixed-line-ending"):
             verify_fixture(
                 root,
@@ -230,12 +256,20 @@ def verify_hooks(config_path: Path) -> None:
             b"hello\n",
             skipped=True,
         )
+        (root / "executable.bin").touch(mode=0o755)
+        verify_fixture(
+            root,
+            "check-executables-have-shebangs",
+            "executable.bin",
+            b"\x00\x01\x02",
+            skipped=True,
+        )
         link = root / "probe-link"
         link.symlink_to("does-not-exist")
         subprocess.run(["git", "add", "probe-link"], cwd=root, check=True)
-        assert run_hook(root, "check-symlinks").returncode == 1
+        require(run_hook(root, "check-symlinks").returncode == 1, "Broken link passed")
         (root / "does-not-exist").touch()
-        assert run_hook(root, "check-symlinks").returncode == 0
+        require(run_hook(root, "check-symlinks").returncode == 0, "Valid link failed")
 
 
 if __name__ == "__main__":
