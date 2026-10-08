@@ -65,6 +65,6 @@ hooks = [{ id = "pyupgrade", args = ["--py38-plus"] }]
 
 # djLint is intentionally omitted. It is an HTML/Django-template linter whose
 # Jinja rules fight this Copier template's conventions: T001 wants `{{ x }}`
-# while the template universally uses `{{x}}` (see CLAUDE.md), and the
+# while the template universally uses `{{x}}` (see AGENTS.md), and the
 # reformatter would rewrite every variable and collapse intentional blank
 # lines in the rendered Python files. It never had a `[tool.djlint]` config.

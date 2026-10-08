@@ -24,8 +24,8 @@
 {%- endif -%}
 {%- endmacro -%}
 
-{#- The agent-instruction prose. Rendered into ``AGENTS.md`` (and through it
-    ``CLAUDE.md``) when ``include_ai_rulez`` is off, and into the ``.ai-rulez/``
+{#- The agent-instruction prose. Rendered into ``AGENTS.md``
+    when ``include_ai_rulez`` is off, and into the ``.ai-rulez/``
     rule and context sources -- which ``ai-rulez generate`` fans out to every
     selected host -- when it is on (ADR-035). Both renderings are the same
     bytes because they call the same macro: a second copy of this prose, kept in

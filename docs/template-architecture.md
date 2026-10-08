@@ -1,7 +1,7 @@
 # Template Architecture Reference
 
 Deep reference for the `copier-pyproject` template — the detail that used to
-live in `CLAUDE.md`. `CLAUDE.md` is now a lean router: it keeps the load-bearing
+live in `AGENTS.md`. `AGENTS.md` is a lean router: it keeps the load-bearing
 agent instructions inline and points here for the "what gets rendered" detail and
 to the [ADRs](adr/) for the "why". Three sources of truth, no duplication:
 
@@ -10,7 +10,7 @@ to the [ADRs](adr/) for the "why". Three sources of truth, no duplication:
 - **The ADR** — why it exists, the trade-offs, the posture.
 
 When a toggle's rationale changes, edit the ADR. When what it renders changes,
-edit this page and `copier.yml` help. Do not restate either in `CLAUDE.md`.
+edit this page and `copier.yml` help. Do not restate either in `AGENTS.md`.
 
 ## Template Variables (copier.yml)
 
@@ -154,7 +154,7 @@ Optional components (all boolean):
   [ADR-013](adr/013-megalinter-opt-in-lean-complement.md).
 - `include_ai_rulez` - agent instructions authored once and generated per host,
   `default: false` (seeded on by the `full` preset). With it **off** the project
-  keeps the hand-written `AGENTS.md` + `CLAUDE.md` pair and the Claude-only
+  keeps the hand-written `AGENTS.md` and the Claude-only
   `repo-setup` and `template-adoption` skills. With it **on** the template renders
   [ai-rulez](https://github.com/Goldziher/ai-rulez) sources instead —
   `.ai-rulez/config.toml`, three rules (package structure, key conventions, pull
@@ -186,7 +186,7 @@ Optional components (all boolean):
   Because the output is not copier-managed, **both** update directions need a
   manual step and both are documented in ADR-035 §8. Turning the toggle *on*
   (which the first `copier update` of a `full`-preset project does by default)
-  removes `AGENTS.md`/`CLAUDE.md` and generates nothing, so
+  removes the copier-managed `AGENTS.md` and generates nothing, so
   `_message_after_update` prints `uv lock` + `ai-rulez generate` and CI stays red
   until their output is committed. Turning it *off* leaves every previously
   generated host file behind, so `ai-rulez clean --force --keep-gitignore` must
@@ -355,11 +355,11 @@ overrides marking `_version.py`/`CHANGELOG.md`/`uv.lock`/`cobo.lock` as generate
 and `docs/`
 as documentation, `export-ignore` archive hygiene, and an `export-subst` entry
 for `.git_archival.txt`), and AI-agent onboarding
-files — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that
-`@AGENTS.md`-imports it so there is a single source of truth (no divergent copies).
+file — a concise `AGENTS.md` (the cross-tool standard, also read by Claude Code)
+so there is a single source of truth.
 `AGENTS.md` intentionally carries **no** commit-attribution/`Co-Authored-By` block.
-When `include_ai_rulez` is enabled, that pair is replaced by the `.ai-rulez/`
-sources both files are generated from, alongside every other host's native
+When `include_ai_rulez` is enabled, that file is replaced by the `.ai-rulez/`
+sources the host-specific files are generated from, alongside every other host's native
 config ([ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md)).
 
 Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
@@ -1158,7 +1158,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      way, only the Security-tab dashboard is lost.
 
    The hardening conventions every workflow (new or edited) must keep so the gate
-   stays green are **agent instructions**, so they live inline in `CLAUDE.md`'s
+   stays green are **agent instructions**, so they live inline in `AGENTS.md`'s
    **Workflow hardening rules** (persist-credentials, top-level `permissions: {}`,
    no untrusted `${{ }}` in `run:`, and the justified
    `# zizmor: ignore[dangerous-triggers]` markers on the intentional

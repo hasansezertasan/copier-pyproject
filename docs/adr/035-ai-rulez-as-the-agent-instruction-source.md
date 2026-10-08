@@ -49,9 +49,12 @@ properties make it fit *this* repo rather than merely being a nice tool:
 Ship it as an **opt-in toggle**, `include_ai_rulez` (`default: false`, seeded on
 in the `full` preset), with an `ai_rulez_presets` multiselect naming the hosts
 (default `claude`, `codex`, `copilot` — the three that reproduce today's surface
-plus the one GitHub reads itself). With the toggle off, nothing changes: the
-hand-written `AGENTS.md`/`CLAUDE.md` pair and the Claude-only skill render
-exactly as before, byte for byte.
+plus the one GitHub reads itself). With the toggle off, the hand-written
+`AGENTS.md` and the Claude-only skills render.
+
+The default shape now uses `AGENTS.md` alone, including for Claude Code.
+The former `CLAUDE.md` import wrapper is no longer rendered; the opt-in
+ai-rulez generator still owns its selected hosts' native output files.
 
 ### 1. The prose has one source, whichever way it renders
 
@@ -184,7 +187,7 @@ are documented and both fail loudly rather than silently:
 
 **Turning it on.** `include_ai_rulez` is seeded by the `full` preset, so the
 first `copier update` of a `full`-preset project answers the new question `yes`
-by default. That update deletes the copier-managed `AGENTS.md`/`CLAUDE.md`, adds
+by default. That update deletes the copier-managed `AGENTS.md`, adds
 the `.ai-rulez/` sources and the `agents` dependency group, and runs no
 generator — leaving the project with no agent instruction files. Dropping the
 toggle from `full` was rejected: `full` means every toggle, and a preset that
@@ -193,8 +196,8 @@ quietly omits one is a worse surprise than a loud one. Instead
 `ai-rulez generate`) and CI is red until their output is committed.
 
 **Turning it off.** The host files are *not* copier-managed, so an update that
-answers `no` re-renders `AGENTS.md`/`CLAUDE.md` but leaves every other generated
-file (`.github/copilot-instructions.md`, `.codex/skills/…`, `.cursor/rules/…`)
+answers `no` re-renders `AGENTS.md` but leaves every other generated
+file (`CLAUDE.md`, `.github/copilot-instructions.md`, `.codex/skills/…`, `.cursor/rules/…`)
 committed and stale, still feeding instructions to the hosts that read them.
 ai-rulez records exactly what it wrote in `.ai-rulez/.generated-manifest.json`
 and `ai-rulez clean` is the inverse of `generate`, so the retirement is

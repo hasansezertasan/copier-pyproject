@@ -39,7 +39,7 @@ _message_after_copy: >-
   Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, CLAUDE.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions, PyPI trusted publishing).
 # An update that answers `include_ai_rulez` yes — including the first update of a
 # `full`-preset project, where the new question defaults to yes — deletes the
-# copier-managed AGENTS.md/CLAUDE.md and replaces them with `.ai-rulez/` sources
+# copier-managed AGENTS.md and replaces it with `.ai-rulez/` sources
 # whose output only exists after a `generate`. There are no `_tasks` to run it
 # (ADR-015), so the update lands with no agent instruction files at all. CI says
 # so loudly, but only after a push; say it here, while the maintainer is still
@@ -290,7 +290,7 @@ include_ai_rulez:
   type: bool
   default: "{{ 'include_ai_rulez' in preset_map[preset] }}"
   help: >-
-    Author the agent instructions once under .ai-rulez/ and generate each AI coding host's native config from them (ai-rulez)? Off renders the hand-written AGENTS.md + CLAUDE.md pair and a Claude-only repo-setup skill. On renders the .ai-rulez/ sources instead, and `ai-rulez generate` (a prek hook, plus the after-copy step) writes AGENTS.md, CLAUDE.md, .github/copilot-instructions.md and the per-host copies of the repo-setup skill as committed build output. See ADR-035.
+    Author the agent instructions once under .ai-rulez/ and generate each AI coding host's native config from them (ai-rulez)? Off renders the hand-written AGENTS.md and a Claude-only repo-setup skill. On renders the .ai-rulez/ sources instead, and `ai-rulez generate` (a prek hook, plus the after-copy step) writes AGENTS.md, CLAUDE.md, .github/copilot-instructions.md and the per-host copies of the repo-setup skill as committed build output. See ADR-035.
 ai_rulez_presets:
   type: str
   multiselect: true

@@ -10,8 +10,9 @@ description: Use to perform, resume, or verify the one-time GitHub setup THIS co
 This repository versions **itself** with release-please (ADR-015): its
 Conventional-Commit PRs produce the semver git tags that Renovate's copier
 manager consumes in generated projects, so the setup below is load-bearing, not
-cosmetic. See CLAUDE.md → "Template self-versioning (this repo, ADR-015)" and
-"One-time repo setup" for the full rationale. It is safe to re-run; each step has
+cosmetic. See AGENTS.md → "Required Merge Strategy (release-please depends on it)"
+and docs/template-architecture.md → "One-time repo setup" for the full rationale.
+It is safe to re-run; each step has
 a check and is skipped when already done.
 
 `gh` must be authenticated (`gh auth status`); if not, stop and ask the user to
