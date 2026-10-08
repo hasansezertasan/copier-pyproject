@@ -35,8 +35,8 @@ the human-only ones.
 
 The template repository has the **same** shape of one-time setup for *itself*
 (the squash-merge policy and `default_workflow_permissions=write` release-please
-needs — see CLAUDE.md "Template self-versioning (this repo, ADR-015)"), executed
-today only as CLAUDE.md prose.
+needs — see docs/template-architecture.md "Template self-versioning (this repo,
+ADR-015)"), originally executed only as prose in the agent instructions.
 
 ## Decision
 
@@ -137,7 +137,7 @@ shipped under `template/` and **not** part of the plugin's `./skills/`) drives
 **inline** in its `SKILL.md` rather than in a doc — there is no doc home to
 justify, and inlining a two-step manifest is not the drift surface a fifteen-step
 one would be. It loudly flags the deliberate **`write`-not-`read`** divergence
-from generated projects (the `setup` skill's gotcha #1) and points at CLAUDE.md's "Template
+from generated projects (the `setup` skill's gotcha #1) and points at docs/template-architecture.md's "Template
 self-versioning (this repo, ADR-015)" for the rationale rather than restating it.
 
 ### 4. The plugin `setup` skill stays, with one cross-reference

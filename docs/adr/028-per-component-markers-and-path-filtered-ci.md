@@ -118,12 +118,12 @@ pytest only.
 - **New components touch more surfaces.** Adding a component now updates: the
   marker list + `tests/conftest.py` `_COMPONENT_DIRS`, the `changes` filters, its
   `test-<component>` + `coverage-<component>` jobs, and the coverage
-  `--include`/`--omit` lists. The CLAUDE.md "Adding New Optional Components"
+  `--include`/`--omit` lists. The AGENTS.md "Adding New Optional Components"
   checklist enumerates these so they stay in lockstep.
 - **No new toggle.** The markers and jobs derive from the existing `include_*`
   toggles; nothing added to `copier.yml` or `preset_map`.
 - Files: `template/pyproject.toml.jinja` (markers), `template/tests/conftest.py.jinja`
   (new), `template/.github/workflows/ci.yml.jinja` (`changes` + `test-*` +
   `coverage-*` + `coverage-report`), `tests/test_markers.py` +
-  `tests/test_ci_component_jobs.py`, and this ADR. Documented in `CLAUDE.md`,
+  `tests/test_ci_component_jobs.py`, and this ADR. Documented in `AGENTS.md`,
   `docs/template-architecture.md`, and `README.md`.

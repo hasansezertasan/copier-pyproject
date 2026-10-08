@@ -89,7 +89,7 @@ reserved for the type/lint/format tools.
 - The generated docs sources must be `sphinx-lint`-clean and pass `linkcheck`
   against the links the template ships. Verified by rendering a project and
   running `tox -e style` and `tox -e docs-linkcheck`.
-- README "Development" / CLAUDE.md gain the `docs-linkcheck` command; CLAUDE.md's
+- README "Development" / AGENTS.md gain the `docs-linkcheck` command; AGENTS.md's
   lint-suite and CI/CD sections note `sphinx-lint`, `check-case-conflict`, and
   the `docs-linkcheck.yml` workflow.
 - No new `copier.yml` variable — all three are always rendered.

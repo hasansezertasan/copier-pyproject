@@ -65,7 +65,7 @@ the zizmor-audited workflow surface are unchanged when it is enabled.
 
 `include_sonarcloud` adds a workflow job that follows the same
 gated-on-secret, non-blocking pattern the template already uses for the Codecov
-upload (see [the CI Codecov note in CLAUDE.md]): the `sonar` job runs only on
+upload (see [the CI Codecov note in AGENTS.md]): the `sonar` job runs only on
 same-repo, non-fork events and records a visible skip rather than failing when
 `SONAR_TOKEN` is unset, so it never blocks a green build for a contributor who
 has not wired up SonarCloud.
@@ -108,7 +108,7 @@ and no mutually-exclusive enum.
 2-space `.editorconfig` glob and the `validate-pyproject`/`taplo`/`yamllint`
 suite must be checked against them when implementing so the generated project
 stays lint-clean (the same correctness fix `.jsonc`/`.cff` needed — see
-CLAUDE.md). `sonar-project.properties` is a Java-`.properties` file (not TOML);
+AGENTS.md). `sonar-project.properties` is a Java-`.properties` file (not TOML);
 confirm no style hook wrongly claims it.
 
 ## Consequences
@@ -119,7 +119,7 @@ confirm no style hook wrongly claims it.
 - `.example-input.yml` sets all three to `false` (consistent with it disabling
   every optional component), so their rendered form is only validated when
   generated explicitly — the same "generate it to test it" caveat as every other
-  component (CLAUDE.md, [ADR-008](008-worker-broker-testing-strategy.md)).
+  component (AGENTS.md, [ADR-008](008-worker-broker-testing-strategy.md)).
 - New conditional template files:
   `template/{% if include_sourcery %}.sourcery.yaml{% endif %}.jinja`,
   `template/{% if include_sonarcloud %}sonar-project.properties{% endif %}.jinja`,
@@ -147,7 +147,7 @@ confirm no style hook wrongly claims it.
 - `CONTRIBUTING.md.jinja`'s repository-setup section documents the one-time
   provisioning for each enabled integration (install App, create Sonar org + add
   `SONAR_TOKEN`), alongside the existing PyPI/Codecov setup steps.
-- The CLAUDE.md "Optional components" and README feature tables gain the three
+- The AGENTS.md "Optional components" and README feature tables gain the three
   toggles.
 - More template surface to test: each toggle exercised independently and in
-  combination, per the CLAUDE.md testing convention.
+  combination, per the AGENTS.md testing convention.

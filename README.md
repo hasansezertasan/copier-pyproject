@@ -17,7 +17,7 @@ Always included in every generated project:
 - **Repo hygiene** — issue/PR templates, `SECURITY.md`, `SUPPORT.md`, `CODEOWNERS`, `FUNDING`, `LICENSE`, `.gitattributes`, `.dockerignore`, a badge-rich README, and VS Code launch configs (current file, tests, attach, entry points); always-on Commitizen and git hooks (run via prek) and an always-on `CITATION.cff` with a validation workflow.
 - **Managed `.gitignore`** — kept in sync with the upstream [github/gitignore](https://github.com/github/gitignore) templates by [cobo](https://github.com/hasansezertasan/cobo), with a weekly drift check.
 - **Dependency & template updates** — Renovate manages dependencies and, via its copier manager, opens a `copier update` PR whenever this template publishes a new tag (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
-- **AI-agent onboarding** — a concise `AGENTS.md` (the cross-tool standard) plus a `CLAUDE.md` that imports it, so coding agents share a single source of truth.
+- **AI-agent onboarding** — a concise `AGENTS.md` (the cross-tool standard), so coding agents share a single source of truth.
 - **Modern Python** — uv for dependency management, hatch for building, and a devcontainer for reproducible environments.
 
 On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). Published docs are **versioned** — each release deploys under its version slug (`docs_version_granularity`: `minor` `X.Y`, `major` `X`, or `full` `X.Y.Z`) with an in-page version switcher and a `latest` alias, and every page footer shows its git "last updated" date (see ADR-027). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
@@ -73,7 +73,7 @@ Copier will prompt for:
 - `include_pydantic_settings` (use pydantic-settings for configuration; the docs build auto-generates a Configuration reference from the live settings model via autodoc-pydantic)
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_smokeshow` (opt-in tokenless coverage-HTML host; publishes the combined report to an ephemeral public URL from the `coverage-report` CI job — public repos only, no account or secret)
-- `include_ai_rulez` (author the agent instructions once under `.ai-rulez/` and generate each AI coding host's native config from them via [ai-rulez](https://github.com/Goldziher/ai-rulez), instead of the hand-written `AGENTS.md`/`CLAUDE.md` pair; the generated files are committed build output, written by `ai-rulez generate` — see [ADR-035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
+- `include_ai_rulez` (author the agent instructions once under `.ai-rulez/` and generate each AI coding host's native config from them via [ai-rulez](https://github.com/Goldziher/ai-rulez), instead of the hand-written `AGENTS.md`; the generated files are committed build output, written by `ai-rulez generate` — see [ADR-035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
   - `ai_rulez_presets` (asked when `include_ai_rulez`: which hosts to generate for — `claude`, `codex`, `copilot` by default, plus `cursor`/`gemini`/`windsurf`/`cline`/`continue-dev`/`amp`/`junie`/`opencode`/`hermes`/`antigravity`)
 - `include_repo_ruleset` (opt-in branch protection as code — a ruleset + App-free sync workflow enforcing squash-only merges, linear history, and the required CI checks; needs a `REPO_ADMIN_TOKEN` PAT)
 - `include_postgres` (include PostgreSQL service in devcontainer)
@@ -92,6 +92,29 @@ Copier will prompt for:
 3. Optionally seed answers with `.example-input.yml` using `--data-file .example-input.yml --defaults`.
 4. Initialize git in the destination: `cd <destination> && git init` (the template intentionally defines no Copier tasks, so it does not auto-init — see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
 5. Open the generated README (rendered from `template/README.md.jinja`) and clear the `TODO @...` markers in `README.md`, `pyproject.toml`, docs, and workflows.
+
+### Claude Code instruction loading
+
+The default generated project uses `AGENTS.md` without a `CLAUDE.md` wrapper.
+Direct loading requires Claude Code **v2.1.277 or later**; use **v2.1.281 or
+later** for sessions such as Amazon Bedrock or those with telemetry disabled.
+By default, a `CLAUDE.md`, `.claude/CLAUDE.md`, or `CLAUDE.local.md` in the
+working directory or an ancestor prevents automatic `AGENTS.md` loading.
+Your global `~/.claude/CLAUDE.md` does not prevent it.
+
+If you keep one of those project or ancestor files, open `/config` and set
+**Project instructions** to `claude-md-and-agents-md` to load both.
+For an older client or a session with AGENTS.md support disabled, add a local
+`CLAUDE.md` containing `@AGENTS.md` instead.
+See [Claude Code's instruction-loading documentation](https://code.claude.com/docs/en/memory#when-claude-code-reads-agents-md)
+for the full rules. Opting into `include_ai_rulez` instead generates the
+selected hosts' native instruction files.
+
+On `copier update`, an existing `CLAUDE.md` is preserved so customized
+instructions are not lost. To migrate it manually, move any project-specific
+guidance into `AGENTS.md` and delete `CLAUDE.md` once your sessions meet the
+loading requirements above. An unchanged `@AGENTS.md` wrapper can simply be
+deleted, or retained for compatibility.
 
 ## Adopt into an existing project (Claude Code plugin)
 

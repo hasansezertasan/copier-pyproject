@@ -37,7 +37,7 @@ jobs:
             data: >-
               --data preset=full --data web_framework=fastapi --data worker_broker=redis
           # The ai-rulez shape (ADR-035): the `.ai-rulez/` sources replace
-          # AGENTS.md/CLAUDE.md, and `ai-rulez generate` writes the per-host
+          # AGENTS.md, and `ai-rulez generate` writes the per-host
           # files. A console root plus one sibling interface so the generated
           # package-structure rule renders its conditional rows and both of its
           # layering paragraphs. `full-preset` also enables the toggle, but only

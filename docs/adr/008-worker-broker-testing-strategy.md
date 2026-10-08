@@ -213,7 +213,7 @@ while still gaining real-broker coverage on Linux.
   because each component's process/UI entrypoints and defensive fallbacks were
   unexercised and `.example-input.yml` disables every component so that path was
   never CI-validated. Rather than fix the worker alone, the gap is closed
-  uniformly (see the coverage exclusion note in `CLAUDE.md`), in two ways:
+  uniformly (see the coverage exclusion note in `AGENTS.md`), in two ways:
 
   - **Reachable error handling is tested, not excluded.** The missing-metadata
     paths that carry real behavior now have unit tests: the web `/version` and

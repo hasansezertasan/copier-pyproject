@@ -13,7 +13,7 @@ page drifts from a fresh render.
 
 ## library
 
-111 files.
+110 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -88,7 +88,6 @@ page drifts from a fresh render.
 .vscode/launch.json
 AGENTS.md
 CITATION.cff
-CLAUDE.md
 LICENSE
 README.md
 cobo.lock
@@ -131,7 +130,7 @@ tools/build_docs.py
 
 ## tool
 
-121 files.
+120 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -206,7 +205,6 @@ tools/build_docs.py
 .vscode/launch.json
 AGENTS.md
 CITATION.cff
-CLAUDE.md
 LICENSE
 README.md
 cobo.lock
@@ -259,7 +257,7 @@ tools/build_docs.py
 
 ## web
 
-122 files.
+121 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -335,7 +333,6 @@ tools/build_docs.py
 .vscode/launch.json
 AGENTS.md
 CITATION.cff
-CLAUDE.md
 Dockerfile
 LICENSE
 README.md

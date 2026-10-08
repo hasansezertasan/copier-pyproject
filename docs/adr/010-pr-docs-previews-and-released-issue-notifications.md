@@ -140,7 +140,7 @@ reason those integrations are toggles and these two are not.
 - `CONTRIBUTING.md.jinja` notes that PR docs previews require **GitHub Pages
   enabled** on the repo (already implied by the released-docs deploy), so no new
   provisioning beyond what released docs already need.
-- CLAUDE.md's CI/CD Workflows section documents the new `docs-preview.yml` and
+- AGENTS.md's CI/CD Workflows section documents the new `docs-preview.yml` and
   the `notify-released-issues` job.
 - Testing: generate a project and confirm both workflows render, pass
   `prek run zizmor --all-files` and ghalint, and that `pr-preview/` paths do not

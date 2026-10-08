@@ -2,8 +2,8 @@
 
 Two things need guarding, and they pull in opposite directions:
 
-* With the toggle **off** nothing may change — the hand-written ``AGENTS.md`` /
-  ``CLAUDE.md`` pair and the Claude-only ``repo-setup`` skill still render.
+* With the toggle **off** the hand-written ``AGENTS.md`` and the Claude-only
+  ``repo-setup`` skill render, without a host-specific instruction wrapper.
 * With it **on** the template must render the ``.ai-rulez/`` sources and *no*
   generated output: those files are written by ``ai-rulez generate`` in the
   adopter's repository, so a template that also rendered them would put two
@@ -86,7 +86,7 @@ def _agents_section(root: Path, heading: str) -> str:
 def test_default_keeps_the_hand_written_agent_files(render: Callable[..., Path]) -> None:
     root = render()
     assert (root / "AGENTS.md").is_file()
-    assert (root / "CLAUDE.md").is_file()
+    assert not (root / "CLAUDE.md").exists()
     assert (root / ".claude" / "skills" / "repo-setup" / "SKILL.md").is_file()
     assert not (root / ".ai-rulez").exists()
 

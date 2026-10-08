@@ -40,7 +40,7 @@ work with this template:
    detects updates from **version tags**, not the default-branch HEAD — so the
    template must publish tags. release-please already produces them from the
    Conventional Commits landing on `main` (see the *self-versioning* note in
-   `CLAUDE.md`). A generated project's Renovate reads `_src_path` from
+   `AGENTS.md`). A generated project's Renovate reads `_src_path` from
    `.copier-answers.yml`, watches that repo's tags, and bumps `_commit`.
 
    This only works when `_src_path` is a **real git URL**. Copier records

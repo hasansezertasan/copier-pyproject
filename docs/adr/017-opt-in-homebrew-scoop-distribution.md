@@ -123,7 +123,7 @@ dependency `deploy-docs` and `notify-released-issues` use) — **not** a
 workflow reacting to the `release: published` event. A `release: published`
 event fired by `finalize-release`'s own `GITHUB_TOKEN` cannot trigger another
 `on: release` workflow — the same loop-prevention rule already documented for
-`deploy-docs` in CLAUDE.md. Living inside `release.yml` also gives the jobs
+`deploy-docs` in AGENTS.md. Living inside `release.yml` also gives the jobs
 direct access to `needs.release-please.outputs.version` without re-deriving it
 from a ref.
 
@@ -199,7 +199,7 @@ PAT with the correct scope).
   PAT, **Contents: write** only, no `Pull requests` scope) for each enabled
   toggle, and links to the `docs/packaging/*/README.md` walkthrough for the
   rest of the one-time setup.
-- The CLAUDE.md "Optional components" list carries both toggles, linking here.
+- The AGENTS.md "Optional components" list carries both toggles, linking here.
 
 ### Known limitations
 

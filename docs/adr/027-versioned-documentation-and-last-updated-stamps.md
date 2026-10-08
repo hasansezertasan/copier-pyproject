@@ -168,7 +168,7 @@ blanket suppression.
 - `gh-pages` becomes load-bearing state: the version list is reconstructed from
   it, and both the release and manual deploy paths **must preserve the numeric
   version-slug directories** (e.g. `0.3/`) (a load-bearing invariant recorded in
-  `CLAUDE.md`). The manual `gh-pages.yml` also checks out the latest release tag
+  `AGENTS.md`). The manual `gh-pages.yml` also checks out the latest release tag
   before building, so a manual redeploy never overwrites a released version's
   docs with unreleased `main` content.
 - Old versions are never rebuilt, so a past `conf.py` need not keep building under

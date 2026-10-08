@@ -106,7 +106,7 @@ same non-blocking guarantee the Codecov step gets from `fail_ci_if_error: false`
 - New `copier.yml` boolean `include_smokeshow` (`default: false`) with `help`
   describing the tokenless, public-repo-only scope; added to the `full`
   `preset_map`. `.example-input.yml` uses the `library` preset, so the smokeshow
-  step's rendered form is only validated when generated explicitly (CLAUDE.md
+  step's rendered form is only validated when generated explicitly (AGENTS.md
   testing convention).
 - `template/.github/workflows/ci.yml.jinja`:
   - The `ci` job's `Coverage`/`Upload coverage`/`Note skipped`/per-cell
@@ -136,5 +136,5 @@ same non-blocking guarantee the Codecov step gets from `fail_ci_if_error: false`
   `.coverage.*` data files (via the locked `test` group) so it never drifts from
   an unpinned resolve, while `--only-group` skips building the project (reading
   data + config needs no project install).
-- `CLAUDE.md`, `README.md`, and `docs/template-architecture.md` document the
+- `AGENTS.md`, `README.md`, and `docs/template-architecture.md` document the
   toggle and the new job.

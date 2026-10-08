@@ -91,7 +91,7 @@ match covers every case either way.
   reach for it only when seed staleness actually matters.
 - **Do not re-enable Renovate for `template/**`.** It reads as "the template's
   pins are falling behind," but re-managing them re-creates the conflict engine
-  this ADR removed. A `CLAUDE.md` note guards against the well-intentioned undo.
+  this ADR removed. An `AGENTS.md` note guards against the well-intentioned undo.
 - Alternatives considered:
   - **Auto-resolve in the downstream's favor** — a git `merge=ours` driver or
     copier `_exclude` on the volatile files. Rejected: `_exclude` is whole-file
