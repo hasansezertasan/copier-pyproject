@@ -169,3 +169,34 @@ release-please should be wired:
   where the subtle bugs surface.
 - Conventional Commits become a soft requirement for the version bump to work;
   this aligns with the existing `include_commitizen` and commit-lint tooling.
+
+## Optional Docker Hub configuration gates the publish fan-out
+
+**Id:** f6f9eea4-dd38-4a74-98ed-f67e436c393d
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [PR #51](https://github.com/hasansezertasan/copier-pyproject/pull/51), [shared-gate review discussion](https://github.com/hasansezertasan/copier-pyproject/pull/51#discussion_r3524165040); commit [f48250e](https://github.com/hasansezertasan/copier-pyproject/commit/f48250ebe8b92c880964e892f7c2fb37471a12c4)
+**Verification:** corroborated — the web release workflow makes both PyPI and Docker publication depend on `docker-publish-preflight`
+**Revisit when:** a new irreversible publication channel is added or Docker Hub opt-in semantics change
+
+Docker Hub publication is optional and its credential pair is all-or-nothing:
+neither credential means GHCR-only publication, both enable Docker Hub, and a
+partial pair fails a shared preflight before either PyPI or Docker publication.
+
+**Reason:** PyPI uploads are irreversible. A credential check inside only the
+Docker job would allow PyPI publication to finish concurrently before Docker
+failed, stranding a partially published release. The shared prerequisite rejects
+that known configuration error before the publish jobs fan out; it does not make
+all later external uploads transactional.
+
+**Rejected alternative:** validate the credentials only inside Docker
+publication. Review moved the check into a shared prerequisite specifically to
+prevent the PyPI race. Requiring Docker Hub for every web release is not the
+selected contract; GHCR-only publication remains supported.
+
+The narrowly scoped ghalint exceptions exist because conditional steps need
+job-scoped credential-presence information and GitHub does not expose the
+secrets context directly in conditions. The token itself is reduced to a
+presence flag, not exposed job-wide. The exceptions are recorded in the
+generated `.github/ghalint.yaml` rather than disabling that policy globally.

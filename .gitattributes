@@ -1,0 +1,3 @@
+# Installed skill content and its lockfile are maintained by the skills CLI.
+.agents/skills/keep-the-why/** linguist-generated=true
+skills-lock.json linguist-generated=true

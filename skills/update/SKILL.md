@@ -1,6 +1,6 @@
 ---
 name: update
-description: Use to pull newer hasansezertasan/copier-pyproject template changes into an already-adopted project via `copier update` — either reviewing/reconciling a Renovate-opened copier-update PR by number, or running the update from scratch. Covers surfacing and approving NEW template questions/features with the maintainer (so a new answer can't silently enable a dependency), reconciling 3-way merge conflicts, restoring project-owned files the update resets (CHANGELOG, release-please manifest), the conflict markers Renovate won't flag, and the update-anchor convergence gate. Reach for it on "review this copier update PR", "a Renovate template PR is open", "bump to the latest template", "run copier update", or when a copier-update branch has conflict markers — keeping a human in the loop on every feature and merge.
+description: Use to pull newer hasansezertasan/copier-pyproject template changes into an already-adopted project via `copier update` — either reviewing/reconciling a Renovate-opened copier-update PR by number, or running the update from scratch. Covers surfacing and approving NEW template questions/features with the maintainer (so a new answer can't silently enable a dependency), preservation-first reconciliation, restoring project-owned files the update resets (CHANGELOG, release-please manifest), the conflict markers Renovate won't flag, and the update-anchor convergence gate. Reach for it on "review this copier update PR", "a Renovate template PR is open", "bump to the latest template", "run copier update", or when a copier-update branch has conflict markers — obtaining maintainer decisions for new features and consequential behavior changes.
 ---
 
 # Update an already-adopted copier-pyproject project
@@ -34,8 +34,12 @@ the loop:
 Renovate's **copier manager** opens these automatically when the template publishes
 a new tag. The PR looks routine but has a specific hazard:
 
-1. **Check out and scan for breakage first.** Renovate runs `copier update
-   --defaults` and **does not fail its check on merge conflicts**
+1. **Establish the baseline, then check out and scan for breakage.** Inventory
+   local work before checkout and preserve unrelated edits. Identify and record
+   the actual pre-update commit from the PR's commit history and base; current
+   `origin/main` may have advanced and is not automatically that snapshot.
+   Renovate runs `copier update --defaults` and
+   **does not fail its check on merge conflicts**
    ([renovate#31600](https://github.com/renovatebot/renovate/issues/31600)) — so a
    PR can look green/mergeable while carrying `<<<<<<<` markers or `.rej` files.
    ```bash
@@ -47,15 +51,15 @@ a new tag. The PR looks routine but has a specific hazard:
    has not protected with `_exclude`, copier removes your copy even if you put
    real code in it — no marker, no `.rej`:
    ```bash
-   git diff --name-only --diff-filter=D origin/main...HEAD
+   git diff --name-only --diff-filter=D <pre-update-commit> HEAD
    ```
-   Restore any deleted file that carries your own code
-   (`git checkout origin/main -- <file>`), or move that code somewhere else first.
+   Restore deleted project code from the recorded pre-update snapshot, merging
+   any later user edits, or obtain a decision to relocate it rather than lose it.
 
 2. **Diff the answers for silently-added features.** Renovate answered any new
    question with its default:
    ```bash
-   git show origin/main:.copier-answers.yml > /tmp/before-answers.yml
+   git show <pre-update-commit>:.copier-answers.yml > /tmp/before-answers.yml
    diff /tmp/before-answers.yml .copier-answers.yml
    ```
    Take every added/changed key to the maintainer (see *Approving new features*).
@@ -70,8 +74,11 @@ a new tag. The PR looks routine but has a specific hazard:
 Run it yourself when you want the update ahead of Renovate, or Renovate isn't
 installed. The important choice here is **whether to surface new questions**:
 
-1. **Prefer interactive over blind `--defaults`.** The whole point of a human in the
-   loop is to *see* new questions. The `mise` shim is often unresolvable (`No version
+1. **Record the baseline; prefer interactive over blind `--defaults`.** Record
+   the current commit and inventory local work before running Copier. Preserve
+   unrelated edits so a later restoration does not overwrite them.
+   The whole point of a human in the loop is to *see* new questions.
+   The `mise` shim is often unresolvable (`No version
    is set for shim: copier`); `uvx` is reliable:
    ```bash
    uvx copier@latest update           # interactive: prompts for genuinely-new questions
@@ -98,30 +105,53 @@ TODOs: **do not batch-accept.** For each new or changed answer:
 
 ## Shared reconciliation (both modes)
 
-1. **Resolve conflicts per hunk**, not with a full restore. Markers read
+1. **Audit the whole update, then resolve conflicts per hunk.** Compare the
+   recorded pre-update snapshot with the updated tree, including deleted files
+   and cleanly merged CI/config changes; absence of conflict markers does not
+   prove preservation. Preserve adopter behavior. Markers read
    `<<<<<<< before updating` (your committed version) / `=======` / `>>>>>>> after
-   updating` (template):
-   - **Machine config / CI logic / SHA-pin bumps** → take **after** (template).
-   - **Project identity + prose** (README features, real CONTRIBUTING/SECURITY
-     content, issue-template examples) → keep **before**, but **graft in genuinely
-     new template capabilities** (a new managed-`.gitignore`/cobo bullet, a new
-     workflow). Planted TODOs sit on the *after* side — drop them, keep your content.
-   Then `git add -A`; `git grep -nE '^(<<<<<<<|>>>>>>>)'` must be empty (the two
-   7-char markers are unambiguous; `=======` is omitted — it false-matches markdown/
-   RST heading underlines).
+   updating` (template). Compare the pre-update behavior, project customizations,
+   and template intent; file category alone does not decide which side wins.
+   This is the same preservation-first contract as the generated
+   `template-adoption` skill:
+   - Keep project identity, authored prose, custom hooks, dependency choices, and
+     release state; graft in relevant template capabilities without replacing
+     existing functionality. Replace planted TODOs with the project's content.
+   - Apply behavior-preserving maintenance directly only when equivalence is
+     established and it is within the requested update. A SHA-pin change is not
+     automatically equivalent: check the action release and preserve customized
+     inputs, permissions, triggers, and conditions.
+   - For behavior-changing replacements, deletions, or workflow consolidation,
+     explain what is gained and lost and obtain the maintainer's decision.
+     Security improvements also need their effects explained rather than being
+     accepted solely because they came from the template.
+   - Before retiring a workflow or check, compare event coverage and failure
+     propagation and inspect live required-status references. Two jobs running
+     the same command can differ in manual dispatch or merge-gate identity.
+     If live settings cannot be inspected, preserve the existing path and report
+     the missing evidence; delegate approved repository-settings transitions to
+     `repo-setup`.
+   Preserve unrelated user edits and stage only the intended reconciliation
+   files. `git grep -nE '^(<<<<<<<|>>>>>>>)'` must be empty (the two 7-char
+   markers are unambiguous; `=======` is omitted because it false-matches
+   Markdown/RST heading underlines).
 
-2. **Restore project-owned files the update reset — from the BASE branch, not the
-   index.** Restore the source matters here: in **Mode A** (Renovate PR) the
+2. **Recover reset project-owned content from the recorded pre-update snapshot,
+   not the index or an assumed current base.** In **Mode A** (Renovate PR) the
    checked-out branch already has the deletion/reset *committed*, so a plain
    `git checkout -- CHANGELOG.md` restores the **deleted** state from the index (or
-   fails with a pathspec error) — it cannot bring the file back. Restore from the
-   base branch (`origin/main`), which carries the real values in **both** modes:
+   fails with a pathspec error) — it cannot bring the file back. The actual
+   pre-update commit preserves branch-specific release state that current
+   `origin/main` may lack. Compare it with later user work and recover only
+   the content Copier reset. When the file has no other changes to preserve, a
+   full-file restore is appropriate:
    ```bash
-   git checkout origin/main -- CHANGELOG.md
-   git checkout origin/main -- .github/release-please-manifest.json
+   git restore --source=<pre-update-commit> -- CHANGELOG.md
+   git restore --source=<pre-update-commit> -- .github/release-please-manifest.json
    ```
-   Then confirm the manifest holds your **actual current released version** (not
-   `0.0.0`) — if `origin/main` itself is stale, set it by hand.
+   Otherwise merge the recovered release history/state with the subsequent
+   changes rather than overwriting them. Confirm the manifest holds the
+   **actual current released version**, not `0.0.0` or a stale snapshot value.
 
 3. **Re-run the gates the update can trip:**
    - **ruff** — the template ships `fix=true`+`unsafe-fixes`+`select=ALL`; run
@@ -156,13 +186,13 @@ a fresh, usually-tiny merge, committed separately.
 |---|--------|-----|
 | 1 | Renovate copier PR looks mergeable but carries `<<<<<<<` / `.rej` (renovate#31600) | Scan on checkout; reconcile before merging |
 | 2 | New template question silently takes its default under `--defaults` → enables a dependency | Diff `.copier-answers.yml`; approve each new answer with the maintainer; defend zero-dep invariants |
-| 3 | `copier update` deletes `CHANGELOG.md` and resets the release-please manifest to `0.0.0` | Restore from the **base** branch (`git checkout origin/main -- CHANGELOG.md` / manifest) — in Renovate-PR mode `git checkout -- <file>` restores the *deleted* index state or errors; set manifest to real released version |
+| 3 | `copier update` deletes `CHANGELOG.md` and resets the release-please manifest to `0.0.0` | Recover from the recorded **pre-update commit**, preserving later edits — the index may already contain the reset and current `origin/main` may not contain branch-owned history; verify the real released version |
 | 4 | ruff `fix=true`+`unsafe-fixes`+`select=ALL` rewrites `src/**` on first contact | `ruff check --diff` / `per-file-ignores` before any fix |
 | 5 | `prek.toml`/`pyproject.toml` arrive un-taplo-formatted → `style` env fails, cascading into every matrix job | `taplo format prek.toml pyproject.toml`; re-run `tox -e style` |
 | 6 | A dropped `exclude_patterns` in `docs/conf.py` publishes internal specs to Pages | Re-add custom `exclude_patterns`; diff `docs/conf.py` |
 | 7 | Plain `--pretend` reports "diverged" only because template HEAD moved | Pin with `--vcs-ref=<your _commit>` |
 | 8 | `Verify linked issue` CI check fails a chore/update PR with no issue | Apply the `no-issue` label |
-| 9 | Template dropped a file you had edited → copier deletes it silently (no conflict) | `git diff --name-only --diff-filter=D origin/main...HEAD`; restore or relocate your code |
+| 9 | Template dropped a file you had edited → copier deletes it silently (no conflict) | Audit deletions against the recorded pre-update snapshot in both modes; recover custom code without overwriting later edits |
 | 10 | `mise` shim can't resolve copier (`No version is set for shim: copier`) | Use `uvx copier@latest update` |
 
 ## Common mistakes
@@ -177,4 +207,7 @@ a fresh, usually-tiny merge, committed separately.
   release mis-computes the version or loses history.
 - **Trusting a plain `--pretend` after template HEAD moved.** Pin the anchor with
   `--vcs-ref=<your _commit>`.
+- **Taking template-side CI/config hunks by category.** Preserve custom behavior;
+  prove equivalence or obtain a decision before replacing it. A successful lint
+  run does not prove event coverage or required-check continuity.
 - **Merging on the maintainer's behalf.** Push the reconciliation; let them approve.
