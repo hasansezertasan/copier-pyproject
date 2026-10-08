@@ -108,6 +108,12 @@ See [Claude Code's instruction-loading documentation](https://code.claude.com/do
 for the full rules. Opting into `include_ai_rulez` instead generates the
 selected hosts' native instruction files.
 
+On `copier update`, an existing `CLAUDE.md` is preserved so customized
+instructions are not lost. To migrate it manually, move any project-specific
+guidance into `AGENTS.md` and delete `CLAUDE.md` once your sessions meet the
+loading requirements above. An unchanged `@AGENTS.md` wrapper can simply be
+deleted, or retained for compatibility.
+
 ## Adopt into an existing project (Claude Code plugin)
 
 The `copier copy` flow above is for **new** projects. Adopting this template into an **existing or already-published** package is a different job: `copier copy` overwrites source, config, docs, and CI, so it must be run as a migrate-and-reconcile rather than a scaffold.

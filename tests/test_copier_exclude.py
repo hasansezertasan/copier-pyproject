@@ -11,8 +11,11 @@ only from 9.10.3, so ``_min_copier_version`` must not drop below it.
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
+from typing import Callable
 
+import copier
 import yaml
 from copier._template import DEFAULT_EXCLUDE
 from packaging.version import Version
@@ -46,3 +49,53 @@ def test_exclude_protects_dropped_placeholders() -> None:
 def test_min_copier_version_honors_exclude_on_update() -> None:
     """Below 9.10.3, ``copier update`` deletes an edited excluded path."""
     assert Version(str(_config()["_min_copier_version"])) >= Version("9.10.3")
+
+
+def test_update_preserves_customized_retired_claude_file(
+    render: Callable[..., Path],
+) -> None:
+    """Retiring the wrapper must not erase adopter-authored instructions."""
+    root = render(ref="v1.6.0", include_ai_rulez=False)
+    claude_file = root / "CLAUDE.md"
+    assert claude_file.is_file()
+    for args in (("init",), ("add", "."), ("commit", "-m", "Initial scaffold")):
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=Template Test",
+                "-c",
+                "user.email=template-test@example.com",
+                *args,
+            ],
+            cwd=root,
+            check=True,
+            capture_output=True,
+        )
+    customized = claude_file.read_text(encoding="utf-8") + (
+        "\n## Project-specific guidance\n\nKeep our custom deployment workflow.\n"
+    )
+    claude_file.write_text(customized, encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "CLAUDE.md"], cwd=root, check=True, capture_output=True
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Template Test",
+            "-c",
+            "user.email=template-test@example.com",
+            "commit",
+            "-m",
+            "Customize project instructions",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+
+    copier.run_update(str(root), vcs_ref="HEAD", defaults=True, overwrite=True, quiet=True)
+
+    assert claude_file.read_text(encoding="utf-8") == customized
+    assert not (root / "CLAUDE.md.rej").exists()

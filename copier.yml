@@ -22,6 +22,8 @@ _exclude:
   - ".git"
   - ".DS_Store"
   - ".svn"
+  # Retired instruction wrapper: adopters may have added project-specific guidance.
+  - "CLAUDE.md"
   # #321: docstring-only placeholders.
   - "src/{{ github_repo_name }}/utils/app.py"
   - "{% if not primary_component %}src/{{ github_repo_name }}/core/app.py{% endif %}"

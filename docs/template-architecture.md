@@ -373,6 +373,12 @@ sessions with AGENTS.md support disabled need an adopter-maintained `CLAUDE.md`
 containing `@AGENTS.md`. The template does not render that compatibility wrapper.
 See the [official loading rules](https://code.claude.com/docs/en/memory#when-claude-code-reads-agents-md).
 
+The retired `CLAUDE.md` path is in `copier.yml`'s `_exclude` list: updates
+preserve existing copies, including adopter customizations, while fresh renders
+omit it. Adopters migrating to `AGENTS.md` alone must move any unique guidance
+there before deleting the preserved file; an unchanged import wrapper can be
+deleted once their sessions meet the loading requirements above.
+
 Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
 `node`/`node-date`/`describe-name` `$Format:...$` template). Paired with the
 `.gitattributes` `export-subst` entry, `git archive`/GitHub source tarballs (the
