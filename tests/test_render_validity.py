@@ -98,6 +98,29 @@ def test_root_toml_has_no_schema_directive(render: Callable[..., Path]) -> None:
     assert offenders == []
 
 
+def test_pull_request_template_uses_concise_checklist(
+    render: Callable[..., Path],
+) -> None:
+    """The PR template has one checklist and relies on its title for type."""
+    root = render()
+    template = (root / ".github" / "PULL_REQUEST_TEMPLATE.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "## Types of changes" not in template
+    assert (
+        "I have read the contributor guidelines and self-reviewed my changes."
+        in template
+    )
+    assert "I have updated documentation where needed." in template
+    assert "I have added or updated tests where appropriate" in template
+    assert "My changes generate no new warnings." in template
+    assert (
+        "Any dependent changes have been merged and published where applicable."
+        in template
+    )
+
+
 @pytest.mark.parametrize("preset", PRESETS)
 def test_import_linter_contract_covers_every_subpackage(
     render: Callable[..., Path], preset: str
