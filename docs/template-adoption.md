@@ -64,3 +64,19 @@ The same procedure checks conflicts and reject files, stale configs and docs,
 dependency groups/extras, test coverage, supported platforms, packaging, and
 release behavior. Unavailable evidence is an explicit unresolved item, not a
 reason to assume the template's behavior is correct for the project.
+
+## Lost-check coverage audit
+
+Before retiring a hook configuration, inventory each old hook and quality/security
+job. The generated skill reports retained, replaced, missing, intentionally
+omitted, or optional checks, with evidence and user decisions. Compare rule sets,
+Python targets, stages, file/type filters, exclusions, execution environments,
+dependencies, suppressions, and feedback timing—not just tool names.
+Verify pinned hook IDs and positive/negative file matches. Ask before accepting
+reduced coverage or later feedback, and preserve project-specific checks unless
+the adopter chooses otherwise.
+
+The [generated-project check audit](hook-coverage.md) records the default
+decisions and known non-equivalences for this template. A passing CI run does not
+prove an old check was replaced, or that an independent security job is required
+by branch protection.

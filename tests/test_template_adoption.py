@@ -24,6 +24,17 @@ def test_adoption_skill_delivery(
     assert frontmatter["description"]
     assert "{%" not in text
     assert "{{" not in text
+    for requirement in (
+        "Lost check coverage",
+        "retained, replaced, missing",
+        "feedback timing",
+        "positive/negative file matches",
+        "Ruff S and SAST overlap Bandit",
+        "cobo-managed `.gitignore`",
+        "Ask before removing a check",
+        "per-check coverage classifications",
+    ):
+        assert requirement in text
     readme = (root / "README.md").read_text(encoding="utf-8")
     assert f"(./{host}/skills/template-adoption/SKILL.md)" in readme
     assert (root / host / "skills" / "repo-setup" / "SKILL.md").is_file()
