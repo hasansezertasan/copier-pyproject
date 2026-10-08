@@ -51,7 +51,7 @@ a new tag. The PR looks routine but has a specific hazard:
    has not protected with `_exclude`, copier removes your copy even if you put
    real code in it — no marker, no `.rej`:
    ```bash
-   git diff --name-only --diff-filter=D <pre-update-commit>
+   git diff --name-only --diff-filter=D <pre-update-commit> HEAD
    ```
    Restore deleted project code from the recorded pre-update snapshot, merging
    any later user edits, or obtain a decision to relocate it rather than lose it.
