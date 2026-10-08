@@ -425,6 +425,8 @@ requirements change. This repo carries a symmetric repo-local
 `.claude/skills/repo-setup/` for its own bootstrap. Bump rules and this repo's own
 self-versioning are detailed in `docs/template-architecture.md` and ADR-015.
 
+The always-shipped `template-adoption` skill uses the same host delivery path as `repo-setup`; its adoption/update audit and walkthrough are documented in `docs/template-adoption.md`.
+
 ## Code Style Guidelines
 
 - **Imports**: Absolute only, grouped stdlib→third-party→local (ruff enforced)

@@ -13,10 +13,11 @@ page drifts from a fresh render.
 
 ## library
 
-110 files.
+111 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
+.claude/skills/template-adoption/SKILL.md
 .copier-answers.yml
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
@@ -130,10 +131,11 @@ tools/build_docs.py
 
 ## tool
 
-120 files.
+121 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
+.claude/skills/template-adoption/SKILL.md
 .copier-answers.yml
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
@@ -257,10 +259,11 @@ tools/build_docs.py
 
 ## web
 
-121 files.
+122 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
+.claude/skills/template-adoption/SKILL.md
 .copier-answers.yml
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
@@ -385,7 +388,7 @@ tools/build_docs.py
 
 ## full
 
-181 files.
+182 files.
 
 ```text
 .ai-rulez/config.toml
@@ -395,6 +398,7 @@ tools/build_docs.py
 .ai-rulez/rules/project-conventions.md
 .ai-rulez/rules/pull-requests.md
 .ai-rulez/skills/repo-setup/SKILL.md
+.ai-rulez/skills/template-adoption/SKILL.md
 .all-contributorsrc
 .copier-answers.yml
 .devcontainer/devcontainer.json

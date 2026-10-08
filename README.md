@@ -95,7 +95,16 @@ Copier will prompt for:
 
 The `copier copy` flow above is for **new** projects. Adopting this template into an **existing or already-published** package is a different job: `copier copy` overwrites source, config, docs, and CI, so it must be run as a migrate-and-reconcile rather than a scaffold.
 
-This repository therefore doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) **plugin** (`copier-pyproject`) that ships three skills covering the template's lifecycle:
+Generated projects ship a **template-adoption** skill alongside **repo-setup**.
+In a session inside the generated project, ask: "Audit this template adoption/update and reconcile it with our existing
+behavior." It handles initial adoption, version updates, and post-update audits,
+compares custom behavior and overlapping workflows, and asks before consequential
+cleanup. The source lives in `.claude/skills/template-adoption/SKILL.md` by default,
+or `.ai-rulez/skills/template-adoption/SKILL.md` with `include_ai_rulez=true`;
+`ai-rulez generate` delivers it to the selected hosts. An agent can also read that
+file directly. See the [prek walkthrough](docs/template-adoption.md).
+
+This repository also doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) **plugin** (`copier-pyproject`) that ships three skills covering the template's lifecycle:
 
 - [`copier-pyproject:adopt`](skills/adopt/SKILL.md) — **first-time adoption** into an existing package: the source-skeleton collision, ruff auto-fix source corruption, the release-please/hatch-vcs version clash, and the placeholder prose the template plants in issue templates and docs.
 - [`copier-pyproject:update`](skills/update/SKILL.md) — **pulling later template changes**: the `copier update` 3-way-merge flow, reviewing Renovate copier-update PRs, and approving newly-added template questions with a human in the loop.

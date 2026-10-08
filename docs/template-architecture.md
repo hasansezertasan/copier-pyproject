@@ -155,18 +155,19 @@ Optional components (all boolean):
 - `include_ai_rulez` - agent instructions authored once and generated per host,
   `default: false` (seeded on by the `full` preset). With it **off** the project
   keeps the hand-written `AGENTS.md` + `CLAUDE.md` pair and the Claude-only
-  `repo-setup` skill, unchanged. With it **on** the template renders
+  `repo-setup` and `template-adoption` skills. With it **on** the template renders
   [ai-rulez](https://github.com/Goldziher/ai-rulez) sources instead —
   `.ai-rulez/config.toml`, three rules (package structure, key conventions, pull
   requests), two context files (commands, external references) and the
-  `repo-setup` skill — and `ai-rulez generate` fans them out to the hosts named
+  `repo-setup` and `template-adoption` skills — and `ai-rulez generate` fans
+  them out to the hosts named
   by the `ai_rulez_presets` multiselect (default `claude`, `codex`, `copilot`;
   `cursor`, `gemini`, `windsurf`, `cline`, `continue-dev`, `amp`, `junie`,
   `opencode`, `hermes` and `antigravity` are also offered).
 
   The generated files are **build output the template never renders**:
   `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md` and the per-host
-  copies of the skill appear on the adopter's first `ai-rulez generate` and are
+  copies of the skills appear on the adopter's first `ai-rulez generate` and are
   committed from there on, which keeps `copier update`'s 3-way merge on the
   small rule sources instead of one monolithic instruction file. The prose
   itself lives in `_macros.jinja`, shared with the `AGENTS.md` rendering, so the
@@ -571,7 +572,8 @@ because that prose has **two** renderings: the hand-written `AGENTS.md`, and the
 the same macro, so a toggle meant to remove per-host duplication downstream
 cannot introduce per-shape duplication inside the template
 ([ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md)). The
-`repo-setup` skill needs no macro: it is one file whose *path* the toggle picks.
+`repo-setup` and `template-adoption` skills each use one file whose *path*
+the toggle picks; neither needs a macro.
 Edit the prose in `_macros.jinja`, never in one of the two renderings.
 
 ## Generated Project Structure
@@ -1350,3 +1352,15 @@ For generated projects to publish to PyPI:
    - Workflow: `release.yml` (the publish step is inline in this workflow,
      so this is the filename PyPI's OIDC check matches — not a reusable `cd.yml`)
    - Environment: `publish`
+
+### Template adoption and update audit
+
+Generated projects always ship a `template-adoption` skill beside `repo-setup`,
+using the same `.claude/skills/` or `.ai-rulez/skills/` delivery convention.
+It establishes an adoption/update baseline, compares existing project behavior
+with template defaults, preserves user work and customizations, and requests
+decisions before consequential cleanup. Post-update audits inspect committed
+changes without rerunning Copier. Workflow removal requires comparing events,
+permissions, dependencies, and live required-status references; unavailable
+settings evidence defers potentially required-check removal. Repository-settings
+mutations stay in `repo-setup`. See [invocation and the prek walkthrough](template-adoption.md).
