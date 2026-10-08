@@ -39,6 +39,9 @@ def test_generated_hook_coverage(
     assert "djlint" not in hooks
     assert hooks["mixed-line-ending"]["args"] == ["--fix=auto"]
     assert hooks["check-renovate"]["additional_dependencies"] == ["pyjson5"]
+    for filename in ("script.ps1", "module.psm1", "data.psd1", "SCRIPT.PS1"):
+        assert re.search(hooks["fix-byte-order-marker"]["exclude"], filename)
+    assert not re.search(hooks["fix-byte-order-marker"]["exclude"], "notes.ps1.txt")
 
     for identifier in ("fix-byte-order-marker", "mixed-line-ending"):
         exclusion = hooks[identifier]["exclude"]

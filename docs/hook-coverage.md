@@ -18,8 +18,8 @@ Absent applicable files make file-scoped hooks no-ops.
 | --- | --- |
 | `check-executables-have-shebangs` | Add: text **and** executable files must start with a shebang. Binary executables are not selected. |
 | `check-symlinks` | Add: detect broken symlinks; upstream selects symlinks, not ordinary files. |
-| `fix-byte-order-marker` | Add: remove leading UTF-8 BOM from text files. Exclude cobo-owned `.gitignore` and ai-rulez-owned `.continue/prompts/` output. |
-| `mixed-line-ending` | Add: text files, `--fix=auto`; normalize mixed endings to the dominant ending, but retain consistent CRLF (permitted for `.bat`/`.ps1` by `.editorconfig`). Same generator-owned exclusions as the BOM fixer. This is not enforcement of universal LF. |
+| `fix-byte-order-marker` | Add: remove leading UTF-8 BOM from text files. Exclude cobo-owned `.gitignore`, ai-rulez-owned `.continue/prompts/` output, and `.ps1`/`.psm1`/`.psd1` files (case-insensitive) to preserve Windows PowerShell 5.1 encoding detection. |
+| `mixed-line-ending` | Add: text files, `--fix=auto`; normalize mixed endings to the dominant ending, but retain consistent CRLF (permitted for `.bat`/`.ps1` by `.editorconfig`). Same generator-owned exclusions as the BOM fixer; PowerShell files remain eligible. This is not enforcement of universal LF. |
 | `check-xml` | Add: XML-typed files only; dormant until a project adds XML. |
 | `check-github-issue-forms` | Add: YAML under root `.github/ISSUE_TEMPLATE/`, excluding `config.yml` and `config.yaml`; Markdown templates are not selected. |
 | `check-github-issue-config` | Add: root `.github/ISSUE_TEMPLATE/config.yml` **or** `config.yaml` (explicit override extends upstream's `.yml`-only match). |
@@ -35,6 +35,11 @@ The global hook exclusions for `.devcontainer/devcontainer.json` and
 For commented `.json` or extensionless `.renovaterc`, an adopter can configure
 `check-renovate` with `--force-filetype json5` and `pyjson5`;
 strict `check-json` must also exclude the affected JSON file.
+
+[Windows PowerShell 5.1](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_character_encoding?view=powershell-5.1)
+misinterprets BOM-less UTF-8 source containing non-ASCII characters as ANSI.
+The BOM exception preserves existing script behavior; it does not prescribe
+a project's PowerShell version or replace its EditorConfig encoding policy.
 
 ## Retained replacements and feedback timing
 
@@ -79,3 +84,14 @@ branch protection. This audit does not change repository merge policy.
 No project-specific check should be deleted merely because it is absent from
 these defaults. Record gaps, unverified equivalence, and changes in timing in
 the adoption report, and obtain the adopter's decision before reducing coverage.
+
+## Regression validation
+
+`tests/test_hook_coverage.py` renders all presets with both instruction hosts
+and checks defaults, exclusions, and the explicit issue-config matcher.
+Template CI validates generated schemas/hygiene across its render matrix.
+Its ai-rulez scenario also runs `tools/verify_hook_coverage.py` through the
+rendered project's own prek dependency group in an isolated fixture repository.
+The probes exercise malformed inputs, unrelated-file skips, JSON5 parsing,
+executable and symlink checks, UTF-8 BOM removal, consistent CRLF preservation,
+generator-owned and PowerShell byte preservation, and second-pass convergence.
