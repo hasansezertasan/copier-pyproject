@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.4](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.3...v1.5.4) (2026-10-08)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** cancel superseded generated CI runs ([#346](https://github.com/hasansezertasan/copier-pyproject/issues/346)) ([7cf8d07](https://github.com/hasansezertasan/copier-pyproject/commit/7cf8d07eb249c1c2542a3f6a4bbfb3d2377560de))
+
 ## [1.5.3](https://github.com/hasansezertasan/copier-pyproject/compare/v1.5.2...v1.5.3) (2026-10-04)
 
 
