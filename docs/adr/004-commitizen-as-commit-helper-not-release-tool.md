@@ -103,7 +103,7 @@ well-formed Conventional Commits, release-please *consumes* them.
   always included — the `include_commitizen` toggle was removed (it had already
   defaulted to `true`, and its commit hooks were unconditional, so the gate only
   added inconsistency).
-- The `CLAUDE.md` / `AGENTS.md` descriptions describe it as commit
+- The `AGENTS.md` descriptions describe it as commit
   authoring/linting, not "version bumping and changelog generation."
 - The commit-message linting role overlaps with `check-pr-title.yml` given the
   required squash-by-PR-title merge strategy (the squashed commit is the validated

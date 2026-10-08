@@ -79,4 +79,4 @@ a permanent empty declaration that three separate documents cite as load-bearing
   route.
 - **The invariant to preserve:** a runnable component's runtime dependency
   belongs in the core `dependencies` list under its `{% if include_x %}` guard.
-  Do not reach for an extra — see `CLAUDE.md`, "Adding New Optional Components".
+  Do not reach for an extra — see `AGENTS.md`, "Adding New Optional Components".

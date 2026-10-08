@@ -139,7 +139,7 @@ most. This is a deliberate change from the previous `custom` default.
   template options" is no longer accurate — update it to describe the file as
   identity answers + a starting preset.
 - **Docs**: update the preset documentation added in [#141] — the `copier.yml`
-  `preset` `help`, `_message_before_copy`, `CLAUDE.md` (the "Starting point"
+  `preset` `help`, `_message_before_copy`, `AGENTS.md` (the "Starting point"
   section), and the `README` preset table — to describe the archetype set and the
   new default.
 - **Render test harness**: update the preset assertions in the `test_presets`

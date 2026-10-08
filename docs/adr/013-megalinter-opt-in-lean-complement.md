@@ -11,7 +11,7 @@ where MegaLinter took ~3 minutes, of which **165 s was pulling the ~8 GB
 
 The template shipped MegaLinter as an **always-on** workflow
 (`.github/workflows/mega-linter.yml` + `.mega-linter.yml`) that was **documented
-nowhere** in `CLAUDE.md`, `README`'s variable list, or `docs/`. Two problems:
+nowhere** in `AGENTS.md`, `README`'s variable list, or `docs/`. Two problems:
 
 1. **It violated the self-contained/fast default.** Every generated project paid
    the multi-GB image pull on every push/PR, whether or not the owner wanted an
@@ -105,7 +105,7 @@ via branch protection — an explicit opt-in, not the default.
 - New `copier.yml` boolean `include_megalinter` (`default: false`) with `help`
   describing the lean, complementary scope; `.example-input.yml` sets it `false`
   (so its rendered form is only validated when generated explicitly, per the
-  CLAUDE.md testing convention).
+  AGENTS.md testing convention).
 - Conditional template files:
   `template/.github/workflows/{% if include_megalinter %}mega-linter.yml{% endif %}.jinja`
   and `template/{% if include_megalinter %}.mega-linter.yml{% endif %}.jinja`.
@@ -119,7 +119,7 @@ via branch protection — an explicit opt-in, not the default.
   The prek-shared configs stay always-on: `.github/linters/.markdownlint.yml`
   (extended by `markdownlint-cli2.yaml`), `.github/actionlint.yaml`,
   `.github/yamllint.yaml`.
-- `CLAUDE.md` (Optional components) and `README.md` document the toggle — closing
+- `AGENTS.md` (Optional components) and `README.md` document the toggle — closing
   the prior gap where MegaLinter was shipped but undocumented.
 - No `pyproject.toml` change: MegaLinter is a CI action, not a Python dependency.
 - The job carries `security-events: write` and uploads MegaLinter's SARIF
@@ -149,7 +149,7 @@ via branch protection — an explicit opt-in, not the default.
   `security-events: write` — `persist-credentials: false`, `timeout-minutes`,
   SHA-pinned `uses:`).
 - More template surface to test: the toggle is exercised on its own and combined
-  with `include_web` (for the hadolint conditional), per the CLAUDE.md convention.
+  with `include_web` (for the hadolint conditional), per the AGENTS.md convention.
 
 ## Notes / follow-up
 

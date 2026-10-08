@@ -106,6 +106,6 @@ no concession remains.
 - ty (`0.0.x`) remains pre-release; its diagnostics and exit behavior may shift
   between versions. It is kept because it currently passes and adds coverage, but
   a future ADR may revisit it if churn becomes a burden. (pyrefly reached `1.x`.)
-- `package` keywords and the `style` toolchain references in `README.md`,
-  `CLAUDE.md`, and `AGENTS.md` are updated from `pyright` to
+- `package` keywords and the `style` toolchain references in `README.md`
+  and `AGENTS.md` are updated from `pyright` to
   `basedpyright`/`zuban`.

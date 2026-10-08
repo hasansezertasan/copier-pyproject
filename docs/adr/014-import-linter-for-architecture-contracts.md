@@ -97,7 +97,7 @@ type checkers on the fast gate — it is worth running on the prek gate too, as 
   subpackage.
 - The contract config is Jinja-conditional on the enabled components, so a
   component's contract coverage is only exercised when that component is
-  generated — verify by generating with components enabled (per CLAUDE.md's
+  generated — verify by generating with components enabled (per AGENTS.md's
   testing-template-changes flow), not the everything-off `.example-input.yml`.
 - Adds one tool to an already-dense `style` env; justified by filling the sole
   architecture-enforcement gap in the toolchain.

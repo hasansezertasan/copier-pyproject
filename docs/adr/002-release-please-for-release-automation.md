@@ -110,7 +110,7 @@ release-please should be wired:
 - **Trusted publishing entry workflow changed.** Because the PyPI publish step is
   inline in `release.yml` (not a reusable `cd.yml`), the PyPI Trusted
   Publisher must register `release.yml` as the workflow filename. README and
-  CLAUDE.md are updated accordingly.
+  AGENTS.md are updated accordingly.
 - **`workflow_dispatch` on `release.yml` is load-bearing, and the containment is
   the environment — not the workflow file.** `finalize-release`'s re-dispatch
   needs the trigger to exist, and it is the documented exception to
