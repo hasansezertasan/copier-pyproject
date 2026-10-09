@@ -17,7 +17,7 @@ python = "{{ get_env(name='PYTHON_VERSION', default=read_file(path=config_root ~
 # backend (Renovate-tracked) and invoked as `mise exec -- cobo` by the
 # gitignore-check task and the gitignore-drift.yml workflow. 0.4.0+ ships the
 # `--eol` policy the block was sealed with.
-"pipx:cobo" = "0.4.0"
+"pipx:cobo" = "0.6.0"
 {%- endraw %}
 {%- if include_all_contributors %}
 # all-contributors is a JS CLI delivered via mise's npm backend, so its version

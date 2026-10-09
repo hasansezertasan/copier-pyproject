@@ -121,12 +121,9 @@ def build_broker(url: str | None = None) -> {{ worker_broker_spec.cls }}:
     @broker_.subscriber(
         REQUESTS_DESTINATION, description="Handles version request messages"
     )
-    # The decorator registers the handler as a side effect; basedpyright cannot
-    # see that use, hence the targeted ignore (vulture is covered by the
-    # `@*.subscriber` entry in [tool.vulture] ignore_decorators).
-    async def handle_version_request(  # pyright: ignore[reportUnusedFunction]
-        msg: VersionRequest, logger: Logger
-    ) -> None:
+    # The decorator registers the handler as a side effect (vulture is covered
+    # by the `@*.subscriber` entry in [tool.vulture] ignore_decorators).
+    async def handle_version_request(msg: VersionRequest, logger: Logger) -> None:
         """Handle incoming version request messages.
 
         Args:
