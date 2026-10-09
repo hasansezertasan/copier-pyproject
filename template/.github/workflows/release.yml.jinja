@@ -78,7 +78,7 @@ jobs:
           python-version-file: .python-version
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: |
@@ -107,13 +107,13 @@ jobs:
         shell: bash
         run: cp "$BUNDLE_PATH" "$PROVENANCE_BUNDLE_NAME"
       - name: Upload package
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: package-distributions-{% raw %}${{ matrix.os }}{% endraw %}
           path: dist/
       - name: Upload provenance bundle
         if: env.ATTEST_BUILD_PROVENANCE == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-provenance-{% raw %}${{ matrix.os }}{% endraw %}
           path: build-provenance-{% raw %}${{ matrix.os }}{% endraw %}.sigstore.json
@@ -133,13 +133,13 @@ jobs:
         shell: bash
         run: cp "$BUNDLE_PATH" build-provenance.sigstore.json
       - name: Upload package
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: package-distributions
           path: dist/
       - name: Upload provenance bundle
         if: env.ATTEST_BUILD_PROVENANCE == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: build-provenance
           path: build-provenance.sigstore.json
@@ -162,7 +162,7 @@ jobs:
       url: https://pypi.org/project/{{github_repo_name}}/{% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
     steps:
       - name: Download package
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
 {%- if include_c_extensions %}
           pattern: package-distributions-*
@@ -211,7 +211,7 @@ jobs:
           source: '.'
           output: './dist/{{github_repo_name}}-launcher-{% raw %}${{ matrix.label }}{% endraw %}'
       - name: Upload executable
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: {{github_repo_name}}-executable-launcher-{% raw %}${{ matrix.os }}{% endraw %}
           # Glob so the upload succeeds whether or not the tool added an extension.
@@ -253,7 +253,7 @@ jobs:
         with:
           python-version-file: .python-version
       - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: |
@@ -268,7 +268,7 @@ jobs:
           uv run --locked --group tool pyinstaller {{github_repo_name}}.spec --clean --noconfirm
           mv "dist/{{github_repo_name}}{% raw %}${{ matrix.ext }}{% endraw %}" "dist/{{github_repo_name}}-freezer-{% raw %}${{ matrix.label }}${{ matrix.ext }}{% endraw %}"
       - name: Upload executable
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: {{github_repo_name}}-executable-freezer-{% raw %}${{ matrix.os }}{% endraw %}
           path: './dist/{{github_repo_name}}-freezer-{% raw %}${{ matrix.label }}${{ matrix.ext }}{% endraw %}'
@@ -309,7 +309,7 @@ jobs:
         with:
           python-version-file: .python-version
       - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: |
@@ -327,7 +327,7 @@ jobs:
         # verify/upload steps (and the merge-multiple release attach). See ADR-007.
         run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --warn-implicit-exceptions --warn-unusual-code {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || '' }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
       - name: Upload executable
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: {{github_repo_name}}-executable-compiler-{% raw %}${{ matrix.os }}{% endraw %}
           # Glob so the upload succeeds whether or not the tool added an extension.
@@ -445,7 +445,7 @@ jobs:
         with:
           python-version-file: .python-version
       - name: Setup uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: |
@@ -460,7 +460,7 @@ jobs:
       - name: Generate CycloneDX SBOM
         run: uvx --from cyclonedx-bom cyclonedx-py requirements requirements-sbom.txt --output-format JSON --output-file {{github_repo_name}}-sbom.cdx.json
       - name: Upload SBOM
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: {{github_repo_name}}-sbom
           path: {{github_repo_name}}-sbom.cdx.json
@@ -474,7 +474,7 @@ jobs:
       contents: write  # IMPORTANT: Mandatory for GitHub Release
     steps:
       - name: Download package
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
 {%- if include_c_extensions %}
           pattern: package-distributions-*
@@ -486,7 +486,7 @@ jobs:
 {%- endif %}
 {%- if include_launcher or include_freezer or include_compiler %}
       - name: Download executables
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           pattern: {{github_repo_name}}-executable-*
           path: dist/executables/
@@ -495,13 +495,13 @@ jobs:
       - name: Download SBOM
         # Lands in dist/ so the CycloneDX SBOM is attached to the release
         # alongside the distributions by the upload step below.
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: {{github_repo_name}}-sbom
           path: dist/
       - name: Download provenance bundles
         if: {% raw %}${{ github.repository_visibility == 'public' || vars.ENABLE_PRIVATE_ATTESTATIONS == 'true' }}{% endraw %}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           pattern: build-provenance*
           path: dist/provenance/
@@ -660,7 +660,7 @@ jobs:
           python-version-file: .python-version
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: |
