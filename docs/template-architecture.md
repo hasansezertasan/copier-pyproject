@@ -378,8 +378,9 @@ See the [official loading rules](https://code.claude.com/docs/en/memory#when-cla
 
 The retired `CLAUDE.md` wrapper is not excluded: `copier update` deletes the
 copy an older render left behind, including adopter customizations (git history
-keeps them). Adopters should move any unique guidance into `AGENTS.md` before
-updating.
+keeps them). Only projects with `include_ai_rulez` off ever had it, so their
+`AGENTS.md` is hand-written: move any unique guidance there before updating, or
+into a `.ai-rulez/` rule source if the same update turns the toggle on.
 
 Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
 `node`/`node-date`/`describe-name` `$Format:...$` template). Paired with the

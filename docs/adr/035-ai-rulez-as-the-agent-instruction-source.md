@@ -258,7 +258,10 @@ Claude Code now reads `AGENTS.md` natively, which removes the only reason
   opposite of what the default shape wants. Now `copier update` deletes the
   copy a v1.6.0-or-earlier render left behind. A customized copy is deleted
   too (copier treats a removed template file as removed, edits or not), so the
-  README tells adopters to move unique guidance into `AGENTS.md` first. Git
+  README tells adopters to move unique guidance into `AGENTS.md` first — or into
+  a `.ai-rulez/` source when the same update turns the toggle on, since
+  `AGENTS.md` is then generated output. (The wrapper only ever rendered with the
+  toggle off.) Git
   history keeps the old content.
 - **`claude` left the `ai_rulez_presets` defaults** (now `codex`, `copilot`).
   The `codex` host already writes `AGENTS.md`, so `claude` only adds a duplicate

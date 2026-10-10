@@ -113,7 +113,9 @@ selected hosts' native instruction files.
 A project first scaffolded from v1.6.0 or earlier carries a `CLAUDE.md` wrapper
 (v1.7.0 stopped rendering it but kept existing copies). `copier update` now
 deletes it, customized or not. Before updating, move any
-project-specific guidance from it into `AGENTS.md`.
+project-specific guidance from it into `AGENTS.md` (or, if the same update turns
+on `include_ai_rulez`, into a `.ai-rulez/` rule source, since `AGENTS.md` then
+becomes generated output).
 
 ## Adopt into an existing project (Claude Code plugin)
 
