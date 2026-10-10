@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.8.0...v1.9.0) (2026-10-10)
+
+
+### 🚀 Features
+
+* **template:** debug single test files and tox-equivalent coverage in launch.json ([#363](https://github.com/hasansezertasan/copier-pyproject/issues/363)) ([6f81959](https://github.com/hasansezertasan/copier-pyproject/commit/6f81959b9ff9cebcbd831aaf44dacf4ec97ba40f))
+
 ## [1.8.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.7.0...v1.8.0) (2026-10-10)
 
 
