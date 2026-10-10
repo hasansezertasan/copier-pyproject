@@ -141,6 +141,31 @@ def test_cli_launch_input_offers_only_unsplittable_values(
     assert '"${input:command}"' in launch
 
 
+def test_launch_json_debugs_single_test_files_and_mirrors_tox_coverage(
+    render: Callable[..., Path],
+) -> None:
+    """Debug entries must cover the two test paths adopters use daily.
+
+    ``Python: Tests`` runs bare pytest while tox measures everything under
+    ``coverage run --module pytest`` — without a coverage debug entry the two
+    paths disagree about what is measured. And without a per-file entry the
+    only way to debug one module is editing the shared config.
+    """
+    launch = _read(render(), ".vscode", "launch.json")
+    body = re.sub(r"(?m)^\s*//.*$", "", launch)
+    configs = {c["name"]: c for c in json.loads(body)["configurations"]}
+    single = configs["Python: Debug Test File"]
+    assert single["module"] == "pytest"
+    assert single["args"][0] == "${file}"
+    covered = configs["Python: Run Tests with Coverage"]
+    assert covered["module"] == "coverage"
+    assert covered["args"][:4] == ["run", "--module", "pytest", "-v"]
+    assert (
+        covered["env"]["COVERAGE_PROCESS_START"]
+        == "${workspaceFolder}/pyproject.toml"
+    )
+
+
 def test_setup_doc_requires_the_aggregate_ci_context(
     render: Callable[..., Path],
 ) -> None:
