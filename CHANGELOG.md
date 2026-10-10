@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.7.0...v1.7.1) (2026-10-10)
+
+
+### 📝 Documentation
+
+* add ADR-037 re-evaluating release automation (research record) ([#195](https://github.com/hasansezertasan/copier-pyproject/issues/195)) ([0a865b1](https://github.com/hasansezertasan/copier-pyproject/commit/0a865b1b07d6d52ad441c8e20b4f59577385e558))
+* add ADR-038 on Sphinx API-reference rendering strategy ([#260](https://github.com/hasansezertasan/copier-pyproject/issues/260)) ([99d5477](https://github.com/hasansezertasan/copier-pyproject/commit/99d5477f2f74dc1daf4ff7d730737b088583cee1))
+
 ## [1.7.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.6.0...v1.7.0) (2026-10-08)
 
 
