@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.8.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.7.0...v1.8.0) (2026-10-10)
+
+
+### 🚀 Features
+
+* **template:** add shfmt formatter hook ([#361](https://github.com/hasansezertasan/copier-pyproject/issues/361)) ([3f11377](https://github.com/hasansezertasan/copier-pyproject/commit/3f11377e93af7b3639a62c4252ab8b399884f0c5))
+* **template:** drop CLAUDE.md and the gemini ai-rulez host ([#360](https://github.com/hasansezertasan/copier-pyproject/issues/360)) ([cbf19ef](https://github.com/hasansezertasan/copier-pyproject/commit/cbf19ef80b7efac7012f4378185b42f27669579a))
+
+
+### 📝 Documentation
+
+* add ADR-037 re-evaluating release automation (research record) ([#195](https://github.com/hasansezertasan/copier-pyproject/issues/195)) ([0a865b1](https://github.com/hasansezertasan/copier-pyproject/commit/0a865b1b07d6d52ad441c8e20b4f59577385e558))
+* add ADR-038 on Sphinx API-reference rendering strategy ([#260](https://github.com/hasansezertasan/copier-pyproject/issues/260)) ([99d5477](https://github.com/hasansezertasan/copier-pyproject/commit/99d5477f2f74dc1daf4ff7d730737b088583cee1))
+* guide adopters to re-apply project-owned overlays on update ([#362](https://github.com/hasansezertasan/copier-pyproject/issues/362)) ([355b28a](https://github.com/hasansezertasan/copier-pyproject/commit/355b28aca5afba4bba0991febb4286ad00e2de14))
+
 ## [1.7.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.6.0...v1.7.0) (2026-10-08)
 
 
