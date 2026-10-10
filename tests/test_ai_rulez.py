@@ -39,9 +39,7 @@ SOURCES = (
 # may come from the template.
 GENERATED = (
     "AGENTS.md",
-    "CLAUDE.md",
     ".github/copilot-instructions.md",
-    ".claude/skills/repo-setup/SKILL.md",
     ".codex/skills/repo-setup/SKILL.md",
     ".github/skills/repo-setup/SKILL.md",
     # Written *inside* the source tree, and still `generate`'s output: it is the
@@ -126,7 +124,7 @@ def test_config_is_pinned_to_the_posture_the_adr_argues(
     assert config["gitignore"] is False
     # Every builtin domain restates or contradicts a CI-enforced gate (ADR-035).
     assert config["builtins"] is False
-    assert config["presets"] == ["claude", "codex", "copilot"]
+    assert config["presets"] == ["codex", "copilot"]
     assert config["header"] == {"timestamp": False}
 
 
@@ -217,7 +215,7 @@ def test_answers_file_stays_lint_clean_with_a_list_answer(
     """
     root = render(include_ai_rulez=True)
     answers = (root / ".copier-answers.yml").read_text(encoding="utf-8")
-    assert "ai_rulez_presets:\n- claude\n" in answers
+    assert "ai_rulez_presets:\n- codex\n" in answers
 
     prek = (root / "prek.toml").read_text(encoding="utf-8")
     for hook in ("yamllint", "yamlfmt"):

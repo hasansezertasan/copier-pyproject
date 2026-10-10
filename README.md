@@ -74,7 +74,7 @@ Copier will prompt for:
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_smokeshow` (opt-in tokenless coverage-HTML host; publishes the combined report to an ephemeral public URL from the `coverage-report` CI job — public repos only, no account or secret)
 - `include_ai_rulez` (author the agent instructions once under `.ai-rulez/` and generate each AI coding host's native config from them via [ai-rulez](https://github.com/Goldziher/ai-rulez), instead of the hand-written `AGENTS.md`; the generated files are committed build output, written by `ai-rulez generate` — see [ADR-035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
-  - `ai_rulez_presets` (asked when `include_ai_rulez`: which hosts to generate for — `claude`, `codex`, `copilot` by default, plus `cursor`/`gemini`/`windsurf`/`cline`/`continue-dev`/`amp`/`junie`/`opencode`/`hermes`/`antigravity`)
+  - `ai_rulez_presets` (asked when `include_ai_rulez`: which hosts to generate for — `codex`, `copilot` by default, plus `claude`/`cursor`/`windsurf`/`cline`/`continue-dev`/`amp`/`junie`/`opencode`/`hermes`/`antigravity`)
 - `include_repo_ruleset` (opt-in branch protection as code — a ruleset + App-free sync workflow enforcing squash-only merges, linear history, and the required CI checks; needs a `REPO_ADMIN_TOKEN` PAT)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
@@ -110,11 +110,12 @@ See [Claude Code's instruction-loading documentation](https://code.claude.com/do
 for the full rules. Opting into `include_ai_rulez` instead generates the
 selected hosts' native instruction files.
 
-On `copier update`, an existing `CLAUDE.md` is preserved so customized
-instructions are not lost. To migrate it manually, move any project-specific
-guidance into `AGENTS.md` and delete `CLAUDE.md` once your sessions meet the
-loading requirements above. An unchanged `@AGENTS.md` wrapper can simply be
-deleted, or retained for compatibility.
+A project first scaffolded from v1.6.0 or earlier carries a `CLAUDE.md` wrapper
+(v1.7.0 stopped rendering it but kept existing copies). `copier update` now
+deletes it, customized or not. Before updating, move any
+project-specific guidance from it into `AGENTS.md` (or, if the same update turns
+on `include_ai_rulez`, into a `.ai-rulez/` rule source, since `AGENTS.md` then
+becomes generated output).
 
 ## Adopt into an existing project (Claude Code plugin)
 

@@ -164,12 +164,12 @@ Optional components (all boolean):
   requests), two context files (commands, external references) and the
   `repo-setup` and `template-adoption` skills — and `ai-rulez generate` fans
   them out to the hosts named
-  by the `ai_rulez_presets` multiselect (default `claude`, `codex`, `copilot`;
-  `cursor`, `gemini`, `windsurf`, `cline`, `continue-dev`, `amp`, `junie`,
+  by the `ai_rulez_presets` multiselect (default `codex`, `copilot` — Claude
+  Code reads `AGENTS.md` natively; `claude`, `cursor`, `windsurf`, `cline`, `continue-dev`, `amp`, `junie`,
   `opencode`, `hermes` and `antigravity` are also offered).
 
   The generated files are **build output the template never renders**:
-  `AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md` and the per-host
+  `AGENTS.md`, `.github/copilot-instructions.md` and the per-host
   copies of the skills appear on the adopter's first `ai-rulez generate` and are
   committed from there on, which keeps `copier update`'s 3-way merge on the
   small rule sources instead of one monolithic instruction file. The prose
@@ -376,11 +376,11 @@ sessions with AGENTS.md support disabled need an adopter-maintained `CLAUDE.md`
 containing `@AGENTS.md`. The template does not render that compatibility wrapper.
 See the [official loading rules](https://code.claude.com/docs/en/memory#when-claude-code-reads-agents-md).
 
-The retired `CLAUDE.md` path is in `copier.yml`'s `_exclude` list: updates
-preserve existing copies, including adopter customizations, while fresh renders
-omit it. Adopters migrating to `AGENTS.md` alone must move any unique guidance
-there before deleting the preserved file; an unchanged import wrapper can be
-deleted once their sessions meet the loading requirements above.
+The retired `CLAUDE.md` wrapper is not excluded: `copier update` deletes the
+copy an older render left behind, including adopter customizations (git history
+keeps them). Only projects with `include_ai_rulez` off ever had it, so their
+`AGENTS.md` is hand-written: move any unique guidance there before updating, or
+into a `.ai-rulez/` rule source if the same update turns the toggle on.
 
 Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
 `node`/`node-date`/`describe-name` `$Format:...$` template). Paired with the
