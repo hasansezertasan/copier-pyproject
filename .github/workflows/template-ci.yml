@@ -43,14 +43,14 @@ jobs:
           # layering paragraphs. `full-preset` also enables the toggle, but only
           # this scenario runs the generator (see the convergence step below).
           #
-          # *Every* offered host, not the three defaults: the convergence gate is
+          # *Every* offered host, not the two defaults: the convergence gate is
           # only as wide as the output it sees, and the defaults happen to emit
           # markdown alone. `cursor` (`.mdc`) and `continue-dev` (YAML) are the
           # two that ever produced output the generated project's own gates
           # rejected, so leaving them out is what let that ship.
           - name: ai-rulez
             data: >-
-              --data include_ai_rulez=true --data include_cli=true --data include_mcp=true --data 'ai_rulez_presets=[claude,codex,copilot,cursor,gemini,windsurf,cline,continue-dev,amp,junie,opencode,hermes,antigravity]'
+              --data include_ai_rulez=true --data include_cli=true --data include_mcp=true --data 'ai_rulez_presets=[claude,codex,copilot,cursor,windsurf,cline,continue-dev,amp,junie,opencode,hermes,antigravity]'
           # Exercise the other web framework and broker branches.
           - name: litestar-kafka
             data: >-

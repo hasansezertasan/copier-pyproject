@@ -22,8 +22,6 @@ _exclude:
   - ".git"
   - ".DS_Store"
   - ".svn"
-  # Retired instruction wrapper: adopters may have added project-specific guidance.
-  - "CLAUDE.md"
   # #321: docstring-only placeholders.
   - "src/{{ github_repo_name }}/utils/app.py"
   - "{% if not primary_component %}src/{{ github_repo_name }}/core/app.py{% endif %}"
@@ -38,7 +36,7 @@ _exclude:
 _message_before_copy: >-
   Pick a preset, then press Enter through the toggles to accept its defaults, or tune any of them. The preset only sets defaults — every toggle is still asked and saved (a few sub-questions stay conditional on their parent toggle).
 _message_after_copy: >-
-  Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, CLAUDE.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions, PyPI trusted publishing).
+  Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions, PyPI trusted publishing).
 # An update that answers `include_ai_rulez` yes — including the first update of a
 # `full`-preset project, where the new question defaults to yes — deletes the
 # copier-managed AGENTS.md and replaces it with `.ai-rulez/` sources
@@ -47,7 +45,7 @@ _message_after_copy: >-
 # so loudly, but only after a push; say it here, while the maintainer is still
 # looking. See ADR-035 "Migrating an existing project" for the reverse direction.
 _message_after_update: >-
-  {% if include_ai_rulez %}This project now authors its agent instructions under .ai-rulez/. Run: (1) uv lock (the new `agents` dependency group) (2) uv run --group agents ai-rulez generate, then commit both — AGENTS.md, CLAUDE.md and the per-host files are build output, so until you do the repository has no agent instruction files and the `hooks` CI job fails.{% endif %}
+  {% if include_ai_rulez %}This project now authors its agent instructions under .ai-rulez/. Run: (1) uv lock (the new `agents` dependency group) (2) uv run --group agents ai-rulez generate, then commit both — AGENTS.md and the per-host files are build output, so until you do the repository has no agent instruction files and the `hooks` CI job fails.{% endif %}
 # ── ① Identity ──────────────────────────────────────────────────────────────
 github_user:
   type: str
@@ -292,12 +290,11 @@ include_ai_rulez:
   type: bool
   default: "{{ 'include_ai_rulez' in preset_map[preset] }}"
   help: >-
-    Author the agent instructions once under .ai-rulez/ and generate each AI coding host's native config from them (ai-rulez)? Off renders the hand-written AGENTS.md and a Claude-only repo-setup skill. On renders the .ai-rulez/ sources instead, and `ai-rulez generate` (a prek hook, plus the after-copy step) writes AGENTS.md, CLAUDE.md, .github/copilot-instructions.md and the per-host copies of the repo-setup skill as committed build output. See ADR-035.
+    Author the agent instructions once under .ai-rulez/ and generate each AI coding host's native config from them (ai-rulez)? Off renders the hand-written AGENTS.md and a Claude-only repo-setup skill. On renders the .ai-rulez/ sources instead, and `ai-rulez generate` (a prek hook, plus the after-copy step) writes AGENTS.md, .github/copilot-instructions.md and the per-host copies of the repo-setup skill as committed build output. See ADR-035.
 ai_rulez_presets:
   type: str
   multiselect: true
   default:
-    - claude
     - codex
     - copilot
   choices:
@@ -305,7 +302,6 @@ ai_rulez_presets:
     - codex
     - copilot
     - cursor
-    - gemini
     - windsurf
     - cline
     - continue-dev
@@ -323,7 +319,7 @@ ai_rulez_presets:
   validator: >-
     {% if include_ai_rulez and not ai_rulez_presets %} Pick at least one host. ai-rulez rejects a config with no presets, so `ai-rulez generate` and the tox `style` env would both fail until one is chosen. {% endif %}
   help: >-
-    Which AI coding hosts should `ai-rulez generate` write native config for? claude renders CLAUDE.md + .claude/, codex renders AGENTS.md + .codex/, copilot renders .github/copilot-instructions.md + .github/skills/ (the one GitHub itself reads server-side). Each extra host adds committed files to the repository root.
+    Which AI coding hosts should `ai-rulez generate` write native config for? codex renders AGENTS.md + .codex/, copilot renders .github/copilot-instructions.md + .github/skills/ (the one GitHub itself reads server-side); both are on by default. Claude Code reads AGENTS.md natively, so claude is opt-in and only adds CLAUDE.md + .claude/ (where Claude Code looks for the repo-setup and template-adoption skills). Each extra host adds committed files to the repository root.
 include_repo_settings:
   type: bool
   default: "{{ 'include_repo_settings' in preset_map[preset] }}"

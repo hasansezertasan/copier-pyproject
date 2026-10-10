@@ -51,34 +51,7 @@ def test_min_copier_version_honors_exclude_on_update() -> None:
     assert Version(str(_config()["_min_copier_version"])) >= Version("9.10.3")
 
 
-def test_update_preserves_customized_retired_claude_file(
-    render: Callable[..., Path],
-) -> None:
-    """Retiring the wrapper must not erase adopter-authored instructions."""
-    root = render(ref="v1.6.0", include_ai_rulez=False)
-    claude_file = root / "CLAUDE.md"
-    assert claude_file.is_file()
-    for args in (("init",), ("add", "."), ("commit", "-m", "Initial scaffold")):
-        subprocess.run(
-            [
-                "git",
-                "-c",
-                "user.name=Template Test",
-                "-c",
-                "user.email=template-test@example.com",
-                *args,
-            ],
-            cwd=root,
-            check=True,
-            capture_output=True,
-        )
-    customized = claude_file.read_text(encoding="utf-8") + (
-        "\n## Project-specific guidance\n\nKeep our custom deployment workflow.\n"
-    )
-    claude_file.write_text(customized, encoding="utf-8")
-    subprocess.run(
-        ["git", "add", "CLAUDE.md"], cwd=root, check=True, capture_output=True
-    )
+def _git(root: Path, *args: str) -> None:
     subprocess.run(
         [
             "git",
@@ -86,16 +59,30 @@ def test_update_preserves_customized_retired_claude_file(
             "user.name=Template Test",
             "-c",
             "user.email=template-test@example.com",
-            "commit",
-            "-m",
-            "Customize project instructions",
+            *args,
         ],
         cwd=root,
         check=True,
         capture_output=True,
     )
 
+
+def test_retired_claude_file_is_not_excluded() -> None:
+    """Claude Code reads ``AGENTS.md`` natively, so the wrapper is not kept."""
+    assert "CLAUDE.md" not in _exclude()
+
+
+def test_update_removes_unchanged_retired_claude_file(
+    render: Callable[..., Path],
+) -> None:
+    """An untouched ``@AGENTS.md`` wrapper from v1.6.0 is deleted on update."""
+    root = render(ref="v1.6.0", include_ai_rulez=False)
+    assert (root / "CLAUDE.md").is_file()
+    _git(root, "init")
+    _git(root, "add", ".")
+    _git(root, "commit", "-m", "Initial scaffold")
+
     copier.run_update(str(root), vcs_ref="HEAD", defaults=True, overwrite=True, quiet=True)
 
-    assert claude_file.read_text(encoding="utf-8") == customized
-    assert not (root / "CLAUDE.md.rej").exists()
+    assert not (root / "CLAUDE.md").exists()
+    assert (root / "AGENTS.md").is_file()

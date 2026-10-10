@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (2026-09). Opt-in via `include_ai_rulez`. Extends
+Accepted (2026-09), amended (2026-10). Opt-in via `include_ai_rulez`. Extends
 [ADR-023](023-repo-setup-skill.md) (the repo-setup skill) beyond Claude, obeys
 [ADR-012](012-cobo-for-gitignore-generation.md)'s sealed `.gitignore`,
 [ADR-003](003-tox-as-canonical-lint-runner.md)'s single lint orchestrator and
@@ -48,13 +48,14 @@ properties make it fit *this* repo rather than merely being a nice tool:
 
 Ship it as an **opt-in toggle**, `include_ai_rulez` (`default: false`, seeded on
 in the `full` preset), with an `ai_rulez_presets` multiselect naming the hosts
-(default `claude`, `codex`, `copilot` — the three that reproduce today's surface
-plus the one GitHub reads itself). With the toggle off, the hand-written
+(default `codex`, `copilot` — `AGENTS.md` plus the one GitHub reads itself; see
+"Amendment (2026-10)" for why `claude` left the defaults). With the toggle off, the hand-written
 `AGENTS.md` and the Claude-only skills render.
 
 The default shape now uses `AGENTS.md` alone, including for Claude Code.
-The former `CLAUDE.md` import wrapper is no longer rendered; the opt-in
-ai-rulez generator still owns its selected hosts' native output files.
+The former `CLAUDE.md` import wrapper is no longer rendered, and is no longer
+preserved on update either (see the amendment below); the opt-in ai-rulez
+generator still owns its selected hosts' native output files.
 
 ### 1. The prose has one source, whichever way it renders
 
@@ -108,7 +109,7 @@ A rule an agent obeys and a gate that fails it must never be two
 separately-maintained sentences. Per-domain `!` exclusions would leave the next
 `ai-rulez` release free to add a contradicting rule to a domain we opted into, so
 the whole set is off and the shipped rules are only ours. The effect is also the
-one this repo wants on size: the generated `CLAUDE.md` is ~60 lines, in keeping
+one this repo wants on size: the generated instruction file is ~60 lines, in keeping
 with the lean-router posture (#214), instead of ~270 lines of generic advice.
 
 ### 4. `gitignore = false` — ai-rulez must not touch `.gitignore`
@@ -160,7 +161,7 @@ repository that never converges: every `prek run` rewriting what the last
 
 The scenario selects **every** offered host, not the three defaults. The width of
 the gate is the width of the output it sees, and the defaults
-(`claude`/`codex`/`copilot`) emit markdown alone — which converges. Two hosts do
+(`codex`/`copilot`) emit markdown alone — which converges. Two hosts do
 not, and both were found only once the scenario covered them:
 
 - `continue-dev` writes the one YAML file ai-rulez emits, and its generated
@@ -244,3 +245,35 @@ ai-rulez block to remove, and `.gitignore` is cobo-sealed (ADR-012).
 - The template now has two agent-instruction shapes to keep working. The macro
   split (step 1) is what keeps that from meaning two copies of the prose, and the
   harness asserts both shapes render.
+
+## Amendment (2026-10): no `CLAUDE.md` by default, no `gemini` host
+
+Claude Code now reads `AGENTS.md` natively, which removes the only reason
+`CLAUDE.md` existed here. Three things follow:
+
+- **The retired wrapper is no longer excluded.** v1.7.0 stopped rendering the
+  `@AGENTS.md` wrapper but listed `CLAUDE.md` in `_exclude`, so updates kept
+  old copies in case an adopter had added guidance to them. That kept a file
+  whose presence makes Claude Code's default mode *skip* `AGENTS.md` — the
+  opposite of what the default shape wants. Now `copier update` deletes the
+  copy a v1.6.0-or-earlier render left behind. A customized copy is deleted
+  too (copier treats a removed template file as removed, edits or not), so the
+  README tells adopters to move unique guidance into `AGENTS.md` first. Git
+  history keeps the old content.
+- **`claude` left the `ai_rulez_presets` defaults** (now `codex`, `copilot`).
+  The `codex` host already writes `AGENTS.md`, so `claude` only adds a duplicate
+  `CLAUDE.md` plus `.claude/`. It is still offered. The cost: by default, the
+  per-host `repo-setup` and `template-adoption` skills no longer reach Claude
+  Code, which looks for skills under `.claude/skills/`. Adopters who want them
+  select `claude`. Recorded answers are kept on update, so existing projects
+  that took the old default still have `claude`.
+- **`gemini` is no longer offered.** The maintainers do not use it, and every
+  offered host widens the `template-ci` convergence scenario (§7) that has to
+  keep passing. Removing a choice has a sharp edge: copier rejects a recorded
+  answer that contains a choice that no longer exists, and on a `--defaults`
+  update (which is what Renovate runs) it **silently** replaces the whole
+  selection with the new defaults. A project that selected `gemini` loses every
+  other host it picked too, and its generated `GEMINI.md`, which copier does not
+  manage, is left stale. Such a project should run
+  `ai-rulez clean --force --keep-gitignore` before updating, as in §8, then
+  re-select its hosts.
