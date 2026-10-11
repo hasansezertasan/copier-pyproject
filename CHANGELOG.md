@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.10.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.9.0...v1.10.0) (2026-10-11)
+
+
+### 🚀 Features
+
+* **template:** add manifest parity audit to template-adoption skill ([#373](https://github.com/hasansezertasan/copier-pyproject/issues/373)) ([269c34f](https://github.com/hasansezertasan/copier-pyproject/commit/269c34f3853712a8b973877c89ec62c152953966))
+
+
+### 🐛 Bug Fixes
+
+* **template:** gate uvx/pipx install options on a runnable component ([#371](https://github.com/hasansezertasan/copier-pyproject/issues/371)) ([4a72980](https://github.com/hasansezertasan/copier-pyproject/commit/4a729800698711eecfd05d3a776598b371d254e5))
+* **template:** run builtin-capable prek hooks natively and drop dead excludes ([#377](https://github.com/hasansezertasan/copier-pyproject/issues/377)) ([c3c7c21](https://github.com/hasansezertasan/copier-pyproject/commit/c3c7c214fcafe6aa87d1b8906c1dd2e48c319bcb))
+* **template:** stop adding the template's own keywords to generated projects ([#375](https://github.com/hasansezertasan/copier-pyproject/issues/375)) ([052d954](https://github.com/hasansezertasan/copier-pyproject/commit/052d954285bd888c5df77b1e0560ef6fc01ce67e))
+
+
+### 👷 CI
+
+* run the render harness in parallel with pytest-xdist ([#366](https://github.com/hasansezertasan/copier-pyproject/issues/366)) ([819c6bd](https://github.com/hasansezertasan/copier-pyproject/commit/819c6bd6040eb5a14357ebc9523d2748aacc9341))
+
 ## [1.9.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.8.0...v1.9.0) (2026-10-10)
 
 
