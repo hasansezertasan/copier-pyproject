@@ -14,37 +14,9 @@ keywords = [
 {%- for keyword in package_keywords.split(",") if keyword.strip() %}
   "{{ keyword.strip() }}",
 {%- endfor %}
-  "command-line",
-  "cli",
-  "package",
-  "metadata",
-  "pypi",
-  "python",
-  "template",
-  "copier",
-  "scaffold",
-  "boilerplate",
-  "uv",
-  "hatch",
-  "tox",
-  "pytest",
-  "ruff",
-  "mypy",
-  "basedpyright",
-  "type-hints",
-  "typed",
-  "modern-python",
-  "ci-cd",
-  "github-actions",
-  "automation",
 {%- if include_docs %}
   "sphinx",
 {%- endif %}
-  "prek",
-  "linting",
-  "testing",
-  "coverage",
-  "release-automation",
 {%- if include_cli and cli_framework == "typer" %}
   "typer",
 {%- endif %}
