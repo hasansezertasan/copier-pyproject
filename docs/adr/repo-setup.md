@@ -12,9 +12,9 @@ The template repository's own setup — squash-only merging with the PR title as
 the commit message, plus `can_approve_pull_request_reviews=true` so
 release-please can open its release PR, with `default_workflow_permissions`
 left at least-privilege `read` — is recorded as two `gh` commands under
-"One-time repo setup" in `docs/template-architecture.md`. The repo-local `.claude/skills/repo-setup/`
-that drove them (ADR-023 §3) is removed. The shipped `repo-setup` skill and the
-plugin `setup` skill are unaffected.
+"One-time repo setup" in `docs/template-architecture.md`. The repo-local
+`.claude/skills/repo-setup/` that drove them (ADR-023 §3) is removed. The
+shipped `repo-setup` skill and the plugin `setup` skill keep their roles.
 
 **Reason:** the setup runs once per repository and has already run —
 release-please has been cutting releases. Afterwards the skill sat in every
