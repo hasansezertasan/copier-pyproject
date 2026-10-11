@@ -73,10 +73,11 @@ would be a churn magnet without added coverage.
 ### Wiring
 
 The suite runs in the existing `render-tests` job of `template-ci.yml` (`uv run
---with pytest --with pytest-regressions --with copier pytest tests/`). No root
-Python project exists — the template repo's tooling is mise-managed — so the
-harness deps come from an ephemeral uv env, consistent with the pre-existing
-render harness.
+--with pytest --with pytest-regressions --with pytest-xdist --with copier pytest
+tests/ -n auto` — parallel, since every test renders into its own `tmp_path`;
+see #365). No root Python project exists — the template repo's tooling is
+mise-managed — so the harness deps come from an ephemeral uv env, consistent
+with the pre-existing render harness.
 
 ## Consequences
 

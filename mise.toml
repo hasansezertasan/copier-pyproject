@@ -33,7 +33,7 @@ run = "uv run --with watchfiles tools/render.py watch"
 
 [tasks.test]
 description = "Run the render-and-inspect harness (ADR-024)"
-run = "uv run --with pytest --with pytest-regressions --with copier pytest tests/"
+run = "uv run --with pytest --with pytest-regressions --with pytest-xdist --with copier pytest tests/ -n auto"
 
 [tasks.test-golden-update]
 description = "Regenerate the golden-file snapshots (review the diff before committing)"
