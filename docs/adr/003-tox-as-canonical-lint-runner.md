@@ -151,3 +151,22 @@ This constraint applies to the Taplo pass, not to every style tool:
 [ADR-032](032-semgrep-sast-in-the-style-env.md) separately accepts Semgrep's
 registry dependency. The formatter-canonical requirement remains in
 [ADR-030](030-generated-files-must-be-formatter-canonical.md).
+
+## The prek gate runs at commit; push-only hooks opt in per hook
+
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5
+**Verification:** corroborated — a hook with no `stages` ran on `pre-commit`, `pre-push`, `commit-msg` and `manual` when `default_stages` was unset
+**Revisit when:** a hook other than `commitizen-branch` needs to run on push
+
+`default_stages` is `["pre-commit"]`. Hooks that belong on push, such as
+`commitizen-branch`, declare `stages` themselves.
+
+**Reason:** `["pre-commit", "pre-push"]` ran every hook without its own stages
+twice per change, including the whole-project type checkers and pylint, and the
+push run added no coverage the commit run lacked.
+
+**Rejected alternative:** dropping `default_stages`. prek then treats every
+stage as the default, so file hooks also run on `commit-msg`.
