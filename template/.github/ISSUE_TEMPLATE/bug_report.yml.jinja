@@ -63,8 +63,22 @@ body:
     id: repro
     attributes:
       label: Steps to reproduce
-      description: >-
+      description: |-
         Minimal, complete steps that let a maintainer reproduce the bug. See https://stackoverflow.com/help/minimal-reproducible-example for guidance.
+
+        A single self-contained script with [PEP 723](https://peps.python.org/pep-0723/) inline metadata is ideal: maintainers can run it with `uv run bug.py`. For example:
+
+        ```python
+        # /// script
+        # dependencies = ["{{github_repo_name}}"]
+        # ///
+        import {{github_repo_name}}
+
+        # Smallest code that triggers the bug.
+        ```
+{#- A description, not a placeholder: a placeholder vanishes on the first
+    keystroke, and a pre-filled value tends to be submitted unchanged.
+    requires-python is left out so it cannot drift from pyproject.toml. #}
 {%- if include_cli %}
       placeholder: |
         1. Run `{{github_repo_name}} --help`
@@ -100,7 +114,9 @@ body:
       label: OS and version
       placeholder: 'Windows 11, macOS 14, Ubuntu 24.04'
     validations:
-      required: true
+{#- Platform matters once the project ships a command or compiled code; for a
+    pure-Python library it rarely does, so it stays optional there. #}
+      required: {{ 'true' if (primary_component or include_c_extensions) else 'false' }}
   - type: dropdown
     id: install-method
     attributes:
@@ -108,8 +124,11 @@ body:
       options:
         - pip
         - uv
+{#- uvx and pipx install and run a command; offer them only when one exists. #}
+{%- if primary_component %}
         - uvx
         - pipx
+{%- endif %}
         - from source
         - other
     validations:

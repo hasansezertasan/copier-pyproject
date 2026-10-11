@@ -348,7 +348,9 @@ Also always included (no toggle): structured GitHub issue forms
 (`.github/ISSUE_TEMPLATE/bug_report.yml` + `feature_request.yml` + `config.yml`,
 the latter disabling blank issues) whose `component` dropdown is Jinja-gated to
 only list enabled runnable components (`include_console_root`/`include_cli`/
-`include_gui`/`include_tui`/`include_web`/`include_mcp`/`include_worker`), a
+`include_gui`/`include_tui`/`include_web`/`include_mcp`/`include_worker`) and
+whose `uvx`/`pipx` install options and required OS field appear only when a
+runnable component (or, for OS, a C extension) makes them meaningful, a
 `pull_request_template.md` with a real task-list checklist (feeding
 `task-completed-check.yml`) and a fillable `Closes #` line (feeding
 `check-linked-issues.yml`), a `SUPPORT.md` community-health file (points to
