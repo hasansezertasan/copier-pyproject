@@ -39,9 +39,8 @@ answer, so a chosen value survives `copier update`.
 
 ### `argparse` renders a dependency-free, contract-equivalent console root
 
-The `argparse` variant is standard-library only — no `typer` in `dependencies`,
-the keyword list, or the mypy hook's `additional_dependencies`. It exposes the
-**same** `version` / `info` commands and, per ADR-019, hangs every enabled
+The `argparse` variant is standard-library only — no `typer` in `dependencies`
+or the keyword list. It exposes the **same** `version` / `info` commands and, per ADR-019, hangs every enabled
 non-primary component off the root as a lazily-imported subcommand
 (`interactive`/`gui`/`web`/`mcp`/`worker`). Two behaviours are held equal to the
 Typer root on purpose:
@@ -69,12 +68,11 @@ it: broken at launch even in a fully synced environment, with the ADR-028 guard
 recommending a `uv sync` that cannot help.
 
 `root_uses_typer` (`copier.yml`, `when: false`) is therefore the single source
-for all three consumers that must agree — the `cli/app.py` branch, the `typer`
-entry in `[project] dependencies`, and the `typer` entry in the isolated
-mirrors-mypy prek hook's `additional_dependencies`. The last one is easy to miss
-because `tox -e style` runs mypy against the project's real venv, where `typer`
-is installed as a runtime dependency; only the isolated hook environment sees the
-gap, and only on the adopter's first `prek run --all-files`.
+for both consumers that must agree — the `cli/app.py` branch and the `typer`
+entry in `[project] dependencies`. A third consumer, the `typer` entry in the
+isolated mirrors-mypy hook's `additional_dependencies`, went away when that hook
+became a local `uv run` hook that sees the project's real environment
+([ADR-005](005-five-type-checkers-basedpyright-strict.md)).
 
 ### The `is_app` gate is kept as-is
 

@@ -35,6 +35,10 @@ def test_generated_hook_coverage(
     assert config["default_stages"] == ["pre-commit", "pre-push"]
     assert "no-commit-to-branch" not in hooks
     assert "check-json5" not in hooks  # Not an ID in either pinned provider.
+    repos = {repo["repo"] for repo in config["repos"]}
+    assert "https://github.com/pre-commit/mirrors-mypy" not in repos
+    assert hooks["mypy"]["entry"] == "uv run --locked --group style mypy"
+    assert hooks["mypy"]["pass_filenames"] is False
     assert "sqlfluff" not in hooks
     assert "djlint" not in hooks
     assert hooks["mixed-line-ending"]["args"] == ["--fix=auto"]

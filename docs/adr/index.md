@@ -8,7 +8,7 @@ Architecture decision records and project rationale; existing ADRs retain their 
 - [002-release-please-for-release-automation.md](002-release-please-for-release-automation.md) — Release automation and shared publication preflights.
 - [003-tox-as-canonical-lint-runner.md](003-tox-as-canonical-lint-runner.md) — Canonical lint orchestration and Taplo schema-fetch constraints.
 - [004-commitizen-as-commit-helper-not-release-tool.md](004-commitizen-as-commit-helper-not-release-tool.md) — Commit authoring and release-tool boundaries.
-- [005-five-type-checkers-basedpyright-strict.md](005-five-type-checkers-basedpyright-strict.md) — Type-checking tools and strictness.
+- [005-five-type-checkers-basedpyright-strict.md](005-five-type-checkers-basedpyright-strict.md) — Type-checking tools and strictness; mypy runs as a local uv hook.
 - [006-sphinx-shibuya-for-documentation.md](006-sphinx-shibuya-for-documentation.md) — Documentation generator and theme.
 - [007-standalone-executable-toggles.md](007-standalone-executable-toggles.md) — Standalone executable packaging choices.
 - [008-worker-broker-testing-strategy.md](008-worker-broker-testing-strategy.md) — Worker broker testing.

@@ -109,3 +109,28 @@ no concession remains.
 - `package` keywords and the `style` toolchain references in `README.md`
   and `AGENTS.md` are updated from `pyright` to
   `basedpyright`/`zuban`.
+
+## mypy's prek hook runs through uv, like basedpyright
+
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** found while adopting the template in openapipages
+**Verification:** corroborated — the mirrors-mypy `rev` (v2.3.0) had drifted from the `style` group's `mypy==2.4.0` pin, and the hook's `files = "^src/"` skipped the `docs/examples` path that `[tool.mypy] files` adds with `include_docs`
+**Revisit when:** mypy needs to run without the project's environment, for example in a hook-only CI job without uv
+
+The mypy prek hook is a `local` `system` hook,
+`uv run --locked --group style mypy`, with `pass_filenames = false`.
+
+**Reason:** the mirrors-mypy hook ran in an isolated venv. It needed a Jinja
+list in `additional_dependencies` copying each component's runtime deps
+(fastapi/litestar, typer, textual, mcp, faststream, pydantic-settings), and a
+missed entry failed only on the adopter's first `prek run --all-files`
+([ADR-020](020-cli-framework-choice.md)). It also carried a second mypy version
+that Renovate bumped separately from the `style` pin, and its own file filter.
+The local hook uses the project's environment, the `style` pin, and
+`[tool.mypy] files`, the same as tox.
+
+**Rejected alternative:** keep mirrors-mypy and add a test that its
+`additional_dependencies` match the runtime deps. That guards one of the three
+drifts and keeps the duplicate version pin.
