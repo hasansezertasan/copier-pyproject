@@ -5,9 +5,11 @@ README, for what Keep the Why actually is.
 <!-- keep-the-why:config -->
 - id: hasansezertasan---copier-pyproject
 - canonical: https://github.com/hasansezertasan/copier-pyproject
-- context: `docs/adr/`
+- context: `context/`
 - init: complete
-- context-schema: 0.20.0
+- context-schema: 0.20.1
 - capture-confirmation: confirm-when-unsure
 - source-reference: never
+- pinned-version: 0.20.1
+- pinned-path: .agents/skills/keep-the-why/SKILL.md
 <!-- /keep-the-why:config -->
