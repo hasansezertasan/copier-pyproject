@@ -431,9 +431,9 @@ setup" guide (`[AGENT]`/`[HUMAN]`/`[CHECK]`-tagged, driven by the shipped
 `repo-setup` skill — [ADR-022](docs/adr/022-maintainer-setup-as-single-doc-home.md),
 [ADR-023](docs/adr/023-repo-setup-skill.md); shipped to Claude alone, or to every
 selected host when `include_ai_rulez`); keep it in sync when these
-requirements change. This repo carries a symmetric repo-local
-`.claude/skills/repo-setup/` for its own bootstrap. Bump rules and this repo's own
-self-versioning are detailed in `docs/template-architecture.md` and ADR-015.
+requirements change. This repo's own two-step setup is the pair of `gh`
+commands under "One-time repo setup" in `docs/template-architecture.md`; bump
+rules and this repo's own self-versioning are detailed there and in ADR-015.
 
 The always-shipped `template-adoption` skill uses the same host delivery path as `repo-setup`; its adoption/update audit and walkthrough are documented in `docs/template-adoption.md`.
 

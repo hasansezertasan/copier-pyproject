@@ -1320,8 +1320,9 @@ Enable via `gh repo edit hasansezertasan/copier-pyproject --enable-squash-merge
 --enable-merge-commit=false --enable-rebase-merge=false` and
 `gh api -X PUT repos/hasansezertasan/copier-pyproject/actions/permissions/workflow
 -f default_workflow_permissions=write -F can_approve_pull_request_reviews=true`.
-This repo carries a repo-local `.claude/skills/repo-setup/` skill that automates
-the walk.
+That `write` deliberately diverges from the generated projects' least-privilege
+`read` — do not copy it into a generated project. Both settings are one-time and
+idempotent to re-apply; re-check them first when the release PR stops opening.
 
 ## Required Merge Strategy (release-please depends on it)
 
@@ -1367,10 +1368,7 @@ deadlocks and reports every gap at once. The
 `[CHECK]` tag is single-sourced in the setup doc alongside `[AGENT]`/`[HUMAN]`
 (no separate `steps.yaml`) — **every new setup step must carry one** (a real
 idempotent check, a secret-presence check, or an explicit `No scriptable check`
-marker). This repo carries a symmetric repo-local `.claude/skills/repo-setup/`
-for its own bootstrap (squash-merge policy + the deliberately-divergent
-`default_workflow_permissions=write`, not the generated projects' `read`). See
-[ADR-023](adr/023-repo-setup-skill.md).
+marker). See [ADR-023](adr/023-repo-setup-skill.md).
 
 Bump rules follow `.github/release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`
