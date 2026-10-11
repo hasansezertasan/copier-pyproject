@@ -10,8 +10,8 @@ on:
   # that step needs no PAT. The containment is the `publish` environment's
   # deployment-branch policy, which GitHub evaluates OUTSIDE this file so a
   # branch edit cannot bypass it — see docs/maintaining/setup.rst
-  # ("PyPI trusted publishing"). Verify that policy is in place rather than
-  # deleting this trigger.
+  # ("Restrict the publish environment to main"). Verify that policy is in
+  # place rather than deleting this trigger.
   workflow_dispatch:
   push:
     branches:
@@ -144,6 +144,7 @@ jobs:
           name: build-provenance
           path: build-provenance.sigstore.json
 {%- endif %}
+{%- if include_pypi_publish %}
   pypi-publish:
     runs-on: ubuntu-latest
     name: Publish to PyPI
@@ -174,6 +175,7 @@ jobs:
 {%- endif %}
       - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
+{%- endif %}
 {%- if include_launcher %}
   build-launcher:
     name: Build Launcher (PyCrucible)
@@ -351,10 +353,15 @@ jobs:
       # Docker Hub publishing is opt-in via the DOCKERHUB_USERNAME/-TOKEN secret
       # pair, which is all-or-nothing: half-configured means the maintainer
       # intended to publish there but it cannot work. This job gates every
+{%- if include_pypi_publish %}
       # publish job (pypi-publish and docker-publish), so an inconsistent
       # configuration blocks the whole publish fan-out up front — otherwise the
       # irreversible PyPI upload could complete while Docker Hub fails, leaving
       # a stranded half-release.
+{%- else %}
+      # publish job (docker-publish), so an inconsistent configuration blocks
+      # the publish fan-out up front instead of failing halfway through it.
+{%- endif %}
       - name: Fail on half-configured Docker Hub credentials
         if: {% raw %}${{ (env.DOCKERHUB_USERNAME != '') != (env.DOCKERHUB_TOKEN_SET == 'true') }}{% endraw %}
         run: |
@@ -468,7 +475,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
     timeout-minutes: 10
-    needs: [release-please, pypi-publish, sbom{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
+    {#- Downloads build's artifacts, so it must order after build. pypi-publish
+        already needs build; without it, nothing else would (ADR-039). #}
+    needs: [release-please, {% if include_pypi_publish %}pypi-publish{% else %}build{% endif %}, sbom{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: write  # IMPORTANT: Mandatory for GitHub Release
@@ -525,7 +534,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Publish the GitHub Release
     timeout-minutes: 10
-    needs: {% if include_web %}[release-please, pypi-publish, attach-github-release, docker-publish]{% else %}[release-please, pypi-publish, attach-github-release]{% endif %}
+    needs: [release-please{% if include_pypi_publish %}, pypi-publish{% endif %}, attach-github-release{% if include_web %}, docker-publish{% endif %}]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: write  # IMPORTANT: Mandatory to un-draft the GitHub Release

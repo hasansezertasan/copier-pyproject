@@ -327,12 +327,18 @@ changelog by hand:
    **release PR** that bumps the version and updates `CHANGELOG.md`.
 2. Merging that release PR tags the commit and publishes the release; the
    version is derived from the git tag via `hatch-vcs`, and the package is
+{%- if include_pypi_publish %}
    published to PyPI through trusted publishing.
+{%- else %}
+   attached to the GitHub Release (wheel and sdist) — it is not published to
+   PyPI.
+{%- endif %}
 
 ### Repository setup (one-time)
 
-The one-time repository setup — squash-merge policy, branch protection, PyPI
-trusted publishing, coverage and docs-site enablement, dependency and template
+The one-time repository setup — squash-merge policy, branch protection,{% if include_pypi_publish %} PyPI
+trusted publishing,{% else %}
+the release environment,{% endif %} coverage and docs-site enablement, dependency and template
 updates, and the optional third-party integrations — is **author/maintainer**
 work, not something a contributor does. It lives in its own home:
 [`docs/maintaining/setup.rst`](../docs/maintaining/setup.rst) (published under

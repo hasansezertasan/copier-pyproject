@@ -65,7 +65,9 @@ a later event has happened:
    `write` scopes) — *not* `write`. Don't copy the template-repo's own `=write`.
 3. **PyPI trusted publishing** — register the **pending** publisher *before* the
    first release, or the first `pypi-publish` job fails. Owner + repo + workflow
-   `release.yml` + environment `publish` must match exactly.
+   `release.yml` + environment `publish` must match exactly. Skip this step when
+   `.copier-answers.yml` has `include_pypi_publish: false` — the release then
+   ships on GitHub Releases only and renders no `pypi-publish` job.
 4. **Branch protection / required status checks** — set the five contexts by name
    (`check`, `Validate PR title`, `Validate branch name`, `Verify linked issue`,
    `Task Completed Checker`). `check` is `ci.yml`'s aggregate gate and the only
@@ -89,7 +91,8 @@ a later event has happened:
    `workflow_dispatch`, and a manual run executes the workflow file *from the
    selected branch*, so the in-file `release_created` guard cannot stop someone
    with write access from dispatching a guard-free copy off an unprotected branch
-   and minting a PyPI token from `pypi-publish`'s `id-token: write`. The trigger
+   and minting a PyPI token from `pypi-publish`'s `id-token: write` (or, with
+   PyPI off, attestations from `build`'s). The trigger
    is load-bearing (`finalize-release` re-dispatches through it), so the
    containment is the environment's deployment-branch policy, which GitHub
    evaluates outside the workflow file. Do it *before* the first release: GitHub

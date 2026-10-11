@@ -198,9 +198,18 @@ Optional components (all boolean):
   ai-rulez owns (`.mdc` and `.continue/prompts/`) — those excludes render only
   under the toggle. See
   [ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md).
+- `include_pypi_publish` - publish to PyPI on each release via trusted
+  publishing; on in every preset. Off drops the `pypi-publish` release job,
+  the PyPI publisher setup step, the README PyPI badges and Analysis links, and
+  points the install docs at `git+https://github.com/<user>/<repo>`; wheels
+  and sdists still attach to every GitHub Release. Because a Homebrew formula
+  and a Scoop pipx manifest install from PyPI, the hidden
+  `can_distribute_natively` (`is_app` and PyPI-or-an-executable) gates both
+  distribution toggles. See
+  [ADR-039](adr/039-optional-pypi-publishing.md).
 - `include_homebrew` - Homebrew tap distribution, `default: false` and
-  `when: "{{ is_app }}"`-gated (only offered for app-like projects, not a
-  library). The generated
+  `when: "{{ can_distribute_natively }}"`-gated (only offered for app-like
+  projects that publish to PyPI or build an executable, not a library). The generated
   project does not build a formula/cask itself: its `release.yml` fires a
   `repository_dispatch` (`update-formula`/`update-cask`) at the owner's own
   `homebrew-tap` repo, which owns the manifest logic via `brew
@@ -991,7 +1000,12 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `include_c_extensions` is set, runs as a per-platform `fail-fast: false`
      matrix (Ubuntu/Windows/macOS) producing and attesting the multi-platform
      Cython wheels + sdist; `pypi-publish` uploads the distributions only.
-   - `pypi-publish`: trusted publishing (`id-token: write`, environment `publish`).
+   - `pypi-publish` (when `include_pypi_publish`, on in every preset): trusted
+     publishing (`id-token: write`, environment `publish`). Off, the job and its
+     `needs` edges are not rendered; `build` keeps the `publish` environment for
+     attestation minting, and the distributions still reach the GitHub Release
+     through `attach-github-release`
+     ([ADR-039](adr/039-optional-pypi-publishing.md)).
    - `build-launcher` (when `include_launcher`, PyCrucible) / `build-freezer`
      (when `include_freezer`, PyInstaller) / `build-compiler` (when
      `include_compiler`, Nuitka) / `docker-publish` (when
@@ -1364,7 +1378,7 @@ keeps breaking changes at a minor bump while pre-1.0.
 
 ## PyPI Trusted Publishing Setup
 
-For generated projects to publish to PyPI:
+For generated projects to publish to PyPI (only when `include_pypi_publish`):
 
 1. Go to <https://pypi.org/manage/account/publishing/>
 2. Add pending publisher with:

@@ -45,8 +45,9 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
    standard install fields (top-level `version`, `url`, `hash`, `bin`, etc.).
    Copy a full example from the reference bucket
    [`hasansezertasan/scoop-bucket`](https://github.com/hasansezertasan/scoop-bucket)
-   (`bucket/{{github_repo_name}}.json` / `bucket/{{github_repo_name}}-pipx.json`
+   (`bucket/{{github_repo_name}}.json`{% if include_pypi_publish %} / `bucket/{{github_repo_name}}-pipx.json`{% endif %}
    shapes) and adapt it, rather than trying to complete these fragments by hand:
+{%- if include_pypi_publish %}
 
    - A **pipx manifest** for the PyPI install — `installer.script` runs
      `pipx install {{github_repo_name}}==$version`, and `checkver` polls
@@ -67,6 +68,7 @@ bucket repository, using the bucket's own `GITHUB_TOKEN`.
      See keycast's
      [`bucket/keycast-pipx.json`](https://github.com/hasansezertasan/scoop-bucket/blob/main/bucket/keycast-pipx.json)
      for a full manifest to copy and adapt.
+{%- endif %}
 {%- if primary_executable %}
 
    - A **binary manifest** pointing at the GitHub release asset the

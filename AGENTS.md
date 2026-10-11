@@ -241,7 +241,8 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_smokeshow` | tokenless coverage-HTML host (smokeshow step in the `coverage-combine` job; public repos only) | [026](docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md) |
 | `include_megalinter` | MegaLinter lean-complement CI layer | [013](docs/adr/013-megalinter-opt-in-lean-complement.md) |
 | `include_ai_rulez` | agent instructions authored once under `.ai-rulez/` and generated per host (`ai_rulez_presets`); replaces the hand-written `AGENTS.md`, and the generated files are build output the template never renders | [035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md) |
-| `include_homebrew` | Homebrew tap dispatch (`is_app`-gated) | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
+| `include_pypi_publish` | PyPI trusted publishing on release (default-on every preset); off ships GitHub Releases only and gates out a PyPI-backed Homebrew/Scoop | [039](docs/adr/039-optional-pypi-publishing.md) |
+| `include_homebrew` | Homebrew tap dispatch (`can_distribute_natively`-gated) | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
 | `include_scoop` | Scoop bucket dispatch | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
 | `include_repo_settings` | `.github/settings.yml` via Settings App | [018](docs/adr/018-repository-settings-as-code.md) |
 | `include_repo_ruleset` | branch-protection `ruleset-sync.yml` (`full` preset) | [021](docs/adr/021-repository-ruleset-as-code.md) |

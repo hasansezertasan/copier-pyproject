@@ -13,17 +13,17 @@ preferred tool installer:
 
 .. code-block:: sh
 
-   uv tool install {{github_repo_name}}
+   uv tool install {% if include_pypi_publish %}{{github_repo_name}}{% else %}git+https://github.com/{{github_user}}/{{github_repo_name}}{% endif %}
 
 .. code-block:: sh
 
-   pipx install {{github_repo_name}}
+   pipx install {% if include_pypi_publish %}{{github_repo_name}}{% else %}git+https://github.com/{{github_user}}/{{github_repo_name}}{% endif %}
 
 Or run it without installing:
 
 .. code-block:: sh
 
-   uvx {{github_repo_name}}
+   uvx {% if include_pypi_publish %}{{github_repo_name}}{% else %}--from git+https://github.com/{{github_user}}/{{github_repo_name}} {{github_repo_name}}{% endif %}
 {% if include_homebrew %}
 Homebrew (macOS/Linux):
 
@@ -50,16 +50,23 @@ terminal:
 
 .. code-block:: sh
 
-   uv add {{github_repo_name}}
+   uv add {% if include_pypi_publish %}{{github_repo_name}}{% else %}git+https://github.com/{{github_user}}/{{github_repo_name}}{% endif %}
 
 Or if you prefer to use ``pip``:
 
 .. code-block:: sh
 
-   pip install {{github_repo_name}}
+   pip install {% if include_pypi_publish %}{{github_repo_name}}{% else %}git+https://github.com/{{github_user}}/{{github_repo_name}}{% endif %}
+{% endif %}
+{%- if not include_pypi_publish %}
+``{{github_repo_name}}`` is not published to PyPI, so it installs from its Git
+repository; append ``@<tag>`` to the URL to pin a release. Each
+`GitHub Release <https://github.com/{{github_user}}/{{github_repo_name}}/releases>`_
+also carries the wheel and source distribution.
 {% endif %}
 Verify release provenance
 -------------------------
+{%- if include_pypi_publish %}
 
 The release workflow uses two complementary attestation mechanisms:
 
@@ -75,6 +82,12 @@ The publication claim does not replace the structured build-provenance claim.
 Both refer to the distribution bytes transferred from the build job, without an
 intervening rebuild. See `PyPI's attestation documentation
 <https://docs.pypi.org/attestations/>`_ for the index-hosted publication claim.
+{%- else %}
+
+The release workflow records GitHub build attestations: SLSA provenance for the
+distributions when they are built, including workflow and source information.
+Their Sigstore bundles are also attached to the GitHub Release.
+{%- endif %}
 
 After downloading a wheel or source distribution, verify its GitHub build
 attestation against this repository's release workflow and ``main`` ref:
@@ -103,11 +116,13 @@ Fully offline verification also needs trusted-root material; see
 
 GitHub build attestations are available for public repositories on current
 GitHub plans. Private and internal repositories require GitHub Enterprise Cloud
-and the repository variable ``ENABLE_PRIVATE_ATTESTATIONS=true``. This opt-in
+and the repository variable ``ENABLE_PRIVATE_ATTESTATIONS=true``.
+{%- if include_pypi_publish %} This opt-in
 applies to GitHub build attestations, not PyPI's publication attestations. PyPI's
 default attestation path requires Trusted Publishing and uses public Sigstore
 infrastructure; publication with an API token or an explicit attestation opt-out
 does not generate those attestations automatically.
+{%- endif %}
 
 From source
 -----------
