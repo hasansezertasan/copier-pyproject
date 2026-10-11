@@ -12,21 +12,8 @@ default_language_version.python = "python3.10"
 default_stages = ["pre-commit", "pre-push"]
 exclude = '''(?x)^(
     # Editor/debugger JSON configs that carry comments or trailing commas
-    \.devcontainer/devcontainer\.json$
-    |\.vscode/launch\.json$
-
-    # VCS and Python build/virtualenv directories
-    |\.git
-    |\.hg
-    |\.mypy_cache
-    |\.nox
-    |\.tox
-    |\.venv
-    |_build
-    |buck-out
-    |build
-    |dist
-    |alembic
+    \.devcontainer/devcontainer\.json
+    |\.vscode/launch\.json
 )$'''
 
 # Fast Rust-native reimplementations of common pre-commit-hooks. No git clone.
@@ -58,15 +45,6 @@ hooks = [
   ] },
   { id = "check-case-conflict" },
   { id = "detect-private-key" },
-]
-
-# check-yaml, debug-statements and check-ast have no Rust builtin (they need a
-# YAML loader / the Python AST), so they stay on the upstream repo. prek runs
-# them correctly, just without the builtin fast path.
-[[repos]]
-repo = "https://github.com/pre-commit/pre-commit-hooks"
-rev = "v6.0.0"
-hooks = [
   { id = "check-yaml" },
   { id = "check-executables-have-shebangs" },
   { id = "check-symlinks" },
@@ -82,6 +60,14 @@ hooks = [
   { id = "mixed-line-ending", args = ["--fix=auto"], exclude = '^\.gitignore$' },
 {%- endif %}
   # auto fixes mixed endings, retaining consistent CRLF for Windows scripts.
+]
+
+# debug-statements and check-ast have no prek builtin (they need the Python
+# AST), so they stay on the upstream repo.
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v6.0.0"
+hooks = [
   { id = "debug-statements" },
   { id = "check-ast" },
 ]
