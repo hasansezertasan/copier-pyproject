@@ -104,6 +104,7 @@ Architecture decision records and project rationale; existing ADRs retain their 
 
 ## R
 
+- [repo-setup.md](repo-setup.md) — This repository's own one-time setup and why it has no repo-local skill.
 - [runtime-logging.md](runtime-logging.md) — Console-only degradation, home-directory resolution, and logging ownership boundaries.
 
 ## S

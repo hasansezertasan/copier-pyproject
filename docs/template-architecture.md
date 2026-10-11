@@ -1317,11 +1317,20 @@ title is what release-please parses on `main`, and **Settings → Actions → Ge
 requests** must be enabled so `release.yml` can open its release PR (already
 required by the existing PR-opening automation such as `gitignore-drift.yml`).
 Enable via `gh repo edit hasansezertasan/copier-pyproject --enable-squash-merge
---enable-merge-commit=false --enable-rebase-merge=false` and
+--enable-merge-commit=false --enable-rebase-merge=false
+--squash-merge-commit-message=pr-title` and
 `gh api -X PUT repos/hasansezertasan/copier-pyproject/actions/permissions/workflow
--f default_workflow_permissions=write -F can_approve_pull_request_reviews=true`.
-This repo carries a repo-local `.claude/skills/repo-setup/` skill that automates
-the walk.
+-f default_workflow_permissions=read -F can_approve_pull_request_reviews=true`.
+The default stays least-privilege `read`, as in generated projects: every
+workflow declares its own `permissions:`, and `release.yml`'s `release-please`
+job grants itself the `write` scopes it needs. Both settings are one-time and
+idempotent to re-apply (in a fork, substitute its `OWNER/REPO` in every command);
+re-check them first when the release PR stops opening:
+`gh api repos/hasansezertasan/copier-pyproject --jq '.allow_squash_merge and
+(.allow_merge_commit | not) and (.allow_rebase_merge | not) and
+.squash_merge_commit_title == "PR_TITLE"'` must print `true`, and
+`gh api repos/hasansezertasan/copier-pyproject/actions/permissions/workflow`
+must report `read` and `true`.
 
 ## Required Merge Strategy (release-please depends on it)
 
@@ -1367,10 +1376,7 @@ deadlocks and reports every gap at once. The
 `[CHECK]` tag is single-sourced in the setup doc alongside `[AGENT]`/`[HUMAN]`
 (no separate `steps.yaml`) — **every new setup step must carry one** (a real
 idempotent check, a secret-presence check, or an explicit `No scriptable check`
-marker). This repo carries a symmetric repo-local `.claude/skills/repo-setup/`
-for its own bootstrap (squash-merge policy + the deliberately-divergent
-`default_workflow_permissions=write`, not the generated projects' `read`). See
-[ADR-023](adr/023-repo-setup-skill.md).
+marker). See [ADR-023](adr/023-repo-setup-skill.md).
 
 Bump rules follow `.github/release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`

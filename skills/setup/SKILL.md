@@ -62,7 +62,7 @@ a later event has happened:
    (opening the release PR) **and** the all-contributors workflow. Note the
    generated project uses **least-privilege `default_workflow_permissions=read`**
    with `can_approve_pull_request_reviews=true` (per-job workflows grant their own
-   `write` scopes) — *not* `write`. Don't copy the template-repo's own `=write`.
+   `write` scopes) — *not* `write`.
 3. **PyPI trusted publishing** — register the **pending** publisher *before* the
    first release, or the first `pypi-publish` job fails. Owner + repo + workflow
    `release.yml` + environment `publish` must match exactly. Skip this step when
@@ -161,7 +161,7 @@ this skill is the cross-project guide (dependency order, timing traps, gotchas).
 
 | # | Gotcha | Fix |
 |---|--------|-----|
-| 1 | `default_workflow_permissions` — copying the **template repo's** `=write` into a **generated** project | Generated projects use least-privilege **`read`** + `can_approve_pull_request_reviews=true`; per-job workflows grant their own write scopes |
+| 1 | `default_workflow_permissions` — setting it to `write` because release-please needs to write | Generated projects use least-privilege **`read`** + `can_approve_pull_request_reviews=true`; per-job workflows grant their own write scopes |
 | 2 | Status-check contexts don't appear in the branch-protection **UI picker** until each check has run once | Use the `gh api .../protection` call (sets by name up-front), or open one throwaway PR first |
 | 2a | Protection applied before the scaffolding lands → the **first PR can never satisfy it** (the four `pull_request_target` checks come from the base branch, which doesn't have them yet) | Apply protection after that first merge, or admin-merge it once |
 | 2b | A **release PR reports no contexts at all** — release-please's `GITHUB_TOKEN` events start no workflow runs | Close and reopen the PR as a human (`reopened` fires all five); editing the body misses two of them |
@@ -192,5 +192,5 @@ this skill is the cross-project guide (dependency order, timing traps, gotchas).
   `gh-pages` branch doesn't exist yet.
 - **Registering the PyPI publisher after the first tag.** The first release's
   publish job needs the *pending* publisher already there.
-- **Copying the template repo's `default_workflow_permissions=write`.** Generated
-  projects are least-privilege `read` + approve-PRs.
+- **Setting `default_workflow_permissions=write`.** Generated projects (and the
+  template repo itself) are least-privilege `read` + approve-PRs.
