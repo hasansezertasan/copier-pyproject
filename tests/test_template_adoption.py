@@ -33,6 +33,10 @@ def test_adoption_skill_delivery(
         "cobo-managed `.gitignore`",
         "Ask before removing a check",
         "per-check coverage classifications",
+        "Manifest parity (`pyproject.toml`)",
+        "a lower rendered pin is a downgrade",
+        "Trim template leftovers",
+        "manifest-parity map",
     ):
         assert requirement in text
     readme = (root / "README.md").read_text(encoding="utf-8")

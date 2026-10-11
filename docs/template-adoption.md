@@ -80,3 +80,17 @@ The [generated-project check audit](hook-coverage.md) records the default
 decisions and known non-equivalences for this template. A passing CI run does not
 prove an old check was replaced, or that an independent security job is required
 by branch protection.
+
+## Manifest parity audit
+
+Adoption replaces the project's `pyproject.toml` wholesale and reorders its
+tables, so a raw diff hides what was lost behind what moved. The generated skill
+compares the manifest table by table and maps every removed env-manager entry
+point (Hatch/PDM/nox envs and scripts) to the tox env, mise task, or CI step that
+replaces it, including on-demand ones such as e2e and coverage reporting. It
+classifies removed dev dependencies, flags rendered pins that are older than the
+project's, and checks that pytest strictness and type-checker scope did not
+narrow. It also checks runtime dependencies against actual imports, metadata,
+and version continuity from the last release tag. Template leftovers, such as the
+template's own keywords and ignores for components the project did not enable,
+are trimmed only after rerunning the tool proves them unused.
