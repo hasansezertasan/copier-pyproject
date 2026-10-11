@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.11.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.10.0...v1.11.0) (2026-10-11)
+
+
+### 🚀 Features
+
+* **template:** make PyPI publishing optional ([#384](https://github.com/hasansezertasan/copier-pyproject/issues/384)) ([c076170](https://github.com/hasansezertasan/copier-pyproject/commit/c076170518208a5924aadbe78069729775952973))
+
+
+### 🐛 Bug Fixes
+
+* **template:** install every tox env from uv.lock via uv-venv-lock-runner ([#385](https://github.com/hasansezertasan/copier-pyproject/issues/385)) ([05e905f](https://github.com/hasansezertasan/copier-pyproject/commit/05e905fb098667f3bd3bf564daf83e980505709d))
+* **template:** run mypy's prek hook through uv instead of mirrors-mypy ([#381](https://github.com/hasansezertasan/copier-pyproject/issues/381)) ([a573b53](https://github.com/hasansezertasan/copier-pyproject/commit/a573b534fa484230d890709dc25addfe8f3f079f))
+* **template:** run prek's default hook stage at commit only and use ruff-check ([#379](https://github.com/hasansezertasan/copier-pyproject/issues/379)) ([852ee16](https://github.com/hasansezertasan/copier-pyproject/commit/852ee16a3395cb07066b987a6c0199e7cf0785d7))
+
 ## [1.10.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.9.0...v1.10.0) (2026-10-11)
 
 
