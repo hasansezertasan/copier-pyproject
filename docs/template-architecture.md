@@ -1324,7 +1324,8 @@ Enable via `gh repo edit hasansezertasan/copier-pyproject --enable-squash-merge
 The default stays least-privilege `read`, as in generated projects: every
 workflow declares its own `permissions:`, and `release.yml`'s `release-please`
 job grants itself the `write` scopes it needs. Both settings are one-time and
-idempotent to re-apply; re-check them first when the release PR stops opening:
+idempotent to re-apply (in a fork, substitute its `OWNER/REPO` in every command);
+re-check them first when the release PR stops opening:
 `gh api repos/hasansezertasan/copier-pyproject --jq '.allow_squash_merge and
 (.allow_merge_commit | not) and (.allow_rebase_merge | not) and
 .squash_merge_commit_title == "PR_TITLE"'` must print `true`, and

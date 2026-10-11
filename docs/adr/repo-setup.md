@@ -24,4 +24,4 @@ carries.
 
 **Rejected alternative:** keep it as an idempotent verifier for when the
 release PR stops opening, or for a fork — re-running the two documented
-commands covers that by hand.
+commands (with the fork's `OWNER/REPO` substituted) covers that by hand.
