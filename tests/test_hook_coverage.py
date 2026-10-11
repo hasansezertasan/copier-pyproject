@@ -32,7 +32,9 @@ def test_generated_hook_coverage(
         "check-dependabot",
     }
     assert expected <= hooks.keys()
-    assert config["default_stages"] == ["pre-commit", "pre-push"]
+    assert config["default_stages"] == ["pre-commit"]
+    assert "ruff-check" in hooks
+    assert "ruff" not in hooks  # Legacy alias upstream.
     assert "no-commit-to-branch" not in hooks
     assert "check-json5" not in hooks  # Not an ID in either pinned provider.
     assert "sqlfluff" not in hooks
