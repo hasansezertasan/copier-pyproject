@@ -79,6 +79,38 @@ def test_preset_pyproject_is_valid_toml(
     _assert_pyproject_is_toml(render(preset=preset))
 
 
+# tox-uv's lock runner accepts only these `package` values (no `sdist`).
+_LOCK_RUNNER_PACKAGES = {"editable", "wheel", "skip", "uv", "uv-editable"}
+
+
+@pytest.mark.parametrize(
+    "answers",
+    [{"preset": preset} for preset in PRESETS]
+    + [{"preset": "full", "include_c_extensions": True}],
+    ids=[*PRESETS, "c-extensions"],
+)
+def test_every_tox_env_installs_from_the_lockfile(
+    render: Callable[..., Path], answers: dict[str, Any]
+) -> None:
+    """Every tox env uses ``uv-venv-lock-runner`` (issue #370).
+
+    The plain ``uv-venv-runner`` resolves the project's dependencies fresh, so
+    ``use_frozen_constraints`` was dead config and the envs drifted from
+    ``uv.lock``. The constraint knobs only that runner reads must not come back.
+    """
+    pyproject = tomllib.loads(
+        (render(**answers) / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    tox = pyproject["tool"]["tox"]
+    base = tox["env_run_base"]
+    assert base["runner"] == "uv-venv-lock-runner"
+    for name, env in {"env_run_base": base, **tox["env"]}.items():
+        assert env.get("runner", base["runner"]) == "uv-venv-lock-runner", name
+        assert env.get("package", base["package"]) in _LOCK_RUNNER_PACKAGES, name
+        dead = {"constrain_package_deps", "use_frozen_constraints", "wheel_build_env"}
+        assert not dead & env.keys(), name
+
+
 def test_root_toml_has_no_schema_directive(render: Callable[..., Path]) -> None:
     """No root TOML makes the ``style`` env's ``taplo lint`` hit the network.
 
