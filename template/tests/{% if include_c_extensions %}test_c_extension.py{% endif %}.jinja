@@ -3,8 +3,8 @@
 The package ``__init__`` swallows a missing-extension ``ImportError`` with a
 warning, so the import-only smoke test passes even when the extension is
 absent. These tests exercise the compiled symbols directly to catch a build
-that compiles but misbehaves. Under ``tox`` the package is installed from an
-sdist, so the extension is always compiled and these run; ``importorskip``
+that compiles but misbehaves. Under ``tox`` the package is built and installed
+non-editable, so the extension is always compiled and these run; ``importorskip``
 keeps them from failing in editable dev installs where it is not built.
 """
 
