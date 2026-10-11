@@ -95,6 +95,13 @@ hooks = [
 repo = "local"
 hooks = [
   { id = "basedpyright", name = "basedpyright Type Checker", entry = "uv run --locked --group style basedpyright", language = "system", types = ["python"], pass_filenames = false },
+  # mypy needs the installed package + deps to resolve third-party imports, so
+  # like basedpyright it is a `local` `system` hook via `uv run` rather than
+  # mirrors-mypy's isolated venv, which needed a hand-kept copy of every
+  # component's runtime deps in `additional_dependencies` (see ADR-005).
+  # Filenames are not passed: mypy checks the `[tool.mypy] files` set, matching
+  # tox's canonical run. Single version source: the `style` group pin.
+  { id = "mypy", name = "mypy Type Checker", entry = "uv run --locked --group style mypy", language = "system", types = ["python"], pass_filenames = false },
   # pylint runs as a whole-package gate (`pylint src`) that deliberately overlaps
   # ruff's PL* rules. Like basedpyright it needs the installed package + deps to
   # resolve imports, so it is a `local` `system` hook via `uv run`, not an upstream
@@ -153,36 +160,6 @@ hooks = [
   # — including when someone hand-edits a generated file the gate does not match.
   { id = "ai-rulez", name = "ai-rulez (regenerate agent instruction files)", entry = "uv run --locked --group agents ai-rulez generate", language = "system", files = '^\.ai-rulez/', pass_filenames = false },
 {%- endif %}
-]
-
-[[repos]]
-repo = "https://github.com/pre-commit/mirrors-mypy"
-rev = "v2.3.0"
-hooks = [
-  # Scope the hook to src/ to match tox's canonical mypy (which type-checks only
-  # src/). Without this, the hook passes every changed .py file, which
-{%- if include_examples %} (a) trips
-  # mypy's duplicate-module check on the sibling examples/*/main.py demo scripts
-  # and (b) surfaces strict-decorator errors in tests/ that the canonical run
-  # never checks — neither is part of the shipped, type-checked surface.
-{%- else %} surfaces
-  # strict-decorator errors in tests/ that the canonical run never checks — not
-  # part of the shipped, type-checked surface.
-{%- endif %}
-{%- set _mypy_deps = [] %}
-{%- if include_web %}{% set _ = _mypy_deps.append("fastapi" if web_framework == "fastapi" else "litestar") %}{% endif %}
-{#- ``root_uses_typer``, not ``cli_framework == "typer"``: the console root is
-    the Typer one whenever it exists and an explicit argparse choice was not
-    made, which now includes a web-only project. This hook runs mypy in an
-    isolated env, so a missed entry here is a missing-import failure on the
-    adopter's first ``prek run --all-files`` even though ``tox -e style``
-    passes. Same single source as the ``typer`` runtime dependency. -#}
-{%- if root_uses_typer %}{% set _ = _mypy_deps.append("typer") %}{% endif %}
-{%- if include_tui %}{% set _ = _mypy_deps.append("textual") %}{% endif %}
-{%- if include_mcp %}{% set _ = _mypy_deps.append("mcp>=1.0.0,<2") %}{% endif %}
-{%- if include_worker %}{% set _ = _mypy_deps.append("faststream[" ~ ('rabbit' if worker_broker == 'rabbitmq' else worker_broker) ~ "]") %}{% endif %}
-{%- if include_pydantic_settings %}{% set _ = _mypy_deps.append("pydantic-settings") %}{% endif %}
-  { id = "mypy", files = "^src/", additional_dependencies = [{% for dep in _mypy_deps %}"{{ dep }}"{% if not loop.last %}, {% endif %}{% endfor %}] },
 ]
 
 [[repos]]
