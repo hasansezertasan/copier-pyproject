@@ -475,7 +475,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Attach Build Artifacts to GitHub Release
     timeout-minutes: 10
-    needs: [release-please{% if include_pypi_publish %}, pypi-publish{% endif %}, sbom{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
+    {#- Downloads build's artifacts, so it must order after build. pypi-publish
+        already needs build; without it, nothing else would (ADR-039). #}
+    needs: [release-please, {% if include_pypi_publish %}pypi-publish{% else %}build{% endif %}, sbom{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
       contents: write  # IMPORTANT: Mandatory for GitHub Release

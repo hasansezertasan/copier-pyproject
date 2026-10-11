@@ -43,6 +43,24 @@ def _assert_needs_resolve(jobs: dict[str, Any]) -> None:
         assert not missing, f"{name} needs unrendered job(s) {sorted(missing)}"
 
 
+def _ancestors(jobs: dict[str, Any], name: str) -> set[str]:
+    """Every job ``name`` waits for, directly or through another job."""
+    seen: set[str] = set()
+    stack = _needs(jobs[name])
+    while stack:
+        job = stack.pop()
+        if job not in seen:
+            seen.add(job)
+            stack.extend(_needs(jobs[job]))
+    return seen
+
+
+def _assert_release_graph(jobs: dict[str, Any]) -> None:
+    _assert_needs_resolve(jobs)
+    # attach-github-release downloads build's artifacts, so it must wait for it.
+    assert "build" in _ancestors(jobs, "attach-github-release")
+
+
 @pytest.mark.parametrize("preset", ["library", "tool", "web", "full"])
 def test_every_preset_publishes_to_pypi(
     render: Callable[..., Path], preset: str
@@ -53,7 +71,7 @@ def test_every_preset_publishes_to_pypi(
     assert "pypi-publish" in jobs
     assert "pypi-publish" in _needs(jobs["attach-github-release"])
     assert "pypi-publish" in _needs(jobs["finalize-release"])
-    _assert_needs_resolve(jobs)
+    _assert_release_graph(jobs)
 
 
 def test_off_drops_the_publish_job_but_keeps_the_release(
@@ -63,7 +81,7 @@ def test_off_drops_the_publish_job_but_keeps_the_release(
     root = render(preset="web", include_pypi_publish=False)
     jobs = _release_jobs(root)
     assert "pypi-publish" not in jobs
-    _assert_needs_resolve(jobs)
+    _assert_release_graph(jobs)
     assert _needs(jobs["finalize-release"]) == [
         "release-please",
         "attach-github-release",
@@ -80,7 +98,9 @@ def test_off_drops_the_publish_job_but_keeps_the_release(
 def test_off_points_library_docs_at_the_git_repository(
     render: Callable[..., Path],
 ) -> None:
+    # No executable either, so only build orders attach-github-release.
     root = render(preset="library", include_pypi_publish=False)
+    _assert_release_graph(_release_jobs(root))
     readme = _read(root, "README.md")
     assert "pypi.org" not in readme
     assert "img.shields.io/pypi" not in readme
@@ -133,6 +153,11 @@ def test_off_with_executable_keeps_homebrew_and_scoop(
     render: Callable[..., Path],
 ) -> None:
     # A cask / binary manifest is fetched from the GitHub Release instead.
-    answers = _answers(render(preset="full", include_pypi_publish=False))
+    root = render(preset="full", include_pypi_publish=False)
+    answers = _answers(root)
     assert answers["include_homebrew"] is True
     assert answers["include_scoop"] is True
+    scoop = _read(root, "docs", "packaging", "scoop-bucket", "README.md")
+    assert "binary manifest" in scoop
+    assert "pipx" not in scoop
+    assert "pypi.org" not in scoop
