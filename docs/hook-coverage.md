@@ -12,6 +12,8 @@ CI's `prek run --all-files` hooks job.
 Hook IDs and selectors were verified in the pinned upstream manifests:
 [pre-commit-hooks v6.0.0](https://github.com/pre-commit/pre-commit-hooks/blob/v6.0.0/.pre-commit-hooks.yaml)
 and [check-jsonschema 0.37.4](https://github.com/python-jsonschema/check-jsonschema/blob/0.37.4/.pre-commit-hooks.yaml).
+The pre-commit-hooks IDs that prek reimplements natively run from `repo = "builtin"`;
+only `debug-statements` and `check-ast` have no builtin and stay on the upstream repo.
 Absent applicable files make file-scoped hooks no-ops.
 
 | Candidate | Decision and scope |
