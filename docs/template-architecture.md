@@ -1317,12 +1317,19 @@ title is what release-please parses on `main`, and **Settings → Actions → Ge
 requests** must be enabled so `release.yml` can open its release PR (already
 required by the existing PR-opening automation such as `gitignore-drift.yml`).
 Enable via `gh repo edit hasansezertasan/copier-pyproject --enable-squash-merge
---enable-merge-commit=false --enable-rebase-merge=false` and
+--enable-merge-commit=false --enable-rebase-merge=false
+--squash-merge-commit-message=pr-title` and
 `gh api -X PUT repos/hasansezertasan/copier-pyproject/actions/permissions/workflow
--f default_workflow_permissions=write -F can_approve_pull_request_reviews=true`.
-That `write` deliberately diverges from the generated projects' least-privilege
-`read` — do not copy it into a generated project. Both settings are one-time and
-idempotent to re-apply; re-check them first when the release PR stops opening.
+-f default_workflow_permissions=read -F can_approve_pull_request_reviews=true`.
+The default stays least-privilege `read`, as in generated projects: every
+workflow declares its own `permissions:`, and `release.yml`'s `release-please`
+job grants itself the `write` scopes it needs. Both settings are one-time and
+idempotent to re-apply; re-check them first when the release PR stops opening:
+`gh api repos/hasansezertasan/copier-pyproject --jq '.allow_squash_merge and
+(.allow_merge_commit | not) and (.allow_rebase_merge | not) and
+.squash_merge_commit_title == "PR_TITLE"'` must print `true`, and
+`gh api repos/hasansezertasan/copier-pyproject/actions/permissions/workflow`
+must report `read` and `true`.
 
 ## Required Merge Strategy (release-please depends on it)
 

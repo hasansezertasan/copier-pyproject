@@ -2,7 +2,10 @@
 
 ## Status
 
-Proposed (2026-08).
+Proposed (2026-08). Superseded in part (2026-10): §3's repo-local skill for this
+repository's own setup was removed; the setup is the two `gh` commands in
+docs/template-architecture.md (see [repo-setup.md](repo-setup.md), entry
+c85feefa-0063-4a34-8030-8c348190b96b).
 
 ## Context
 
