@@ -1,6 +1,6 @@
 # copier-pyproject
 
-[![Keep the Why](https://keepthewhy.com/assets/badge.svg)](https://keepthewhy.com)
+[![Keep the Why · live](https://hasansezertasan.github.io/copier-pyproject/dashboard/live/badge-entries.svg)](https://hasansezertasan.github.io/copier-pyproject/dashboard/live/)
 
 Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`, and GitHub automation baked in.
 
