@@ -93,7 +93,7 @@ of key artifacts. Runs in `template-ci.yml`'s `render-tests` job. No root Python
 project, so deps come from an ephemeral uv env:
 
 ```bash
-mise run test                # or: uv run --with pytest --with pytest-regressions --with copier pytest tests/
+mise run test                # or: uv run --with pytest --with pytest-regressions --with pytest-xdist --with copier pytest tests/ -n auto
 mise run test-golden-update  # regenerate golden files (review the diff), then commit
 ```
 
