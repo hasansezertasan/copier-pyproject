@@ -52,9 +52,11 @@ jobs:
             data: >-
               --data include_ai_rulez=true --data include_cli=true --data include_mcp=true --data 'ai_rulez_presets=[claude,codex,copilot,cursor,windsurf,cline,continue-dev,amp,junie,opencode,hermes,antigravity]'
           # Exercise the other web framework and broker branches.
+          # Also renders release.yml without PyPI (ADR-039), so actionlint sees
+          # finalize-release's needs with docker-publish but no pypi-publish.
           - name: litestar-kafka
             data: >-
-              --data include_web=true --data web_framework=litestar --data include_worker=true --data worker_broker=kafka
+              --data include_web=true --data web_framework=litestar --data include_worker=true --data worker_broker=kafka --data include_pypi_publish=false
           # Compiles the Cython extension during the wheel build.
           - name: c-extensions
             data: --data include_c_extensions=true

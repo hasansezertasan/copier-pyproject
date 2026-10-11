@@ -83,7 +83,7 @@ entire job.** Run copier, let it overwrite everything, then restore your side fr
    the `copier update` section.)
 
 6. **External one-time setup** (can't be tested from the branch): PyPI Trusted
-   Publishing, `CODECOV_TOKEN`, enable GitHub Pages after first `gh-pages` build,
+   Publishing (unless `include_pypi_publish: false`), `CODECOV_TOKEN`, enable GitHub Pages after first `gh-pages` build,
    install Renovate app.
 
 ## Updating an already-adopted project (`copier update`)

@@ -36,7 +36,7 @@ _exclude:
 _message_before_copy: >-
   Pick a preset, then press Enter through the toggles to accept its defaults, or tune any of them. The preset only sets defaults — every toggle is still asked and saved (a few sub-questions stay conditional on their parent toggle).
 _message_after_copy: >-
-  Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions, PyPI trusted publishing).
+  Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions{% if include_pypi_publish %}, PyPI trusted publishing{% endif %}).
 # An update that answers `include_ai_rulez` yes — including the first update of a
 # `full`-preset project, where the new question defaults to yes — deletes the
 # copier-managed AGENTS.md and replaces it with `.ai-rulez/` sources
@@ -96,20 +96,24 @@ preset_map:
   default:
     library:
       - include_docs
+      - include_pypi_publish
       - include_examples
     tool:
       - include_docs
+      - include_pypi_publish
       - include_cli
       - include_tui
       - include_pydantic_settings
     web:
       - include_docs
+      - include_pypi_publish
       - include_web
       - include_pydantic_settings
       - include_postgres
       - include_redis
     full:
       - include_docs
+      - include_pypi_publish
       - include_cli
       - include_web
       - include_gui
@@ -619,16 +623,33 @@ is_app:
   type: bool
   when: false
   default: "{{ include_cli or include_gui or include_tui or include_web or include_mcp or include_worker }}"
-# ── ⑧ Distribution (opt-in; publishes to a separate tap/bucket repo) ─────────
+# ── ⑧ Distribution ──────────────────────────────────────────────────────────
+# PyPI is on in every preset; off renders no `pypi-publish` job and keeps
+# releases on GitHub Releases only (ADR-039).
+include_pypi_publish:
+  type: bool
+  default: "{{ 'include_pypi_publish' in preset_map[preset] }}"
+  help: >-
+    Publish the package to PyPI on each release (trusted publishing)? Off keeps releases on GitHub Releases only — wheels and sdists are still attached — for private projects, a PyPI name that is already taken, or projects that ship other artifacts.
+# A Homebrew formula and a Scoop pipx manifest install from PyPI; only a prebuilt
+# executable (a cask / binary manifest) is fetched from the GitHub Release. So
+# without PyPI the tap/bucket is only possible with an executable toggle, and the
+# questions are not asked otherwise — the guard is repeated in `default` so an
+# unasked question can never come out true from the preset (ADR-039).
+can_distribute_natively:
+  type: bool
+  when: false
+  default: "{{ is_app and (include_pypi_publish or primary_executable != '') }}"
+# ── Native package managers (opt-in; publishes to a separate tap/bucket repo) ─
 include_homebrew:
   type: bool
-  default: "{{ 'include_homebrew' in preset_map[preset] }}"
-  when: "{{ is_app }}"
+  default: "{{ can_distribute_natively and 'include_homebrew' in preset_map[preset] }}"
+  when: "{{ can_distribute_natively }}"
   help: >-
     Publish a Homebrew tap formula on each release? Requires a homebrew-tap repo under your account and a HOMEBREW_TAP_TOKEN secret (one-time setup, documented in docs/maintaining/setup.rst).
 include_scoop:
   type: bool
-  default: "{{ 'include_scoop' in preset_map[preset] }}"
-  when: "{{ is_app }}"
+  default: "{{ can_distribute_natively and 'include_scoop' in preset_map[preset] }}"
+  when: "{{ can_distribute_natively }}"
   help: >-
     Publish a Scoop bucket manifest on each release? Requires a scoop-bucket repo under your account and a SCOOP_BUCKET_TOKEN secret (one-time setup, documented in docs/maintaining/setup.rst). Best paired with an executable toggle (Scoop favors binaries).

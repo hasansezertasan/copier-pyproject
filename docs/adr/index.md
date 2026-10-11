@@ -46,6 +46,9 @@ Architecture decision records and project rationale; existing ADRs retain their 
 - [035-ai-rulez-as-the-agent-instruction-source.md](035-ai-rulez-as-the-agent-instruction-source.md) — Agent instruction source and delivery.
 - [035-headless-testing-for-interactive-components.md](035-headless-testing-for-interactive-components.md) — Headless interactive component testing.
 - [036-async-testing-style.md](036-async-testing-style.md) — Async test runner selection.
+- [037-release-automation-reevaluation.md](037-release-automation-reevaluation.md) — Release automation tooling reevaluation.
+- [038-sphinx-api-reference-rendering-strategy.md](038-sphinx-api-reference-rendering-strategy.md) — Sphinx API-reference rendering.
+- [039-optional-pypi-publishing.md](039-optional-pypi-publishing.md) — Optional PyPI publishing.
 
 ## 1
 

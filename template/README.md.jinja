@@ -9,8 +9,10 @@
 {%- if include_docs %}
 [![Documentation Status](https://img.shields.io/github/deployments/{{github_user}}/{{github_repo_name}}/github-pages?label=docs)](https://{{github_user}}.github.io/{{github_repo_name}})
 {%- endif %}
+{%- if include_pypi_publish %}
 [![PyPI - Version](https://img.shields.io/pypi/v/{{github_repo_name}}.svg)](https://pypi.org/project/{{github_repo_name}})
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/{{github_repo_name}}.svg)](https://pypi.org/project/{{github_repo_name}})
+{%- endif %}
 [![License - MIT](https://img.shields.io/github/license/{{github_user}}/{{github_repo_name}}.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Stars](https://img.shields.io/github/stars/{{github_user}}/{{github_repo_name}}?style=social)](https://github.com/{{github_user}}/{{github_repo_name}}/stargazers)
 [![Latest Commit](https://img.shields.io/github/last-commit/{{github_user}}/{{github_repo_name}})](https://github.com/{{github_user}}/{{github_repo_name}})
@@ -50,7 +52,9 @@
 {%- endif %}
 - [About](#about)
 - [Author](#author-person_with_crown)
+{%- if include_pypi_publish %}
 - [Analysis](#analysis)
+{%- endif %}
 - [Contributing](#contributing-heart)
 - [Development](#development-toolbox)
 - [Releasing](#releasing)
@@ -67,10 +71,10 @@
 `{{github_repo_name}}` is a standalone end-user tool whose primary command is `{{github_repo_name}}`. Install it into an isolated environment:
 
 ```console
-uv tool install {{github_repo_name}}
+uv tool install {% if include_pypi_publish %}{{github_repo_name}}{% else %}git+https://github.com/{{github_user}}/{{github_repo_name}}{% endif %}
 ```
 
-Or run it without installing with `uvx {{github_repo_name}}`.{% if include_docs %} See the [installation docs](https://{{github_user}}.github.io/{{github_repo_name}}/installation.html) for pipx and from-source options.{% endif %}
+Or run it without installing with `uvx {% if include_pypi_publish %}{{github_repo_name}}{% else %}--from git+https://github.com/{{github_user}}/{{github_repo_name}} {{github_repo_name}}{% endif %}`.{% if include_docs %} See the [installation docs](https://{{github_user}}.github.io/{{github_repo_name}}/installation.html) for pipx and from-source options.{% endif %}
 {% if include_homebrew %}
 Install with [Homebrew](https://brew.sh) (macOS/Linux):
 
@@ -90,14 +94,17 @@ scoop install {{github_user}}/{{github_repo_name}}
 `{{github_repo_name}}` is a library. Add it to your project as a dependency:
 
 ```console
-uv add {{github_repo_name}}
+uv add {% if include_pypi_publish %}{{github_repo_name}}{% else %}git+https://github.com/{{github_user}}/{{github_repo_name}}{% endif %}
 ```
 
 Or with `pip`:
 
 ```console
-pip install {{github_repo_name}}
+pip install {% if include_pypi_publish %}{{github_repo_name}}{% else %}git+https://github.com/{{github_user}}/{{github_repo_name}}{% endif %}
 ```
+{% endif %}
+{%- if not include_pypi_publish %}
+`{{github_repo_name}}` is not published to PyPI, so it installs from this Git repository; append `@<tag>` to the URL to pin a release. Each [GitHub Release](https://github.com/{{github_user}}/{{github_repo_name}}/releases) also carries the wheel and sdist.
 {% endif %}
 ### Verify the installation
 
@@ -286,6 +293,7 @@ If you have any questions or need help, feel free to open an issue on the [GitHu
 ## Author :person_with_crown:
 
 This project is maintained by [{{author_full_name}}][author], It's me :wave:
+{%- if include_pypi_publish %}
 
 ## Analysis
 
@@ -296,6 +304,7 @@ This project is maintained by [{{author_full_name}}][author], It's me :wave:
 - [PyPI Download Stats](https://pypistats.org/packages/{{github_repo_name}})
 - [Pip Trends Download Stats](https://piptrends.com/package/{{github_repo_name}})
 - [PyPI Map Dependency Graph](https://pypimap.com/package/{{github_repo_name}})
+{%- endif %}
 
 ## Contributing :heart:
 
@@ -309,7 +318,7 @@ building and previewing the documentation, and the VS Code debugging configurati
 
 ## Releasing
 
-Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version and `CHANGELOG.md`; merging it tags the release and publishes to PyPI. See the [Contributing Guidelines](./.github/CONTRIBUTING.md#releasing) for the commit conventions, and the [Repository setup](./docs/maintaining/setup.rst) guide for one-time configuration and optional post-launch integrations such as a social preview, downstream packaging, and Repology.
+Versioning and releases are automated with [release-please](https://github.com/googleapis/release-please), driven by [Conventional Commit](https://www.conventionalcommits.org/en/v1.0.0/) PR titles squash-merged into `main`. release-please maintains a release PR that bumps the version and `CHANGELOG.md`; merging it tags the release and publishes {% if include_pypi_publish %}to PyPI{% else %}it to GitHub Releases only (the wheel and sdist are attached; nothing is uploaded to PyPI){% endif %}. See the [Contributing Guidelines](./.github/CONTRIBUTING.md#releasing) for the commit conventions, and the [Repository setup](./docs/maintaining/setup.rst) guide for one-time configuration and optional post-launch integrations such as a social preview, downstream packaging, and Repology.
 
 Pause merges that change `.github/workflows/`, including Renovate action-pin updates, from merging a release PR until the entire Release run finishes. Workflow differences between the release commit and current `main` can block tag or release creation with a 403 when using `GITHUB_TOKEN`. See [Release recovery](./docs/maintaining/setup.rst#keep-workflow-changes-out-of-an-active-release) for prevention and recovery steps.
 

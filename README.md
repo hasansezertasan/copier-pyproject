@@ -70,6 +70,7 @@ Copier will prompt for:
 - `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
+- `include_pypi_publish` (publish to PyPI via trusted publishing on each release; on by default — turn it off for a private project, a taken PyPI name, or GitHub-Releases-only distribution, see [ADR-039](docs/adr/039-optional-pypi-publishing.md))
 - `include_pydantic_settings` (use pydantic-settings for configuration; the docs build auto-generates a Configuration reference from the live settings model via autodoc-pydantic)
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_smokeshow` (opt-in tokenless coverage-HTML host; publishes the combined report to an ephemeral public URL from the `coverage-report` CI job — public repos only, no account or secret)
@@ -191,7 +192,7 @@ Release automation is standardized on [release-please](https://github.com/google
 
 1. On push to `main`, release-please opens a release PR derived from your Conventional Commits.
 2. Merging that PR creates the git tag and a **draft** GitHub Release.
-3. The same workflow then builds with uv, publishes to PyPI via trusted publishing, attaches the build artifacts to the draft, and only then **un-drafts** the release — so the release is never visible without its artifacts.
+3. The same workflow then builds with uv, publishes to PyPI via trusted publishing (unless `include_pypi_publish` is off — then the release ships on GitHub Releases only), attaches the build artifacts to the draft, and only then **un-drafts** the release — so the release is never visible without its artifacts.
 4. Once the release is un-drafted, the workflow's `deploy-docs` job builds the Sphinx docs and publishes them with `JamesIves/github-pages-deploy-action`. Docs deploy inline here (rather than via a `release: published` trigger) because an event fired by `GITHUB_TOKEN` cannot start another workflow; `.github/workflows/gh-pages.yml` is kept for manual redeploys only.
 
 CI runs on macOS/Linux/Windows via `.github/workflows/ci.yml.jinja`.
@@ -202,7 +203,7 @@ Pause merges that change `.github/workflows/` (including Renovate action-pin upd
 
 ### PyPI Trusted Publishing setup
 
-Enable PyPI once per project for `.github/workflows/release.yml`:
+Enable PyPI once per project for `.github/workflows/release.yml` (skip this when `include_pypi_publish` is off):
 
 1. Open [Trusted Publisher Management](https://pypi.org/manage/account/publishing/).
 2. Under "Add a new pending publisher", pick "GitHub".
