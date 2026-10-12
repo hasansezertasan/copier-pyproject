@@ -1,12 +1,12 @@
 """``include_repo_ruleset`` renders the repository ruleset + sync workflow.
 
-Guards the branch-protection-as-code design (ADR-021): the ruleset JSON and its
-idempotent sync workflow render only when the toggle is on, the JSON is valid
-and encodes the fixed review/bypass/merge policy, and the required-status-check
-contexts match the check names this template ships (with the Trivy context
-gated on ``include_web``). Most are job names; ``Task Completed Checker`` is
-the check *run* the task-list action publishes, because the job around it is
-green even when boxes are unticked.
+Guards the branch-protection-as-code design (context/repo-setup.md): the
+ruleset JSON and its idempotent sync workflow render only when the toggle is
+on, the JSON is valid and encodes the fixed review/bypass/merge policy, and the
+required-status-check contexts match the check names this template ships (with
+the Trivy context gated on ``include_web``). Most are job names;
+``Task Completed Checker`` is the check *run* the task-list action publishes,
+because the job around it is green even when boxes are unticked.
 """
 
 from __future__ import annotations
@@ -109,7 +109,7 @@ def test_sync_workflow_present_when_enabled(render: Callable[..., Path]) -> None
 
 def _setup_doc(root: Path) -> str:
     # Maintainer branch-protection setup lives in docs/maintaining/setup.rst
-    # (not the contributor-facing CONTRIBUTING.md); see ADR-022.
+    # (not the contributor-facing CONTRIBUTING.md); see context/repo-setup.md.
     return (root / "docs" / "maintaining" / "setup.rst").read_text(encoding="utf-8")
 
 

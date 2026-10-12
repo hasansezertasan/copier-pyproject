@@ -4,11 +4,11 @@ The highest-precedence enabled component (CLI > GUI > TUI > web > MCP > worker)
 is wired to the bare ``<pkg>`` command via ``<pkg>.__main__:main``. Every other
 enabled component is exposed as a **subcommand of the ``<pkg>`` Typer root**
 (``<pkg> <name>``; ``interactive`` for the TUI) rather than a separate
-``<pkg>-<name>`` console script (see ADR-019). GUI, when primary, lands in
-``[project.gui-scripts]`` for a windowless launcher; a non-primary GUI is the
-``<pkg> gui`` subcommand instead. A component's runtime deps are core (not an
-optional extra) because ``__main__``/the console root imports the primary
-unconditionally.
+``<pkg>-<name>`` console script (see context/components.md). GUI, when
+primary, lands in ``[project.gui-scripts]`` for a windowless launcher; a
+non-primary GUI is the ``<pkg> gui`` subcommand instead. A component's runtime
+deps are core (not an optional extra) because ``__main__``/the console root
+imports the primary unconditionally.
 """
 
 from __future__ import annotations
@@ -162,7 +162,8 @@ def test_single_web_component_still_gets_a_console_root(
 ) -> None:
     # Web is the one component that forces a console root even on its own: the
     # `run`/`dev` launch verbs need somewhere to live, and a standalone
-    # `<pkg>-run` script would be the second entry scheme ADR-019 forbids.
+    # `<pkg>-run` script would be the second entry scheme context/components.md
+    # forbids.
     # Bare `<pkg>` must still launch the web app, via the default callback.
     root = _render_only(render, "web")
     project = _pyproject(root)

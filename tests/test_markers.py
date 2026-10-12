@@ -3,8 +3,8 @@
 Each enabled component registers a marker in ``[tool.pytest.ini_options]`` and
 ``tests/conftest.py`` auto-applies it by the test's top-level directory, so
 ``pytest -m web`` selects a component without per-test decoration. ``core`` is
-always present; ``integration`` (ADR-008) rides the same list when the worker is
-enabled.
+always present; ``integration`` (context/testing-strategy.md) rides the same
+list when the worker is enabled.
 """
 
 from __future__ import annotations

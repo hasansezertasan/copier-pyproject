@@ -1,8 +1,8 @@
 """Preset behavior: each archetype preset seeds the expected component set.
 
-Guards the silent-drift risks in ``copier.yml``'s ``preset_map`` (ADR-016):
-the default preset changing, an archetype seeding the wrong components, or
-``full`` no longer enabling everything.
+Guards the silent-drift risks in ``copier.yml``'s ``preset_map``
+(context/presets.md): the default preset changing, an archetype seeding the
+wrong components, or ``full`` no longer enabling everything.
 """
 
 from __future__ import annotations
@@ -80,7 +80,7 @@ def test_preset_web_seeds_web_settings_and_db(
 ) -> None:
     # ``cli`` here is the *minimal launcher*, not the CLI feature: a web project
     # always has a console root so ``run``/``dev`` have somewhere to live
-    # (ADR-032). ``include_cli`` itself stays off, which the absent
+    # (context/components.md). ``include_cli`` itself stays off, which the absent
     # ``version``/``info`` commands below pin.
     root = render(preset="web")
     assert _components(root) == {"web", "cli"}

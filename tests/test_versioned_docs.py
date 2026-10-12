@@ -1,4 +1,7 @@
-"""Versioned-docs + last-updated feature (ADR-027) render assertions."""
+"""Versioned-docs + last-updated feature render assertions.
+
+Rationale: context/docs-versioning.md.
+"""
 
 from __future__ import annotations
 
@@ -156,9 +159,10 @@ def test_manual_gh_pages_checks_out_release_tag(render: Callable[..., Path]) -> 
     workflow = (
         render(include_docs=True) / ".github" / "workflows" / "gh-pages.yml"
     ).read_text(encoding="utf-8")
-    # Must build the tagged source, not the dispatched HEAD (ADR-027) -- and the
-    # tag must come from the releases/latest endpoint, which excludes the drafts
-    # `git describe --tags` would happily pick up.
+    # Must build the tagged source, not the dispatched HEAD
+    # (context/docs-versioning.md) -- and the tag must come from the
+    # releases/latest endpoint, which excludes the drafts `git describe --tags`
+    # would happily pick up.
     assert (
         'gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name' in workflow
     )
@@ -200,7 +204,7 @@ def test_manual_gh_pages_keeps_the_tags_granularity(
 
 def test_switcher_urls_prefixed_with_repo_path(render: Callable[..., Path]) -> None:
     # GitHub Pages project sites serve under /<repo>/, so switcher links must be
-    # rooted there, not at the domain root (ADR-027).
+    # rooted there, not at the domain root (context/docs-versioning.md).
     conf = (render(include_docs=True) / "docs" / "conf.py").read_text(encoding="utf-8")
     assert '_switcher_base = "/example/"' in conf
 

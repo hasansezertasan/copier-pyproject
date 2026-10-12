@@ -11,7 +11,7 @@ CLI never loads would disable nothing: the ``extends`` chain from the config
 markdownlint-cli2 discovers must actually reach the file carrying the disable.
 Whether markdownlint then honors ``MD060: false`` is upstream's contract — the
 harness renders and inspects, it does not install the generated project's node
-toolchain (ADR-024).
+toolchain (context/template-testing.md).
 """
 
 from __future__ import annotations

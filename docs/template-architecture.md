@@ -34,7 +34,7 @@ Free-form metadata:
   `.github/settings.yml` as the `topics:` list (lower-cased, space/underscore
   hyphenated). Left empty, the `topics:` key is omitted entirely so the Settings
   App leaves the repository's existing topics untouched. See
-  [ADR-018](adr/018-repository-settings-as-code.md).
+  [repository settings as code](../context/repo-setup.md#repository-metadata-via-the-settings-github-app-opt-in-labels-and-branch-protection-stay-out-of-it).
 
 Starting point:
 
@@ -49,14 +49,14 @@ Starting point:
   dependency-gated sub-questions (the DB UIs, web framework, worker broker, redis
   backend) still appear only when their parent toggle is enabled, independent of
   the preset. The `minimal`/`standard`/`custom` presets and the byte-identical
-  `--defaults` guarantee were removed in
-  [ADR-016](adr/016-archetype-based-presets.md).
+  `--defaults` guarantee were removed with the
+  [archetype presets](../context/presets.md#archetype-presets-name-project-shapes-library-is-the-default).
 
 Optional components (all boolean):
 
 - `include_cli` - CLI (`cli_framework`: Typer, or standard-library `argparse` for
   a dependency-free command root exposing the same `version`/`info` commands and
-  component subcommands — see [ADR-020](adr/020-cli-framework-choice.md))
+  component subcommands — see [CLI framework choice](../context/components.md#cli_framework-offers-argparse-beside-typer-the-typer-dependency-is-gated-on-root_uses_typer))
 - `include_web` - Web app + Dockerfile (framework choice: FastAPI or Litestar)
 - `include_gui` - Tkinter GUI
 - `include_tui` - Textual TUI
@@ -71,7 +71,7 @@ Optional components (all boolean):
 
   These three standalone-executable toggles are independent and combinable; each
   maps to one architectural category (launcher / compiler / freezer). See
-  [ADR-007](adr/007-standalone-executable-toggles.md).
+  [standalone executable toggles](../context/standalone-executables.md#three-architecture-named-executable-toggles-instead-of-one-brand-toggle).
 - `include_examples` - an `examples/` folder with simple and advanced usage stubs
   (enabled by the `library` preset default)
 - `include_docs` - the Sphinx documentation subsystem, **`default: true` in every
@@ -92,20 +92,20 @@ Optional components (all boolean):
   `settings.yml`/`.sourcery.yaml`/`sonar-project.properties`) always ships — only
   its GitHub Pages step is `include_docs`-gated — and with docs off the
   `settings.yml` `homepage` falls back to the repository URL. See
-  [ADR-025](adr/025-optional-docs-subsystem.md).
+  [optional docs subsystem](../context/docs-stack.md#the-sphinx-subsystem-is-toggleable-include_docs-default-on-the-maintainer-guide-is-not).
 - `include_pydantic_settings` - pydantic-settings for config
 - `include_sourcery` - Sourcery AI-refactoring config (`.sourcery.yaml`)
 - `include_sonarcloud` - SonarCloud static-analysis (`sonar-project.properties` + a `sonar` CI job)
 - `include_all_contributors` - all-contributors config (`.all-contributorsrc`) + README section
-- `include_smokeshow` - publish the combined coverage HTML report to a tokenless ephemeral URL via `smokeshow` (a step in the `coverage-report` CI job; public repos only, `default: false`; see [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md))
-- `include_benchmarks` - pytest-codspeed benchmark suite, `benchmark` tox/mise entry points, and a separate non-blocking CodSpeed workflow (requires `CODSPEED_TOKEN`; see [ADR-034](adr/034-opt-in-performance-benchmarking.md))
+- `include_smokeshow` - publish the combined coverage HTML report to a tokenless ephemeral URL via `smokeshow` (a step in the `coverage-report` CI job; public repos only, `default: false`; see [smokeshow coverage mirror](../context/ci-topology.md#a-tokenless-public-html-coverage-mirror-via-smokeshow))
+- `include_benchmarks` - pytest-codspeed benchmark suite, `benchmark` tox/mise entry points, and a separate non-blocking CodSpeed workflow (requires `CODSPEED_TOKEN`; see [opt-in benchmarking](../context/external-integrations.md#opt-in-benchmarking-with-pytest-codspeed))
 
   These are opt-in integrations kept as toggles (not always-on) precisely to
   preserve the self-contained "green on first push, zero external accounts"
   default: each is off in the base `library`/`tool`/`web` presets (only the `full`
   preset seeds them on), so a plain project never pays for them unasked. `include_smokeshow` needs no account at all (a
   tokenless public-repo-only coverage-HTML mirror in the `coverage-report` job —
-  [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md));
+  [smokeshow coverage mirror](../context/ci-topology.md#a-tokenless-public-html-coverage-mirror-via-smokeshow));
   `include_sourcery` (config-only, external App) and
   `include_sonarcloud` (needs a SonarCloud org + `SONAR_TOKEN` secret) require
   out-of-band setup; the `sonar` job mirrors the Codecov opt-in/non-blocking
@@ -119,11 +119,11 @@ Optional components (all boolean):
   so `persist-credentials: false` holds), so the bot/App is optional — it only
   needs the *Allow Actions to create PRs* setting release-please already requires.
   See
-  [ADR-009](adr/009-optional-external-quality-community-integrations.md).
+  [Sourcery, SonarCloud and all-contributors toggles](../context/external-integrations.md#sourcery-sonarcloud-and-all-contributors-are-independent-opt-in-toggles).
 - `include_megalinter` - MegaLinter as an opt-in extra CI quality layer
   (`mega-linter.yml` + `.mega-linter.yml`), `default: false`.
 
-  Unlike the ADR-009 trio, MegaLinter is a self-contained Docker action needing
+  Unlike the [Sourcery/SonarCloud/all-contributors trio](../context/external-integrations.md#sourcery-sonarcloud-and-all-contributors-are-independent-opt-in-toggles), MegaLinter is a self-contained Docker action needing
   **no** external account — but it was previously shipped **always-on and
   undocumented**, which both violated the fast/self-contained default and
   duplicated prek. Now gated, and when enabled it is a **lean complement**: its
@@ -154,7 +154,7 @@ Optional components (all boolean):
   `.shellcheckrc` is gated with the toggle; the prek-shared configs
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
-  [ADR-013](adr/013-megalinter-opt-in-lean-complement.md).
+  [MegaLinter as a lean complement](../context/lint-orchestration.md#megalinter-is-an-opt-in-lean-complement-non-blocking-on-three-levels).
 - `include_ai_rulez` - agent instructions authored once and generated per host,
   `default: false` (seeded on by the `full` preset). With it **off** the project
   keeps the hand-written `AGENTS.md` and the Claude-only
@@ -187,7 +187,8 @@ Optional components (all boolean):
   the generated project already enforces.
 
   Because the output is not copier-managed, **both** update directions need a
-  manual step and both are documented in ADR-035 §8. Turning the toggle *on*
+  manual step and both are documented in
+  [generated host files are build output](../context/agent-instructions.md#generated-host-files-are-build-output-the-template-renders-none-of-them). Turning the toggle *on*
   (which the first `copier update` of a `full`-preset project does by default)
   removes the copier-managed `AGENTS.md` and generates nothing, so
   `_message_after_update` prints `uv lock` + `ai-rulez generate` and CI stays red
@@ -197,7 +198,7 @@ Optional components (all boolean):
   A few hosts also need the generated project's own linters to skip the paths
   ai-rulez owns (`.mdc` and `.continue/prompts/`) — those excludes render only
   under the toggle. See
-  [ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md).
+  [ai-rulez as the instruction source](../context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros).
 - `include_pypi_publish` - publish to PyPI on each release via trusted
   publishing; on in every preset. Off drops the `pypi-publish` release job,
   the PyPI publisher setup step, the README PyPI badges and Analysis links, and
@@ -206,7 +207,7 @@ Optional components (all boolean):
   and a Scoop pipx manifest install from PyPI, the hidden
   `can_distribute_natively` (`is_app` and PyPI-or-an-executable) gates both
   distribution toggles. See
-  [ADR-039](adr/039-optional-pypi-publishing.md).
+  [optional PyPI publishing](../context/package-distribution.md#optional-pypi-publishing).
 - `include_homebrew` - Homebrew tap distribution, `default: false` and
   `when: "{{ can_distribute_natively }}"`-gated (only offered for app-like
   projects that publish to PyPI or build an executable, not a library). The generated
@@ -219,7 +220,7 @@ Optional components (all boolean):
   `HOMEBREW_TAP_TOKEN` secret: a fine-grained PAT with **Contents: write**
   only on the tap repo (no `Pull requests` scope — the tap opens its own PR
   with its own `GITHUB_TOKEN`). See
-  [ADR-017](adr/017-opt-in-homebrew-scoop-distribution.md).
+  [Homebrew and Scoop distribution](../context/package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic).
 - `include_scoop` - Scoop bucket distribution (opt-in), the same
   dispatch-not-generation pattern: `release.yml` fires `update-manifest` at
   the owner's own `scoop-bucket` repo, which owns the manifest via its own
@@ -230,10 +231,10 @@ Optional components (all boolean):
   manifest) vs. PyPI (Homebrew formula / Scoop pipx manifest) payload via the
   `primary_executable` precedence (`freezer` > `compiler` > `launcher`; empty
   ⇒ PyPI fallback). See
-  [ADR-017](adr/017-opt-in-homebrew-scoop-distribution.md).
+  [Homebrew and Scoop distribution](../context/package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic).
 - `include_repo_settings` - repository metadata as code: a `.github/settings.yml`
   (description/homepage/topics + squash-merge flags) synced by the "Settings"
-  GitHub App, `default: false`. Opt-in like the ADR-009 integrations because the
+  GitHub App, `default: false`. Opt-in like the [external-account integrations](../context/external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts) because the
   App is an external install (and it escalates push→admin — mitigated via the
   shipped CODEOWNERS + "Require review from Code Owners"). The setup guide's
   Settings step enables code-owner review through a separate API request or,
@@ -243,7 +244,7 @@ Optional components (all boolean):
   unavailable reviewers or unavailable/unverifiable protection defer the App. Labels are NOT managed
   here — they stay App-free in `labels.yml`/`label-sync.yml`. The "Include in the
   home page" sidebar toggles are not settable via any API (UI-only). See
-  [ADR-018](adr/018-repository-settings-as-code.md).
+  [repository settings as code](../context/repo-setup.md#repository-metadata-via-the-settings-github-app-opt-in-labels-and-branch-protection-stay-out-of-it).
 - `include_repo_ruleset` - repository branch protection as code: a
   `.github/rulesets/main.json` (squash-only, linear history, required CI checks —
   the actual job names this template ships, Trivy gated on `include_web`) applied
@@ -252,11 +253,11 @@ Optional components (all boolean):
   `include_repo_settings` (the "Settings" App cannot manage rulesets). The
   workflow needs a `REPO_ADMIN_TOKEN` fine-grained PAT (Administration: read &
   write) — the Actions `GITHUB_TOKEN` has no `administration` scope — and
-  warn-and-skips when the secret is absent (ADR-017 posture).
+  warn-and-skips when the secret is absent (the [Homebrew/Scoop posture](../context/package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic)).
   `required_approving_review_count` is 0 (checks strictly enforced, no
   human-approval requirement, no `bypass_actors`) so solo maintainers and
   release-please/Renovate are not blocked. See
-  [ADR-021](adr/021-repository-ruleset-as-code.md).
+  [branch protection as code](../context/repo-setup.md#branch-protection-as-code-through-an-opt-in-rulesets-sync-workflow).
 
 Framework/broker choices (when parent option is enabled):
 
@@ -271,7 +272,7 @@ Testing choices:
   Defaults to `asyncio` when `include_web`, `include_tui`, `include_mcp`, or `include_worker`
   is enabled, and `none` otherwise. When TUI, MCP, or worker is enabled, validation
   constrains the choice to `asyncio` or `anyio` because those components ship async tests.
-  See [ADR-036](adr/036-async-testing-style.md).
+  See [async testing style](../context/testing-strategy.md#async-testing-is-an-explicit-template-axis-async_style).
 
 Devcontainer services:
 
@@ -301,17 +302,17 @@ removed — it is now always rendered and validated via
 `citation-file-format/cffconvert-github-action`), and mise
 (`mise.toml` + devcontainer feature) for tool version management and task
 running. Pants and Trunk were removed entirely — the tox `style` env is the sole
-lint/build orchestrator (see [ADR-003](adr/003-tox-as-canonical-lint-runner.md)).
+lint/build orchestrator (see [tox as the canonical lint runner](../context/lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite)).
 
 **import-linter** enforces the generated package's architecture: one always-on
 `layers` contract (in `[tool.importlinter]`) keeps the component group
 (`web`/`gui`/`tui`/`mcp`/`worker`) mutually independent, with `cli` as an
 orchestrator layer above them (the `{{pkg}}` Typer root, whose subcommands
-lazy-import those components to launch them — see ADR-019), all layered above
+lazy-import those components to launch them — see [components as subcommands](../context/components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts)), all layered above
 `core` above `utils`. The `cli` layer is present whenever `include_console_root`
 is true (see the entry-points section below), not only when `include_cli` is set.
 `core` is also where the shared application payload lives (`core/app.py`,
-ADR-033): it is already the layer directly beneath the component group, so the
+[shared application payload](../context/components.md#one-application-payload-in-coreapppy-components-are-adapters-over-it)): it is already the layer directly beneath the component group, so the
 sharing needs no new layer and the contract is unchanged.
 The component layers are Jinja-conditional on the enabled toggles (omitted when
 none are enabled, leaving a `core > utils` contract), so no `ignore_imports` is
@@ -334,7 +335,7 @@ which syncs and resolves the package. **slotscheck** (which imports `src/` to
 verify `__slots__`) is delivered the same dual-run way and for the same reason —
 whereas the redundant type checkers `ty`/`pyrefly`/`zuban` stay style-env-only so
 the fast gate carries one representative type checker (basedpyright), not five.
-See [ADR-014](adr/014-import-linter-for-architecture-contracts.md).
+See [import-linter architecture contract](../context/architecture-contracts.md#one-exhaustive-import-linter-layers-contract-cli-above-independent-components-above-core-above-utils).
 
 **semgrep** is the rules-database SAST layer over `src/`, delivered
 style-env-only for the same reason `ty`/`pyrefly`/`zuban` are: it keeps no
@@ -356,7 +357,7 @@ all of flake8-bandit (`S`) on, so an md5 call trips both `S324` and
 taint rules ruff's per-node checks cannot express. The rules are **not** vendored
 into the template: the registry rules are under the Semgrep Rules License v1.0
 ("You may not distribute the rules"), which forbids shipping them to adopters.
-See [ADR-032](adr/032-semgrep-sast-in-the-style-env.md).
+See [semgrep SAST](../context/lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored).
 
 Also always included (no toggle): structured GitHub issue forms
 (`.github/ISSUE_TEMPLATE/bug_report.yml` + `feature_request.yml` + `config.yml`,
@@ -379,7 +380,7 @@ so there is a single source of truth.
 `AGENTS.md` intentionally carries **no** commit-attribution/`Co-Authored-By` block.
 When `include_ai_rulez` is enabled, that file is replaced by the `.ai-rulez/`
 sources the host-specific files are generated from, alongside every other host's native
-config ([ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md)).
+config ([ai-rulez as the instruction source](../context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros)).
 
 The default `AGENTS.md`-only shape requires Claude Code v2.1.277 or later for
 direct loading (v2.1.281 or later for sessions such as Amazon Bedrock or those
@@ -410,7 +411,7 @@ has no reachable tag), not a plausible-looking `0.1.0`.
 Commitizen (Conventional Commit authoring/linting) is **always included** — it
 is no longer gated behind an `include_commitizen` option. release-please still
 owns versioning/changelog; Commitizen only authors/lints messages (see
-[ADR-004](adr/004-commitizen-as-commit-helper-not-release-tool.md)).
+[Commitizen as a commit helper](../context/release-automation.md#commitizen-is-a-commit-helper-never-a-release-tool)).
 
 The `.gitignore` is **always** managed by
 [cobo](https://github.com/hasansezertasan/cobo) (no toggle, like mise/renovate),
@@ -436,7 +437,7 @@ sync` (re-renders the fenced region in place, preserving the author section and
 the `eol = "lf"` policy); refresh `template/cobo.lock` the same way from a scratch
 dir dumping with `--eol lf --out .gitignore --lock`. Do **not** hand-edit inside
 the fence (it breaks the sha256). See
-[ADR-012](adr/012-cobo-for-gitignore-generation.md).
+[cobo for `.gitignore`](../context/gitignore-generation.md#cobo-generates-the-gitignore-with-a-hash-sealed-fence-and-lockfiles).
 
 Git hooks are **always included** (there is no `include_precommit`
 option). They are run via [prek](https://prek.j178.dev), a Rust-native
@@ -481,10 +482,10 @@ the uv `style` group.
 
 The tox `style` env is the *single* lint/type-check orchestrator for a generated
 project — there is no Pants or Trunk config to drift against it (both were
-removed; see [ADR-003](adr/003-tox-as-canonical-lint-runner.md)).
+removed; see [tox as the canonical lint runner](../context/lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite)).
 
 **Formatter-canonical output**
-([ADR-030](adr/030-generated-files-must-be-formatter-canonical.md)). Every
+([formatter-canonical output](../context/template-testing.md#generated-files-must-be-formatter-canonical-not-merely-valid)). Every
 shipped file is emitted in the exact form the generated project's own formatters
 produce, not merely in a valid one — otherwise the adopter's first
 `prek run --all-files` rewrites it, that project's `hooks` CI job fails, and each
@@ -543,14 +544,14 @@ The two docs-push jobs (`gh-pages.yml` `deploy`, `release.yml`
 `ghp-import` push. `.nojekyll` is emitted by the `sphinx.ext.githubpages`
 extension at build time (so `_static/` is served), not by the deploy step.
 
-## Rendering the template (`tools/render.py`, ADR-031)
+## Rendering the template (`tools/render.py`)
 
 Every consumer that renders the template calls one module — there is no second
-`copier copy` spelling anywhere in the repo ([ADR-031](adr/031-single-render-entrypoint.md)):
+`copier copy` spelling anywhere in the repo ([single render entrypoint](../context/template-testing.md#toolsrenderpy-is-the-only-place-the-template-is-rendered)):
 
 | Consumer | How it renders |
 | --- | --- |
-| render harness (ADR-024) | the `render` fixture in `tests/conftest.py` wraps `tools.render.render` |
+| render harness ([render-and-inspect](../context/template-testing.md#render-and-inspect-is-the-fast-matrixed-layer-generate-and-run-stays-separate)) | the `render` fixture in `tests/conftest.py` wraps `tools.render.render` |
 | `template-ci.yml` render matrix | `uv run tools/render.py render ../rendered --data …` |
 | `mise run example` | `uv run tools/render.py render example` |
 | `mise run regenerate` | `regenerate()` — rewrites the committed derived artifacts |
@@ -597,7 +598,7 @@ the whole statement fits in 88 columns, otherwise one element per line with a
 trailing comma. The right form depends on values only known at render time (the
 package name, the broker module, how many components are enabled), so a template
 that always picks one ships a file the adopter's first `prek run --all-files`
-rewrites — see [ADR-030](adr/030-generated-files-must-be-formatter-canonical.md).
+rewrites — see [one shared collection macro](../context/template-testing.md#collection-literals-are-rendered-through-one-shared-macro).
 Used by `__main__.py`, `cli/app.py` and `tests/test_main.py` for `__all__`, the
 component dependency allowlists, and the guard tuples.
 
@@ -607,7 +608,7 @@ because that prose has **two** renderings: the hand-written `AGENTS.md`, and the
 `.ai-rulez/` rule and context sources when `include_ai_rulez` is on. Both call
 the same macro, so a toggle meant to remove per-host duplication downstream
 cannot introduce per-shape duplication inside the template
-([ADR-035](adr/035-ai-rulez-as-the-agent-instruction-source.md)). The
+([ai-rulez as the instruction source](../context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros)). The
 `repo-setup` and `template-adoption` skills each use one file whose *path*
 the toggle picks; neither needs a macro.
 Edit the prose in `_macros.jinja`, never in one of the two renderings.
@@ -637,7 +638,7 @@ Subpackages (each with an `__init__.py`):
     copy on `copier update`). Its failure path is exercised through
     the shared `missing_metadata` fixture in `tests/conftest.py`, which reaches
     every component's error branch by patching this one module
-    ([ADR-033](adr/033-shared-app-service-components-as-adapters.md)).
+    ([shared application payload](../context/components.md#one-application-payload-in-coreapppy-components-are-adapters-over-it)).
   - `dirs.py` - Project directory locations (`~/.<package>`)
   - `logging_setup.py` - Centralized logging
   - `config.py` - Configuration (uses pydantic-settings if enabled). When
@@ -691,7 +692,7 @@ Subpackages (each with an `__init__.py`):
   a fresh, self-contained broker at a throwaway instance (e.g. testcontainers)
   without import-order/caching pitfalls; the module still exposes a default
   `broker = build_broker()` for the entry point. See
-  [ADR-008](adr/008-worker-broker-testing-strategy.md). The docs build emits the
+  [env-injectable broker factory](../context/testing-strategy.md#the-worker-exposes-an-env-injectable-broker-factory-lazy-broker-imports-were-rejected). The docs build emits the
   worker's [AsyncAPI](https://www.asyncapi.com/) schema straight from the live
   `app` object (`docs/conf.py` shells `faststream docs gen` into the gitignored
   `docs/_generated/asyncapi.yaml`), and the conditional `docs/worker-interface.rst`
@@ -729,11 +730,11 @@ Test packages mirror source structure in `tests/`:
   derived from the `ci_service` field on `worker_broker_spec` (present ⇒
   `services:`; its `image`/`port`/`health_cmd`/`url` render the block), no extra
   question. See
-  [ADR-008](adr/008-worker-broker-testing-strategy.md) (incl. the issue #169
+  [real-broker integration tests](../context/testing-strategy.md#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism) (incl. the issue #169
   amendment).
 
 Entry points configured in `pyproject.toml` (console-script wiring — see
-**[ADR-019](adr/019-components-as-cli-subcommands.md)**): the
+**[components as subcommands](../context/components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts)**): the
 highest-precedence enabled component (**CLI > GUI > TUI > web > MCP > worker**)
 is the *primary* and owns the bare `pkg` command, wired to `pkg.__main__:main`
 (the single entrypoint standalone builds also target). Every *other* enabled
@@ -752,7 +753,7 @@ The `pkg` Typer root lives in the `cli/` package. It exists whenever
 `include_cli` is off, `cli/` is a *minimal launcher* (no `version`/`info`; bare
 `pkg` launches the primary via an `@app.callback(invoke_without_command=True)`
 default, secondaries are subcommands). `include_web` is listed because the
-`run`/`dev` verbs need a root to live on ([ADR-032](adr/032-uniform-run-dev-launch-verbs.md));
+`run`/`dev` verbs need a root to live on ([run/dev launch verbs](../context/components.md#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root));
 a web-only project therefore gets the minimal launcher and a `typer` runtime
 dependency, with bare `pkg` unchanged. Any *other* single-component non-CLI app
 has **no** root and does **not** pull in `typer` — bare `pkg` launches that
@@ -772,7 +773,7 @@ layer, and the `__main__.py` branch.
   is reached via the `pkg gui` subcommand, not a `pkg-gui` gui-script.
 
 The CLI framework choice (Typer) is recorded in
-[ADR-020](adr/020-cli-framework-choice.md).
+[CLI framework choice](../context/components.md#cli_framework-offers-argparse-beside-typer-the-typer-dependency-is-gated-on-root_uses_typer).
 
 Each launcher command wraps its lazy component import in a private
 `_component_dependencies(component, *dependencies)` context manager, so a
@@ -818,14 +819,14 @@ which is the only form autoreload can re-import.
 `include_console_root` is therefore true whenever `include_web` is, so a
 web-only project (the `web` preset) gains a minimal launcher — and with it a
 `typer` runtime dependency and a `cli/` package — rather than a second console
-script alongside the ADR-019 scheme. Bare `<pkg>` still launches the primary
+script alongside the [subcommand scheme](../context/components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts). Bare `<pkg>` still launches the primary
 component. Where web is not primary, `<pkg> web` remains and is literally
 `<pkg> run` with no target. The worker keeps `<pkg> worker` only: its reload
 lives in `faststream[cli]`, which stays a docs-group dependency. See
-[ADR-032](adr/032-uniform-run-dev-launch-verbs.md).
+[run/dev launch verbs](../context/components.md#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root).
 
 A project with exactly **one** runnable component has no console root at all, so
-`__main__.py` binds that component directly — the ADR-007 standalone-executable
+`__main__.py` binds that component directly — the [standalone-executable](../context/standalone-executables.md#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module)
 entrypoint. It renders a sibling `_load_component()` with the same preflight,
 exact-match rule and hints, covering the component's own dependencies *and* the
 settings stack the import chain reaches through `core.logging_setup` →
@@ -852,7 +853,7 @@ what a component depends on.
 The rationale — why the hint is `uv sync` and never `pip install pkg[<extra>]`,
 why matching is exact, why some dependencies need an eager import, why Tk is
 special, and why direct library imports are out of scope — is recorded in
-[ADR-028](adr/028-actionable-component-dependency-guard.md).
+[component dependency guard](../context/components.md#launcher-imports-are-guarded-with-exact-match-preflighted-dependency-errors).
 
 ## Devcontainer Structure
 
@@ -892,7 +893,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.10-3.14
    - **Per-component jobs + path filtering**
-     ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md)): a
+     ([per-component CI](../context/ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component)): a
      `changes` job (`dorny/paths-filter`) emits a boolean per component plus
      `core`. The test job is split into `test-core` (always runs) and one
      `test-<component>` per enabled component, each gated on
@@ -904,7 +905,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      component directory use the top-level `tests/<dir>/`; the default
      local `tox run` is unchanged (everything minus `integration`).
    - **Asymmetric matrix + draft policy**
-     ([ADR-029](adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md)): component
+     ([asymmetric matrix](../context/ci-topology.md#asymmetric-matrix-every-interpreter-on-linux-one-representative-elsewhere-style-and-installed-cli-are-separate-jobs), [draft skip](../context/ci-topology.md#every-generated-ci-job-skips-draft-pull-requests)): component
      tests run all supported interpreters on Ubuntu and one representative
      interpreter on macOS/Windows; C-extension renders keep the full grid.
      `style` runs once on Linux and sweeps mypy's win32/darwin platform axis.
@@ -915,13 +916,13 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `tox run -- -m …` (which replaces tox's default env list), an
      `include_docs` render gets a dedicated `docs-doctest` job running
      `tox run -e docs-build` then `tox run -e docs-doctest`; it is part of the
-     `check` gate ([ADR-028](adr/028-tested-documentation-examples.md)). The
+     `check` gate ([tested documentation examples](../context/docs-stack.md#documentation-code-examples-are-executed-not-pasted)). The
      `docs-build` step is what makes the Sphinx warning gate *gate*: it pairs
      `sphinx-build -w` with `docs/check_warnings.py`, whereas `docs-doctest` is
      `-b doctest` with no `-W`. `docs-preview.yml` runs the same gate but is
      skipped for fork PRs and is not a required context, so it can never block a
      merge on its own
-     ([ADR-027](adr/027-versioned-documentation-and-last-updated-stamps.md)).
+     ([Sphinx warning gate](../context/docs-versioning.md#the-sphinx-warning-gate-runs-in-a-job-the-required-check-context-aggregates)).
      The job checks out at `fetch-depth: 0` — `sphinx-last-updated-by-git` warns
      "Git clone too shallow" on a depth-1 clone and the gate turns that into an
      error. Per-component
@@ -932,10 +933,10 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      The top-level `README.md` is separately collected by the ordinary pytest
      run as the intentionally small Markdown doctest surface; Markdown under
      `tests/` is held out by `collect_ignore_glob` in `tests/conftest.py`, since
-     `--doctest-glob` matches basenames (ADR-028).
+     `--doctest-glob` matches basenames ([tested documentation examples](../context/docs-stack.md#documentation-code-examples-are-executed-not-pasted)).
    - **Per-component coverage gates**
-     ([ADR-028](adr/028-per-component-markers-and-path-filtered-ci.md), decomposing
-     [ADR-026](adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md)):
+     ([per-component CI](../context/ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component), decomposing
+     [the former single union gate](../context/ci-topology.md#a-single-union-coverage-gate-across-the-whole-matrix)):
      each `test-<component>` cell `coverage combine`s its per-interpreter data,
      keeps a non-gating `--fail-under=0` report for fast feedback, and uploads
      `coverage-<component>-<os>` (`include-hidden-files: true`). A
@@ -967,7 +968,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    - When `include_smokeshow` is set, `coverage-report` additionally publishes the
      combined `htmlcov/` to a tokenless ephemeral public URL via
      `smokeshow upload htmlcov` (public repos only) — an account-free browsable
-     coverage report alongside Codecov. See ADR-026.
+     coverage report alongside Codecov. See [smokeshow coverage mirror](../context/ci-topology.md#a-tokenless-public-html-coverage-mirror-via-smokeshow).
    - When `include_launcher`/`include_freezer`/`include_compiler` are set, adds
      matching `build-{launcher,freezer,compiler}-check` jobs (per-OS, `fail-fast:
      false`) that build the standalone executable on every PR/push — a build-only
@@ -978,7 +979,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      preview artifact. They closely follow the `release.yml` build jobs
      (same setup + build commands), skipping the release-only rename/publish
      steps, and they gate the `check` aggregation job. See
-     [ADR-007](adr/007-standalone-executable-toggles.md).
+     [executable build checks](../context/standalone-executables.md#every-executable-toggle-adds-a-pr-time-build-check-job).
    - When `include_worker` is set, adds a single `worker-integration` job —
      **Ubuntu-only** (Docker is reliably present on GitHub's Ubuntu runners but
      not macOS/Windows) — that runs `tox run -e integration` (an on-demand tox
@@ -987,11 +988,11 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `integration` marker is deselected by default via the pytest `addopts`); this
      job is the only thing exercising the real driver, and it gates the `check`
      aggregation job. It is path-gated like the component test jobs (skips its
-     container spin-up unless the worker tree or shared `core` changed; ADR-028).
-     See [ADR-008](adr/008-worker-broker-testing-strategy.md).
+     container spin-up unless the worker tree or shared `core` changed; [per-component CI](../context/ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component)).
+     See [real-broker integration tests](../context/testing-strategy.md#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism).
 2. **Release + CD** (`release.yml.jinja`): one unified workflow (there is
    no separate `cd.yml`). Standardized on release-please — no longer configurable
-   (see [ADR-002](adr/002-release-please-for-release-automation.md)). Jobs:
+   (see [release-please](../context/release-automation.md#release-please-is-the-sole-release-orchestrator)). Jobs:
    - `release-please`: opens/maintains a release PR from Conventional Commits on
      push to `main`; on merge, tags the commit and creates a **draft** GitHub
      Release (`draft: true` in `.github/release-please-config.json`). Exposes
@@ -1010,7 +1011,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      `needs` edges are not rendered; `build` keeps the `publish` environment for
      attestation minting, and the distributions still reach the GitHub Release
      through `attach-github-release`
-     ([ADR-039](adr/039-optional-pypi-publishing.md)).
+     ([optional PyPI publishing](../context/package-distribution.md#optional-pypi-publishing)).
    - `build-launcher` (when `include_launcher`, PyCrucible) / `build-freezer`
      (when `include_freezer`, PyInstaller) / `build-compiler` (when
      `include_compiler`, Nuitka) / `docker-publish` (when
@@ -1018,7 +1019,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      independent `fail-fast: false` matrices producing per-platform artifacts
      named `<repo>-executable-{launcher,freezer,compiler}-<os>`, all caught by
      `attach-github-release`'s `<repo>-executable-*` download pattern (see
-     [ADR-007](adr/007-standalone-executable-toggles.md)). Docker tags feed
+     [executable naming](../context/standalone-executables.md#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module)). Docker tags feed
      `needs.release-please.outputs.tag_name` into the metadata-action `value=`
      because a push-triggered run has no tag ref.
    - `attach-github-release`: uploads distributions, provenance bundles, the
@@ -1033,8 +1034,8 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      re-dispatch above). `gh-pages.yml` is kept for manual redeploys and is
      likewise version-aware. Docs are built with Sphinx + the Shibuya theme
      (autodoc API reference), not MkDocs (see
-     [ADR-006](adr/006-sphinx-shibuya-for-documentation.md)). Publishing is
-     **versioned** ([ADR-027](adr/027-versioned-documentation-and-last-updated-stamps.md)):
+     [Sphinx with Shibuya](../context/docs-stack.md#sphinx-with-the-bare-shibuya-theme-replaces-mkdocs)). Publishing is
+     **versioned** ([versioned docs](../context/docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages)):
      only the released version is built (its slug set by the
      `docs_version_granularity` question — `X.Y`/`X`/`X.Y.Z`); prior versions are
      copied untouched from the `gh-pages` branch (never rebuilt), a `latest` alias
@@ -1043,7 +1044,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      via `html_context`, and each page footer carries a `sphinx-last-updated-by-git`
      date. Both `deploy-docs` and the manual `gh-pages.yml` set
      `clean-exclude: pr-preview/**` so a release never wipes the live PR previews
-     `docs-preview.yml` maintains under that path (see ADR-010 below); the numeric
+     `docs-preview.yml` maintains under that path (see [PR docs previews](../context/docs-stack.md#pr-docs-previews-deploy-to-a-subfolder-of-the-projects-own-gh-pages-same-repo-only) below); the numeric
      version-slug directories (e.g. `0.3/`) are re-supplied in `./site` each run.
      The manual `gh-pages.yml` checks out the latest **published** release's tag
      before building so a manual redeploy never overwrites released docs with
@@ -1069,7 +1070,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
      (previous published tag → this tag) to the PRs that carried it, resolves each
      PR's `closingIssuesReferences`, and comments the release link on those
      issues. Inline (no committed script), best-effort. See
-     [ADR-010](adr/010-pr-docs-previews-and-released-issue-notifications.md).
+     [released-issue notifications](../context/release-automation.md#released-issue-notifications-are-one-inline-job-in-releaseyml).
    - Versions come from git tags via hatch-vcs, so release-please never edits a
      static version literal and `uv.lock` cannot desync.
 3. **PR title linting** (`check-pr-title.yml`): validates the **PR title** (not
@@ -1224,7 +1225,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    (best-effort). Previews live under `pr-preview/**`, disjoint from the root docs
    deploy, and the two `JamesIves` publishes carry `clean-exclude: pr-preview/**`
    so a release never wipes them. See
-   [ADR-010](adr/010-pr-docs-previews-and-released-issue-notifications.md).
+   [PR docs previews](../context/docs-stack.md#pr-docs-previews-deploy-to-a-subfolder-of-the-projects-own-gh-pages-same-repo-only).
 10. **Docs link check** (`docs-linkcheck.yml`, rendered only when `include_docs`, static workflow).
    Runs Sphinx's `linkcheck` builder on a **weekly cron** + `workflow_dispatch`
    to catch dead links/moved anchors in the docs. Deliberately **not** on
@@ -1235,7 +1236,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
    it: `sphinx-lint` (a `local` prek hook backed by the `style` group + a tox
    `style` command, linting the `.rst` sources) and the `check-case-conflict`
    prek builtin (cross-platform filename-collision guard). See
-   [ADR-011](adr/011-docs-linting-and-cross-platform-filename-safety.md).
+   [docs linting](../context/docs-stack.md#sphinx-lint-and-the-case-conflict-hook-are-always-on-link-checking-is-weekly).
 
    The **HTML build itself carries a warning-allowlist gate**: the `docs-build`
    tox env builds with `sphinx-build -w docs/_build/warnings.txt` (write the
@@ -1254,7 +1255,7 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
 
 Downstream template updates are **not** a shipped workflow — they are handled by
 **Renovate's [`copier` manager](https://docs.renovatebot.com/modules/manager/copier/)**
-(ADR-015). Renovate (already the canonical updater, and a documented one-time
+([copier-manager updates](../context/template-updates.md#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source)). Renovate (already the canonical updater, and a documented one-time
 setup) detects the generated project's `.copier-answers.yml`, watches the template
 repo (`_src_path`) via the **`git-tags`** datasource, and when a newer tag exists
 runs the real `copier update` and opens a PR with the re-rendered diff. It is on
@@ -1262,7 +1263,8 @@ by default (the shared preset sets no `enabledManagers`), so generated projects
 get it via the `.copier-answers.yml` they already ship — nothing added to the
 template's `renovate.json`. Renovate's **App token can push `.github/workflows/*`**
 (the repo `GITHUB_TOKEN` cannot), so no per-repo update PAT is needed. Two things
-make this work and are load-bearing — do not undo them without re-reading ADR-015:
+make this work and are load-bearing — do not undo them without re-reading
+[copier-manager updates](../context/template-updates.md#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source):
 (1) the template's own release-please (below) must keep cutting **tags**, because
 the copier manager is tag-based, not HEAD-based; (2) `copier.yml` must define **no
 `_tasks`** — any task forces `copier ... --trust`, which the **hosted Mend Renovate
@@ -1295,13 +1297,13 @@ run. To ship less-stale seeds, refresh the `template/**` pins deliberately (by
 hand or a one-off scoped run) right before cutting a template release — accepting
 that a deliberate bump reintroduces conflicts only for projects that had not yet
 caught up. See
-[ADR-020](adr/020-freeze-shipped-template-pins-from-renovate.md).
+[frozen template pins](../context/template-updates.md#shipped-template-pins-are-frozen-from-this-repositorys-renovate).
 
-## Template self-versioning (this repo, ADR-015)
+## Template self-versioning (this repo)
 
 The template repository **versions itself** with release-please so its changes
 produce semver git tags (`v1.0.0`, …). These tags are the **datasource Renovate's
-copier manager consumes** in generated projects (see the ADR-015 note above) — so
+copier manager consumes** in generated projects (see the [copier-manager](../context/template-updates.md#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source) note above) — so
 tagging is load-bearing, not cosmetic. This is distinct from the
 `template/`-shipped release-please that versions *generated* projects. Root-level
 files: `.github/release-please-config.json` (`release-type: "simple"` — the repo
@@ -1365,7 +1367,7 @@ ready-to-run `gh repo edit` / `gh api` commands and the PyPI trusted-publishing
 registration, each step tagged `[AGENT]` (scriptable) or `[HUMAN]`
 (browser-only) so it doubles as a setup-skill manifest — keep that guide in
 sync when these requirements change. See
-[ADR-022](adr/022-maintainer-setup-as-single-doc-home.md).
+[maintainer setup guide](../context/repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree).
 
 Generated projects also ship a **`repo-setup` skill**
 — one template file, under a directory name the `include_ai_rulez` toggle
@@ -1381,7 +1383,7 @@ deadlocks and reports every gap at once. The
 `[CHECK]` tag is single-sourced in the setup doc alongside `[AGENT]`/`[HUMAN]`
 (no separate `steps.yaml`) — **every new setup step must carry one** (a real
 idempotent check, a secret-presence check, or an explicit `No scriptable check`
-marker). See [ADR-023](adr/023-repo-setup-skill.md).
+marker). See [repo-setup skill](../context/repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest).
 
 Bump rules follow `.github/release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`
