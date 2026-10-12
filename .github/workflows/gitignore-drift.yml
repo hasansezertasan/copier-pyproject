@@ -6,7 +6,7 @@ name: Gitignore Drift Check
 # the network and is inherently flaky, so this runs on a weekly schedule and on
 # demand — never on pull_request. A failure is a maintenance signal (regenerate
 # with `cobo update && cobo sync`), not a merge blocker. Mirrors the workflow
-# the template ships to generated projects. See docs/adr/012.
+# the template ships to generated projects. See context/gitignore-generation.md.
 "on":
   workflow_dispatch:
   schedule:
