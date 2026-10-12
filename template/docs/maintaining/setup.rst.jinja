@@ -141,7 +141,7 @@ contexts as required (the names are the **check runs**, not the workflow files):
 .. code-block:: sh
 
    gh api repos/{{github_user}}/{{github_repo_name}}/branches/main/protection \
-     --jq '(.required_status_checks.strict == true) and ((["check","Validate PR title","Validate branch name","Verify linked issue","Task Completed Checker"] - (.required_status_checks.contexts // [])) == [])' | grep -qx true
+     --jq '(.required_status_checks.strict == true) and ((["check","Validate PR title","Validate branch name","Verify linked issue","Task Completed Checker"] - (.required_status_checks.contexts // [])) == []){% if include_repo_settings %} and (.required_pull_request_reviews.require_code_owner_reviews == true){% endif %}' | grep -qx true
 
 UI equivalent: **Settings → Branches → Add branch ruleset** (or **Add rule** for
 ``main``) — enable **Require status checks to pass before merging**, then search
@@ -830,10 +830,28 @@ Settings App** until that safeguard can be enforced. Record this integration
 as deferred and skip its installation and check; the metadata file can stay
 in the repository without the App.
 
+**[HUMAN]** Confirm that a distinct trusted reviewer with write access can
+approve changes authored by the maintainer and is listed in CODEOWNERS for
+``.github/settings.yml`` and ``.github/CODEOWNERS``.
+A sole maintainer cannot approve their own pull requests;
+defer the Settings App until that reviewer is available.
+{% if include_repo_ruleset %}
+**[HUMAN]** Once that reviewer is available, use GitHub to edit
+``.github/rulesets/main.json`` and set the ``pull_request`` rule's
+``require_code_owner_review`` to ``true``.
+Land this policy change through a reviewed pull request;
+``ruleset-sync.yml`` applies it after merge.
+The shipped ruleset leaves this flag off so a solo maintainer's ordinary PRs
+remain mergeable before this optional integration is configured.
+Keep the committed source in sync; an edit only in the ruleset UI is reverted
+by the sync workflow.
+{% endif %}
 **[CHECK]** Prerequisite: required code-owner review is enforced on ``main``.
+{% if not include_repo_ruleset %}
 The branch-protection step above enables it when this integration is selected.
+{% endif %}
 If the check fails or cannot be verified, defer installation and return to that
-step; a CODEOWNERS file alone does not enforce review.
+policy step; a CODEOWNERS file alone does not enforce review.
 
 .. code-block:: sh
 

@@ -69,7 +69,7 @@ def test_settings_installation_requires_enforced_owner_review(
     guide = (root / "docs/maintaining/setup.rst").read_text(encoding="utf-8")
     settings_section = guide.split('Repository settings ("Settings" App)', 1)[1]
     assert settings_section.index("**[CHECK]** Prerequisite") < settings_section.index(
-        "**[HUMAN]**"
+        "**[HUMAN]** Only after the prerequisite check passes"
     )
     assert "If the check fails or cannot be verified, defer installation" in guide
     if include_repo_ruleset:
@@ -77,7 +77,10 @@ def test_settings_installation_requires_enforced_owner_review(
         review = next(
             rule for rule in ruleset["rules"] if rule["type"] == "pull_request"
         )
-        assert review["parameters"]["require_code_owner_review"] is True
+        # App setup is optional: the initial ruleset must not require a sole
+        # code owner to approve their own PRs before a reviewer is available.
+        assert review["parameters"]["require_code_owner_review"] is False
+        assert "Land this policy change through a reviewed pull request" in guide
         assert "/rules/branches/main" in settings_section
     else:
         protection = json.loads(
@@ -88,3 +91,9 @@ def test_settings_installation_requires_enforced_owner_review(
             is True
         )
         assert "/branches/main/protection" in settings_section
+        protection_check = guide.split("UI equivalent: **Settings → Branches", 1)[0]
+        assert (
+            "and (.required_pull_request_reviews.require_code_owner_reviews == true)"
+            in protection_check
+        )
+    assert "defer the Settings App until that reviewer is available" in guide

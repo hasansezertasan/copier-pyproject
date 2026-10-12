@@ -328,7 +328,7 @@ include_repo_settings:
   type: bool
   default: "{{ 'include_repo_settings' in preset_map[preset] }}"
   help: >-
-    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? Requires installing that App on the repository; it escalates push access to admin, so setup enables and verifies required code-owner review before installation (docs/maintaining/setup.rst).
+    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? It escalates push access to admin, so setup requires a distinct trusted reviewer and verified code-owner review before App installation (docs/maintaining/setup.rst).
 include_repo_ruleset:
   type: bool
   default: "{{ 'include_repo_ruleset' in preset_map[preset] }}"

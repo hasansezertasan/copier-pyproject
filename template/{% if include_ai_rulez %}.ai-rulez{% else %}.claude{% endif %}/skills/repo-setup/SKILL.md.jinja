@@ -56,7 +56,8 @@ collect blockers and report them together.
   commands and checks, and continue.
 {%- if include_repo_settings %}
   The Settings App needs enforceable code-owner review, so defer it on a
-  free-plan private repository or whenever its prerequisite check fails.
+  free-plan private repository, when no distinct trusted code owner can review
+  the maintainer's changes, or whenever its prerequisite check fails.
 {%- endif %}
 - **Optional** — everything under the `Optional integrations` heading. A red
   check means "not configured", which is a fine end state.
@@ -96,7 +97,8 @@ pending human handoffs, and the optional steps left unconfigured.
 {%- if include_repo_settings %}
 
 - **Install the Settings App only after its code-owner-review prerequisite
-  check passes.** If that check fails or is unavailable, defer the integration;
+  check passes and the user confirms a distinct trusted reviewer is available.**
+  If either prerequisite is missing or unavailable, defer the integration;
   skip the installation handoff and its installed-App check.
 {%- endif %}
 {%- if include_pypi_publish %}

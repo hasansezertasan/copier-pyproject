@@ -236,9 +236,11 @@ Optional components (all boolean):
   GitHub App, `default: false`. Opt-in like the ADR-009 integrations because the
   App is an external install (and it escalates push→admin — mitigated via the
   shipped CODEOWNERS + "Require review from Code Owners"). The setup guide's
-  branch-protection request and rendered ruleset enable code-owner review when
-  this toggle is on; a prerequisite check gates App installation. If protection
-  is unavailable or unverifiable, setup defers the App. Labels are NOT managed
+  branch-protection request enables code-owner review when this toggle is on;
+  ruleset projects enable it through a reviewed change to the committed policy
+  after a distinct trusted reviewer is available. The default ruleset keeps
+  ordinary solo-maintainer PRs mergeable. A prerequisite check gates App installation;
+  unavailable reviewers or unavailable/unverifiable protection defer the App. Labels are NOT managed
   here — they stay App-free in `labels.yml`/`label-sync.yml`. The "Include in the
   home page" sidebar toggles are not settable via any API (UI-only). See
   [ADR-018](adr/018-repository-settings-as-code.md).
