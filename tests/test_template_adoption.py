@@ -37,6 +37,15 @@ def test_adoption_skill_delivery(
         "a lower rendered pin is a downgrade",
         "Trim template leftovers",
         "manifest-parity map",
+        "renovate#31600",
+        "release-please-manifest.json",
+        "Keeping template version",
+        "Initial adoption hazards",
+        "ruff check --diff",
+        "src/example/__init__.py",
+        "TODO @octocat:",
+        "example==0.1.0",
+        "https://github.com/hasansezertasan/copier-pyproject.git",
     ):
         assert requirement in text
     readme = (root / "README.md").read_text(encoding="utf-8")
@@ -56,3 +65,40 @@ def test_docs_free_skill_parity(render: Callable[..., Path]) -> None:
     # The only setup guide referenced by the skill ships even without Sphinx.
     assert (off / "docs/maintaining/setup.rst").is_file()
     assert (on / "docs/maintaining/setup.rst").is_file()
+
+
+@pytest.mark.parametrize("include_docs", [False, True])
+@pytest.mark.parametrize("include_megalinter", [False, True])
+def test_initial_hazards_follow_answers(
+    render: Callable[..., Path], include_docs: bool, include_megalinter: bool
+) -> None:
+    root = render(
+        github_repo_name="custom_pkg",
+        github_user="maintainer",
+        include_docs=include_docs,
+        include_megalinter=include_megalinter,
+    )
+    text = (root / ".claude/skills/template-adoption/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    assert "src/custom_pkg/__init__.py" in text
+    assert "TODO @maintainer:" in text
+    assert "custom_pkg==0.1.0" in text
+    assert ("Docs collide too" in text) is include_docs
+    assert ("MegaLinter's cspell" in text) is include_megalinter
+
+
+@pytest.mark.parametrize("include_ai_rulez", [False, True])
+def test_copy_message_routes_before_tools(
+    render: Callable[..., Path],
+    capsys: pytest.CaptureFixture[str],
+    include_ai_rulez: bool,
+) -> None:
+    render(include_ai_rulez=include_ai_rulez, quiet=False)
+    captured = capsys.readouterr()
+    message = captured.out + captured.err
+    host = ".ai-rulez" if include_ai_rulez else ".claude"
+    assert f"Read {host}/skills/template-adoption/SKILL.md" in message
+    assert "repo-setup" in message
+    assert "docs/maintaining/setup.rst" in message
+    assert message.index("Before running tools") < message.index("uv sync")

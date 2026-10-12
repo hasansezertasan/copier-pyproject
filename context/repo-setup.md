@@ -112,6 +112,7 @@ only the shape of the setup, no secrets.
 **See:** repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree — 4e0fcdab-d3b9-4f96-b61d-8e34927af98d — as of 2026-10-11
 **See:** agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros — e1545d12-ac20-426b-9cd5-519e80a56b5f — as of 2026-10-11
 **See:** template-updates.md#copieryml-defines-no-_tasks — 86130379-1660-4992-8aba-8b6cd7b4a9f7 — as of 2026-10-11
+**See:** repo-setup.md — c85feefa-0063-4a34-8030-8c348190b96b — as of 2026-10-12
 
 Every actionable step in the setup doc carries a `[CHECK]` block: a command
 where exit 0 means the step is done. End-state checks assert the state a step
@@ -140,3 +141,32 @@ skill is a rendered file, so it never needs a post-copy task.
 
 **Consequence:** every future setup step must carry a `[CHECK]` block to stay
 machine-drivable, as every step already had to carry an actor tag.
+
+The repo-local half was removed on 2026-10-12; the entry below records why.
+
+## This repository's own one-time setup is two documented commands, not a repo-local skill
+
+**Id:** c85feefa-0063-4a34-8030-8c348190b96b
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Revisit when:** this repository's own setup grows beyond a couple of settings, or has to be re-applied repeatedly (forks, re-created repo, recurring drift)
+
+The template repository's own setup — squash-only merging with the PR title as
+the commit message, plus `can_approve_pull_request_reviews=true` so
+release-please can open its release PR, with `default_workflow_permissions`
+left at least-privilege `read` — is recorded as two `gh` commands under
+"One-time repo setup" in `docs/template-architecture.md`. The repo-local
+`.claude/skills/repo-setup/` that drove them (ADR-023 §3) is removed. The
+shipped `repo-setup` skill keeps its role; the plugin `setup` skill was
+later removed (companion-skills.md).
+
+**Reason:** the setup runs once per repository and has already run —
+release-please has been cutting releases. Afterwards the skill sat in every
+session's skill list next to two similarly named setup skills for generated
+projects, and it duplicated the two commands the architecture doc already
+carries.
+
+**Rejected alternative:** keep it as an idempotent verifier for when the
+release PR stops opening, or for a fork — re-running the two documented
+commands (with the fork's `OWNER/REPO` substituted) covers that by hand.

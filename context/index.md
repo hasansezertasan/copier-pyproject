@@ -32,6 +32,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 ## C
 
 - [ci-topology.md](ci-topology.md) — Generated-project CI: weekly crons for network-dependent checks, per-component jobs and coverage gates, the asymmetric matrix, draft skipping, smokeshow.
+- [companion-skills.md](companion-skills.md) — Lifecycle skills ship through the template; prompts bridge the pre-scaffold step.
 - [components.md](components.md) — Runnable components: subcommands over one console root, the CLI framework choice, the dependency guard, no extras, run/dev verbs, the shared application payload.
 
 ## D
@@ -77,7 +78,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 ## R
 
 - [release-automation.md](release-automation.md) — release-please, the draft-release flow, the dispatch trigger and publish environment, token workarounds, Commitizen's role, the open re-evaluation, Docker Hub gating, issue notifications.
-- [repo-setup.md](repo-setup.md) — Settings App metadata, rulesets as code, the single maintainer setup doc, the resume-driven repo-setup skill.
+- [repo-setup.md](repo-setup.md) — Settings App metadata, rulesets as code, the single maintainer setup doc, the resume-driven repo-setup skill, this repository's own two-command setup.
 - [runtime-logging.md](runtime-logging.md) — Console-only degradation, home-directory resolution, and logging ownership boundaries.
 
 ## S

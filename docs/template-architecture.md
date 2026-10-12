@@ -235,7 +235,12 @@ Optional components (all boolean):
   (description/homepage/topics + squash-merge flags) synced by the "Settings"
   GitHub App, `default: false`. Opt-in like the ADR-009 integrations because the
   App is an external install (and it escalates push→admin — mitigated via the
-  shipped CODEOWNERS + "Require review from Code Owners"). Labels are NOT managed
+  shipped CODEOWNERS + "Require review from Code Owners"). The setup guide's
+  Settings step enables code-owner review through a separate API request or,
+  for ruleset projects, a reviewed change to the committed policy,
+  after a distinct trusted reviewer is available. Initial protection keeps
+  ordinary solo-maintainer PRs mergeable. A prerequisite check gates App installation;
+  unavailable reviewers or unavailable/unverifiable protection defer the App. Labels are NOT managed
   here — they stay App-free in `labels.yml`/`label-sync.yml`. The "Include in the
   home page" sidebar toggles are not settable via any API (UI-only). See
   [ADR-018](adr/018-repository-settings-as-code.md).
@@ -1317,11 +1322,20 @@ title is what release-please parses on `main`, and **Settings → Actions → Ge
 requests** must be enabled so `release.yml` can open its release PR (already
 required by the existing PR-opening automation such as `gitignore-drift.yml`).
 Enable via `gh repo edit hasansezertasan/copier-pyproject --enable-squash-merge
---enable-merge-commit=false --enable-rebase-merge=false` and
+--enable-merge-commit=false --enable-rebase-merge=false
+--squash-merge-commit-message=pr-title` and
 `gh api -X PUT repos/hasansezertasan/copier-pyproject/actions/permissions/workflow
--f default_workflow_permissions=write -F can_approve_pull_request_reviews=true`.
-This repo carries a repo-local `.claude/skills/repo-setup/` skill that automates
-the walk.
+-f default_workflow_permissions=read -F can_approve_pull_request_reviews=true`.
+The default stays least-privilege `read`, as in generated projects: every
+workflow declares its own `permissions:`, and `release.yml`'s `release-please`
+job grants itself the `write` scopes it needs. Both settings are one-time and
+idempotent to re-apply (in a fork, substitute its `OWNER/REPO` in every command);
+re-check them first when the release PR stops opening:
+`gh api repos/hasansezertasan/copier-pyproject --jq '.allow_squash_merge and
+(.allow_merge_commit | not) and (.allow_rebase_merge | not) and
+.squash_merge_commit_title == "PR_TITLE"'` must print `true`, and
+`gh api repos/hasansezertasan/copier-pyproject/actions/permissions/workflow`
+must report `read` and `true`.
 
 ## Required Merge Strategy (release-please depends on it)
 
@@ -1367,10 +1381,7 @@ deadlocks and reports every gap at once. The
 `[CHECK]` tag is single-sourced in the setup doc alongside `[AGENT]`/`[HUMAN]`
 (no separate `steps.yaml`) — **every new setup step must carry one** (a real
 idempotent check, a secret-presence check, or an explicit `No scriptable check`
-marker). This repo carries a symmetric repo-local `.claude/skills/repo-setup/`
-for its own bootstrap (squash-merge policy + the deliberately-divergent
-`default_workflow_permissions=write`, not the generated projects' `read`). See
-[ADR-023](adr/023-repo-setup-skill.md).
+marker). See [ADR-023](adr/023-repo-setup-skill.md).
 
 Bump rules follow `.github/release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`
@@ -1393,6 +1404,11 @@ For generated projects to publish to PyPI (only when `include_pypi_publish`):
 
 Generated projects always ship a `template-adoption` skill beside `repo-setup`,
 using the same `.claude/skills/` or `.ai-rulez/skills/` delivery convention.
+It includes first-adoption and Copier-update hazards; docs and MegaLinter
+hazards are gated by the generated project's answers. The README's pre-scaffold
+prompt establishes the recoverable baseline, and `_message_after_copy` points
+at the rendered skill before tools or commits run. No external companion plugin
+or Copier post-copy task is needed.
 It establishes an adoption/update baseline, compares existing project behavior
 with template defaults, preserves user work and customizations, and requests
 decisions before consequential cleanup. Post-update audits inspect committed

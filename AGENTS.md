@@ -249,7 +249,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_pypi_publish` | PyPI trusted publishing on release (default-on every preset); off ships GitHub Releases only and gates out a PyPI-backed Homebrew/Scoop | [039](docs/adr/039-optional-pypi-publishing.md) |
 | `include_homebrew` | Homebrew tap dispatch (`can_distribute_natively`-gated) | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
 | `include_scoop` | Scoop bucket dispatch | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
-| `include_repo_settings` | `.github/settings.yml` via Settings App | [018](docs/adr/018-repository-settings-as-code.md) |
+| `include_repo_settings` | `.github/settings.yml` via Settings App; installation requires verified code-owner review | [018](docs/adr/018-repository-settings-as-code.md) |
 | `include_repo_ruleset` | branch-protection `ruleset-sync.yml` (`full` preset) | [021](docs/adr/021-repository-ruleset-as-code.md) |
 | Devcontainer: `include_postgres`/`include_redis` (`redis_backend`)/`include_pgadmin`/`include_adminer`/`include_dbeaver`/`include_vpn` | devcontainer services | — |
 
@@ -436,9 +436,9 @@ setup" guide (`[AGENT]`/`[HUMAN]`/`[CHECK]`-tagged, driven by the shipped
 `repo-setup` skill — [ADR-022](docs/adr/022-maintainer-setup-as-single-doc-home.md),
 [ADR-023](docs/adr/023-repo-setup-skill.md); shipped to Claude alone, or to every
 selected host when `include_ai_rulez`); keep it in sync when these
-requirements change. This repo carries a symmetric repo-local
-`.claude/skills/repo-setup/` for its own bootstrap. Bump rules and this repo's own
-self-versioning are detailed in `docs/template-architecture.md` and ADR-015.
+requirements change. This repo's own two-step setup is the pair of `gh`
+commands under "One-time repo setup" in `docs/template-architecture.md`; bump
+rules and this repo's own self-versioning are detailed there and in ADR-015.
 
 The always-shipped `template-adoption` skill uses the same host delivery path as `repo-setup`; its adoption/update audit and walkthrough are documented in `docs/template-adoption.md`.
 
