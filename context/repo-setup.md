@@ -123,9 +123,7 @@ marker; steps covered by another step point at it. A skill shipped verbatim
 into every generated project walks the doc top to bottom without aborting,
 classifies steps as required, deferred (GitHub Pages and previews, expected red
 until the first release) or optional (asks configure-or-skip), and reports
-everything together. A symmetric repo-local skill drives this repository's own
-two-step setup inline, flagging its deliberate `write`-not-`read` workflow
-permission.
+everything together.
 
 **Reason:** the prose was executed two lossy ways — a human hand-running
 commands, or an external plugin skill with its own hand-maintained verify list
@@ -142,7 +140,8 @@ skill is a rendered file, so it never needs a post-copy task.
 **Consequence:** every future setup step must carry a `[CHECK]` block to stay
 machine-drivable, as every step already had to carry an actor tag.
 
-The repo-local half was removed on 2026-10-12; the entry below records why.
+This repository's own setup has no repo-local skill since 2026-10-12; the
+entry below records why.
 
 ## This repository's own one-time setup is two documented commands, not a repo-local skill
 

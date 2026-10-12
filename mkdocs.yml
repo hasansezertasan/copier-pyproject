@@ -9,7 +9,7 @@
 # tools/mkdocs/site_pages.py, no copies).
 #
 # Local preview, with the versions .github/workflows/docs.yml builds with:
-#   uvx --from mkdocs==1.6.1 --with mkdocs-material==9.7.7 mkdocs serve
+#   uv run --no-project --with-requirements tools/mkdocs/requirements.txt mkdocs serve
 site_name: copier-pyproject
 site_description: Copier template for a modern, typed Python package/CLI with uv, hatch, tox, and GitHub automation baked in.
 site_url: https://hasansezertasan.github.io/copier-pyproject/

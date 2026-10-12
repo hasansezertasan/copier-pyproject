@@ -9,9 +9,9 @@ name: docs
 # set to "GitHub Actions" as its source (Settings → Pages → Build and
 # deployment → Source).
 #
-# The docs toolchain is pinned to exact versions and run through uvx, so what
-# is deployed is reproducible; bump the three versions below together with
-# the local-preview line in mkdocs.yml.
+# The docs toolchain is pinned to exact versions in
+# tools/mkdocs/requirements.txt, where Renovate's pip_requirements manager
+# keeps them current, so what is deployed is reproducible.
 
 on:
   push:
@@ -45,10 +45,11 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
       - name: Build the documentation into site/
-        run: uvx --from mkdocs==1.6.1 --with mkdocs-material==9.7.7 mkdocs build --strict
+        run: uv run --no-project --with-requirements tools/mkdocs/requirements.txt mkdocs build --strict
       - name: Export the Keep the Why dashboard into site/keep-the-why-dashboard
         run: |
-          uvx --from keep-the-why-dashboard==0.11.1 ktw-dashboard --export site/keep-the-why-dashboard .
+          uv run --no-project --with-requirements tools/mkdocs/requirements.txt \
+            ktw-dashboard --export site/keep-the-why-dashboard .
           test -s site/keep-the-why-dashboard/index.html
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5
         with:
