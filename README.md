@@ -77,6 +77,7 @@ Copier will prompt for:
 - `include_ai_rulez` (author the agent instructions once under `.ai-rulez/` and generate each AI coding host's native config from them via [ai-rulez](https://github.com/Goldziher/ai-rulez), instead of the hand-written `AGENTS.md`; the generated files are committed build output, written by `ai-rulez generate` — see [ADR-035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
   - `ai_rulez_presets` (asked when `include_ai_rulez`: which hosts to generate for — `codex`, `copilot` by default, plus `claude`/`cursor`/`windsurf`/`cline`/`continue-dev`/`amp`/`junie`/`opencode`/`hermes`/`antigravity`)
 - `include_repo_ruleset` (opt-in branch protection as code — a ruleset + App-free sync workflow enforcing squash-only merges, linear history, and the required CI checks; needs a `REPO_ADMIN_TOKEN` PAT)
+- `include_repo_settings` (repository metadata via the Settings App; setup enables and verifies required code-owner review before installation, and defers the App when that safeguard is unavailable)
 - `include_postgres` (include PostgreSQL service in devcontainer)
 - `include_redis` (include Redis/Valkey service in devcontainer)
 - `redis_backend` (redis/valkey - when `include_redis` is enabled, or when a

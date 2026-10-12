@@ -131,7 +131,7 @@ contexts as required (the names are the **check runs**, not the workflow files):
        "contexts": ["check", "Validate PR title", "Validate branch name", "Verify linked issue", "Task Completed Checker"]
      },
      "enforce_admins": null,
-     "required_pull_request_reviews": null,
+     "required_pull_request_reviews": {% if include_repo_settings %}{"require_code_owner_reviews": true}{% else %}null{% endif %},
      "restrictions": null
    }
    JSON
@@ -830,7 +830,21 @@ Settings App** until that safeguard can be enforced. Record this integration
 as deferred and skip its installation and check; the metadata file can stay
 in the repository without the App.
 
-**[HUMAN]** Install it once on this repository (or your account) from the
+**[CHECK]** Prerequisite: required code-owner review is enforced on ``main``.
+The branch-protection step above enables it when this integration is selected.
+If the check fails or cannot be verified, defer installation and return to that
+step; a CODEOWNERS file alone does not enforce review.
+
+.. code-block:: sh
+
+{% if include_repo_ruleset %}
+   gh api --paginate repos/{{github_user}}/{{github_repo_name}}/rules/branches/main \
+     --jq 'any(.[]; .type == "pull_request" and .parameters.require_code_owner_review == true)' | grep -qx true
+{% else %}
+   gh api repos/{{github_user}}/{{github_repo_name}}/branches/main/protection \
+     --jq '.required_pull_request_reviews.require_code_owner_reviews == true' | grep -qx true
+{% endif %}
+**[HUMAN]** Only after the prerequisite check passes, install it once on this repository (or your account) from the
 `App page <https://github.com/apps/settings>`_.
 
 **[CHECK]** No scriptable check — confirm the Settings GitHub App is installed.
