@@ -55,8 +55,13 @@ Branch protection
 
 Branch protection and rulesets are free on public repositories, but a
 **private** repository needs a paid GitHub plan (Pro, Team or Enterprise) for
-them to be enforced. On a free-plan private repository skip this section; every
-other step still applies.
+them to be enforced. On a free-plan private repository mark this section
+**not applicable** and skip its commands and checks.
+{%- if include_repo_settings %}
+Also defer the Settings App installation below until required code-owner review
+can be enforced; its review safeguard depends on branch protection.
+{%- endif %}
+Continue with the remaining applicable steps.
 {% if include_repo_ruleset %}
 This project ships its branch protection as a repository ruleset
 (``.github/rulesets/main.json``) applied by the ``ruleset-sync.yml`` workflow on
@@ -818,6 +823,12 @@ Repository settings ("Settings" App)
 (when the ``repository_topics`` template answer is set) topics. It is applied by
 the `Settings GitHub App <https://github.com/apps/settings>`_ on every push to
 the default branch. Nothing syncs until it is installed.
+
+Before installing, enforce **Require review from Code Owners** on the default
+branch as described below. On a free-plan private repository, **defer the
+Settings App** until that safeguard can be enforced. Record this integration
+as deferred and skip its installation and check; the metadata file can stay
+in the repository without the App.
 
 **[HUMAN]** Install it once on this repository (or your account) from the
 `App page <https://github.com/apps/settings>`_.
