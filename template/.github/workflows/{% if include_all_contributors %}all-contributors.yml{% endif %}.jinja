@@ -31,6 +31,18 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
+      - name: Set up Python
+        # `mise install` below installs every tool in mise.toml — including
+        # cobo (pipx backend, Requires-Python >=3.14) — with the runner's
+        # system Python when setup-python/setup-uv have not run yet, and
+        # without uv on PATH mise falls back from uvx to pipx, which ignores
+        # the mise-managed Python. Provision both first so cobo resolves
+        # against the .python-version interpreter (issue #369).
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
       - name: Install mise tools
         # all-contributors-cli is pinned in mise.toml (npm backend, Renovate-tracked)
         # and run via `mise exec`, mirroring how the ghalint hook is invoked.
