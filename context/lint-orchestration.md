@@ -151,8 +151,8 @@ drifts and keeps the duplicate version pin.
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-11
 
-`include_megalinter` (default off) renders the workflow and config. Enabled
-linters are only the gaps prek and tox leave: shellcheck for standalone
+`include_megalinter` (default off, `full` preset) renders the workflow and
+config. Enabled linters are only the gaps prek and tox leave: shellcheck for standalone
 scripts, hadolint (gated on `include_web`, the only config that renders a
 Dockerfile), jsonlint, copy-paste detection, and cspell scoped to Markdown as a
 deeper dictionary pass beside prek's fast `typos`. It uses the smaller

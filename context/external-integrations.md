@@ -6,12 +6,17 @@
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-009, ADR-010, ADR-011, ADR-013, ADR-017, ADR-018, ADR-021, ADR-026, ADR-034 (`docs/adr/`)
+**Source:** ADR-009, ADR-010, ADR-011, ADR-013, ADR-017, ADR-018, ADR-021, ADR-026, ADR-034 (`docs/adr/`); the preset exceptions from ADR-016 and ADR-039 and `preset_map` in `copier.yml`
 **Revisit when:** the template's target audience shifts to teams that provision external services as a matter of course
+**See:** package-distribution.md#optional-pypi-publishing — 20be7463-ca95-4d01-82c9-71f632d1b4be — as of 2026-10-13
 
 The template's default posture: anything that needs an external service, a
-secret, a personal access token or a per-owner repository is an opt-in toggle
-defaulting to `false`; anything self-contained and zero-config may be always-on.
+secret, a personal access token or a per-owner repository is an opt-in toggle,
+off in the `library`, `tool` and `web` presets; anything self-contained and
+zero-config may be always-on. Two exceptions: the `full` preset deliberately
+turns most of these toggles on, and PyPI publishing is on in every preset so
+existing projects and `copier update` keep publishing (its entry in
+`package-distribution.md`).
 Secret-gated jobs skip with a visible notice or warning instead of failing, and
 such jobs never join the `check` merge gate unless the project owner requires
 them through branch protection.

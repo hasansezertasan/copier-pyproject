@@ -12,8 +12,8 @@
 `include_launcher` (PyCrucible, uv-bootstrap launcher), `include_compiler`
 (Nuitka, source-to-machine-code) and `include_freezer` (PyInstaller,
 interpreter-plus-deps bundle) replace the single `include_pycrucible` toggle.
-All three default to `false` and combine freely; there is no `when:` gating and
-no mutually exclusive choice.
+All three default to `false` outside the `full` preset, which turns them on, and
+combine freely; there is no `when:` gating and no mutually exclusive choice.
 
 **Reason:** the single toggle conflated a brand with a capability and covered
 one of three architectures that make materially different promises — a tiny
