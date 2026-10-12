@@ -10,7 +10,7 @@
 **Revisit when:** the ADR archive is removed, or the Keep the Why dashboard and docs site are dropped
 
 The project's rationale lives in `context/`, recorded with Keep the Why: one
-entry per decision, written through the `keep-the-why` skill. The 43 ADRs in
+entry per decision, written through the `keep-the-why` skill. The ADRs in
 `docs/adr/` were carried into `context/` entries that cite them and are kept
 unchanged as a frozen archive: no new ADRs are written. The archive exists only
 so the `ADR-NNN` citations across `AGENTS.md`, `docs/template-architecture.md`,
