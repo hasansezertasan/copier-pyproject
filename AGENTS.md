@@ -281,7 +281,8 @@ and agent onboarding files — `AGENTS.md` by default, or the
 
 ### Load-bearing invariants
 
-Do not break these — each is a real footgun with the detail/why in its ADR:
+Do not break these — each is a real footgun with the detail/why in its linked
+`context/` entry:
 
 - **No `CHANGELOG.md.jinja` seed.** release-please owns the changelog; a
   scaffold-time seed overwrites and wipes an adopting project's release history.

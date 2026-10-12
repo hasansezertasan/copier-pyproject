@@ -6,14 +6,17 @@ see the [generated-project check coverage audit](hook-coverage.md).
 Deep reference for the `copier-pyproject` template — the detail that used to
 live in `AGENTS.md`. `AGENTS.md` is a lean router: it keeps the load-bearing
 agent instructions inline and points here for the "what gets rendered" detail and
-to the [ADRs](adr/) for the "why". Three sources of truth, no duplication:
+to [`context/`](../context/index.md) for the "why". Three sources of truth, no
+duplication:
 
 - **`copier.yml` `help:`** — the one-line prompt shown for each toggle.
 - **This page** — what each toggle/workflow renders and how the pieces fit.
-- **The ADR** — why it exists, the trade-offs, the posture.
+- **The `context/` entry** — why it exists, the trade-offs, the posture, recorded
+  with the `keep-the-why` skill. `docs/adr/` is a frozen archive: no new ADRs.
 
-When a toggle's rationale changes, edit the ADR. When what it renders changes,
-edit this page and `copier.yml` help. Do not restate either in `AGENTS.md`.
+When a toggle's rationale changes, update its `context/` entry through the
+`keep-the-why` skill. When what it renders changes, edit this page and
+`copier.yml` help. Do not restate either in `AGENTS.md`.
 
 ## Template Variables (copier.yml)
 
