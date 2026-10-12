@@ -128,8 +128,10 @@ Check these even when the `copier update` runner reports success:
   `copier update --defaults` and does not fail on merge conflicts
   (renovate#31600). After checkout, scan before trusting the PR:
   `git grep -nE '^(<<<<<<<|>>>>>>>)'` and
-  `find . -name '*.rej' -not -path './.git/*'`. List what the update deleted with
-  `git diff --name-only --diff-filter=D <pre-update-commit> HEAD`.
+  `find . -name '*.rej' -not -path './.git/*'`. For an uncommitted local update,
+  list deletions with `git diff --name-only --diff-filter=D <pre-update-commit> --`
+  to include staged and unstaged changes. For a committed Renovate update or
+  post-update audit, use `git diff --name-only --diff-filter=D <pre-update-commit> HEAD --`.
 - **New questions took their defaults.** Diff `.copier-answers.yml` against the
   pre-update commit (`git show <pre-update-commit>:.copier-answers.yml`) and
   take every added or changed key to the user before keeping it.
