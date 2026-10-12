@@ -24,6 +24,18 @@ Use the request above to select the skill. With `include_ai_rulez=true`, run
 discovery can read the file directly. Both paths contain the same procedure and
 a self-contained walkthrough, even with `include_docs=false`.
 
+## First adoption into an existing package
+
+Use the [pre-scaffold prompt](../README.md#before-scaffolding-an-existing-package)
+to establish a clean branch, committed baseline, agreed answers and target
+version. After copying, read the rendered skill directly before installing
+dependencies, running hooks or committing. Copier's completion message points
+at its actual host path, so ai-rulez generation is not a prerequisite for this
+first read. The skill covers auto-fix settings, source and docs collisions,
+release state, dependencies, and placeholder prose; docs and MegaLinter hazards
+render only when those components are enabled. Finish reconciliation before
+handing repository settings to `repo-setup`.
+
 ## Example adoption walkthrough
 
 This illustrative case follows the overlapping prek workflows raised during

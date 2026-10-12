@@ -14,7 +14,8 @@ release-please can open its release PR, with `default_workflow_permissions`
 left at least-privilege `read` — is recorded as two `gh` commands under
 "One-time repo setup" in `docs/template-architecture.md`. The repo-local
 `.claude/skills/repo-setup/` that drove them (ADR-023 §3) is removed. The
-shipped `repo-setup` skill and the plugin `setup` skill keep their roles.
+shipped `repo-setup` skill keeps its role; the plugin `setup` skill was
+later removed (companion-skills.md).
 
 **Reason:** the setup runs once per repository and has already run —
 release-please has been cutting releases. Afterwards the skill sat in every

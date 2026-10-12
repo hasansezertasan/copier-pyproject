@@ -118,7 +118,7 @@ project-specific guidance from it into `AGENTS.md` (or, if the same update turns
 on `include_ai_rulez`, into a `.ai-rulez/` rule source, since `AGENTS.md` then
 becomes generated output).
 
-## Adopt into an existing project (Claude Code plugin)
+## Adopt into an existing project
 
 The `copier copy` flow above is for **new** projects. Adopting this template into an **existing or already-published** package is a different job: `copier copy` overwrites source, config, docs, and CI, so it must be run as a migrate-and-reconcile rather than a scaffold.
 
@@ -131,31 +131,45 @@ or `.ai-rulez/skills/template-adoption/SKILL.md` with `include_ai_rulez=true`;
 `ai-rulez generate` delivers it to the selected hosts. An agent can also read that
 file directly. See the [prek walkthrough](docs/template-adoption.md).
 
-This repository also doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) **plugin** (`copier-pyproject`) that ships three skills covering the template's lifecycle:
+### Before scaffolding an existing package
 
-- [`copier-pyproject:adopt`](skills/adopt/SKILL.md) — **first-time adoption** into an existing package: the source-skeleton collision, ruff auto-fix source corruption, the release-please/hatch-vcs version clash, and the placeholder prose the template plants in issue templates and docs.
-- [`copier-pyproject:update`](skills/update/SKILL.md) — **pulling later template changes**: the `copier update` 3-way-merge flow, reviewing Renovate copier-update PRs, and approving newly-added template questions with a human in the loop.
-- [`copier-pyproject:setup`](skills/setup/SKILL.md) — **one-time repository wiring**: trusted publishing, branch protection, required checks, secrets, and App installs.
-
-Plugin metadata lives in [`.claude-plugin/`](.claude-plugin).
-
-### For humans
-
-Install the plugin once from inside Claude Code:
+Give your agent this prompt in the package's repository:
 
 ```text
-/plugin marketplace add hasansezertasan/copier-pyproject
-/plugin install copier-pyproject@copier-pyproject
+Adopt https://github.com/hasansezertasan/copier-pyproject.git into this package.
+First inspect the repository and agree with me on a target template version and
+explicit --data answers that preserve its dependencies, Python support and
+interfaces. Require a clean working tree with all project work committed, create
+a dedicated chore/adopt-copier-pyproject branch, and record the baseline commit
+and last published version. If .copier-answers.yml already exists, use the
+update flow instead of a new overwrite copy.
+
+For first adoption, use uvx copier copy --overwrite --defaults with the .git URL,
+--vcs-ref=<agreed-version>, the agreed --data answers, and . as the destination.
+Before installing
+dependencies, running hooks or committing the output, read the rendered
+skills/template-adoption/SKILL.md under .claude/ or .ai-rulez/ directly and
+follow it to reconcile against the baseline. Preserve our real source, tests,
+identity, release history and custom tooling; ask before consequential changes.
+Then read the sibling repo-setup skill and walk docs/maintaining/setup.rst.
+Report validation results and any remaining setup steps.
 ```
 
-Then, in a Claude Code session opened **inside the package you are adopting the template into**, describe the task (e.g. "adopt copier-pyproject into this project"). Claude follows the skill's procedure and checks in with you at each decision it cannot make alone — the planted `TODO` markers, the issue-template example prose, and the release-please version manifest.
+### After scaffolding
 
-### For agents
+Copier prints a prompt pointing at the rendered skills. Give your agent:
 
-Once the plugin is installed the skills are auto-discovered; no explicit invocation is needed. Each triggers on its own whenever a task matches its description: adopting `hasansezertasan/copier-pyproject` into an existing package (`adopt`), reconciling a `copier update` or a Renovate copier-update PR (`update`), or wiring up releases and repository settings (`setup`). Working directly from a clone (without installing the plugin), an agent can read the relevant `SKILL.md` under [`skills/`](skills) and follow it as a checklist.
+```text
+Read template-adoption and audit this scaffold against our existing behavior
+before running tools, then use repo-setup to walk docs/maintaining/setup.rst.
+```
 
-> [!NOTE]
-> For a brand-new project, ignore the plugin and use [Scaffold a project](#scaffold-a-project) above — the skill is only for adopting the template into code that already exists.
+For a brand-new project, use `repo-setup` to walk the setup guide after the
+[quickstart](#generated-project-quickstart); there is no existing code to reconcile.
+
+The companion plugin and its `adopt`, `update`, and `setup` skills are retired.
+If you installed them previously, remove that installation and use the generated
+project's `template-adoption` and `repo-setup` skills. No plugin install is needed.
 
 ## Generated project quickstart
 

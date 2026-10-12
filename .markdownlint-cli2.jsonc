@@ -10,9 +10,9 @@
   // changelog is release-please-generated (linguist-generated) and its blank-line
   // layout is regenerated every release, so hand-linting it is futile churn.
   "globs": ["**/*.md", "**/*.markdown", "!CHANGELOG.md"],
-  // `skills/` and `.agents/skills/` hold vendored skill docs (SKILL.md) that
+  // `.agents/skills/` holds vendored skill docs (SKILL.md) that
   // mirror an externally-maintained skill; the repo does not restyle them
-  // (same rationale as the `skills/` exclusion in _typos.toml).
-  "ignores": ["skills/**", ".agents/skills/**"],
+  // (same rationale as the `.agents/skills/` exclusion in _typos.toml).
+  "ignores": [".agents/skills/**"],
   "gitignore": true,
 }

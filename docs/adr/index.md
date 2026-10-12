@@ -74,6 +74,8 @@ Architecture decision records and project rationale; existing ADRs retain their 
 
 ## C
 
+- [companion-skills.md](companion-skills.md) — Lifecycle skills ship through the template; prompts bridge the pre-scaffold step.
+
 ## D
 
 ## E

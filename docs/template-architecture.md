@@ -1399,6 +1399,11 @@ For generated projects to publish to PyPI (only when `include_pypi_publish`):
 
 Generated projects always ship a `template-adoption` skill beside `repo-setup`,
 using the same `.claude/skills/` or `.ai-rulez/skills/` delivery convention.
+It includes first-adoption and Copier-update hazards; docs and MegaLinter
+hazards are gated by the generated project's answers. The README's pre-scaffold
+prompt establishes the recoverable baseline, and `_message_after_copy` points
+at the rendered skill before tools or commits run. No external companion plugin
+or Copier post-copy task is needed.
 It establishes an adoption/update baseline, compares existing project behavior
 with template defaults, preserves user work and customizations, and requests
 decisions before consequential cleanup. Post-update audits inspect committed
