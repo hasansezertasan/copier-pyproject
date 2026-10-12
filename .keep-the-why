@@ -12,4 +12,5 @@ README, for what Keep the Why actually is.
 - source-reference: never
 - pinned-version: 0.20.1
 - pinned-path: .agents/skills/keep-the-why/SKILL.md
+- dashboard-state: https://hasansezertasan.github.io/copier-pyproject/keep-the-why-dashboard/state.json
 <!-- /keep-the-why:config -->

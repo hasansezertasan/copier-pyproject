@@ -1,7 +1,7 @@
 ---
 # Documentation site for copier-pyproject, published to GitHub Pages by
 # .github/workflows/docs.yml together with the Keep the Why dashboard
-# on /dashboard/live/.
+# on /keep-the-why-dashboard/.
 #
 # The pages come from where they already live: docs/*.md and the frozen ADR
 # archive in docs/adr/ as they are, README.md as the home page and context/*.md
@@ -72,4 +72,4 @@ nav:
       - ADR index: adr/index.md
   - Why it is built this way:
       - Context index: context/index.md
-      - "Dashboard ↗": https://hasansezertasan.github.io/copier-pyproject/dashboard/live/
+      - "Dashboard ↗": https://hasansezertasan.github.io/copier-pyproject/keep-the-why-dashboard/

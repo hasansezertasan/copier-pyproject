@@ -3,7 +3,7 @@ name: docs
 
 # Documentation site on GitHub Pages: docs/, README.md as the home page and
 # context/ as "Why it is built this way" (mkdocs.yml), plus the Keep the Why
-# dashboard on /dashboard/live/ — context/ with its Git history, the live
+# dashboard on /keep-the-why-dashboard/ — context/ with its Git history, the live
 # badges and state.json. Pull requests that touch any of it build only, as a
 # check; a push to main (or a manual run) builds and deploys. Pages must be
 # set to "GitHub Actions" as its source (Settings → Pages → Build and
@@ -46,10 +46,10 @@ jobs:
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
       - name: Build the documentation into site/
         run: uvx --from mkdocs==1.6.1 --with mkdocs-material==9.7.7 mkdocs build --strict
-      - name: Export the Keep the Why dashboard into site/dashboard/live
+      - name: Export the Keep the Why dashboard into site/keep-the-why-dashboard
         run: |
-          uvx --from keep-the-why-dashboard==0.11.0 ktw-dashboard --export site/dashboard/live .
-          test -s site/dashboard/live/index.html
+          uvx --from keep-the-why-dashboard==0.11.0 ktw-dashboard --export site/keep-the-why-dashboard .
+          test -s site/keep-the-why-dashboard/index.html
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5
         with:
           path: site
