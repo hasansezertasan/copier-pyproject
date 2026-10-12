@@ -141,6 +141,8 @@ Use the latest released template version and record its exact tag. First inspect
 the repository and agree with me on explicit --data answers that preserve its
 dependencies, Python support and interfaces. If the latest release is incompatible,
 explain why and agree with me on an alternative.
+The target must ship template-adoption (v1.6.0 or newer); if no compatible
+version does, stop before copying and explain the limitation.
 Require a clean working tree with all project work committed,
 create a dedicated chore/adopt-copier-pyproject branch, and record the baseline commit
 and last published version. If .copier-answers.yml already exists, use the

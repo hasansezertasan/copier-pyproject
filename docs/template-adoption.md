@@ -30,6 +30,8 @@ Use the [pre-scaffold prompt](../README.md#before-scaffolding-an-existing-packag
 to establish a clean branch, committed baseline, agreed answers and the exact tag
 of the latest released template version. Agree on an alternative only if that
 release is incompatible.
+The target must ship `template-adoption` (v1.6.0 or newer);
+stop before copying if no compatible version does.
 After copying, read the rendered skill directly before installing
 dependencies, running hooks or committing. Copier's completion message points
 at its actual host path, so ai-rulez generation is not a prerequisite for this

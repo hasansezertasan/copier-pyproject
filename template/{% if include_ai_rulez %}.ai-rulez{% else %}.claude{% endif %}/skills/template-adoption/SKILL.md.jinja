@@ -18,6 +18,8 @@ Choose the entry mode from the user's request and repository evidence:
   result. If rendering has not happened, use the latest released template version
   and record its exact tag. Agree on answers that preserve the project's behavior;
   agree on an alternative version only if the latest release is incompatible.
+  The target must ship this skill (v1.6.0 or newer); stop before copying if
+  no compatible version does.
   Then render into a separate scratch directory for comparison before applying
   changes to the project. Do not overwrite the existing tree blindly. A
   `copier copy --overwrite` onto a clean, committed branch is not blind: the
@@ -141,8 +143,9 @@ Check these even when the `copier update` runner reports success:
 - **Verify the recorded update anchor.** After an authorized commit, run
   `uvx copier@latest update --vcs-ref=<_commit> --pretend --defaults`, pinned
   to the `_commit` you reconciled to. It must report `Keeping template version`.
-  An unpinned `--pretend` targets the template's current HEAD and reports a
-  newer version, which is not divergence.
+  An unpinned `--pretend` selects the latest release tag sorted by PEP 440;
+  use `--vcs-ref=HEAD` to target HEAD explicitly. A newer selected version
+  is not divergence from the recorded update anchor.
 - **Never `copier copy --overwrite` an adopted project.** It discards every
   committed reconciliation; use `copier update`. If a `copier` shim cannot
   resolve a version, `uvx copier@latest` can.
