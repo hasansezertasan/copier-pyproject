@@ -15,8 +15,10 @@ to change it. This skill does not require issue filing, commits, pushes, or PRs.
 Choose the entry mode from the user's request and repository evidence:
 
 - **Initial adoption:** compare the project before adoption with the rendered
-  result. If rendering has not happened, agree on answers and a target version,
-  then render into a separate scratch directory for comparison before applying
+  result. If rendering has not happened, use the latest released template version
+  and record its exact tag. Agree on answers that preserve the project's behavior;
+  agree on an alternative version only if the latest release is incompatible.
+  Then render into a separate scratch directory for comparison before applying
   changes to the project. Do not overwrite the existing tree blindly. A
   `copier copy --overwrite` onto a clean, committed branch is not blind: the
   pre-adoption commit is the baseline, and the job is restoring the project's

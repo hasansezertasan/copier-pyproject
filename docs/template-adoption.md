@@ -27,8 +27,10 @@ a self-contained walkthrough, even with `include_docs=false`.
 ## First adoption into an existing package
 
 Use the [pre-scaffold prompt](../README.md#before-scaffolding-an-existing-package)
-to establish a clean branch, committed baseline, agreed answers and target
-version. After copying, read the rendered skill directly before installing
+to establish a clean branch, committed baseline, agreed answers and the exact tag
+of the latest released template version. Agree on an alternative only if that
+release is incompatible.
+After copying, read the rendered skill directly before installing
 dependencies, running hooks or committing. Copier's completion message points
 at its actual host path, so ai-rulez generation is not a prerequisite for this
 first read. The skill covers auto-fix settings, source and docs collisions,

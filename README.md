@@ -137,15 +137,17 @@ Give your agent this prompt in the package's repository:
 
 ```text
 Adopt https://github.com/hasansezertasan/copier-pyproject.git into this package.
-First inspect the repository and agree with me on a target template version and
-explicit --data answers that preserve its dependencies, Python support and
-interfaces. Require a clean working tree with all project work committed, create
-a dedicated chore/adopt-copier-pyproject branch, and record the baseline commit
+Use the latest released template version and record its exact tag. First inspect
+the repository and agree with me on explicit --data answers that preserve its
+dependencies, Python support and interfaces. If the latest release is incompatible,
+explain why and agree with me on an alternative.
+Require a clean working tree with all project work committed,
+create a dedicated chore/adopt-copier-pyproject branch, and record the baseline commit
 and last published version. If .copier-answers.yml already exists, use the
 update flow instead of a new overwrite copy.
 
 For first adoption, use uvx copier copy --overwrite --defaults with the .git URL,
---vcs-ref=<agreed-version>, the agreed --data answers, and . as the destination.
+--vcs-ref=<recorded-tag>, the agreed --data answers, and . as the destination.
 Before installing
 dependencies, running hooks or committing the output, read the rendered
 skills/template-adoption/SKILL.md under .claude/ or .ai-rulez/ directly and
