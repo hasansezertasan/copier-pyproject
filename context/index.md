@@ -77,6 +77,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 
 ## R
 
+- [rationale-records.md](rationale-records.md) — `context/` as the source of the why, and the ADR archive's freeze and planned deletion.
 - [release-automation.md](release-automation.md) — release-please, the draft-release flow, the dispatch trigger and publish environment, token workarounds, Commitizen's role, the open re-evaluation, Docker Hub gating, issue notifications.
 - [repo-setup.md](repo-setup.md) — Settings App metadata, rulesets as code, the single maintainer setup doc, the resume-driven repo-setup skill, this repository's own two-command setup.
 - [runtime-logging.md](runtime-logging.md) — Console-only degradation, home-directory resolution, and logging ownership boundaries.
