@@ -48,7 +48,7 @@ jobs:
         run: uvx --from mkdocs==1.6.1 --with mkdocs-material==9.7.7 mkdocs build --strict
       - name: Export the Keep the Why dashboard into site/keep-the-why-dashboard
         run: |
-          uvx --from keep-the-why-dashboard==0.11.0 ktw-dashboard --export site/keep-the-why-dashboard .
+          uvx --from keep-the-why-dashboard==0.11.1 ktw-dashboard --export site/keep-the-why-dashboard .
           test -s site/keep-the-why-dashboard/index.html
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5
         with:
