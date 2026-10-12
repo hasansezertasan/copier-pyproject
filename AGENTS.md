@@ -9,11 +9,16 @@ everything else — so per-toggle rationale is maintained once, not restated her
 - **`copier.yml` `help:`** — the one-line prompt for each toggle (*what you pick*).
 - **[`docs/template-architecture.md`](docs/template-architecture.md)** — what each
   toggle/workflow renders and how the pieces fit (*the reference detail*).
-- **[ADRs](docs/adr/)** — why each exists, the trade-offs, the posture (*the why*).
+- **[`context/`](context/index.md)** — why each exists, the trade-offs, the
+  posture (*the why*), recorded with [Keep the Why](https://keepthewhy.com):
+  invoke the `keep-the-why` skill before writing there. `docs/adr/` is a frozen
+  archive — no new ADRs; the existing ones stay unchanged so `ADR-NNN` citations
+  keep resolving.
 
-When you add or change a toggle, update `copier.yml` help + its ADR + the detail
-in `docs/template-architecture.md` + `README.md`, and add **one** index-line here
-— never a multi-line block. See **Adding New Optional Components** below.
+When you add or change a toggle, update `copier.yml` help + its `context/` entry +
+the detail in `docs/template-architecture.md` + `README.md`, and add **one**
+index-line here — never a multi-line block. See **Adding New Optional
+Components** below.
 
 ## A small glossary
 
@@ -459,9 +464,11 @@ The always-shipped `template-adoption` skill uses the same host delivery path as
 
 ### Adding New Optional Components
 
-Keep `AGENTS.md` growth capped: a new toggle updates `copier.yml` help + an ADR +
-the detail in `docs/template-architecture.md` + **one** row in the toggle index
-above — never a multi-line block here.
+Keep `AGENTS.md` growth capped: a new toggle updates `copier.yml` help + a
+`context/` entry (the decision, the rejected alternatives and why — through the
+`keep-the-why` skill, not a new ADR) + the detail in
+`docs/template-architecture.md` + **one** row in the toggle index above — never a
+multi-line block here.
 
 1. Add boolean variable to `copier.yml` with `type: bool`, `default`, and `help`
 2. If component has choices (like `worker_broker`), add a separate choice variable with `when: "{{ parent_option }}"`

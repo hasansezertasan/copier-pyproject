@@ -1,0 +1,70 @@
+---
+name: docs
+
+# Documentation site on GitHub Pages: docs/, README.md as the home page and
+# context/ as "Why it is built this way" (mkdocs.yml), plus the Keep the Why
+# dashboard on /keep-the-why-dashboard/ — context/ with its Git history, the live
+# badges and state.json. Pull requests that touch any of it build only, as a
+# check; a push to main (or a manual run) builds and deploys. Pages must be
+# set to "GitHub Actions" as its source (Settings → Pages → Build and
+# deployment → Source).
+#
+# The docs toolchain is pinned to exact versions in
+# tools/mkdocs/requirements.txt, where Renovate's pip_requirements manager
+# keeps them current, so what is deployed is reproducible.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "docs/**"
+      - "context/**"
+      - "README.md"
+      - "mkdocs.yml"
+      - "tools/mkdocs/**"
+      - ".keep-the-why"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages-${{ github.event.pull_request.number || 'deploy' }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          fetch-depth: 0  # the dashboard dates entries by Git history
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+      - name: Build the documentation into site/
+        run: uv run --no-project --with-requirements tools/mkdocs/requirements.txt mkdocs build --strict
+      - name: Export the Keep the Why dashboard into site/keep-the-why-dashboard
+        run: |
+          uv run --no-project --with-requirements tools/mkdocs/requirements.txt \
+            ktw-dashboard --export site/keep-the-why-dashboard .
+          test -s site/keep-the-why-dashboard/index.html
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346  # v5

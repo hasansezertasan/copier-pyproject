@@ -23,13 +23,6 @@ Publishing to PyPI is wrong or impossible for:
 
 ### Optional PyPI publishing
 
-**Id:** 20be7463-ca95-4d01-82c9-71f632d1b4be
-**Type:** decision
-**Status:** active
-**Evidence:** confirmed
-**Source:** [issue #382](https://github.com/hasansezertasan/copier-pyproject/issues/382); maintainer decisions while implementing it, 2026-10-11
-**Revisit when:** the PyPI project name becomes its own question, or Homebrew / Scoop gain a non-PyPI source for a pure-Python package
-
 `include_pypi_publish` is a boolean toggle, seeded **on** by every preset, so
 existing projects and `copier update` keep publishing. When it is off:
 

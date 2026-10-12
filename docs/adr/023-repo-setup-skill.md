@@ -4,10 +4,10 @@
 
 Proposed (2026-08). Superseded in part (2026-10): §3's repo-local skill for this
 repository's own setup was removed; the setup is the two `gh` commands in
-docs/template-architecture.md (see [repo-setup.md](repo-setup.md), entry
+docs/template-architecture.md (see [context/repo-setup.md](../../context/repo-setup.md), entry
 c85feefa-0063-4a34-8030-8c348190b96b). §4 is superseded: the plugin `setup`
 skill was removed and its last unique gotcha moved into the setup doc (see
-[companion-skills.md](companion-skills.md), entry
+[context/companion-skills.md](../../context/companion-skills.md), entry
 d3127820-eee0-4618-bb95-4acf09cb4d68).
 
 ## Context

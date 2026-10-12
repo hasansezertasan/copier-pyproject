@@ -3,10 +3,10 @@
   "skills": {
     "keep-the-why": {
       "source": "oliver-zehentleitner/keep-the-why",
-      "ref": "latest",
+      "ref": "v0.20.2",
       "sourceType": "github",
       "skillPath": "skills/keep-the-why/SKILL.md",
-      "computedHash": "6047cf6cd8dc0d15961669483e1652d3fb74239be5268716606c9f289b1e1fae"
+      "computedHash": "cfae20065c6cbe70fb8c2154ba56afd489302de75086ae87581efad6841a1768"
     }
   }
 }

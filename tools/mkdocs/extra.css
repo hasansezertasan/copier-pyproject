@@ -1,0 +1,7 @@
+/* Section headings in the navigation (Guides, Developer notes, ...) stand
+   out from the page links below them. The link color is tuned by Material
+   for both the light and the dark scheme. */
+.md-nav--primary .md-nav__item--section > .md-nav__link[for] {
+  color: var(--md-typeset-a-color);
+  font-weight: 700;
+}
