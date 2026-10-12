@@ -85,5 +85,5 @@ makes a hot path materially slower, but timings must not slow every project's
 default CI or require an account. Service setup is an explicit, reversible
 owner choice.
 
-**Rejected alternative:** always-on benchmarks in the default CI — alternatives
-beyond this are not recorded in the ADR.
+**Alternatives:** unknown — ADR-034 records the decision and its constraints,
+no alternative that was in contention.

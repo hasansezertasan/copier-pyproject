@@ -28,8 +28,9 @@ import-order games.
 
 **Rejected alternative:** lazy broker imports — the reasoning above.
 
-**Rejected alternative:** return the subscriber and publisher as module globals —
-one clean return type, and tests should observe behaviour, not wiring.
+**Consequence:** the factory returns only the broker; subscriber and publisher
+become closures rather than importable module globals, so tests assert on
+observable behaviour (a response reaching a collector subscriber), not wiring.
 
 ## Real-broker integration tests: testcontainers locally, per-broker CI mechanism
 
@@ -91,8 +92,10 @@ FastStream inside the Litestar app is explicitly out of scope.
 **See:** testing-strategy.md#interactive-components-expose-injected-driver-seams-so-headless-ci-measures-everything-but-the-blocking-call — ffcf90f2-34c7-4673-bbe2-5619c6b23128 — as of 2026-10-11
 
 Reachable error handling (web 503s, CLI exit codes, GUI/TUI "unknown"
-degradation, MCP error text) is unit-tested. Only irreducible blocking calls
-and the `__main__` dispatchers carry a per-site `# pragma: no cover`. The
+degradation, MCP error text) is unit-tested. Only irreducible blocking calls,
+the `__main__` dispatchers, the c-extension `except ImportError` fallback and
+the worker's module-level metadata fallback carry a per-site
+`# pragma: no cover`. The
 `omit` globs are `*/`-anchored (`*/_version.py`, `*/worker/test_integration.py`,
 the latter directory-anchored), and `[tool.coverage.paths]` maps
 `*/site-packages/<pkg>` back onto `src/<pkg>`.
@@ -161,7 +164,7 @@ catches `Exception` around an injected driver while keeping its specific
 **Id:** e3dc1ec0-0579-4fc9-ac79-413d64550b9a
 **Type:** decision
 **Status:** active
-**Evidence:** confirmed
+**Evidence:** inferred
 **Source:** ADR-036 (`docs/adr/036-async-testing-style.md`)
 **Revisit when:** an async-capable component gains trio support, or pytest ships a built-in async runner
 
@@ -178,5 +181,5 @@ it came from this template, while async projects need one that works
 immediately; AnyIO may expose backend assumptions an asyncio-only suite would
 not, so component tests that require asyncio constrain that locally.
 
-**Rejected alternative:** always ship pytest-asyncio — the dependency on a
-synchronous library; alternatives beyond this are not recorded.
+**Alternatives:** unknown — ADR-036 records the decision and its reasons, no
+alternative that was in contention.

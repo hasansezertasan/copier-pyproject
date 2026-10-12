@@ -13,6 +13,10 @@
   // `skills/` and `.agents/skills/` hold vendored skill docs (SKILL.md) that
   // mirror an externally-maintained skill; the repo does not restyle them
   // (same rationale as the `skills/` exclusion in _typos.toml).
-  "ignores": ["skills/**", ".agents/skills/**"],
+  // `context/README.md`, `context/AGENTS.md` and `context/CLAUDE.md` are the
+  // Keep the Why scaffolding, written by the skill in its own form (a logo link
+  // before the heading, a one-line agent guard, an import line); the topic
+  // files beside them are linted.
+  "ignores": ["skills/**", ".agents/skills/**", "context/README.md", "context/AGENTS.md", "context/CLAUDE.md"],
   "gitignore": true,
 }

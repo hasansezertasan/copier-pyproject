@@ -6,13 +6,14 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-016 (`docs/adr/016-archetype-based-presets.md`); the preset mechanism it reshapes came from [PR #141](https://github.com/hasansezertasan/copier-pyproject/pull/141)
+**Source:** ADR-016 (`docs/adr/016-archetype-based-presets.md`); the preset mechanism it reshapes came from [PR #141](https://github.com/hasansezertasan/copier-pyproject/pull/141); ADR-025 and ADR-039 for the two toggles every preset seeds
 **Revisit when:** a distinct service/worker archetype (worker + broker + database) proves common enough to be a fifth choice
 **See:** standalone-executables.md#three-architecture-named-executable-toggles-instead-of-one-brand-toggle — d5aed1a0-0b7c-4ac3-9d75-fb9568d9e34d — as of 2026-10-11
 
 The `preset` question offers `library` (default; seeds `examples`), `tool`
 (`cli`, `tui`, `pydantic_settings`), `web` (`web` with FastAPI,
-`pydantic_settings`, `postgres`, `redis`) and `full` (everything). A preset only
+`pydantic_settings`, `postgres`, `redis`) and `full` (everything). Every preset
+also seeds `docs` and `pypi_publish` on (ADR-025, ADR-039). A preset only
 seeds toggle defaults through the hidden `preset_map`; every toggle is still
 asked and stored. `tool` seeds none of the standalone-executable toggles, and
 `web` seeds neither worker, MCP nor the database UIs.

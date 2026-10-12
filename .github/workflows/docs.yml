@@ -1,3 +1,4 @@
+---
 name: docs
 
 # Documentation site on GitHub Pages: docs/, README.md as the home page and
@@ -7,6 +8,10 @@ name: docs
 # check; a push to main (or a manual run) builds and deploys. Pages must be
 # set to "GitHub Actions" as its source (Settings → Pages → Build and
 # deployment → Source).
+#
+# The docs toolchain is pinned to exact versions and run through uvx, so what
+# is deployed is reproducible; bump the three versions below together with
+# the local-preview line in mkdocs.yml.
 
 on:
   push:
@@ -22,8 +27,7 @@ on:
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: pages-${{ github.event.pull_request.number || 'deploy' }}
@@ -32,23 +36,21 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
-          fetch-depth: 0   # the dashboard dates entries by Git history
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
+          fetch-depth: 0  # the dashboard dates entries by Git history
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
       - name: Build the documentation into site/
-        run: |
-          pip install --quiet "mkdocs>=1.6.1,<2" "mkdocs-material>=9.7"
-          mkdocs build --strict
+        run: uvx --from mkdocs==1.6.1 --with mkdocs-material==9.7.7 mkdocs build --strict
       - name: Export the Keep the Why dashboard into site/dashboard/live
         run: |
-          pip install --quiet keep-the-why-dashboard
-          ktw-dashboard --export site/dashboard/live .
+          uvx --from keep-the-why-dashboard==0.11.0 ktw-dashboard --export site/dashboard/live .
           test -s site/dashboard/live/index.html
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5
         with:
           path: site
 
@@ -64,4 +66,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346  # v5

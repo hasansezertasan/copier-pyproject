@@ -36,7 +36,8 @@ unrelated changes.
 **See:** testing-strategy.md#coverage-exclusions-are-per-site-pragmas-and-the-globs-must-match-the-installed-layout — 68366ce3-cc8e-4720-aa91-5eb83aaf2e2d — as of 2026-10-11
 
 Each matrix cell combined its per-interpreter data, kept a non-gating report,
-and uploaded a per-OS artifact; one `coverage-combine` job merged every cell
+and uploaded a per-OS artifact; one `coverage-combine` job (today's
+`coverage-report`) merged every cell
 and was the only place `fail_under = 99` was enforced, measuring the union of
 all OS and interpreter cells. `relative_files = true` made data from different
 runners mergeable, complementing the `src`/`site-packages` path remap. The

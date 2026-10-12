@@ -9,11 +9,13 @@
 **Source:** ADR-002 (`docs/adr/002-release-please-for-release-automation.md`); validated against the keycast release pipeline ([keycast#11](https://github.com/hasansezertasan/keycast/pull/11))
 **Revisit when:** the open re-evaluation below is decided, or the generated project's version stops being sourced from git tags
 **See:** release-automation.md#the-release-automation-choice-is-under-re-evaluation — d9131d49-3c27-48f8-a903-e97caf4acff6 — as of 2026-10-11
+**See:** package-distribution.md#optional-pypi-publishing — 20be7463-ca95-4d01-82c9-71f632d1b4be — as of 2026-10-12
 
 Every generated project ships an unconditional release-please pipeline in one
 unified `release.yml`: Conventional Commits on `main` open a release PR, its
-merge cuts the tag and release, and every downstream job (build, PyPI,
-executables, Docker, docs, SBOM, notifications) gates on its outputs. The
+merge cuts the tag and release, and every downstream job (build, PyPI — optional
+since ADR-039 —, executables, Docker, docs, SBOM, notifications) gates on its
+outputs. The
 former `release_automation` choice (`none`, release-please, release-it,
 release-drafter) and the separate `cd.yml` are gone. Versioning is sourced from
 git tags through hatch-vcs, so release-please never edits a version literal and

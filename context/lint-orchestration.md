@@ -27,8 +27,9 @@ cost is duplicate execution and at most a brief window between two Renovate
 PRs, not sustained drift.
 
 **Rejected alternative:** keep Pants and Trunk as opt-ins — the intermediate
-state; they solved real problems for some projects, but the option was dropped
-outright once nothing depended on it.
+state this ADR first established; its 2026-06 update dropped them outright so
+that the tox `style` env is the sole orchestrator and nothing can drift against
+it.
 
 **Consequence:** MegaLinter, when enabled, is scoped so it cannot drift against
 the Python toolchain (see its own entry below).

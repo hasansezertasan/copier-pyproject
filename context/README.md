@@ -21,8 +21,8 @@ It answers:
 
 For usage, installation, operation, or troubleshooting, see `docs/`.
 The numbered architecture decision records in `docs/adr/` are the
-long-form originals; the entries here carry their decisions in the
-schema below and name the record each came from.
+long-form originals, kept as a frozen archive; the entries here carry
+their decisions in the schema below and name the record each came from.
 
 ## Reading the entries
 

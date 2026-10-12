@@ -50,7 +50,8 @@ A single-job `docs-preview.yml` on `pull_request` builds the Sphinx HTML and
 hands deploy, removal on close and a sticky comment to a purpose-built action,
 publishing under `pr-preview/pr-<N>/` on the project's own `gh-pages`. It runs
 only when the head repository is the repository itself; fork PRs skip cleanly.
-It is always on and not in the `check` gate.
+It renders only when `include_docs` is on (ADR-025) and is not in the `check`
+gate.
 
 **Reason:** the upstream pattern deployed to a separate repository with a
 GitHub App token — a second repo and App to provision. Same-repo `pull_request`
