@@ -100,6 +100,9 @@ pending human handoffs, and the optional steps left unconfigured.
   check passes and the user confirms a distinct trusted reviewer is available.**
   If either prerequisite is missing or unavailable, defer the integration;
   skip the installation handoff and its installed-App check.
+- **Apply the Settings review policy only after reviewer confirmation.**
+  A pending reviewer handoff blocks the dependent policy command;
+  continue independent setup steps while deferring the integration.
 {%- endif %}
 {%- if include_pypi_publish %}
 

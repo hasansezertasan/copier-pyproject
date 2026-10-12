@@ -86,14 +86,10 @@ def test_settings_installation_requires_enforced_owner_review(
         protection = json.loads(
             guide.split("<<'JSON'\n", 1)[1].split("\n   JSON", 1)[0]
         )
-        assert (
-            protection["required_pull_request_reviews"]["require_code_owner_reviews"]
-            is True
-        )
+        assert protection["required_pull_request_reviews"] is None
         assert "/branches/main/protection" in settings_section
-        protection_check = guide.split("UI equivalent: **Settings → Branches", 1)[0]
-        assert (
-            "and (.required_pull_request_reviews.require_code_owner_reviews == true)"
-            in protection_check
+        assert "-F require_code_owner_reviews=true" in settings_section
+        assert settings_section.index("**[HUMAN]** Confirm") < settings_section.index(
+            "**[AGENT]** Only after the reviewer is confirmed"
         )
     assert "defer the Settings App until that reviewer is available" in guide
