@@ -244,7 +244,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_pypi_publish` | PyPI trusted publishing on release (default-on every preset); off ships GitHub Releases only and gates out a PyPI-backed Homebrew/Scoop | [039](docs/adr/039-optional-pypi-publishing.md) |
 | `include_homebrew` | Homebrew tap dispatch (`can_distribute_natively`-gated) | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
 | `include_scoop` | Scoop bucket dispatch | [017](docs/adr/017-opt-in-homebrew-scoop-distribution.md) |
-| `include_repo_settings` | `.github/settings.yml` via Settings App | [018](docs/adr/018-repository-settings-as-code.md) |
+| `include_repo_settings` | `.github/settings.yml` via Settings App; installation requires verified code-owner review | [018](docs/adr/018-repository-settings-as-code.md) |
 | `include_repo_ruleset` | branch-protection `ruleset-sync.yml` (`full` preset) | [021](docs/adr/021-repository-ruleset-as-code.md) |
 | Devcontainer: `include_postgres`/`include_redis` (`redis_backend`)/`include_pgadmin`/`include_adminer`/`include_dbeaver`/`include_vpn` | devcontainer services | — |
 

@@ -58,6 +58,11 @@ documents, and collaborators are per-project.
 - The App escalates push access to admin. Mitigated by documenting the
   CODEOWNERS + "Require review from Code Owners" pattern in CONTRIBUTING (the
   template already ships `* @<user>` CODEOWNERS).
+  The setup guide verifies that requirement and the availability of a distinct
+  trusted reviewer before App installation.
+  Ruleset projects enable it through a reviewed policy change;
+  the default ruleset keeps a solo maintainer's ordinary PRs mergeable.
+  Unavailable reviewers or unavailable/unverifiable protection defer the App.
 - The activity-sidebar toggles remain a manual web-UI task, documented as a
   known limitation.
 - No `_tasks` are added, so Renovate's copier manager (ADR-015) is unaffected.

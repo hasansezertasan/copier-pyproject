@@ -36,7 +36,7 @@ _exclude:
 _message_before_copy: >-
   Pick a preset, then press Enter through the toggles to accept its defaults, or tune any of them. The preset only sets defaults — every toggle is still asked and saved (a few sub-questions stay conditional on their parent toggle).
 _message_after_copy: >-
-  Project {{ github_repo_name }} scaffolded. Next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions{% if include_pypi_publish %}, PyPI trusted publishing{% endif %}).
+  Project {{ github_repo_name }} scaffolded. Adopting into an existing package? Before running tools or committing the scaffold, give your agent this prompt: "Read {% if include_ai_rulez %}.ai-rulez{% else %}.claude{% endif %}/skills/template-adoption/SKILL.md and reconcile this adoption against the pre-adoption commit, then read the sibling repo-setup skill and walk docs/maintaining/setup.rst." For a new project, follow these next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions{% if include_pypi_publish %}, PyPI trusted publishing{% endif %}).
 # An update that answers `include_ai_rulez` yes — including the first update of a
 # `full`-preset project, where the new question defaults to yes — deletes the
 # copier-managed AGENTS.md and replaces it with `.ai-rulez/` sources
@@ -328,7 +328,7 @@ include_repo_settings:
   type: bool
   default: "{{ 'include_repo_settings' in preset_map[preset] }}"
   help: >-
-    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? Requires installing that App on the repository; it escalates push access to admin, so review the repository-setup note (docs/maintaining/setup.rst) before enabling.
+    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? It escalates push access to admin, so setup requires a distinct trusted reviewer and verified code-owner review before App installation (docs/maintaining/setup.rst).
 include_repo_ruleset:
   type: bool
   default: "{{ 'include_repo_ruleset' in preset_map[preset] }}"

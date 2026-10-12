@@ -235,7 +235,12 @@ Optional components (all boolean):
   (description/homepage/topics + squash-merge flags) synced by the "Settings"
   GitHub App, `default: false`. Opt-in like the ADR-009 integrations because the
   App is an external install (and it escalates push→admin — mitigated via the
-  shipped CODEOWNERS + "Require review from Code Owners"). Labels are NOT managed
+  shipped CODEOWNERS + "Require review from Code Owners"). The setup guide's
+  Settings step enables code-owner review through a separate API request or,
+  for ruleset projects, a reviewed change to the committed policy,
+  after a distinct trusted reviewer is available. Initial protection keeps
+  ordinary solo-maintainer PRs mergeable. A prerequisite check gates App installation;
+  unavailable reviewers or unavailable/unverifiable protection defer the App. Labels are NOT managed
   here — they stay App-free in `labels.yml`/`label-sync.yml`. The "Include in the
   home page" sidebar toggles are not settable via any API (UI-only). See
   [ADR-018](adr/018-repository-settings-as-code.md).
@@ -1399,6 +1404,11 @@ For generated projects to publish to PyPI (only when `include_pypi_publish`):
 
 Generated projects always ship a `template-adoption` skill beside `repo-setup`,
 using the same `.claude/skills/` or `.ai-rulez/skills/` delivery convention.
+It includes first-adoption and Copier-update hazards; docs and MegaLinter
+hazards are gated by the generated project's answers. The README's pre-scaffold
+prompt establishes the recoverable baseline, and `_message_after_copy` points
+at the rendered skill before tools or commits run. No external companion plugin
+or Copier post-copy task is needed.
 It establishes an adoption/update baseline, compares existing project behavior
 with template defaults, preserves user work and customizations, and requests
 decisions before consequential cleanup. Post-update audits inspect committed

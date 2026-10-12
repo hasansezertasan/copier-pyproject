@@ -52,7 +52,7 @@ work with this template:
    it starts with `git+https://`, `git+ssh://`, `git@`, or `git://`, or ends with
    `.git`. Scaffold with the `.git` HTTPS URL
    (`https://github.com/hasansezertasan/copier-pyproject.git`); the README
-   scaffold step and the `copier-pyproject:adopt` skill both use it for this
+   scaffold step and the shipped `template-adoption` skill both use it for this
    reason. Existing projects that were scaffolded with the `gh:` shorthand can be
    fixed by rewriting the `_src_path` line — `copier update` re-reads and
    preserves it.
@@ -83,7 +83,7 @@ copier-update PR can appear mergeable while carrying `<<<<<<<` markers. This is
 inherent to `copier update` (any runner surfaces the same conflicts), not unique
 to Renovate. The generated `CONTRIBUTING.md` "Template updates" note tells
 maintainers to review these PRs for conflict markers before merging, and to lean
-on the `copier-pyproject:update` reconciliation workflow.
+on the shipped `template-adoption` reconciliation workflow.
 
 ## Considered and rejected
 
@@ -214,15 +214,20 @@ claiming to have recovered the original justification.
 
 **Id:** 9a6bf00c-33c1-4f0c-962e-7e960f9d2d58
 **Type:** decision
-**Status:** active
+**Status:** superseded
 **Evidence:** confirmed
 **Source:** maintainer-approved reconciliation-policy review, 2026-10-08; `docs/template-adoption.md`; `skills/update/SKILL.md`
 **Verification:** corroborated — the older update skill now preserves custom behavior, requires evidence for equivalence, and delegates repository-settings transitions to `repo-setup`
 **Revisit when:** either skill changes its scope or introduces a conflicting reconciliation policy
+**Superseded by:** e4cd1c46-28c3-4241-82c8-d5aac41c293f
 **See:** 015-template-self-versioning-and-copier-update-automation.md#adoption-audits-preserve-behavior-before-consolidating-workflows — dfd6cd98-9d07-4dc4-b58f-d1343d636ea4 — as of 2026-10-08
 
-Both skills use the same preservation-first contract. The older update skill
-runs or reconciles updates; the generated adoption skill additionally handles
+Superseded on 2026-10-12 by [the companion-skill retirement decision](companion-skills.md#every-lifecycle-skill-ships-through-the-template).
+The generated `template-adoption` skill retains the preservation-first contract;
+the separate root `skills/update` delivery surface is retired.
+
+At the time of this decision, both skills used the same preservation-first contract.
+The older update skill ran or reconciled updates; the generated adoption skill additionally handled
 initial adoption and audits of completed updates. Those workflow differences do
 not justify opposite advice about the same project customization.
 

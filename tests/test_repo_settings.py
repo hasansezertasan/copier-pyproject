@@ -7,8 +7,11 @@ and never grows a ``labels:`` block (labels stay App-free in ``labels.yml``).
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Callable
+
+import pytest
 
 
 def _settings(root: Path) -> Path:
@@ -55,3 +58,38 @@ def test_repo_settings_topics_from_answer(render: Callable[..., Path]) -> None:
 
 def test_repo_settings_enabled_by_full_preset(render: Callable[..., Path]) -> None:
     assert _settings(render(preset="full")).exists()
+
+
+@pytest.mark.parametrize("include_repo_ruleset", [False, True])
+def test_settings_installation_requires_enforced_owner_review(
+    render: Callable[..., Path], include_repo_ruleset: bool
+) -> None:
+    """Both protection paths must enforce the safeguard before App installation."""
+    root = render(include_repo_settings=True, include_repo_ruleset=include_repo_ruleset)
+    guide = (root / "docs/maintaining/setup.rst").read_text(encoding="utf-8")
+    settings_section = guide.split('Repository settings ("Settings" App)', 1)[1]
+    assert settings_section.index("**[CHECK]** Prerequisite") < settings_section.index(
+        "**[HUMAN]** Only after the prerequisite check passes"
+    )
+    assert "If the check fails or cannot be verified, defer installation" in guide
+    if include_repo_ruleset:
+        ruleset = json.loads((root / ".github/rulesets/main.json").read_text())
+        review = next(
+            rule for rule in ruleset["rules"] if rule["type"] == "pull_request"
+        )
+        # App setup is optional: the initial ruleset must not require a sole
+        # code owner to approve their own PRs before a reviewer is available.
+        assert review["parameters"]["require_code_owner_review"] is False
+        assert "Land this policy change through a reviewed pull request" in guide
+        assert "/rules/branches/main" in settings_section
+    else:
+        protection = json.loads(
+            guide.split("<<'JSON'\n", 1)[1].split("\n   JSON", 1)[0]
+        )
+        assert protection["required_pull_request_reviews"] is None
+        assert "/branches/main/protection" in settings_section
+        assert "-F require_code_owner_reviews=true" in settings_section
+        assert settings_section.index("**[HUMAN]** Confirm") < settings_section.index(
+            "**[AGENT]** Only after the reviewer is confirmed"
+        )
+    assert "defer the Settings App until that reviewer is available" in guide
