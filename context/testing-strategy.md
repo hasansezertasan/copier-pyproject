@@ -183,3 +183,34 @@ not, so component tests that require asyncio constrain that locally.
 
 **Alternatives:** unknown — ADR-036 records the decision and its reasons, no
 alternative that was in contention.
+
+## pytest-cov and pytest-dependency are intentionally out; async runners stay on the async_style axis
+
+**Id:** cc125a94-94de-4156-8a90-5c5a513d38f2
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [issue #392](https://github.com/hasansezertasan/copier-pyproject/issues/392); maintainer scoping answers, 2026-10-12
+**Revisit when:** the coverage flow stops using `coverage run`, a component needs ordered tests, or upstream lifts the xdist incompatibility
+**See:** testing-strategy.md#async-testing-is-an-explicit-template-axis-async_style — e3dc1ec0-0579-4fc9-ac79-413d64550b9a — as of 2026-10-12
+
+`pytest-cov` stays out: coverage is measured with `coverage run --module
+pytest` plus `coverage combine`/`report` in CI, so the plugin would duplicate
+measurement/reporting over the same run (and the per-component gates scope
+`coverage report`, not a pytest plugin). `pytest-dependency` stays out: the
+suite is designed order-free (markers select, `pytest-xdist` parallelizes), and
+upstream documents xdist parallelization as incompatible with
+pytest-dependency. `pytest-asyncio` beyond `async_style` stays out: the
+`asyncio`/`anyio` choice is the whole answer, and a synchronous library stays
+runner-free.
+
+**Reason:** each candidate was a commented-out pin in the pre-adoption keycast
+`pyproject.toml` quoted in the issue. The template since resolved most of that
+list (`coverage-enable-subprocess`, `pytest-mock`, `pytest-rerunfailures`,
+`pytest-xdist[psutil]`, `pytest-sugar` and the `async_style` axis itself); this
+entry closes the remainder so downstream projects delete the comments with
+confidence instead of carrying them.
+
+**Rejected alternative:** an opt-in toggle or test-group option for
+pytest-dependency and/or pytest-cov — rejected: no use case survived the
+evaluation, and a toggle for a rejected tool is surface without a reader.

@@ -126,3 +126,35 @@ tap even when the question is gated off — Copier applies passed data to an
 unasked question, the existing contract of the `is_app` gate too. The
 template-ci `litestar-kafka` scenario renders with PyPI off so actionlint checks
 the web variant of `finalize-release`'s `needs` without `pypi-publish`.
+
+## The build stays hatchling plus hatch-vcs; the other backends are out
+
+**Id:** 1dbc52d3-7ba7-4bbf-b12a-299169c86160
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [issue #392](https://github.com/hasansezertasan/copier-pyproject/issues/392); maintainer scoping answers, 2026-10-12
+**Revisit when:** a generated project gains an i18n workflow, or hatch-vcs stops fitting the tag-based release flow
+
+`[build-system] requires` stays `hatchling` plus `hatch-vcs` (with the
+c-extension additions — `cython>=3.0.0` and `setuptools>=70` — when
+`include_c_extensions`; that `setuptools` is a build-time compiler dep, not a
+version source). `setuptools-scm` stays out: it is the alternative VCS-based
+version source (a setuptools plugin, so adopting it means swapping the whole
+backend `hatchling` → `setuptools`, not swapping a plugin), while the template
+standardizes on hatch-vcs — dynamic version from git tags, archive recovery
+via `.git_archival.txt`. `hatch-babel` stays out: there is no i18n story yet,
+so it waits for a real translation workflow instead of shipping preemptively.
+`hatch-autorun` stays out: it injects a `.pth` that auto-executes code before
+first import (install-time code execution), which the supply-chain posture
+rejects.
+
+**Reason:** each was a commented-out pin in the pre-adoption keycast
+`pyproject.toml` quoted in the issue. None earned a copier-gated option:
+setuptools-scm would fork the one versioning story the tag-based release flow
+assumes, and the other two buy nothing until a project actually needs their
+capability.
+
+**Rejected alternative:** copier-gated options for hatch-babel, setuptools-scm
+or hatch-autorun — rejected: a toggle for a rejected tool is surface without a
+reader, and in setuptools-scm's case a fork in the versioning story.
