@@ -898,10 +898,9 @@ commands = [
     "pyproject.toml",
     "--section",
     "project.dependencies",
-    # uvloop is imported lazily inside a function in the worker, which creosote
-    # does not report as a use, so it would flag the dependency as unused.
-    "--exclude-dep",
-    "uvloop",
+    # Without this creosote skips imports inside functions, so a dependency used
+    # only through a lazy import (the worker's uvloop) is reported as unused.
+    "--include-deferred",
   ],
 ]
 dependency_groups = ["deps", "test"]

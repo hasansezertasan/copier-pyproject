@@ -251,8 +251,9 @@ the toggles that produce the imports: `known_first_party` (the tox env installs
 the wheel, so deptry otherwise reads the project's own package as a transitive
 dependency), `uvicorn` (DEP003, web) and `packaging` (DEP004, docs) in
 `per_rule_ignores`, the build hook/benchmarks/worker probe script/Sphinx config
-in `extend_exclude`, and `uvloop` via creosote's `--exclude-dep` (imported lazily
-inside a function, which creosote does not count). The gate also surfaced a real
+in `extend_exclude`, and creosote's `--include-deferred` (creosote skips imports
+inside functions by default, which would report the worker's lazily imported
+`uvloop` as unused). The gate also surfaced a real
 template defect: `core/config.py` imported `pydantic` while only
 `pydantic-settings` was declared, so `pydantic` is now a direct dependency
 whenever `include_pydantic_settings` or `include_worker` is on.

@@ -371,8 +371,8 @@ missing, transitive, misplaced and obsolete dependencies; creosote reports
 declared runtime dependencies nothing imports. The template seeds only the
 ignores its own output needs, gated on the toggles that produce the imports
 (`known_first_party`, `uvicorn`/`packaging` in `per_rule_ignores`, build hook,
-benchmarks, worker probe script and Sphinx config in `extend_exclude`, `uvloop`
-via `--exclude-dep`); a project adds its own. See
+benchmarks, worker probe script and Sphinx config in `extend_exclude`, and
+creosote's `--include-deferred` so lazy imports count); a project adds its own. See
 [dependency hygiene](../context/lint-orchestration.md#dependency-hygiene-deptry--creosote-is-an-always-on-deps-gate-not-a-toggle).
 
 Also always included (no toggle): structured GitHub issue forms
