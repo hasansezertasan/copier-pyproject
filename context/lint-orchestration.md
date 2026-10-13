@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-003 (`docs/adr/003-tox-as-canonical-lint-runner.md`), including its 2026-06 update
+**Source:** ADR-003 ([`docs/adr/003-tox-as-canonical-lint-runner.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/003-tox-as-canonical-lint-runner.md)), including its 2026-06 update
 **Revisit when:** a second orchestrator is proposed, or tool versions gain a second pinning location
 
 Tool versions live in the uv-managed `style` dependency group and the tox
@@ -69,7 +69,7 @@ entry below separately accepts a registry dependency.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5; recorded in ADR-003 (`docs/adr/003-tox-as-canonical-lint-runner.md`)
+**Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5; recorded in ADR-003 ([`docs/adr/003-tox-as-canonical-lint-runner.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/003-tox-as-canonical-lint-runner.md))
 **Verification:** corroborated — a hook with no `stages` ran on `pre-commit`, `pre-push`, `commit-msg` and `manual` when `default_stages` was unset
 **Revisit when:** a hook other than `commitizen-branch` needs to run on push
 
@@ -89,7 +89,7 @@ stage as the default, so file hooks also run on `commit-msg`.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-005 (`docs/adr/005-five-type-checkers-basedpyright-strict.md`)
+**Source:** ADR-005 ([`docs/adr/005-five-type-checkers-basedpyright-strict.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/005-five-type-checkers-basedpyright-strict.md))
 **Revisit when:** `ty` churn becomes a burden, or two checkers stop catching anything the others miss
 
 The `style` env invokes mypy (two Python versions), basedpyright at its full
@@ -121,7 +121,7 @@ mypy disable list; zuban 0.9.0 fixed it and the concession was removed.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** found while adopting the template in openapipages; recorded in ADR-005 (`docs/adr/005-five-type-checkers-basedpyright-strict.md`)
+**Source:** found while adopting the template in openapipages; recorded in ADR-005 ([`docs/adr/005-five-type-checkers-basedpyright-strict.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/005-five-type-checkers-basedpyright-strict.md))
 **Verification:** corroborated — the mirrors-mypy `rev` (v2.3.0) had drifted from the `style` group's `mypy==2.4.0` pin, and the hook's `files = "^src/"` skipped the `docs/examples` path that `[tool.mypy] files` adds with `include_docs`
 **Revisit when:** mypy needs to run without the project's environment, for example in a hook-only CI job without uv
 **See:** architecture-contracts.md#whole-program-analyzers-are-local-system-hooks-backed-by-the-style-group — 41f3397d-1afb-4e57-a0bd-b5ef85089bfc — as of 2026-10-11
@@ -146,7 +146,7 @@ drifts and keeps the duplicate version pin.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-013 (`docs/adr/013-megalinter-opt-in-lean-complement.md`); prompted by a real run ([hwid#90](https://github.com/hasansezertasan/hwid/actions/runs/30634574244/job/91168813067))
+**Source:** ADR-013 ([`docs/adr/013-megalinter-opt-in-lean-complement.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/013-megalinter-opt-in-lean-complement.md)); prompted by a real run ([hwid#90](https://github.com/hasansezertasan/hwid/actions/runs/30634574244/job/91168813067))
 **Revisit when:** prek gains one of the five enabled linters, the `cupcake` flavor drops one, or GitHub changes SARIF ingestion rules
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-11
@@ -186,7 +186,7 @@ MegaLinter to gate requires its code-scanning results via branch protection.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-032 (`docs/adr/032-semgrep-sast-in-the-style-env.md`); [issue #174](https://github.com/hasansezertasan/copier-pyproject/issues/174)
+**Source:** ADR-032 ([`docs/adr/032-semgrep-sast-in-the-style-env.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/032-semgrep-sast-in-the-style-env.md)); [issue #174](https://github.com/hasansezertasan/copier-pyproject/issues/174)
 **Revisit when:** offline determinism outranks rule quality, semgrep gains an on-disk rule cache, or the registry rules' license permits redistribution
 **See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-11
 

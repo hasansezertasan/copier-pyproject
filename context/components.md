@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-019 (`docs/adr/019-components-as-cli-subcommands.md`), including its 2026-09 amendment; issue #203
+**Source:** ADR-019 ([`docs/adr/019-components-as-cli-subcommands.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/019-components-as-cli-subcommands.md)), including its 2026-09 amendment; issue #203
 **Revisit when:** a new kind of runnable component is added, or `typer` becomes unacceptable on the minimal launcher
 **See:** architecture-contracts.md#one-exhaustive-import-linter-layers-contract-cli-above-independent-components-above-core-above-utils — 3b7cdbee-7c66-4e52-9d7e-8ab0ffe32e56 — as of 2026-10-11
 **See:** components.md#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root — 3daefc4a-ee36-44cb-b137-bc9224f2a262 — as of 2026-10-11
@@ -46,7 +46,7 @@ subcommand form.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-020 (`docs/adr/020-cli-framework-choice.md`); [issue #205](https://github.com/hasansezertasan/copier-pyproject/issues/205)
+**Source:** ADR-020 ([`docs/adr/020-cli-framework-choice.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/020-cli-framework-choice.md)); [issue #205](https://github.com/hasansezertasan/copier-pyproject/issues/205)
 **Revisit when:** demand appears for click as a third choice, or a no-CLI launcher needs to be framework-free
 **See:** components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts — 3d60ab14-8ff9-47db-b326-d7e82947a6cf — as of 2026-10-11
 **See:** package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic — 462ac46c-c9db-4a4a-b8ae-bbe5c14af09f — as of 2026-10-11
@@ -82,7 +82,7 @@ ergonomics; earns its keep only on later demand.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-028 (`docs/adr/028-actionable-component-dependency-guard.md`); issues #172 and #268
+**Source:** ADR-028 ([`docs/adr/028-actionable-component-dependency-guard.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/028-actionable-component-dependency-guard.md)); issues #172 and #268
 **Revisit when:** generated projects gain per-component extras, or a dependency stops importing lazily after the guarded block
 **See:** components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts — 3d60ab14-8ff9-47db-b326-d7e82947a6cf — as of 2026-10-11
 **See:** components.md#component-dependencies-are-core-dependencies-there-is-no-empty-all-extra — e9b25624-f621-4071-bd99-a7cde620189a — as of 2026-10-11
@@ -130,7 +130,7 @@ modules are what adopters edit most.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-028 (`docs/adr/028-no-empty-all-extra.md`)
+**Source:** ADR-028 ([`docs/adr/028-no-empty-all-extra.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/028-no-empty-all-extra.md))
 **Revisit when:** a component gains a genuinely optional dependency
 
 Generated projects declare no `[project.optional-dependencies]` table. A
@@ -159,7 +159,7 @@ until they do; a hand-added `uv run --extra all` breaks.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-032 (`docs/adr/032-uniform-run-dev-launch-verbs.md`); issue #177
+**Source:** ADR-032 ([`docs/adr/032-uniform-run-dev-launch-verbs.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/032-uniform-run-dev-launch-verbs.md)); issue #177
 **Revisit when:** FastStream's reload stops requiring its CLI extra, or a second component acquires a prod/dev distinction
 **See:** components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts — 3d60ab14-8ff9-47db-b326-d7e82947a6cf — as of 2026-10-11
 **See:** components.md#launcher-imports-are-guarded-with-exact-match-preflighted-dependency-errors — 70e54068-d43c-40a2-9097-95e7cc14c668 — as of 2026-10-11
@@ -202,7 +202,7 @@ entrypoint is the console root.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-033 (`docs/adr/033-shared-app-service-components-as-adapters.md`); issues #178 and #321
+**Source:** ADR-033 ([`docs/adr/033-shared-app-service-components-as-adapters.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/033-shared-app-service-components-as-adapters.md)); issues #178 and #321
 **Revisit when:** a component needs a fourth failure behaviour, or a second provider of the payload appears
 **See:** architecture-contracts.md#one-exhaustive-import-linter-layers-contract-cli-above-independent-components-above-core-above-utils — 3b7cdbee-7c66-4e52-9d7e-8ab0ffe32e56 — as of 2026-10-11
 **See:** template-updates.md#retired-template-modules-become-adopter-owned — 4dd6729a-697e-4588-a7a7-d37152018b6b — as of 2026-10-11

@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-006 (`docs/adr/006-sphinx-shibuya-for-documentation.md`)
+**Source:** ADR-006 ([`docs/adr/006-sphinx-shibuya-for-documentation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/006-sphinx-shibuya-for-documentation.md))
 **Revisit when:** Shibuya stops being published on PyPI, or the Litestar-org reference sites change stack
 
 Generated projects document with Sphinx, the `shibuya` theme from PyPI,
@@ -41,7 +41,7 @@ docstring autodoc surfaced and was removed.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-010 §1 (`docs/adr/010-pr-docs-previews-and-released-issue-notifications.md`)
+**Source:** ADR-010 §1 ([`docs/adr/010-pr-docs-previews-and-released-issue-notifications.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/010-pr-docs-previews-and-released-issue-notifications.md))
 **Revisit when:** the preview action ships fork support, or previews need to block merges
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages — 858025c1-19a6-46f6-a237-01ba6477262a — as of 2026-10-11
@@ -75,7 +75,7 @@ racing deploy cannot overwrite them.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-011 (`docs/adr/011-docs-linting-and-cross-platform-filename-safety.md`)
+**Source:** ADR-011 ([`docs/adr/011-docs-linting-and-cross-platform-filename-safety.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/011-docs-linting-and-cross-platform-filename-safety.md))
 **Revisit when:** the matrix drops a case-insensitive platform, or linkcheck becomes reliable enough for PR time
 **See:** ci-topology.md#network-dependent-checks-run-on-a-weekly-cron-never-in-the-merge-gate — 3e5b9525-9087-4125-b19f-80f6c226c01f — as of 2026-10-11
 **See:** architecture-contracts.md#whole-program-analyzers-are-local-system-hooks-backed-by-the-style-group — 41f3397d-1afb-4e57-a0bd-b5ef85089bfc — as of 2026-10-11
@@ -130,7 +130,7 @@ for that choice was established in the reviewed sources.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-025 (`docs/adr/025-optional-docs-subsystem.md`); issue #252
+**Source:** ADR-025 ([`docs/adr/025-optional-docs-subsystem.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/025-optional-docs-subsystem.md)); issue #252
 **Revisit when:** the six files that hard-reference `docs/maintaining/setup.rst` move, or a preset wants docs off by default
 **See:** repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree — 4e0fcdab-d3b9-4f96-b61d-8e34927af98d — as of 2026-10-11
 
@@ -157,7 +157,7 @@ gated by construction.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-028 (`docs/adr/028-tested-documentation-examples.md`)
+**Source:** ADR-028 ([`docs/adr/028-tested-documentation-examples.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/028-tested-documentation-examples.md))
 **Revisit when:** another Markdown file is adopted as a doctest surface, or the per-component CI jobs stop replacing tox's default env list
 **See:** docs-stack.md#the-sphinx-subsystem-is-toggleable-include_docs-default-on-the-maintainer-guide-is-not — e983d1e7-421f-4926-9415-a3da4626f220 — as of 2026-10-11
 
@@ -192,7 +192,7 @@ curated Markdown surface; neither collector overlaps the other.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-038 (`docs/adr/038-sphinx-api-reference-rendering-strategy.md`), refreshed 2026-10-05
+**Source:** ADR-038 ([`docs/adr/038-sphinx-api-reference-rendering-strategy.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/038-sphinx-api-reference-rendering-strategy.md)), refreshed 2026-10-05
 **Revisit when:** a `sphinxcontrib-openapi` pilot confirms OpenAPI 3.1 rendering, an AsyncAPI Sphinx renderer appears, or argparse CLIs are judged to need a reference page
 **See:** docs-stack.md#sphinx-with-the-bare-shibuya-theme-replaces-mkdocs — 5133caa8-3231-4d4d-877b-041b315cb87a — as of 2026-10-11
 

@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-017 (`docs/adr/017-opt-in-homebrew-scoop-distribution.md`); the live reference is the keycast tap and bucket repositories
+**Source:** ADR-017 ([`docs/adr/017-opt-in-homebrew-scoop-distribution.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/017-opt-in-homebrew-scoop-distribution.md)); the live reference is the keycast tap and bucket repositories
 **Revisit when:** the release build matrix becomes per-architecture, or an ecosystem's own bump tooling changes shape
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** package-distribution.md#optional-pypi-publishing — 20be7463-ca95-4d01-82c9-71f632d1b4be — as of 2026-10-11
@@ -50,7 +50,7 @@ listener's job.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-017 (`docs/adr/017-opt-in-homebrew-scoop-distribution.md`)
+**Source:** ADR-017 ([`docs/adr/017-opt-in-homebrew-scoop-distribution.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/017-opt-in-homebrew-scoop-distribution.md))
 **Revisit when:** a fourth executable architecture is added, or the launcher stops needing network access on first run
 **See:** standalone-executables.md#three-architecture-named-executable-toggles-instead-of-one-brand-toggle — d5aed1a0-0b7c-4ac3-9d75-fb9568d9e34d — as of 2026-10-11
 
@@ -74,7 +74,7 @@ inline.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** [issue #382](https://github.com/hasansezertasan/copier-pyproject/issues/382); maintainer decisions while implementing it, 2026-10-11; ADR-039 (`docs/adr/039-optional-pypi-publishing.md`)
+**Source:** [issue #382](https://github.com/hasansezertasan/copier-pyproject/issues/382); maintainer decisions while implementing it, 2026-10-11; ADR-039 ([`docs/adr/039-optional-pypi-publishing.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/039-optional-pypi-publishing.md))
 **Revisit when:** the PyPI project name becomes its own question, or Homebrew / Scoop gain a non-PyPI source for a pure-Python package
 **See:** release-automation.md#the-workflow_dispatch-trigger-on-releaseyml-stays-the-publish-environment-is-the-containment — 0d93a35d-46a3-4ac6-b072-fc07da789842 — as of 2026-10-11
 

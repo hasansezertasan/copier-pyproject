@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-018 (`docs/adr/018-repository-settings-as-code.md`)
+**Source:** ADR-018 ([`docs/adr/018-repository-settings-as-code.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/018-repository-settings-as-code.md))
 **Revisit when:** GitHub exposes the About-sidebar activity toggles through an API, or the Settings App gains rulesets support
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** repo-setup.md#branch-protection-as-code-through-an-opt-in-rulesets-sync-workflow — 3f94789f-94e8-4758-a32d-1e0d72c0140b — as of 2026-10-11
@@ -37,7 +37,7 @@ documented CODEOWNERS plus required code-owner review pattern.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-021 (`docs/adr/021-repository-ruleset-as-code.md`)
+**Source:** ADR-021 ([`docs/adr/021-repository-ruleset-as-code.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/021-repository-ruleset-as-code.md))
 **Revisit when:** the workflow token can manage rulesets, the Settings App supports them, or a project needs required human approvals
 **See:** repo-setup.md#repository-metadata-via-the-settings-github-app-opt-in-labels-and-branch-protection-stay-out-of-it — dee6eadb-b617-4d64-bbec-7c688bad0604 — as of 2026-10-11
 
@@ -72,7 +72,7 @@ merging; manual web-UI ruleset edits are reverted on the next push.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-022 (`docs/adr/022-maintainer-setup-as-single-doc-home.md`)
+**Source:** ADR-022 ([`docs/adr/022-maintainer-setup-as-single-doc-home.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/022-maintainer-setup-as-single-doc-home.md))
 **Revisit when:** the docs site is published before setup starts (making a published URL viable), or the setup guide moves
 **See:** docs-stack.md#the-sphinx-subsystem-is-toggleable-include_docs-default-on-the-maintainer-guide-is-not — e983d1e7-421f-4926-9415-a3da4626f220 — as of 2026-10-11
 
@@ -107,7 +107,7 @@ only the shape of the setup, no secrets.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-023 (`docs/adr/023-repo-setup-skill.md`); the pattern follows the `infra-setup` skill in infra-copilot
+**Source:** ADR-023 ([`docs/adr/023-repo-setup-skill.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/023-repo-setup-skill.md)); the pattern follows the `infra-setup` skill in infra-copilot
 **Revisit when:** a setup step cannot carry a `[CHECK]` block, or the skill grows a parser instead of an LLM reader
 **See:** repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree — 4e0fcdab-d3b9-4f96-b61d-8e34927af98d — as of 2026-10-11
 **See:** agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros — e1545d12-ac20-426b-9cd5-519e80a56b5f — as of 2026-10-11

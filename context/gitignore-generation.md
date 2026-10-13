@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-012 (`docs/adr/012-cobo-for-gitignore-generation.md`)
+**Source:** ADR-012 ([`docs/adr/012-cobo-for-gitignore-generation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/012-cobo-for-gitignore-generation.md))
 **Revisit when:** `github/gitignore` stops being the boilerplate source, or cobo changes its fence or lock format
 **See:** ci-topology.md#network-dependent-checks-run-on-a-weekly-cron-never-in-the-merge-gate — 3e5b9525-9087-4125-b19f-80f6c226c01f — as of 2026-10-11
 
@@ -41,7 +41,7 @@ by `cobo sync`; a hand edit inside the fence breaks the sha256.
 **Type:** workaround
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-012 §1 (`docs/adr/012-cobo-for-gitignore-generation.md`); cobo#120/#121 (the upstreamed `--eol lf` policy), [cobo#124](https://github.com/hasansezertasan/cobo/issues/124), [issue #111](https://github.com/hasansezertasan/copier-pyproject/issues/111)
+**Source:** ADR-012 §1 ([`docs/adr/012-cobo-for-gitignore-generation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/012-cobo-for-gitignore-generation.md)); cobo#120/#121 (the upstreamed `--eol lf` policy), [cobo#124](https://github.com/hasansezertasan/cobo/issues/124), [issue #111](https://github.com/hasansezertasan/copier-pyproject/issues/111)
 **Revisit when:** cobo#124 ships (normalize terminators only, not a mid-line CR) *and* the Copier render preserves a lone carriage return in this file
 
 The fence is sealed with cobo's `--eol lf` policy, persisted as `eol = "lf"` on

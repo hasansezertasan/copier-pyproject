@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`), §1 and §5; issue #309
+**Source:** ADR-035 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md)), §1 and §5; issue #309
 **Revisit when:** a host stops reading its generated file, ai-rulez leaves PyPI, or a sixth host is expected to open PRs
 **See:** repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest — 68ac4665-dcde-456b-aef7-2faaf6fe51f4 — as of 2026-10-11
 **See:** template-testing.md#collection-literals-are-rendered-through-one-shared-macro — 47b21a49-5fc4-46b8-b450-7d9f3225706c — as of 2026-10-11
@@ -39,7 +39,7 @@ cannot be fetched.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 §2 and §8 (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`)
+**Source:** ADR-035 §2 and §8 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** ai-rulez and copier produce identical bytes for the same content, or the template gains a post-render step
 **See:** agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros — e1545d12-ac20-426b-9cd5-519e80a56b5f — as of 2026-10-11
 **See:** template-updates.md#copieryml-defines-no-_tasks — 86130379-1660-4992-8aba-8b6cd7b4a9f7 — as of 2026-10-11
@@ -72,7 +72,7 @@ omits one is a worse surprise than a loud one.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 §3–4 (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`)
+**Source:** ADR-035 §3–4 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** a builtin domain stops contradicting a gate the project enforces, or the gitignore stops being cobo-sealed
 **See:** gitignore-generation.md#cobo-generates-the-gitignore-with-a-hash-sealed-fence-and-lockfiles — 3e3bc38e-bc1e-4e65-b74d-e91848262157 — as of 2026-10-11
 
@@ -99,7 +99,7 @@ files GitHub must find in the repository.
 **Type:** incident
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 §6–7 (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`)
+**Source:** ADR-035 §6–7 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** ai-rulez gains a check mode for preset output, or a host's generated output changes format
 **See:** template-testing.md#generated-files-must-be-formatter-canonical-not-merely-valid — 9b931598-7e52-4ff1-bb07-ef65c01d5369 — as of 2026-10-11
 **See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-11
@@ -135,7 +135,7 @@ every offered host widens the scenario that must keep passing.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035, 2026-10 amendment (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`)
+**Source:** ADR-035, 2026-10 amendment ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** Claude Code stops reading `AGENTS.md` natively, or the maintainers start using Gemini
 **See:** agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros — e1545d12-ac20-426b-9cd5-519e80a56b5f — as of 2026-10-11
 

@@ -7,7 +7,7 @@
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-011 (`docs/adr/011-docs-linting-and-cross-platform-filename-safety.md`), ADR-012 §4 (`docs/adr/012-cobo-for-gitignore-generation.md`), ADR-031 §3 (`docs/adr/031-single-render-entrypoint.md`); the same posture is cited for `check-security.yml`'s periodic scans
+**Source:** ADR-011 ([`docs/adr/011-docs-linting-and-cross-platform-filename-safety.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/011-docs-linting-and-cross-platform-filename-safety.md)), ADR-012 §4 ([`docs/adr/012-cobo-for-gitignore-generation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/012-cobo-for-gitignore-generation.md)), ADR-031 §3 ([`docs/adr/031-single-render-entrypoint.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/031-single-render-entrypoint.md)); the same posture is cited for `check-security.yml`'s periodic scans
 **Revisit when:** a network-dependent check becomes reliable enough to block, or the merge gate gains a retry mechanism
 
 Checks whose outcome depends on the network or on an upstream that can change
@@ -31,7 +31,7 @@ unrelated changes.
 **Type:** decision
 **Status:** superseded
 **Evidence:** confirmed
-**Source:** ADR-026 §1 (`docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md`)
+**Source:** ADR-026 §1 ([`docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md))
 **Superseded by:** 467b6cc3-775b-4e4c-9a8e-b0d1c3d733ac
 **See:** testing-strategy.md#coverage-exclusions-are-per-site-pragmas-and-the-globs-must-match-the-installed-layout — 68366ce3-cc8e-4720-aa91-5eb83aaf2e2d — as of 2026-10-11
 
@@ -58,7 +58,7 @@ on every partial PR; the principle survives per component in the successor.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-026 §2 (`docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md`)
+**Source:** ADR-026 §2 ([`docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/026-combined-cross-matrix-coverage-and-tokenless-html-host.md))
 **Revisit when:** Codecov becomes tokenless for private repositories, or smokeshow changes its rate-limit model
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 
@@ -80,7 +80,7 @@ published.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-028 (`docs/adr/028-per-component-markers-and-path-filtered-ci.md`)
+**Source:** ADR-028 ([`docs/adr/028-per-component-markers-and-path-filtered-ci.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/028-per-component-markers-and-path-filtered-ci.md))
 **Revisit when:** a component gains a dependency on another component's tree, or the aggregation action changes how it treats skipped jobs
 **See:** ci-topology.md#a-single-union-coverage-gate-across-the-whole-matrix — ca90a48d-f648-40b3-ae1a-05f9f21cf411 — as of 2026-10-11
 **See:** architecture-contracts.md#one-exhaustive-import-linter-layers-contract-cli-above-independent-components-above-core-above-utils — 3b7cdbee-7c66-4e52-9d7e-8ab0ffe32e56 — as of 2026-10-11
@@ -122,7 +122,7 @@ directory set, the filters, two jobs and the omit list in lockstep.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-029 (`docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md`); [issue #159](https://github.com/hasansezertasan/copier-pyproject/issues/159)
+**Source:** ADR-029 ([`docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md)); [issue #159](https://github.com/hasansezertasan/copier-pyproject/issues/159)
 **Revisit when:** a platform-specific interpreter defect slips through often enough to matter, or a C-extension build no longer differs per OS/interpreter pair
 **See:** ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component — 467b6cc3-775b-4e4c-9a8e-b0d1c3d733ac — as of 2026-10-11
 
@@ -150,7 +150,7 @@ non-representative interpreter may pass CI — the accepted cost.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-029 (`docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md`)
+**Source:** ADR-029 ([`docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/029-asymmetric-ci-matrix-and-draft-pr-skip.md))
 **Revisit when:** GitHub adds `ready_for_review` to the default trigger set, or drafts need a cheap smoke run
 
 Every job in `ci.yml` carries the falsy-safe condition that the pull request is

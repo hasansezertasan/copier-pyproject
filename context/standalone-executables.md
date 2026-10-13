@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-007 (`docs/adr/007-standalone-executable-toggles.md`)
+**Source:** ADR-007 ([`docs/adr/007-standalone-executable-toggles.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/007-standalone-executable-toggles.md))
 **Revisit when:** a fourth standalone-executable architecture appears, or a category's strongest tool changes
 
 `include_launcher` (PyCrucible, uv-bootstrap launcher), `include_compiler`
@@ -42,7 +42,7 @@ exercised independently and in combination.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-007 (`docs/adr/007-standalone-executable-toggles.md`)
+**Source:** ADR-007 ([`docs/adr/007-standalone-executable-toggles.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/007-standalone-executable-toggles.md))
 **Revisit when:** `attach-github-release` stops flattening downloaded artifacts by filename, or component selection moves out of `__main__.py`
 
 Each build names its binary `<pkg>-<tool>-<os-label>` rather than a bare
@@ -77,7 +77,7 @@ sat in one raw block and rendered the PyCrucible task regardless of the toggle.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-007 (`docs/adr/007-standalone-executable-toggles.md`)
+**Source:** ADR-007 ([`docs/adr/007-standalone-executable-toggles.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/007-standalone-executable-toggles.md))
 **Revisit when:** the test suite starts exercising the built binary, or the per-OS build cost outweighs the signal
 
 Each enabled toggle renders a per-OS, `fail-fast: false` `build-<tool>-check`
