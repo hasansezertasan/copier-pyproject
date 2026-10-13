@@ -526,3 +526,8 @@ NOTES.md
 /.watch-render/
 # Agent process docs (design specs, implementation plans) — kept local, not shipped.
 /docs/superpowers/
+# The sealed Node fragment's `.env.*` also matches the template source
+# `template/.env.example.jinja` (its `!.env.example` rescue misses the `.jinja`
+# suffix), and copier honors the worktree gitignore when enumerating template
+# files — so without this negation fresh renders omit `.env.example`.
+!/template/.env.example.jinja

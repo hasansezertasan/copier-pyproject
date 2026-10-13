@@ -115,3 +115,11 @@ and the dogfooded repo `.gitignore`) carry the same seven files, and
 `template/cobo.lock` ships the same set to generated projects. The pin refresh
 also surfaced the seal-keeps/render-strips CR split above, whose check-side
 follow-up lives in the cobo tracker, not here.
+
+**Consequence:** a sealed pattern can also match a *template source* file:
+copier honors the worktree gitignore when enumerating `template/`, so the
+sealed Node `.env.*` silently dropped `.env.example` from fresh renders (its
+`!.env.example` rescue misses the `.jinja` suffix). Such collisions get a
+below-fence negation in the repo-root `.gitignore` author section (never inside
+the fence, never in `template/.gitignore.jinja`, whose author section renders
+into generated projects) — here, `!/template/.env.example.jinja`.
