@@ -925,8 +925,8 @@ archive recovery via `.git_archival.txt`); `hatch-babel` — there is no
 i18n story yet, so it waits for a real translation workflow instead of shipping
 preemptively; `hatch-autorun` — it injects a `.pth` that auto-executes code
 at interpreter startup (before first import), which the supply-chain posture
-rejects; builds otherwise stay free of side-effect hooks outside the
-c-extension compiler hook.
+rejects; that is distinct from ordinary build-time hooks (hatch-vcs's
+version-file writer, the c-extension compiler), which stay.
 
 ## CI/CD Workflows
 
