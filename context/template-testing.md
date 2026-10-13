@@ -136,6 +136,10 @@ component added to `full` is exercised end-to-end without editing the matrix.
 **Consequence:** adding another `copier copy` invocation is a review defect; a
 new consumer imports `render()` or calls the CLI.
 
+**Consequence:** `tools/render.py` is import-reachable from the tests only
+because the repo root is on `sys.path` under pytest (`tests/__init__.py` plus
+prepend import mode). A future root `pyproject.toml` must keep that true.
+
 ## The generated-project tree page is a committed derived artifact with two drift guards
 
 **Id:** 54918c4d-49dd-4ce8-94a6-3d472010173f

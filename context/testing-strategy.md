@@ -80,6 +80,11 @@ has exactly one.
 collected but deselected in the default suite. The larger runtime integration of
 FastStream inside the Litestar app is explicitly out of scope.
 
+**Shared image variables.** The Redis-compatible image and CLI come from the
+`redis_image` / `redis_cli` computed vars, which the devcontainer compose
+service reads as well as the CI `services:` container, so a redis-to-valkey or
+version bump cannot leave CI and the devcontainer disagreeing.
+
 ## Coverage exclusions are per-site pragmas, and the globs must match the installed layout
 
 **Id:** 68366ce3-cc8e-4720-aa91-5eb83aaf2e2d
@@ -158,6 +163,12 @@ module scope, so a missing Textual raises on import instead of degrading to
 stdout (a hard dependency being absent is a broken install), and the GUI
 catches `Exception` around an injected driver while keeping its specific
 "Tkinter not available" arm first.
+
+**Test-side details.** The TUI `q` binding is asserted inside the pilot
+context, because `run_test().__aexit__` stops the app unconditionally and
+asserting after exit proves nothing. The worker's `_run_app` keeps its uvloop
+probe inside the pragma'd helper, since choosing a loop only means anything next
+to the `run` call it chooses it for.
 
 ## Async testing is an explicit template axis (`async_style`)
 

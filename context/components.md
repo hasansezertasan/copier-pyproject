@@ -123,6 +123,23 @@ modules are what adopters edit most.
 **Rejected alternative:** let faststream's own `ImportError` through — its advice
 (`pip install "faststream[<broker>]"`) bypasses the lockfile.
 
+**Edge cases the guard keeps on purpose.** A nameless `ModuleNotFoundError`
+propagates untouched, because the guard cannot tell whose failure it is.
+`faststream.<broker>` re-exports the broker client behind faststream's own
+import guard, which raises a plain `ImportError` with no module name and advises
+`pip install "faststream[<broker>]"`, advice that bypasses the project's
+lockfile. So the worker allowlist names `faststream.<broker>` and not the client
+(`aiokafka`, `aio_pika`): faststream intercepts the client's own error, and a
+client entry would be dead. The Tk allowlist covers both `tkinter` and the
+`_tkinter` C extension, because on an interpreter built without tk-dev the
+pure-Python package still ships and `_tkinter` is the name that actually fails;
+the GUI hint also names `python-tk@X.Y` built from `sys.version_info`, since
+Homebrew's bare `python-tk` aliases the newest Python's formula. `_preflight`
+catches `ImportError` broadly, so a broken install is also reported as
+unavailable, which is the right summary at the launcher boundary. The error
+paths are unit-tested with no blanket pragma, driving the deferred and nameless
+cases through `sys.meta_path` finders so they reproduce on any runner.
+
 ## Component dependencies are core dependencies; there is no empty `all` extra
 
 **Id:** e9b25624-f621-4071-bd99-a7cde620189a

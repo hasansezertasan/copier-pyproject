@@ -40,6 +40,17 @@ the copier manager is tag-based, so release-please is the price of Renovate.
 markers; maintainers review for them. A repo pinned to a raw SHA needs one
 manual update to re-anchor onto a tag.
 
+**`_src_path` must be a real git URL.** Copier records `_src_path` verbatim
+from the `copier copy` argument, and the `gh:` shorthand is Copier-only, so
+Renovate's `git-tags` datasource rejects it ("non-git url", then `no-result`)
+and never opens an update PR even though the template has tags. Renovate accepts
+`_src_path` only when it starts with `git+https://`, `git+ssh://`, `git@` or
+`git://`, or ends with `.git`, which is why the README scaffold step and the
+`template-adoption` skill use the `.git` HTTPS URL. A project scaffolded with
+`gh:` can be fixed by rewriting the `_src_path` line; `copier update` preserves
+it. The manager is enabled by default (the shared preset sets no
+`enabledManagers`), so the template's own `renovate.json` needs no addition.
+
 ## `copier.yml` defines no `_tasks`
 
 **Id:** 86130379-1660-4992-8aba-8b6cd7b4a9f7

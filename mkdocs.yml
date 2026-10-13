@@ -67,6 +67,9 @@ nav:
       - Generated project trees: generated-project-trees.md
       - Generated-project check coverage: hook-coverage.md
       - Template adoption and update audits: template-adoption.md
+  - Research notes:
+      - Release automation tools: research/release-automation-tools.md
+      - Sphinx API-reference tools: research/sphinx-api-reference-tools.md
   - Why it is built this way:
       - Context index: context/index.md
       - "Dashboard ↗": https://hasansezertasan.github.io/copier-pyproject/keep-the-why-dashboard/

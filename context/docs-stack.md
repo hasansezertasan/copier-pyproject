@@ -192,7 +192,7 @@ curated Markdown surface; neither collector overlaps the other.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-038 ([`docs/adr/038-sphinx-api-reference-rendering-strategy.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/038-sphinx-api-reference-rendering-strategy.md)), refreshed 2026-10-05
+**Source:** ADR-038 ([`docs/adr/038-sphinx-api-reference-rendering-strategy.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/038-sphinx-api-reference-rendering-strategy.md)), refreshed 2026-10-05; [Sphinx API-reference survey](../docs/research/sphinx-api-reference-tools.md) (candidate tables and source links)
 **Revisit when:** a `sphinxcontrib-openapi` pilot confirms OpenAPI 3.1 rendering, an AsyncAPI Sphinx renderer appears, or argparse CLIs are judged to need a reference page
 **See:** docs-stack.md#sphinx-with-the-bare-shibuya-theme-replaces-mkdocs — 5133caa8-3231-4d4d-877b-041b315cb87a — as of 2026-10-11
 

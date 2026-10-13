@@ -186,7 +186,7 @@ authoring, before a PR exists.
 **Type:** decision
 **Status:** open
 **Evidence:** confirmed
-**Source:** ADR-037 ([`docs/adr/037-release-automation-reevaluation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/037-release-automation-reevaluation.md)), a research record last refreshed 2026-10-05; upstream release-please issues [#2515](https://github.com/googleapis/release-please/issues/2515) and [#2605](https://github.com/googleapis/release-please/issues/2605)
+**Source:** ADR-037 ([`docs/adr/037-release-automation-reevaluation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/037-release-automation-reevaluation.md)), a research record last refreshed 2026-10-05; upstream release-please issues [#2515](https://github.com/googleapis/release-please/issues/2515) and [#2605](https://github.com/googleapis/release-please/issues/2605); [release automation research note](../docs/research/release-automation-tools.md) (candidate tables and source links)
 **Revisit when:** git-cliff ships prerelease version calculation ([#1380](https://github.com/orhun/git-cliff/issues/1380)), RC series become frequent, or a maintainer picks one of the four options
 **See:** release-automation.md#release-please-is-the-sole-release-orchestrator — 7ec8a937-fd4d-41f2-96b7-824fe3be913b — as of 2026-10-11
 **See:** release-automation.md#commitizen-is-a-commit-helper-never-a-release-tool — ee1d2fad-67ab-4f4a-a531-73458da14eb1 — as of 2026-10-11

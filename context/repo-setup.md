@@ -66,6 +66,10 @@ concern.
 **Consequence:** strict status checks mean concurrent bot PRs rebase before
 merging; manual web-UI ruleset edits are reverted on the next push.
 
+**Independent of `include_repo_settings`:** the two are complementary.
+`settings.yml` controls which merge buttons exist, the ruleset enforces policy,
+and both encode squash-only so they agree.
+
 ## Maintainer repository setup has one actor-tagged home in the docs tree
 
 **Id:** 4e0fcdab-d3b9-4f96-b61d-8e34927af98d

@@ -215,3 +215,10 @@ not track.
 redden an unrelated PR; findings overlap ruff's bandit rules, so a line may need
 both suppressions. The marginal value is cross-statement taint rules ruff
 cannot express.
+
+**Rejected alternative:** stack `p/security-audit` on top of `p/python`. It is
+the auditor-oriented low-confidence pack, and `p/python` already carries
+`python.lang.security.*`. The overlap with ruff is also larger than first
+assumed: generated projects set `select = ["ALL"]`, so flake8-bandit (`S`) is
+already on, and of `p/python`'s 151 rules 55 are taint-mode and only 21 are
+relevant to what the template generates.

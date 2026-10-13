@@ -106,6 +106,16 @@ manifest) is fetched from the GitHub Release. A hidden `can_distribute_natively`
 `default` repeats the guard, so a preset cannot turn on a tap or bucket that
 could never update.
 
+**Reason:** every generated project used to publish to PyPI unconditionally:
+`release.yml` always rendered `pypi-publish`, and `attach-github-release` and
+`finalize-release` both listed it in `needs`. A project that must not go to PyPI
+had no supported path to a release, and hand-editing the generated workflow
+conflicted on every `copier update`. Publishing is wrong or impossible for
+private or internal projects distributed from Git or a private index, for a
+project whose PyPI name (`github_repo_name`) already belongs to someone else
+(trusted publishing fails on the first release), and for projects that ship only
+other artifacts or only want GitHub Releases.
+
 **Rejected alternative:** leave Homebrew/Scoop ungated and document the caveat.
 Rejected: it renders a tap/bucket dispatch whose formula or manifest can never
 resolve, which is a failure on first release that the template can prevent at
