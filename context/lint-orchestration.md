@@ -238,9 +238,9 @@ source for the same check.
 **Reason:** these tools inspect files outside the Python package (standalone
 scripts a project adds later, YAML configs), so they never needed the project's
 environment the way the whole-program `local` `system` hooks (the type
-checkers, import-linter, slotscheck) do. Workflow `run:` blocks are already
-shellchecked by actionlint, so the shellcheck hook only covers standalone
-scripts.
+checkers, import-linter, slotscheck) do. Workflow `run:` blocks are checked by
+actionlint — including its shellcheck pass where a `shellcheck` executable is
+available — so the shellcheck hook only covers standalone scripts.
 
 **Rejected alternative:** a uv lint group pinning shellcheck-py,
 shellcheck-makefile, yamllint, yamlfix and yamlfmt — the shortlist from the

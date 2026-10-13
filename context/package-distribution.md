@@ -139,11 +139,12 @@ the web variant of `finalize-release`'s `needs` without `pypi-publish`.
 `[build-system] requires` stays `hatchling` plus `hatch-vcs` (with the
 c-extension additions — `cython>=3.0.0` and `setuptools>=70` — when
 `include_c_extensions`; that `setuptools` is a build-time compiler dep, not a
-version source). `setuptools-scm` stays out: it is the alternative VCS-based
-version source (a setuptools plugin, so adopting it means swapping the whole
-backend `hatchling` → `setuptools`, not swapping a plugin), while the template
-standardizes on hatch-vcs — dynamic version from git tags, archive recovery
-via `.git_archival.txt`. `hatch-babel` stays out: there is no i18n story yet,
+version source). `setuptools-scm` stays out as a direct requirement: hatch-vcs
+already builds on setuptools-scm's version-inference logic (its options surface
+through `[tool.hatch.version.raw-options]`), so there is nothing to gain by
+declaring it separately; adopting setuptools-scm as the version source itself
+would mean swapping the whole backend `hatchling` → `setuptools`.
+`hatch-babel` stays out: there is no i18n story yet,
 so it waits for a real translation workflow instead of shipping preemptively.
 `hatch-autorun` stays out: it injects a `.pth` that auto-executes code at
 interpreter startup (before first import), which the supply-chain posture

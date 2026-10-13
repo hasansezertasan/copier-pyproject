@@ -478,7 +478,8 @@ same check. Evaluated and intentionally out (issue #392): `yamlfix` (the
 fight it over document style) and `shellcheck-makefile` (it lints shell
 *inside* recipes, complementing rather than replacing `checkmake`'s Makefile
 structure lint — that recipe-shell coverage stays unevaluated; workflow
-`run:` blocks are already covered by actionlint).
+`run:` blocks are checked by actionlint, including its shellcheck pass where a
+`shellcheck` executable is available).
 
 **detect-secrets** is a local, pre-commit-stage secret scanner (`local` `system`
 hook via `uv run --locked --group style detect-secrets-hook --baseline
@@ -915,11 +916,12 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
   `.git_archival.txt` is available
 - **Build Command**: `uv build`
 
-Evaluated and intentionally out (issue #392): `setuptools-scm` — the alternative
-VCS-based version source to hatch-vcs (a setuptools plugin, so adopting it
-means swapping the whole backend `hatchling` → `setuptools`, not swapping a
-plugin), while the template standardizes on hatch-vcs (dynamic version from git
-tags, archive recovery via `.git_archival.txt`); `hatch-babel` — there is no
+Evaluated and intentionally out (issue #392): `setuptools-scm` — out as a
+direct requirement (hatch-vcs already builds on its version-inference logic,
+surfaced via `[tool.hatch.version.raw-options]`; adopting it as the version
+source itself would mean swapping the whole backend `hatchling` → `setuptools`),
+while the template standardizes on hatch-vcs (dynamic version from git tags,
+archive recovery via `.git_archival.txt`); `hatch-babel` — there is no
 i18n story yet, so it waits for a real translation workflow instead of shipping
 preemptively; `hatch-autorun` — it injects a `.pth` that auto-executes code
 at interpreter startup (before first import), which the supply-chain posture
