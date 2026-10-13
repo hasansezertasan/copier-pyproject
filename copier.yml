@@ -29,7 +29,7 @@ _exclude:
 # `copier ... --trust`. The hosted Mend Renovate App runs `copier update` with
 # scripts disabled (no `--trust`), so a task-bearing template would break
 # Renovate's copier manager — the mechanism that opens template-update PRs in
-# generated projects (ADR-015). Keeping `_tasks` empty lets Renovate update
+# generated projects (https://hasansezertasan.github.io/copier-pyproject/context/template-updates/#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source). Keeping `_tasks` empty lets Renovate update
 # untrusted, at the cost of not auto-`git init`-ing on the initial copy (the
 # after-copy message tells the user to run `git init`).
 
@@ -41,9 +41,9 @@ _message_after_copy: >-
 # `full`-preset project, where the new question defaults to yes — deletes the
 # copier-managed AGENTS.md and replaces it with `.ai-rulez/` sources
 # whose output only exists after a `generate`. There are no `_tasks` to run it
-# (ADR-015), so the update lands with no agent instruction files at all. CI says
+# (https://hasansezertasan.github.io/copier-pyproject/context/template-updates/#copieryml-defines-no-_tasks), so the update lands with no agent instruction files at all. CI says
 # so loudly, but only after a push; say it here, while the maintainer is still
-# looking. See ADR-035 "Migrating an existing project" for the reverse direction.
+# looking. See https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros for the reverse direction.
 _message_after_update: >-
   {% if include_ai_rulez %}This project now authors its agent instructions under .ai-rulez/. Run: (1) uv lock (the new `agents` dependency group) (2) uv run --group agents ai-rulez generate, then commit both — AGENTS.md and the per-host files are build output, so until you do the repository has no agent instruction files and the `hooks` CI job fails.{% endif %}
 # ── ① Identity ──────────────────────────────────────────────────────────────
@@ -254,11 +254,11 @@ docs_version_granularity:
   default: minor
   when: "{{ include_docs }}"
   choices:
-    "By minor line (X.Y) — recommended for pre-1.0 (ADR-002 minor = breaking)": minor
+    "By minor line (X.Y) — recommended for pre-1.0 (a minor bump is breaking)": minor
     "By major line (X)": major
     "Per full release (X.Y.Z)": full
   help: >-
-    At what granularity should published docs be versioned? Each release's docs are deployed under this slug (e.g. 0.3.1 -> "0.3" for minor, "0" for major, "0.3.1" for full), with a `latest` alias tracking the newest release. Only the current release is built each deploy; older versions are preserved from the gh-pages branch. See ADR-027.
+    At what granularity should published docs be versioned? Each release's docs are deployed under this slug (e.g. 0.3.1 -> "0.3" for minor, "0" for major, "0.3.1" for full), with a `latest` alias tracking the newest release. Only the current release is built each deploy; older versions are preserved from the gh-pages branch. See https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#version-granularity-is-a-scaffold-time-question.
 # ── ⑤ Config ────────────────────────────────────────────────────────────────
 include_pydantic_settings:
   type: bool
@@ -294,7 +294,7 @@ include_ai_rulez:
   type: bool
   default: "{{ 'include_ai_rulez' in preset_map[preset] }}"
   help: >-
-    Author the agent instructions once under .ai-rulez/ and generate each AI coding host's native config from them (ai-rulez)? Off renders the hand-written AGENTS.md and a Claude-only repo-setup skill. On renders the .ai-rulez/ sources instead, and `ai-rulez generate` (a prek hook, plus the after-copy step) writes AGENTS.md, .github/copilot-instructions.md and the per-host copies of the repo-setup skill as committed build output. See ADR-035.
+    Author the agent instructions once under .ai-rulez/ and generate each AI coding host's native config from them (ai-rulez)? Off renders the hand-written AGENTS.md and a Claude-only repo-setup skill. On renders the .ai-rulez/ sources instead, and `ai-rulez generate` (a prek hook, plus the after-copy step) writes AGENTS.md, .github/copilot-instructions.md and the per-host copies of the repo-setup skill as committed build output. See https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros.
 ai_rulez_presets:
   type: str
   multiselect: true
@@ -401,13 +401,13 @@ redis_cli:
 # `when: false` question whose name starts with `_` renders empty in Copier.
 #
 # `ci_service` carries the *CI mechanism* for the worker integration job
-# (ADR-008, issue #169): present for the brokers that run against a runner-
+# (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism, issue #169): present for the brokers that run against a runner-
 # provided GitHub Actions `services:` container (`image`, `port`, `health_cmd`,
 # `url`), absent for the brokers that stay on in-test testcontainers. `ci.yml`
 # derives the whole block — and its presence — from this field, so the
 # services/testcontainers split lives here and nowhere else. `health_cmd: null`
 # means the image ships no usable health probe and readiness is covered by the
-# integration test's own connect-retry (see the nats note in ADR-008). `url` is
+# integration test's own connect-retry (see the nats note in https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism). `url` is
 # the value bound to `env`, always via the published host port on `localhost`.
 worker_broker_spec:
   type: json
@@ -434,7 +434,7 @@ worker_broker_spec:
 # the "primary": it owns the bare ``{{github_repo_name}}`` command. Every other
 # enabled component is exposed as a *subcommand* of the ``{{github_repo_name}}``
 # Typer root (``{{github_repo_name}} <name>``), not a separate ``-<name>``
-# console script (see ADR-019). Templates (pyproject, docs, launch.json, tox)
+# console script (see https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts). Templates (pyproject, docs, launch.json, tox)
 # derive both the primary and each subcommand from these, so the precedence order
 # lives here and nowhere else — a component X is a subcommand exactly when
 # ``primary_component != "X"``.
@@ -445,25 +445,25 @@ primary_component:
 # True when the project has a ``{{github_repo_name}}`` Typer root that hosts the
 # component subcommands: whenever the CLI is enabled (CLI is always the primary),
 # whenever the web app is enabled (it needs somewhere to hang ``run``/``dev`` —
-# see below and ADR-032), or — with neither — whenever ≥2 runnable components
+# see below and https://hasansezertasan.github.io/copier-pyproject/context/components/#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root), or — with neither — whenever ≥2 runnable components
 # need a shared launcher. A single-component non-CLI app has no root (bare
 # ``{{github_repo_name}}`` launches that component directly) and never pulls in
 # ``typer``. Consumed by the ``cli`` package/test guards, the ``typer``
-# dependency, the import-linter ``cli`` layer, and ``__main__.py``. See ADR-019.
+# dependency, the import-linter ``cli`` layer, and ``__main__.py``. See https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts.
 #
 # `include_web` is listed explicitly rather than folded into the ≥2 count: a
 # web-only project is exactly the shape that wants `{{github_repo_name}} dev`
 # most, and it is the only runnable component whose server runner (`uvicorn`) is
 # already a runtime dependency, so hosting the verbs costs it nothing but the
 # launcher itself. Bare `{{github_repo_name}}` still launches the primary
-# component through the minimal launcher's default callback, so the ADR-019
-# precedence is unchanged.
+# component through the minimal launcher's default callback, so the
+# precedence is unchanged (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts).
 include_console_root:
   type: bool
   when: false
   default: "{{ include_cli or include_web or ([include_gui, include_tui, include_web, include_mcp, include_worker] | select | list | length >= 2) }}"
 # The components the console root reaches by *lazy* import: every enabled
-# runnable component that is not the primary (ADR-019). Derived from
+# runnable component that is not the primary (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts). Derived from
 # `primary_component`, so the precedence still lives in exactly one place.
 # Consumed by `cli/app.py` and its test module, which must agree on whether the
 # component-dependency guard is emitted at all — previously each re-spelled this
@@ -493,7 +493,7 @@ launched_components:
 # `launcher_components` this is launch-agnostic — it is the *layering* view, so
 # the primary component is included. Read by the agent-instruction prose macros
 # in `_macros.jinja`, which render into either `AGENTS.md` or the `.ai-rulez/`
-# rule sources depending on `include_ai_rulez` (ADR-035); computing it here keeps
+# rule sources depending on `include_ai_rulez` (https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros); computing it here keeps
 # the two renderings from rebuilding the same list in two Jinja headers.
 interface_components:
   type: json
@@ -570,15 +570,15 @@ root_dependencies:
 # tk-dev the pure-Python package still ships and the C extension is the name
 # that actually fails. `worker` lists `faststream.<broker>` rather than the
 # broker client, because faststream re-exports the client behind its own
-# nameless import guard -- see ADR-028.
+# nameless import guard -- see https://hasansezertasan.github.io/copier-pyproject/context/components/#launcher-imports-are-guarded-with-exact-match-preflighted-dependency-errors.
 component_dependencies:
   type: json
   when: false
   default: "{{ (({'tui': ['textual', 'typing_extensions']} if include_tui else {}) | combine({'gui': ['tkinter', '_tkinter']} if include_gui else {}) | combine({'web': [web_framework, 'uvicorn']} if include_web else {}) | combine({'mcp': ['mcp']} if include_mcp else {}) | combine({'worker': ['faststream', 'pydantic', worker_broker_spec.module]} if include_worker else {})) | tojson }}"
 # The single runnable component that `__main__.py` binds *directly*, with no
-# console root in between (ADR-019: `include_console_root` is false, so there is
-# no `cli/` package and no launcher to route through). This is the ADR-007
-# standalone-executable entrypoint. Empty for a library, and empty whenever a
+# console root in between (`include_console_root` is false, so there is
+# no `cli/` package and no launcher to route through; https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts). This is the
+# standalone-executable entrypoint (https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module). Empty for a library, and empty whenever a
 # console root exists.
 sole_component:
   type: str
@@ -625,7 +625,7 @@ is_app:
   default: "{{ include_cli or include_gui or include_tui or include_web or include_mcp or include_worker }}"
 # ── ⑧ Distribution ──────────────────────────────────────────────────────────
 # PyPI is on in every preset; off renders no `pypi-publish` job and keeps
-# releases on GitHub Releases only (ADR-039).
+# releases on GitHub Releases only (https://hasansezertasan.github.io/copier-pyproject/context/package-distribution/#optional-pypi-publishing).
 include_pypi_publish:
   type: bool
   default: "{{ 'include_pypi_publish' in preset_map[preset] }}"
@@ -635,7 +635,7 @@ include_pypi_publish:
 # executable (a cask / binary manifest) is fetched from the GitHub Release. So
 # without PyPI the tap/bucket is only possible with an executable toggle, and the
 # questions are not asked otherwise — the guard is repeated in `default` so an
-# unasked question can never come out true from the preset (ADR-039).
+# unasked question can never come out true from the preset (https://hasansezertasan.github.io/copier-pyproject/context/package-distribution/#optional-pypi-publishing).
 can_distribute_natively:
   type: bool
   when: false

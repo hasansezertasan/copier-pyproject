@@ -182,7 +182,7 @@ def resolve_bind() -> tuple[str, int]:
 #: The ASGI application ``{{github_repo_name}} run`` / ``{{github_repo_name}} dev``
 #: start when given no explicit target. Spelled as a uvicorn import string
 #: rather than passed as an object because autoreload re-imports the app in a
-#: child process, so only the string form can reload (see ADR-032).
+#: child process, so only the string form can reload (see https://hasansezertasan.github.io/copier-pyproject/context/components/#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root).
 DEFAULT_APP_PATH = "{{github_repo_name}}.web.app:app"
 
 #: Development mode always binds loopback, whatever ``{PROJECT}_HOST`` says: a
@@ -225,7 +225,7 @@ def _run_server(  # pragma: no cover
     """Execute the uvicorn server loop.
 
     The irreducible blocking call, separated from the target and bind
-    resolution so both stay measured (ADR-035).
+    resolution so both stay measured (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#interactive-components-expose-injected-driver-seams-so-headless-ci-measures-everything-but-the-blocking-call).
     """
     import uvicorn  # noqa: PLC0415
 

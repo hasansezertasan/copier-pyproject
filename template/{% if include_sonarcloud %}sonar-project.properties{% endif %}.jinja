@@ -20,5 +20,5 @@ sonar.python.version=3.10, 3.11, 3.12, 3.13, 3.14
 
 # Generated / untestable-at-unit-level paths are excluded from coverage so the
 # quality gate matches the project's own coverage config (see pyproject.toml
-# [tool.coverage] and ADR-008).
+# [tool.coverage] and https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#coverage-exclusions-are-per-site-pragmas-and-the-globs-must-match-the-installed-layout).
 sonar.coverage.exclusions=src/{{github_repo_name}}/_version.py,tests/**/*

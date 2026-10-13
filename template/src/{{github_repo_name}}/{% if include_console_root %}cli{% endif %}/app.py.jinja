@@ -1,14 +1,14 @@
 {% import "_macros.jinja" as fmt %}{#- Every derived fact this module needs -- ``launcher_components``,
     ``need_import_guard``, ``component_label``, ``component_preflight``,
     ``preflight_used`` and ``root_uses_typer`` -- is computed in ``copier.yml``
-    from ``primary_component`` (ADR-019), so this module, its test module and the
+    from ``primary_component`` (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts), so this module, its test module and the
     ``typer`` dependency in ``pyproject.toml`` cannot drift.
 
     The guard constants, dependency tuples, and ``_preflight`` are identical in
     both the argparse and Typer branches, so they are defined once as Jinja macros
     and expanded in each branch to avoid source-level duplication. -#}
 {#- ``run``/``dev`` share one launch function differing only by ``dev_mode``
-    (issue #177, ADR-032). The guarded import is identical in both roots, so it
+    (issue #177, https://hasansezertasan.github.io/copier-pyproject/context/components/#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root). The guarded import is identical in both roots, so it
     is a macro like the rest of the shared guard infrastructure. -#}
 {%- macro _run_web_fn() -%}
 def _run_web(app_path: str | None, *, dev_mode: bool) -> None:
@@ -49,7 +49,7 @@ _TK_HINT = f"'tkinter' is part of the Python standard library but ships as a sep
 {%- endif %}
 {#- The allowlists come from ``component_dependencies`` in ``copier.yml``, the
     single source shared with ``__main__.py``'s sole-component guard -- see
-    ADR-028. ``gui`` carries ``_tkinter`` beside ``tkinter`` because that C
+    https://hasansezertasan.github.io/copier-pyproject/context/components/#launcher-imports-are-guarded-with-exact-match-preflighted-dependency-errors. ``gui`` carries ``_tkinter`` beside ``tkinter`` because that C
     extension is the name that actually fails on an interpreter built without
     tk-dev; ``worker`` carries ``faststream.<broker>`` rather than the broker
     client, which faststream re-exports behind its own nameless import guard. -#}
@@ -114,7 +114,9 @@ exposes the same ``version`` / ``info`` commands as the Typer variant and hangs
 every enabled non-primary component off the root as a lazily-imported subcommand
 — ``{{github_repo_name}} interactive`` (TUI), ``{{github_repo_name}} web``, ... —
 rather than a separate ``{{github_repo_name}}-<name>`` console script (see
-ADR-019 and ADR-020). Selected via ``cli_framework``.
+https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts
+and https://hasansezertasan.github.io/copier-pyproject/context/components/#cli_framework-offers-argparse-beside-typer-the-typer-dependency-is-gated-on-root_uses_typer).
+Selected via ``cli_framework``.
 """
 
 from __future__ import annotations
@@ -323,7 +325,8 @@ def web() -> None:
     Launch the web server:
         {{github_repo_name}} web
 
-    The component-named form ADR-019 gives every non-primary component. It is
+    The component-named form every non-primary component gets (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts).
+    It is
     ``{{github_repo_name}} run`` with no target; use ``run``/``dev`` to point at
     a different application or to enable autoreload.
 
@@ -503,7 +506,7 @@ The ``{{github_repo_name}}`` command is the single Typer root. Every enabled
 component other than the primary (CLI > GUI > TUI > web > MCP > worker) is hung
 off it as a lazily-imported subcommand — ``{{github_repo_name}} interactive``
 (TUI), ``{{github_repo_name}} web``, ``{{github_repo_name}} mcp``, ... — rather
-than a separate ``{{github_repo_name}}-<name>`` console script (see ADR-019).
+than a separate ``{{github_repo_name}}-<name>`` console script (see https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts).
 {%- if not include_cli %}
 This project has no ``include_cli`` feature, so this module is a *minimal
 launcher*: it carries no ``version``/``info`` commands. Bare
@@ -516,7 +519,7 @@ via the default callback.
 {# Collected rather than emitted as a chain of inline conditionals: a CLI-only
     project imports nothing here from the standard library, and an empty chain
     left two blank lines before ``import typer`` -- which ruff's isort rewrites,
-    so the file would not be formatter-canonical (ADR-030). -#}
+    so the file would not be formatter-canonical (https://hasansezertasan.github.io/copier-pyproject/context/template-testing/#generated-files-must-be-formatter-canonical-not-merely-valid). -#}
 {%- set _stdlib = [] -%}
 {%- if need_import_guard %}{% set _ = _stdlib.append("import contextlib") %}{% endif -%}
 {%- if preflight_used %}{% set _ = _stdlib.append("import importlib") %}{% endif -%}
@@ -782,7 +785,8 @@ def web() -> None:
     Launch the web server:
         {{github_repo_name}} web
 
-    The component-named form ADR-019 gives every non-primary component. It is
+    The component-named form every non-primary component gets (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts).
+    It is
     ``{{github_repo_name}} run`` with no target; use ``run``/``dev`` to point at
     a different application or to enable autoreload.
 
