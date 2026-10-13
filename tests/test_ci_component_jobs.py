@@ -2,8 +2,9 @@
 
 The generated ``ci.yml`` gains a ``changes`` path-filter job, per-component
 ``test-<component>`` jobs gated on their tree (with a ``core`` escape hatch), and
-per-component ``coverage-<component>`` gates that decompose ADR-026's single union
-coverage gate. Designed to compose with #159 (asymmetric matrix + draft skip).
+per-component ``coverage-<component>`` gates that decompose the single union
+coverage gate (context/ci-topology.md). Designed to compose with #159 (asymmetric
+matrix + draft skip).
 """
 
 from __future__ import annotations

@@ -2,8 +2,9 @@
 
 ``docs/generated-project-trees.md`` is a *derived* artifact: the real file set
 each preset renders, produced by ``tools/render.py regenerate``. This is the
-verify half of the generate-and-verify convention (ADR-031) — the same posture
-cobo's sha256 fence gives ``.gitignore`` (ADR-012), except the drift here
+verify half of the generate-and-verify convention
+(context/template-testing.md) — the same posture cobo's sha256 fence gives
+``.gitignore`` (context/gitignore-generation.md), except the drift here
 originates in *this* repo (a toggle that gains or loses a file), so the guard
 belongs on the PR that causes it rather than on a weekly cron.
 

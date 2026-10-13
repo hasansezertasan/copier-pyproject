@@ -3,7 +3,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["copier"]
 # ///
-"""The single render entrypoint for the copier-pyproject template (ADR-031).
+"""The single render entrypoint for the copier-pyproject template.
 
 Every consumer that needs "render this template with these answers" goes
 through :func:`render` — the pytest harness fixture (``tests/conftest.py``),
@@ -11,7 +11,7 @@ the ``template-ci.yml`` generate-and-run matrix, the committed docs artifacts
 (:func:`regenerate`), and the authoring watch loop (:func:`watch`). Four
 issues each proposed their own ``copier copy`` invocation (#181/#183/#164/#184)
 on top of the one the render harness already had (#182); this module is the
-primitive they all call instead.
+primitive they all call instead (context/template-testing.md).
 
 Run it directly (PEP 723 metadata provides copier)::
 
@@ -59,7 +59,8 @@ IDENTITY = {
     "author_email": "octo@example.com",
 }
 
-# The four archetype presets (ADR-016), documented in the generated tree page.
+# The four archetype presets (context/presets.md), documented in the generated
+# tree page.
 PRESETS = ("library", "tool", "web", "full")
 
 # Committed derived artifact: the real file set each preset renders (#164).
@@ -124,10 +125,12 @@ def tree_page(workdir: Path, presets: Iterable[str] = PRESETS) -> str:
         "# Generated project trees",
         "",
         "The exact file set each preset renders, captured from a real `copier copy`",
-        "run rather than typed by hand (see [ADR-031](adr/031-single-render-entrypoint.md)).",
+        "run rather than typed by hand (see",
+        "[a committed derived artifact](../context/template-testing.md#the-generated-project-tree-page-is-a-committed-derived-artifact-with-two-drift-guards)).",
         "Presets are defined by `preset_map` in `copier.yml`",
-        "([ADR-016](adr/016-archetype-based-presets.md)); the identity answers are the",
-        "harness defaults (`octocat`/`example`), so `example` below is the package name.",
+        "([archetype presets](../context/presets.md#archetype-presets-name-project-shapes-library-is-the-default));",
+        "the identity answers are the harness defaults (`octocat`/`example`), so",
+        "`example` below is the package name.",
         "",
         "Regenerate with `mise run regenerate`. `tests/test_doc_trees.py` fails when this",
         "page drifts from a fresh render.",

@@ -29,16 +29,18 @@ jobs:
             data: --data preset=library --data include_examples=false
           # The `full` preset itself — the other bracket of the generate-and-run
           # guard (issue #183): `minimal` is the bare `library` shape, this is
-          # every toggle `preset_map` seeds (ADR-016), with the two axis picks
-          # (web framework, broker) the preset leaves to a follow-up question.
+          # every toggle `preset_map` seeds (context/presets.md), with the two
+          # axis picks (web framework, broker) the preset leaves to a follow-up
+          # question.
           # Spelled as the preset, not a hand-listed toggle set, so a component
           # added to `full` is covered here without editing this matrix.
           - name: full-preset
             data: >-
               --data preset=full --data web_framework=fastapi --data worker_broker=redis
-          # The ai-rulez shape (ADR-035): the `.ai-rulez/` sources replace
-          # AGENTS.md, and `ai-rulez generate` writes the per-host
-          # files. A console root plus one sibling interface so the generated
+          # The ai-rulez shape (context/agent-instructions.md): the
+          # `.ai-rulez/` sources replace AGENTS.md, and `ai-rulez generate`
+          # writes the per-host files. A console root plus one sibling
+          # interface so the generated
           # package-structure rule renders its conditional rows and both of its
           # layering paragraphs. `full-preset` also enables the toggle, but only
           # this scenario runs the generator (see the convergence step below).
@@ -52,7 +54,8 @@ jobs:
             data: >-
               --data include_ai_rulez=true --data include_cli=true --data include_mcp=true --data 'ai_rulez_presets=[claude,codex,copilot,cursor,windsurf,cline,continue-dev,amp,junie,opencode,hermes,antigravity]'
           # Exercise the other web framework and broker branches.
-          # Also renders release.yml without PyPI (ADR-039), so actionlint sees
+          # Also renders release.yml without PyPI
+          # (context/package-distribution.md), so actionlint sees
           # finalize-release's needs with docker-publish but no pypi-publish.
           - name: litestar-kafka
             data: >-
@@ -60,8 +63,8 @@ jobs:
           # Compiles the Cython extension during the wheel build.
           - name: c-extensions
             data: --data include_c_extensions=true
-          # Standalone-executable toggles (ADR-007), exercised independently and
-          # combined the way worker_broker is. These render the .spec, the mise
+          # Standalone-executable toggles (context/standalone-executables.md),
+          # exercised independently and combined the way worker_broker is. These render the .spec, the mise
           # tasks, the tool-group deps, and the build-* release jobs so style
           # (validate-pyproject, taplo, actionlint) lints them — the heavy
           # nuitka/pyinstaller/pycrucible deps live in the `tool` group, which
@@ -106,7 +109,7 @@ jobs:
         with:
           enable-cache: true
       - name: Render template
-        # tools/render.py is the single render entrypoint (ADR-031) — the same
+        # tools/render.py is the single render entrypoint (context/template-testing.md) — the same
         # module the pytest harness, the committed docs artifacts, and the
         # authoring watch loop call, so this matrix cannot render a shape no
         # other consumer can reproduce. `uv run` resolves copier from the
@@ -123,7 +126,7 @@ jobs:
         # zizmor version, not a bare `uvx zizmor` that may pin a different one).
         # Across the matrix this exercises every conditional workflow branch
         # (web/worker/executables/...). prek operates on git-tracked files, and
-        # the template defines no copier tasks (ADR-015) so the rendered tree is
+        # the template defines no copier tasks (context/template-updates.md) so the rendered tree is
         # not a git repo — init it, then stage it first.
         working-directory: ../rendered
         run: |
@@ -153,8 +156,9 @@ jobs:
         # hooks would rewrite fails that project's `hooks` CI job on its very
         # first push, and shows up as spurious drift on every `copier update`.
         # Nothing else here catches that: the zizmor step above and `tox -e
-        # style` below run only *checking* tools (ADR-024's render harness
-        # asserts rendered YAML is parseable, not canonical). See issue #213.
+        # style` below run only *checking* tools (the render harness,
+        # context/template-testing.md, asserts rendered YAML is parseable, not
+        # canonical). See issue #213.
         #
         # Runs the rendered project's own fixing hooks, then asserts the
         # worktree is unchanged — `git diff`, not the hooks' exit codes, is the
@@ -182,7 +186,8 @@ jobs:
         # repository never converges — every `prek run` rewrites what the last
         # `ai-rulez generate` wrote, and back. Prove they agree the same way the
         # formatter-canonical step above does: run the fixers over the generated
-        # output and gate on `git diff`, not on hook exit codes (ADR-030/035).
+        # output and gate on `git diff`, not on hook exit codes
+        # (context/template-testing.md, context/agent-instructions.md).
         if: matrix.scenario.name == 'ai-rulez'
         working-directory: ../rendered
         run: |
@@ -198,7 +203,7 @@ jobs:
           # generated output is worse than a non-convergent fixing one: the only
           # edit that would satisfy it is erased by the next `generate`, so the
           # failure is unfixable (the `.copier-answers.yml` shape). `ec` is not
-          # listed because the `Style checks` step below runs it (ADR-003).
+          # listed because the `Style checks` step below runs it (context/lint-orchestration.md).
           for hook in check-json yamllint; do
             uv run --group prek prek run "$hook" --all-files
           done
@@ -225,7 +230,8 @@ jobs:
         # pycrucible deps live in the `tool` group), so assert at the render level
         # that each build job names its artifact <pkg>-<tool>-<label>. Bare
         # ./dist/ paths would let merge-multiple silently overwrite same-named
-        # binaries across tools/OSes and drop platforms from the release (ADR-007).
+        # binaries across tools/OSes and drop platforms from the release
+        # (context/standalone-executables.md).
         if: matrix.scenario.name == 'executables-gui'
         working-directory: ../rendered
         run: |
@@ -298,7 +304,7 @@ jobs:
         # No root Python project (tooling is mise-managed), so the harness deps
         # come from an ephemeral uv env. It renders the template into tmp dirs
         # and asserts preset behavior, YAML/TOML validity across presets, and
-        # golden-file snapshots of key rendered artifacts (ADR-024). pytest-
+        # golden-file snapshots of key rendered artifacts (context/template-testing.md). pytest-
         # regressions provides the file_regression fixture; yaml is pulled in
         # transitively by copier. pytest-xdist spreads the tests over every
         # runner core: each test renders the template afresh into its own

@@ -18,7 +18,8 @@ yamllint = "latest"
 
 
 # Every task below renders through tools/render.py — the single render
-# entrypoint (ADR-031). Do not add a task that calls `copier copy` directly.
+# entrypoint (context/template-testing.md). Do not add a task that calls
+# `copier copy` directly.
 [tasks.example]
 description = "Generate an example project from the template"
 run = "uv run tools/render.py render example"
@@ -32,7 +33,7 @@ description = "Re-render a scratch project into .watch-render/ on every template
 run = "uv run --with watchfiles tools/render.py watch"
 
 [tasks.test]
-description = "Run the render-and-inspect harness (ADR-024)"
+description = "Run the render-and-inspect harness (context/template-testing.md)"
 run = "uv run --with pytest --with pytest-regressions --with pytest-xdist --with copier pytest tests/ -n auto"
 
 [tasks.test-golden-update]

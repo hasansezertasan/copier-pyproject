@@ -1,4 +1,6 @@
-"""Optional PyPI publishing (``include_pypi_publish``, issue #382, ADR-039).
+"""Optional PyPI publishing (``include_pypi_publish``, issue #382).
+
+Rationale: context/package-distribution.md.
 
 Off keeps releases on GitHub Releases only: no ``pypi-publish`` job, no PyPI
 setup step, install docs that point at the Git repository, and no Homebrew /

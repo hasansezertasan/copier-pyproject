@@ -61,7 +61,8 @@ def test_rule_sits_below_the_cobo_seal(render: Callable[..., Path]) -> None:
     ``cobo.lock`` marks the fragment ``update = true``, so a rule placed above
     the end marker is regenerated away and the defect silently returns — and
     ``gitignore-drift.yml`` runs only on dispatch and a weekly cron, outside the
-    ``check`` aggregation gate, so nothing on the PR would say so. See ADR-012.
+    ``check`` aggregation gate, so nothing on the PR would say so. See
+    context/gitignore-generation.md.
     """
     gitignore = _gitignore(render(include_docs=True, include_cli=True))
     assert gitignore.index("docs/_generated/") > gitignore.index("# <<< cobo:end")

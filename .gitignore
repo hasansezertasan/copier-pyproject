@@ -351,7 +351,7 @@ mise.local.toml
 NOTES.md
 /rudy/
 /example/
-# Scratch render target of `mise run watch` (ADR-031).
+# Scratch render target of `mise run watch` (context/template-testing.md).
 /.watch-render/
 # Agent process docs (design specs, implementation plans) — kept local, not shipped.
 /docs/superpowers/
