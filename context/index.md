@@ -1,6 +1,6 @@
 # Context index
 
-Why copier-pyproject is built the way it is. The numbered architecture decision records in `docs/adr/` are a frozen archive in their ADR format; each entry here names the record it was carried from.
+Why copier-pyproject is built the way it is. The numbered architecture decision records that used to live in `docs/adr/` were deleted; each entry here names the record it was carried from and links it by permalink.
 
 ## 0
 

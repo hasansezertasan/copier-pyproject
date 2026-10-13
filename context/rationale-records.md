@@ -4,7 +4,7 @@
 
 **Id:** 02752a37-648d-4154-8548-aab28f054789
 **Type:** decision
-**Status:** active
+**Status:** needs-review
 **Evidence:** confirmed
 **Source:** maintainer decision, 2026-10-12, while reviewing [PR #386](https://github.com/hasansezertasan/copier-pyproject/pull/386)
 **Revisit when:** the ADR archive is removed, or the Keep the Why dashboard and docs site are dropped
