@@ -88,6 +88,63 @@ def test_initial_hazards_follow_answers(
     assert ("MegaLinter's cspell" in text) is include_megalinter
 
 
+@pytest.mark.parametrize(
+    ("include_repo_settings", "include_repo_ruleset", "expected"),
+    [
+        (False, False, None),
+        (
+            True,
+            False,
+            "Compare local `.github/settings.yml` with live settings",
+        ),
+        (
+            False,
+            True,
+            "Compare local ruleset definitions with live settings",
+        ),
+        (
+            True,
+            True,
+            (
+                "Compare local `.github/settings.yml` / ruleset definitions"
+                " with live settings"
+            ),
+        ),
+    ],
+)
+def test_required_checks_follow_repo_answers(
+    render: Callable[..., Path],
+    include_repo_settings: bool,
+    include_repo_ruleset: bool,
+    expected: str | None,
+) -> None:
+    """The status-checks bullet must not name files the answers did not render.
+
+    With both toggles off there is no ``settings.yml`` and no ruleset JSON, so
+    the local-compare sentence (and its trailing "Local files alone" sentence)
+    must be absent — otherwise ai-rulez content checks flag the missing path
+    (AR401). Either toggle on renders only its own file reference.
+    """
+    root = render(
+        include_repo_settings=include_repo_settings,
+        include_repo_ruleset=include_repo_ruleset,
+    )
+    text = (root / ".claude/skills/template-adoption/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    assert "{%" not in text
+    if expected is None:
+        assert "settings.yml" not in text
+        assert "ruleset definitions" not in text
+        assert "Local files alone do not prove" not in text
+    else:
+        assert expected in text
+        assert "Local files alone do not prove the active requirements." in text
+    # Generic guidance survives in every rendering.
+    assert "repository branch protection and rulesets." in text
+    assert "If live requirements are unavailable" in text
+
+
 @pytest.mark.parametrize("include_ai_rulez", [False, True])
 def test_copy_message_routes_before_tools(
     render: Callable[..., Path],
