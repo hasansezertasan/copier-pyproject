@@ -53,12 +53,17 @@ filenames (`Icon␍`, `.HFS+ Private Directory Data␍`) byte-intact, and the ol
 moved one stage down the pipeline: Copier renders `.gitignore.jinja` through
 Jinja, whose lexer normalizes a lone `\r` to `\n` at scaffold time (verified by
 rendering a CR-bearing probe template with the pinned copier). Every rendered
-project therefore still checks out the split `Icon[` / `]` pair (matches
-nothing, inert) — and, because the fence sha256 covers the CR-bearing bytes,
-additionally reports `up to date; locally modified` on `cobo check` and blocks
-its own future `cobo sync` until fence verification tolerates the
+project therefore still checks out the split `Icon[` (unterminated class,
+matches nothing, inert) / `]` (a literal pattern matching a file or directory
+named `]` at any depth — a non-issue in practice, and no post-fence `!]`
+override: it would stamp noise on every generated project for a filename that
+essentially never exists) pair — and, because the fence sha256 covers the
+CR-bearing bytes, additionally reports `up to date; locally modified` on
+`cobo check`. An up-to-date `cobo sync` still succeeds as a no-op, but a later
+sync that must apply upstream drift fails without `--force` on the
+locally-modified block — until fence verification tolerates the
 render-stripped CR (verified by rendering the template and running
-`cobo check` against the shipped lock).
+`cobo check` and `cobo sync` against the shipped lock).
 
 **Reason:** the template enforces LF everywhere (`.gitattributes`,
 EditorConfig, ruff) and there is no LF-only pattern that matches `Icon␍`
