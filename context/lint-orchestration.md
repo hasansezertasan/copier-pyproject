@@ -215,3 +215,44 @@ not track.
 redden an unrelated PR; findings overlap ruff's bandit rules, so a line may need
 both suppressions. The marginal value is cross-statement taint rules ruff
 cannot express.
+
+## Dependency hygiene (deptry + creosote) is an always-on `deps` gate, not a toggle
+
+**Id:** 09ecae89-ab05-4fd9-ae46-2a4d33f69c47
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [issue #394](https://github.com/hasansezertasan/copier-pyproject/issues/394); maintainer decision on the approach, 2026-10-13
+**Revisit when:** deptry or creosote produce false positives for common generated shapes faster than the template can seed ignores, or one tool subsumes the other
+**See:** lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored — 5068081c-24ce-4c39-9cdf-13e0a7c229b4 — as of 2026-10-13
+
+Every generated project ships a `deps` dependency group (creosote, deptry), a
+`[tool.deptry]` block, a `tox -e deps` env and a `deps` job in `ci.yml` that
+the `check` aggregate needs. There is no `include_*` toggle. The tox env is not
+in `env_list`, so a plain `tox run` and the component test jobs skip it; CI runs
+it in its own job.
+
+**Reason:** the adopting project that raised it lost the only unused/transitive/
+misplaced-dependency check it had, and nothing in the template covered that
+drift. The maintainers chose to have the gate by default so every adopter gets it
+without re-applying an overlay on each `copier update`. It follows the `sast`
+precedent: its own group so a plain `uv sync` skips the tools, and its own job so
+a failure names dependency drift rather than a lint run.
+
+**Rejected alternative:** an opt-in `include_dep_hygiene` toggle (the issue's
+option 1) — declined by the maintainers in favour of default-on; the stated
+motivation was having the gate by default, no further reason was recorded.
+
+**Rejected alternative:** documenting the overlay recipe only (option 2) — leaves
+every adopter to reverse-engineer and re-apply it.
+
+**Consequence:** the template seeds the ignores its own output needs, gated on
+the toggles that produce the imports: `known_first_party` (the tox env installs
+the wheel, so deptry otherwise reads the project's own package as a transitive
+dependency), `uvicorn` (DEP003, web) and `packaging` (DEP004, docs) in
+`per_rule_ignores`, the build hook/benchmarks/worker probe script/Sphinx config
+in `extend_exclude`, and `uvloop` via creosote's `--exclude-dep` (imported lazily
+inside a function, which creosote does not count). The gate also surfaced a real
+template defect: `core/config.py` imported `pydantic` while only
+`pydantic-settings` was declared, so `pydantic` is now a direct dependency
+whenever `include_pydantic_settings` or `include_worker` is on.

@@ -60,7 +60,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 
 ## L
 
-- [lint-orchestration.md](lint-orchestration.md) — tox `style` as the sole lint suite, prek stages, Taplo schema fetching, the five type checkers, MegaLinter, semgrep.
+- [lint-orchestration.md](lint-orchestration.md) — tox `style` as the sole lint suite, prek stages, Taplo schema fetching, the five type checkers, MegaLinter, semgrep, deptry + creosote.
 
 ## M
 

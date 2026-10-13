@@ -174,6 +174,33 @@ jobs:
             uv.lock
       - name: Run style and type checks
         run: uv run --locked tox run -e style
+  deps:
+    name: Check dependency hygiene
+    # Own job rather than part of `style`: it needs only the small `deps` group,
+    # and a failure here should name the dependency drift, not a lint run.
+    if: {% raw %}${{ github.event.pull_request.draft != true }}{% endraw %}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+      - name: Check dependency hygiene
+        run: uv run --locked tox run -e deps
 {%- if include_docs %}
   docs-doctest:
     name: Build and test documentation
@@ -809,7 +836,7 @@ jobs:
 {%- endif %}
   check:
     if: {% raw %}${{ always() && github.event.pull_request.draft != true }}{% endraw %}
-    needs: [changes, test-core{% for c in comp_names %}, test-{{ c }}{% endfor %}, coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}, coverage-report, hooks, style{% if include_docs %}, docs-doctest{% endif %}{% if include_cli %}, cli-installed{% endif %}{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
+    needs: [changes, test-core{% for c in comp_names %}, test-{{ c }}{% endfor %}, coverage-core{% for c in comp_names %}, coverage-{{ c }}{% endfor %}, coverage-report, hooks, style, deps{% if include_docs %}, docs-doctest{% endif %}{% if include_cli %}, cli-installed{% endif %}{% if include_launcher %}, build-launcher-check{% endif %}{% if include_freezer %}, build-freezer-check{% endif %}{% if include_compiler %}, build-compiler-check{% endif %}{% if include_worker %}, worker-integration{% endif %}]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions: {}
