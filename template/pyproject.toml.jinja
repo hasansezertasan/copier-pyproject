@@ -146,7 +146,11 @@ dependencies = [
 {%- endif %}
 {%- if include_worker %}
   "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0",
+{%- endif %}
+{%- if include_worker or include_pydantic_settings %}
   "pydantic>=2.0.0",
+{%- endif %}
+{%- if include_worker %}
   "uvloop>=0.19.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation == 'CPython'",
 {%- endif %}
 {%- if include_pydantic_settings %}
@@ -223,6 +227,15 @@ style = [
 # group explicitly. Still a single version source, same as every other pin.
 sast = [
   "semgrep==1.180.0",
+]
+# Dependency hygiene gets its own group for the same reason `sast` does: it is
+# only ever run by the on-demand `deps` tox env and the `deps` CI job, so a plain
+# `uv sync` should not install it. deptry checks the imports against the declared
+# dependencies (missing, transitive, misplaced or obsolete); creosote flags
+# declared runtime dependencies that nothing imports.
+deps = [
+  "creosote==5.2.0",
+  "deptry==0.25.1",
 ]
 {%- if include_ai_rulez %}
 # ai-rulez gets its own group for the same reason `sast` does: `dev` includes
@@ -573,6 +586,48 @@ ignore_decorators = [
 ignore_names = ["CONFIG_FILE_PATH", "logger", "main", "model_config", "pytest_*", "collect_ignore_glob"{% if include_mcp %}, "arguments"{% endif %}{% if include_tui %}, "CSS", "compose", "on_mount", "title", "BINDINGS"{% endif %}{% if include_worker %}, "pytestmark"{% endif %}]
 min_confidence = 60
 paths = ["src", "tests"]
+
+
+[tool.deptry]
+# `known_first_party` is explicit because the tox `deps` env installs the built
+# wheel, so without it deptry reads the project's own imports as a third-party
+# transitive dependency (DEP003). Add further `per_rule_ignores` entries for the
+# project's own findings, e.g. DEP003 for a package only importable through
+# another declared one, or DEP002 for an optional import guarded by try/except.
+# See https://deptry.com/rules-violations/.
+# Excluded: the Sphinx config, the build hook (its imports belong to
+# `[build-system].requires`, not the runtime dependencies), the benchmarks and the
+# worker probe script (neither ships in the wheel; pytest and anyio come from
+# the dev tooling).
+extend_exclude = [
+{%- if include_docs %}
+  "docs/conf.py",
+{%- endif %}
+{%- if include_c_extensions %}
+  "hatch_build.py",
+{%- endif %}
+{%- if include_benchmarks %}
+  "benchmarks",
+{%- endif %}
+{%- if include_worker %}
+  "scripts",
+{%- endif %}
+]
+known_first_party = ["{{github_repo_name}}"]
+{%- if include_docs or include_web %}
+
+[tool.deptry.per_rule_ignores]
+{%- if include_web %}
+# The web launcher imports uvicorn, which the framework's `all`/`standard` extra
+# installs rather than this project declaring it.
+DEP003 = ["uvicorn"]
+{%- endif %}
+{%- if include_docs %}
+# tools/build_docs.py imports `packaging`, pinned in the `docs` group for that
+# script alone, so deptry reads it as a misplaced dev dependency.
+DEP004 = ["packaging"]
+{%- endif %}
+{%- endif %}
 
 
 [tool.slotscheck]
@@ -1058,6 +1113,32 @@ commands = [
 # resolve pytest and other test-only imports.
 dependency_groups = [{% if include_ai_rulez %}"agents", {% endif %}"sast", "style", "test"]
 description = "Run Checkers, Linters and Formatters"
+runner = "uv-venv-lock-runner"
+
+
+# On-demand and CI-only (not in env_list, like `integration`): the `deps` job in
+# ci.yml runs it and `check` aggregates that job. `test` is included so deptry
+# and creosote can resolve the project's own test-only imports. creosote needs
+# the installed distributions to map import names, which the lock runner provides.
+[tool.tox.env.deps]
+commands = [
+  [
+    "deptry",
+    ".",
+  ],
+  [
+    "creosote",
+    "--deps-file",
+    "pyproject.toml",
+    "--section",
+    "project.dependencies",
+    # Without this creosote skips imports inside functions, so a dependency used
+    # only through a lazy import (the worker's uvloop) is reported as unused.
+    "--include-deferred",
+  ],
+]
+dependency_groups = ["deps", "test"]
+description = "Check dependency hygiene (deptry, creosote)"
 runner = "uv-venv-lock-runner"
 
 

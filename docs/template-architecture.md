@@ -362,6 +362,19 @@ into the template: the registry rules are under the Semgrep Rules License v1.0
 ("You may not distribute the rules"), which forbids shipping them to adopters.
 See [semgrep SAST](../context/lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored).
 
+**Dependency hygiene** (deptry + creosote) is an always-on gate: a `deps`
+dependency group (own group, like `sast`, so a plain `uv sync` skips the tools),
+a `[tool.deptry]` block, a `tox -e deps` env (`deptry .` then `creosote
+--deps-file pyproject.toml --section project.dependencies`, not in `env_list`)
+and a `deps` job in `ci.yml` that the `check` aggregate needs. deptry reports
+missing, transitive, misplaced and obsolete dependencies; creosote reports
+declared runtime dependencies nothing imports. The template seeds only the
+ignores its own output needs, gated on the toggles that produce the imports
+(`known_first_party`, `uvicorn`/`packaging` in `per_rule_ignores`, build hook,
+benchmarks, worker probe script and Sphinx config in `extend_exclude`, and
+creosote's `--include-deferred` so lazy imports count); a project adds its own. See
+[dependency hygiene](../context/lint-orchestration.md#dependency-hygiene-deptry--creosote-is-an-always-on-deps-gate-not-a-toggle).
+
 Also always included (no toggle): structured GitHub issue forms
 (`.github/ISSUE_TEMPLATE/bug_report.yml` + `feature_request.yml` + `config.yml`,
 the latter disabling blank issues) whose `component` dropdown is Jinja-gated to
