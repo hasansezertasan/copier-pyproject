@@ -36,7 +36,7 @@ only repository identity. Review rejected this weaker trust boundary.
 repositories. Review required explicit opt-in to preserve unsupported private
 release paths.
 
-[ADR-002](../docs/adr/002-release-please-for-release-automation.md) records why manual release
+[ADR-002](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/002-release-please-for-release-automation.md) records why manual release
 dispatch remains necessary and why the environment must have a main-only policy.
 The verification procedure is in generated `docs/installation.rst`; this entry
 records why its signer constraints and the minting boundary exist.
@@ -141,7 +141,7 @@ audit that can still report through annotations without code-scanning support.
 The fallback rationale is confirmed by the sources; actual runtime availability
 of the undocumented visibility property remains unknown. Source inspection
 corroborates the implemented policy, not that property's runtime behavior.
-[ADR-013](../docs/adr/013-megalinter-opt-in-lean-complement.md) separately records
+[ADR-013](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/013-megalinter-opt-in-lean-complement.md) separately records
 MegaLinter's best-effort SARIF upload posture.
 
 ## Local and historical secret scanning cover different failure stages
@@ -169,5 +169,5 @@ Alternatives among other local scanning tools, and why they lost to
 detect-secrets, are unknown in the reviewed evidence.
 
 The baseline maintenance procedure is in generated `.github/CONTRIBUTING.md`.
-[ADR-003](../docs/adr/003-tox-as-canonical-lint-runner.md) covers the general fast-hook versus
+[ADR-003](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/003-tox-as-canonical-lint-runner.md) covers the general fast-hook versus
 full-suite boundary; this entry records the distinct exposure stages.

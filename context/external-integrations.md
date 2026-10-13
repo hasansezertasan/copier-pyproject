@@ -6,7 +6,7 @@
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-009, ADR-010, ADR-011, ADR-013, ADR-017, ADR-018, ADR-021, ADR-026, ADR-034 (`docs/adr/`); the preset exceptions from ADR-016 and ADR-039 and `preset_map` in `copier.yml`
+**Source:** ADR-009, ADR-010, ADR-011, ADR-013, ADR-017, ADR-018, ADR-021, ADR-026, ADR-034 ([`docs/adr/`](https://github.com/hasansezertasan/copier-pyproject/tree/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr)); the preset exceptions from ADR-016 and ADR-039 and `preset_map` in `copier.yml`
 **Revisit when:** the template's target audience shifts to teams that provision external services as a matter of course
 **See:** package-distribution.md#optional-pypi-publishing — 20be7463-ca95-4d01-82c9-71f632d1b4be — as of 2026-10-13
 
@@ -37,7 +37,7 @@ projects use them. Rejected for the failure modes above.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-009 (`docs/adr/009-optional-external-quality-community-integrations.md`), including its 2026-07 amendment
+**Source:** ADR-009 ([`docs/adr/009-optional-external-quality-community-integrations.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/009-optional-external-quality-community-integrations.md)), including its 2026-07 amendment
 **Revisit when:** one of the three services gains a provisioning-free mode, or a fourth integration of the same shape is proposed
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** standalone-executables.md#three-architecture-named-executable-toggles-instead-of-one-brand-toggle — d5aed1a0-0b7c-4ac3-9d75-fb9568d9e34d — as of 2026-10-11
@@ -75,7 +75,7 @@ lets Actions create pull requests, which release-please already requires.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-034 (`docs/adr/034-opt-in-performance-benchmarking.md`)
+**Source:** ADR-034 ([`docs/adr/034-opt-in-performance-benchmarking.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/034-opt-in-performance-benchmarking.md))
 **Revisit when:** a benchmarking service becomes usable without an account, or the default CI budget changes
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 

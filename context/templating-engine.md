@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-001 (`docs/adr/001-copier-over-cookiecutter.md`)
+**Source:** ADR-001 ([`docs/adr/001-copier-over-cookiecutter.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/001-copier-over-cookiecutter.md))
 **Revisit when:** `copier update` stops being a first-class feature, or a Python-native alternative gains native template-update support
 
 Copier renders this template. Generated projects carry a `.copier-answers.yml`

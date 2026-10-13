@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-016 (`docs/adr/016-archetype-based-presets.md`); the preset mechanism it reshapes came from [PR #141](https://github.com/hasansezertasan/copier-pyproject/pull/141); ADR-025 and ADR-039 for the two toggles every preset seeds
+**Source:** ADR-016 ([`docs/adr/016-archetype-based-presets.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/016-archetype-based-presets.md)); the preset mechanism it reshapes came from [PR #141](https://github.com/hasansezertasan/copier-pyproject/pull/141); ADR-025 and ADR-039 for the two toggles every preset seeds
 **Revisit when:** a distinct service/worker archetype (worker + broker + database) proves common enough to be a fifth choice
 **See:** standalone-executables.md#three-architecture-named-executable-toggles-instead-of-one-brand-toggle — d5aed1a0-0b7c-4ac3-9d75-fb9568d9e34d — as of 2026-10-11
 
@@ -44,7 +44,7 @@ stay a true core-only render.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-016 (`docs/adr/016-archetype-based-presets.md`)
+**Source:** ADR-016 ([`docs/adr/016-archetype-based-presets.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/016-archetype-based-presets.md))
 **Revisit when:** the identity questions gain defaults, or non-interactive generation gets another data source
 
 `.example-input.yml` carries only the no-default identity answers, the free-form

@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-002 (`docs/adr/002-release-please-for-release-automation.md`); validated against the keycast release pipeline ([keycast#11](https://github.com/hasansezertasan/keycast/pull/11))
+**Source:** ADR-002 ([`docs/adr/002-release-please-for-release-automation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/002-release-please-for-release-automation.md)); validated against the keycast release pipeline ([keycast#11](https://github.com/hasansezertasan/keycast/pull/11))
 **Revisit when:** the open re-evaluation below is decided, or the generated project's version stops being sourced from git tags
 **See:** release-automation.md#the-release-automation-choice-is-under-re-evaluation — d9131d49-3c27-48f8-a903-e97caf4acff6 — as of 2026-10-11
 **See:** package-distribution.md#optional-pypi-publishing — 20be7463-ca95-4d01-82c9-71f632d1b4be — as of 2026-10-12
@@ -51,7 +51,7 @@ adopting project's release history on update.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-002 (`docs/adr/002-release-please-for-release-automation.md`); the wrong-version bug caught in [cobo#49](https://github.com/hasansezertasan/cobo/pull/49)
+**Source:** ADR-002 ([`docs/adr/002-release-please-for-release-automation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/002-release-please-for-release-automation.md)); the wrong-version bug caught in [cobo#49](https://github.com/hasansezertasan/cobo/pull/49)
 **Revisit when:** release-please creates releases after artifact upload natively, or computes its commit range from drafts
 **See:** release-automation.md#release-please-is-the-sole-release-orchestrator — 7ec8a937-fd4d-41f2-96b7-824fe3be913b — as of 2026-10-11
 
@@ -81,7 +81,7 @@ trigger a separate workflow.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-002 (`docs/adr/002-release-please-for-release-automation.md`)
+**Source:** ADR-002 ([`docs/adr/002-release-please-for-release-automation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/002-release-please-for-release-automation.md))
 **Revisit when:** the GitHub API for re-running a workflow stops requiring the dispatch trigger, or environment deployment-branch policies change
 **See:** release-automation.md#the-release-is-created-as-a-draft-finalized-after-artifacts-attach — 398b3cd9-e57b-4856-b2c7-76752c0ec37f — as of 2026-10-11
 **See:** supply-chain-security.md#provenance-minting-shares-the-protected-publication-boundary — a0396603-cb34-4151-9d5b-1fc77eb31f6e — as of 2026-10-11
@@ -108,7 +108,7 @@ the environment contains what the trigger exposes.
 **Type:** workaround
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-002 (`docs/adr/002-release-please-for-release-automation.md`); [issue #332](https://github.com/hasansezertasan/copier-pyproject/issues/332)
+**Source:** ADR-002 ([`docs/adr/002-release-please-for-release-automation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/002-release-please-for-release-automation.md)); [issue #332](https://github.com/hasansezertasan/copier-pyproject/issues/332)
 **Revisit when:** GitHub lets the workflow token start workflow runs or grants it workflow write access
 **See:** release-automation.md#release-please-is-the-sole-release-orchestrator — 7ec8a937-fd4d-41f2-96b7-824fe3be913b — as of 2026-10-11
 
@@ -134,7 +134,7 @@ equivalent — two of the checks do not listen for `edited`.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-002 (`docs/adr/002-release-please-for-release-automation.md`); [issue #143](https://github.com/hasansezertasan/copier-pyproject/issues/143), [PR #152](https://github.com/hasansezertasan/copier-pyproject/pull/152)
+**Source:** ADR-002 ([`docs/adr/002-release-please-for-release-automation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/002-release-please-for-release-automation.md)); [issue #143](https://github.com/hasansezertasan/copier-pyproject/issues/143), [PR #152](https://github.com/hasansezertasan/copier-pyproject/pull/152)
 **Revisit when:** release-please rewrites its release comment after un-drafting, or the draft flow is replaced
 **See:** release-automation.md#the-release-is-created-as-a-draft-finalized-after-artifacts-attach — 398b3cd9-e57b-4856-b2c7-76752c0ec37f — as of 2026-10-11
 
@@ -156,7 +156,7 @@ available without switching tools, listed as an option in the re-evaluation.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-004 (`docs/adr/004-commitizen-as-commit-helper-not-release-tool.md`)
+**Source:** ADR-004 ([`docs/adr/004-commitizen-as-commit-helper-not-release-tool.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/004-commitizen-as-commit-helper-not-release-tool.md))
 **Revisit when:** the re-evaluation below selects a Commitizen-based orchestrator
 **See:** release-automation.md#release-please-is-the-sole-release-orchestrator — 7ec8a937-fd4d-41f2-96b7-824fe3be913b — as of 2026-10-11
 
@@ -186,7 +186,7 @@ authoring, before a PR exists.
 **Type:** decision
 **Status:** open
 **Evidence:** confirmed
-**Source:** ADR-037 (`docs/adr/037-release-automation-reevaluation.md`), a research record last refreshed 2026-10-05; upstream release-please issues [#2515](https://github.com/googleapis/release-please/issues/2515) and [#2605](https://github.com/googleapis/release-please/issues/2605)
+**Source:** ADR-037 ([`docs/adr/037-release-automation-reevaluation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/037-release-automation-reevaluation.md)), a research record last refreshed 2026-10-05; upstream release-please issues [#2515](https://github.com/googleapis/release-please/issues/2515) and [#2605](https://github.com/googleapis/release-please/issues/2605)
 **Revisit when:** git-cliff ships prerelease version calculation ([#1380](https://github.com/orhun/git-cliff/issues/1380)), RC series become frequent, or a maintainer picks one of the four options
 **See:** release-automation.md#release-please-is-the-sole-release-orchestrator — 7ec8a937-fd4d-41f2-96b7-824fe3be913b — as of 2026-10-11
 **See:** release-automation.md#commitizen-is-a-commit-helper-never-a-release-tool — ee1d2fad-67ab-4f4a-a531-73458da14eb1 — as of 2026-10-11
@@ -247,7 +247,7 @@ generated `.github/ghalint.yaml` rather than disabling that policy globally.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-010 §2 (`docs/adr/010-pr-docs-previews-and-released-issue-notifications.md`)
+**Source:** ADR-010 §2 ([`docs/adr/010-pr-docs-previews-and-released-issue-notifications.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/010-pr-docs-previews-and-released-issue-notifications.md))
 **Revisit when:** the release lifecycle is split across workflows
 **See:** release-automation.md#the-release-is-created-as-a-draft-finalized-after-artifacts-attach — 398b3cd9-e57b-4856-b2c7-76752c0ec37f — as of 2026-10-11
 

@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-024 (`docs/adr/024-render-and-inspect-template-test-suite.md`); issue #365 for the parallel run
+**Source:** ADR-024 ([`docs/adr/024-render-and-inspect-template-test-suite.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/024-render-and-inspect-template-test-suite.md)); issue #365 for the parallel run
 **Revisit when:** the golden set grows past a couple of stable artifacts, or a root Python project appears
 **See:** template-testing.md#toolsrenderpy-is-the-only-place-the-template-is-rendered — f41fa3a2-20e2-4ba5-a3d0-c53a0074a9d0 — as of 2026-10-11
 
@@ -42,7 +42,7 @@ regeneration and a reviewed diff.
 **Type:** incident
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-030 (`docs/adr/030-generated-files-must-be-formatter-canonical.md`); [issue #213](https://github.com/hasansezertasan/copier-pyproject/issues/213)
+**Source:** ADR-030 ([`docs/adr/030-generated-files-must-be-formatter-canonical.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/030-generated-files-must-be-formatter-canonical.md)); [issue #213](https://github.com/hasansezertasan/copier-pyproject/issues/213)
 **Revisit when:** yamlfmt or taplo change the semantics of the pinned non-default knobs, or the generated project's formatter set changes
 **See:** template-testing.md#render-and-inspect-is-the-fast-matrixed-layer-generate-and-run-stays-separate — c9bcdf52-af5d-4438-9c9f-d55e8226812c — as of 2026-10-11
 
@@ -84,7 +84,7 @@ them.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-030, 2026-09 amendment (`docs/adr/030-generated-files-must-be-formatter-canonical.md`); the agent-prose macros in the same file are recorded in ADR-035
+**Source:** ADR-030, 2026-09 amendment ([`docs/adr/030-generated-files-must-be-formatter-canonical.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/030-generated-files-must-be-formatter-canonical.md)); the agent-prose macros in the same file are recorded in ADR-035
 **Revisit when:** ruff-format changes its magic-trailing-comma or width behaviour, or Copier gains a way to share helpers inside `_subdirectory`
 **See:** template-testing.md#generated-files-must-be-formatter-canonical-not-merely-valid — 9b931598-7e52-4ff1-bb07-ef65c01d5369 — as of 2026-10-11
 
@@ -111,7 +111,7 @@ drift this replaced.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-031 §1 (`docs/adr/031-single-render-entrypoint.md`); issues #181, #183, #164, #184
+**Source:** ADR-031 §1 ([`docs/adr/031-single-render-entrypoint.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/031-single-render-entrypoint.md)); issues #181, #183, #164, #184
 **Revisit when:** Copier's API changes, or a root `pyproject.toml` appears (it must keep the repo root importable under pytest)
 **See:** template-testing.md#render-and-inspect-is-the-fast-matrixed-layer-generate-and-run-stays-separate — c9bcdf52-af5d-4438-9c9f-d55e8226812c — as of 2026-10-11
 
@@ -142,7 +142,7 @@ new consumer imports `render()` or calls the CLI.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-031 §2–3 (`docs/adr/031-single-render-entrypoint.md`); generalizes the cobo drift-guard posture of ADR-012
+**Source:** ADR-031 §2–3 ([`docs/adr/031-single-render-entrypoint.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/031-single-render-entrypoint.md)); generalizes the cobo drift-guard posture of ADR-012
 **Revisit when:** copier is pinned in the render path, or another derived artifact joins `regenerate`
 **See:** template-testing.md#toolsrenderpy-is-the-only-place-the-template-is-rendered — f41fa3a2-20e2-4ba5-a3d0-c53a0074a9d0 — as of 2026-10-11
 **See:** ci-topology.md#network-dependent-checks-run-on-a-weekly-cron-never-in-the-merge-gate — 3e5b9525-9087-4125-b19f-80f6c226c01f — as of 2026-10-11
@@ -175,7 +175,7 @@ artifacts.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-031 §5 (`docs/adr/031-single-render-entrypoint.md`)
+**Source:** ADR-031 §5 ([`docs/adr/031-single-render-entrypoint.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/031-single-render-entrypoint.md))
 **Revisit when:** the rebake stops removing its target tree
 **See:** template-testing.md#toolsrenderpy-is-the-only-place-the-template-is-rendered — f41fa3a2-20e2-4ba5-a3d0-c53a0074a9d0 — as of 2026-10-11
 

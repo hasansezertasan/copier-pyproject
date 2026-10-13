@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-015 (`docs/adr/015-template-self-versioning-and-copier-update-automation.md`); prompted by [hwid#113](https://github.com/hasansezertasan/hwid/pull/113)
+**Source:** ADR-015 ([`docs/adr/015-template-self-versioning-and-copier-update-automation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/015-template-self-versioning-and-copier-update-automation.md)); prompted by [hwid#113](https://github.com/hasansezertasan/hwid/pull/113)
 **Revisit when:** Renovate fails its artifacts check on conflict markers ([renovate#31600](https://github.com/renovatebot/renovate/issues/31600)), or the copier manager accepts Copier's `gh:` shorthand
 **See:** release-automation.md#release-please-is-the-sole-release-orchestrator — 7ec8a937-fd4d-41f2-96b7-824fe3be913b — as of 2026-10-11
 **See:** template-updates.md#copieryml-defines-no-_tasks — 86130379-1660-4992-8aba-8b6cd7b4a9f7 — as of 2026-10-11
@@ -47,7 +47,7 @@ manual update to re-anchor onto a tag.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-015 (`docs/adr/015-template-self-versioning-and-copier-update-automation.md`); the constraint is re-affirmed in ADR-018, ADR-023, ADR-024 and ADR-035
+**Source:** ADR-015 ([`docs/adr/015-template-self-versioning-and-copier-update-automation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/015-template-self-versioning-and-copier-update-automation.md)); the constraint is re-affirmed in ADR-018, ADR-023, ADR-024 and ADR-035
 **Revisit when:** the hosted Renovate App allows `--trust`, or Copier marks tasks safe
 **See:** template-updates.md#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source — f26da4b3-8b97-4cfc-9aba-64eba4acf04f — as of 2026-10-11
 
@@ -70,7 +70,7 @@ every hosted-Renovate adopter.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-020 (`docs/adr/020-freeze-shipped-template-pins-from-renovate.md`); the confirmed conflict source was [PR #196](https://github.com/hasansezertasan/copier-pyproject/pull/196)
+**Source:** ADR-020 ([`docs/adr/020-freeze-shipped-template-pins-from-renovate.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/020-freeze-shipped-template-pins-from-renovate.md)); the confirmed conflict source was [PR #196](https://github.com/hasansezertasan/copier-pyproject/pull/196)
 **Revisit when:** seed staleness becomes a security concern faster than downstream Renovate catches up, or Renovate learns to skip lines the downstream already moved
 **See:** template-updates.md#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source — f26da4b3-8b97-4cfc-9aba-64eba4acf04f — as of 2026-10-11
 

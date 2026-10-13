@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-014 (`docs/adr/014-import-linter-for-architecture-contracts.md`)
+**Source:** ADR-014 ([`docs/adr/014-import-linter-for-architecture-contracts.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/014-import-linter-for-architecture-contracts.md))
 **Revisit when:** `core` starts importing `utils`, a second orchestrator component appears, or a component needs an exception the layers model cannot express
 **See:** components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts — 3d60ab14-8ff9-47db-b326-d7e82947a6cf — as of 2026-10-11
 
@@ -43,7 +43,7 @@ legitimately sits on top.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-014 §4 (`docs/adr/014-import-linter-for-architecture-contracts.md`); the same delivery is recorded for basedpyright in ADR-005 and sphinx-lint in ADR-011
+**Source:** ADR-014 §4 ([`docs/adr/014-import-linter-for-architecture-contracts.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/014-import-linter-for-architecture-contracts.md)); the same delivery is recorded for basedpyright in ADR-005 and sphinx-lint in ADR-011
 **Revisit when:** prek gains a way to run repo hooks with the project installed, or the fast gate becomes too slow
 **See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-11
 

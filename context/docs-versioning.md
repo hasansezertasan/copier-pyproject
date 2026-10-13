@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-027 §1–2 (`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`); issue #165; the Litestar docs build is the model
+**Source:** ADR-027 §1–2 ([`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/027-versioned-documentation-and-last-updated-stamps.md)); issue #165; the Litestar docs build is the model
 **Revisit when:** a Sphinx multiversion tool stops rebuilding old tags, or `conf.py` stops running build-time generators against the live app
 **See:** docs-stack.md#sphinx-with-the-bare-shibuya-theme-replaces-mkdocs — 5133caa8-3231-4d4d-877b-041b315cb87a — as of 2026-10-11
 **See:** docs-stack.md#pr-docs-previews-deploy-to-a-subfolder-of-the-projects-own-gh-pages-same-repo-only — 55a74975-a6e0-4f18-8254-fa27f047e829 — as of 2026-10-11
@@ -48,7 +48,7 @@ release onward.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-027 §3 (`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`)
+**Source:** ADR-027 §3 ([`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/027-versioned-documentation-and-last-updated-stamps.md))
 **Revisit when:** the pre-1.0 minor-is-breaking bump policy changes
 **See:** docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages — 858025c1-19a6-46f6-a237-01ba6477262a — as of 2026-10-11
 **See:** release-automation.md#release-please-is-the-sole-release-orchestrator — 7ec8a937-fd4d-41f2-96b7-824fe3be913b — as of 2026-10-11
@@ -69,7 +69,7 @@ picks `major`, an archival one `full`. Prerelease slugs survive only under
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-027 §4 (`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`)
+**Source:** ADR-027 §4 ([`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/027-versioned-documentation-and-last-updated-stamps.md))
 **Revisit when:** release-please stops creating the tag before the release is published, or the build script's granularity stops being baked in
 **See:** docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages — 858025c1-19a6-46f6-a237-01ba6477262a — as of 2026-10-11
 **See:** release-automation.md#the-release-is-created-as-a-draft-finalized-after-artifacts-attach — 398b3cd9-e57b-4856-b2c7-76752c0ec37f — as of 2026-10-11
@@ -104,7 +104,7 @@ released version under a new slug.
 **Type:** incident
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-027 §4a (`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`)
+**Source:** ADR-027 §4a ([`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/027-versioned-documentation-and-last-updated-stamps.md))
 **Revisit when:** the deploy stops cleaning the target, or `git fetch` learns to distinguish a missing ref from a transport error
 **See:** docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages — 858025c1-19a6-46f6-a237-01ba6477262a — as of 2026-10-11
 
@@ -127,7 +127,7 @@ route.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-027 §5 (`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`)
+**Source:** ADR-027 §5 ([`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/027-versioned-documentation-and-last-updated-stamps.md))
 **Revisit when:** a docs job checks out with shallow history
 **See:** docs-stack.md#sphinx-warnings-use-an-exact-reviewable-allowlist — 2a555902-38e7-47d4-a231-445a8e6caa0f — as of 2026-10-11
 
@@ -148,7 +148,7 @@ including the CI job that runs the warning gate.
 **Type:** incident
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-027, Consequences (`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`)
+**Source:** ADR-027, Consequences ([`docs/adr/027-versioned-documentation-and-last-updated-stamps.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/027-versioned-documentation-and-last-updated-stamps.md))
 **Revisit when:** `docs-doctest` is renamed or leaves the `check` aggregation
 **See:** docs-stack.md#sphinx-warnings-use-an-exact-reviewable-allowlist — 2a555902-38e7-47d4-a231-445a8e6caa0f — as of 2026-10-11
 **See:** ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component — 467b6cc3-775b-4e4c-9a8e-b0d1c3d733ac — as of 2026-10-11
