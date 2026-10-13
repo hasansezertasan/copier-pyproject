@@ -277,8 +277,9 @@ Testing choices:
    measured with `coverage run --module pytest` plus `coverage combine`/`report`
    in CI, so the pytest plugin would duplicate measurement/reporting over the
    same run; `pytest-dependency` — the suite is designed order-free (markers
-   select, `pytest-xdist` parallelizes), and upstream documents xdist
-   parallelization as incompatible with pytest-dependency; anything beyond
+   select; `pytest-xdist` ships for opt-in parallel runs), and upstream
+   documents xdist parallelization as incompatible with pytest-dependency;
+   anything beyond
    `async_style` for `pytest-asyncio` — the `asyncio`/`anyio` choice above is the
    whole answer, and a synchronous library stays runner-free.
 
@@ -921,8 +922,8 @@ plugin), while the template standardizes on hatch-vcs (dynamic version from git
 tags, archive recovery via `.git_archival.txt`); `hatch-babel` — there is no
 i18n story yet, so it waits for a real translation workflow instead of shipping
 preemptively; `hatch-autorun` — it injects a `.pth` that auto-executes code
-before first import (install-time code execution), which the supply-chain
-posture rejects; builds otherwise stay free of side-effect hooks outside the
+at interpreter startup (before first import), which the supply-chain posture
+rejects; builds otherwise stay free of side-effect hooks outside the
 c-extension compiler hook.
 
 ## CI/CD Workflows

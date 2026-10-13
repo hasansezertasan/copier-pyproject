@@ -198,7 +198,8 @@ alternative that was in contention.
 pytest` plus `coverage combine`/`report` in CI, so the plugin would duplicate
 measurement/reporting over the same run (and the per-component gates scope
 `coverage report`, not a pytest plugin). `pytest-dependency` stays out: the
-suite is designed order-free (markers select, `pytest-xdist` parallelizes), and
+suite is designed order-free (markers select; `pytest-xdist` ships for opt-in
+parallel runs), and
 upstream documents xdist parallelization as incompatible with
 pytest-dependency. `pytest-asyncio` beyond `async_style` stays out: the
 `asyncio`/`anyio` choice is the whole answer, and a synchronous library stays

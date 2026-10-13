@@ -145,8 +145,8 @@ backend `hatchling` → `setuptools`, not swapping a plugin), while the template
 standardizes on hatch-vcs — dynamic version from git tags, archive recovery
 via `.git_archival.txt`. `hatch-babel` stays out: there is no i18n story yet,
 so it waits for a real translation workflow instead of shipping preemptively.
-`hatch-autorun` stays out: it injects a `.pth` that auto-executes code before
-first import (install-time code execution), which the supply-chain posture
+`hatch-autorun` stays out: it injects a `.pth` that auto-executes code at
+interpreter startup (before first import), which the supply-chain posture
 rejects.
 
 **Reason:** each was a commented-out pin in the pre-adoption keycast
