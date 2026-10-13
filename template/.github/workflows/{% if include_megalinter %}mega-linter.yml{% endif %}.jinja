@@ -7,7 +7,7 @@ name: MegaLinter
 # non-blocking (not in the ci.yml `check` gate, no status reporter). It uses the
 # smaller `cupcake` flavor image to cut the pull cost. No paths filter: jscpd
 # scans source, so a filter would trigger on nearly every PR anyway -- an
-# always-run is simpler and more predictable. See ADR-013.
+# always-run is simpler and more predictable. See https://hasansezertasan.github.io/copier-pyproject/context/lint-orchestration/#megalinter-is-an-opt-in-lean-complement-non-blocking-on-three-levels.
 on:
   workflow_dispatch:
   push:

@@ -109,7 +109,8 @@ def tk_available(monkeypatch: pytest.MonkeyPatch) -> None:
     """The package exposes a callable ``main()`` entrypoint.
 
     Every standalone-executable build (launcher / freezer / compiler — see
-    ADR-007) targets ``{{github_repo_name}}.__main__:main``, so this pins the
+    https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module)
+    targets ``{{github_repo_name}}.__main__:main``, so this pins the
     contract that the symbol exists and is callable for whichever component is
     enabled, and that the active branch's component import actually resolves.
     The module is imported (not executed as ``__main__``), so a runnable
@@ -130,8 +131,9 @@ def tk_available(monkeypatch: pytest.MonkeyPatch) -> None:
 {#- No console root, so ``sole_component`` names the single non-CLI component. -#}
 {%- elif sole_component %}
     # The component is resolved through ``_load_component`` (so a missing
-    # dependency stays actionable rather than a bare traceback at the ADR-007
-    # standalone-executable entrypoint); calling it here performs the same import
+    # dependency stays actionable rather than a bare traceback at the
+    # standalone-executable entrypoint (https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module));
+    # calling it here performs the same import
     # ``main()`` would and pins the if/elif precedence.
     assert callable(vars(main_module)["_load_component"]())
 {%- endif %}
@@ -327,8 +329,9 @@ def test_sole_component_reports_missing_dependency(
 
     This project enables exactly one runnable component, so there is no console
     root to route through and ``__main__`` binds
-    ``{{github_repo_name}}.{{sole_component}}.app`` directly -- the ADR-007
-    standalone-executable entrypoint, whose user has no CLI to fall back on.
+    ``{{github_repo_name}}.{{sole_component}}.app`` directly -- the
+    standalone-executable entrypoint (https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module),
+    whose user has no CLI to fall back on.
     Every module parametrized here is reached by that import: the component's
     own dependencies, plus the settings stack ``core.logging_setup`` ->
     ``core.config`` pulls in at module scope.
