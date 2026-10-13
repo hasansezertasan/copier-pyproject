@@ -48,7 +48,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 
 ## G
 
-- [gitignore-generation.md](gitignore-generation.md) — cobo-sealed gitignore, its lockfiles, and the LF-corrupted macOS patterns.
+- [gitignore-generation.md](gitignore-generation.md) — cobo-sealed gitignore, its lockfiles, the always-on fragment set, and the seal-keeps/render-strips macOS CR split.
 
 ## H
 
