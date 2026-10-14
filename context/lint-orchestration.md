@@ -69,7 +69,7 @@ entry below separately accepts a registry dependency.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5; recorded in ADR-003 ([`docs/adr/003-tox-as-canonical-lint-runner.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/003-tox-as-canonical-lint-runner.md))
+**Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5; fixed in [PR #379](https://github.com/hasansezertasan/copier-pyproject/pull/379) and recorded in ADR-003 ([`docs/adr/003-tox-as-canonical-lint-runner.md`](https://github.com/hasansezertasan/copier-pyproject/blob/26c25adf2282d04b89007f9752a2907516a1de12/docs/adr/003-tox-as-canonical-lint-runner.md), the last revision that carries this passage)
 **Verification:** corroborated — a hook with no `stages` ran on `pre-commit`, `pre-push`, `commit-msg` and `manual` when `default_stages` was unset
 **Revisit when:** a hook other than `commitizen-branch` needs to run on push
 
@@ -109,6 +109,15 @@ most redundant pairing in the set.
 strict bar drove into the generated code.
 
 **Rejected alternative:** keep pyright beside basedpyright — pure redundancy.
+
+**Consequence:** strict basedpyright forced concrete fixes in the generated
+code: `@override` on overriding methods (`typing.override` is 3.12+ and the floor
+is 3.10, hence `typing_extensions`), `ClassVar` on class attributes (`CSS`,
+`BINDINGS`, `model_config`) with `@final` on the TUI app class, `_ = ...` on
+intentionally discarded results, and single-string literals instead of implicit
+concatenation for multi-line messages. The worker's event-loop setup was
+modernized to `uvloop.run()`, which removed both a `reportAny` suppression and
+a deprecation finding, so the worker needs no suppression at all.
 
 **Consequence:** TUI projects gain `typing_extensions` for `@override` on
 3.10/3.11; `ty` is pre-release and kept because it currently passes and adds
@@ -167,7 +176,14 @@ integrations it needs no account, so it earned its own decision. A paths filter
 was tried and dropped: copy-paste detection scans source, so the filter fired on
 nearly every PR anyway and only confused. Pointing the SARIF upload at the
 reports directory was rejected because GitHub rejects a file whose runs share a
-tool and category; the aggregate's per-linter runs carry distinct tool names.
+tool and category (the GitHub
+[2025-07-21 changelog](https://github.blog/changelog/2025-07-21-code-scanning-will-stop-combining-multiple-sarif-runs-uploaded-in-the-same-sarif-file/));
+the aggregate's per-linter runs carry distinct tool names.
+
+The repository security linters are deliberately not enabled:
+`check-security.yml`, CodeQL and Scorecard already cover secrets, vulnerabilities
+and SAST. Likewise prek already runs actionlint, yamllint, markdownlint and
+editorconfig-checker, and the tox `style` env covers Python.
 
 **Rejected alternative:** always-on — the posture above.
 
@@ -197,7 +213,11 @@ ruleset is committed.
 
 **Reason:** the registry rules carry the Semgrep Rules License, which forbids
 distribution — a Copier template exists to distribute files, so vendoring them
-is exactly the prohibited act. semgrep keeps no on-disk rule cache, so a prek
+is exactly the prohibited act. Every `p/python` rule carries
+`metadata.license: Semgrep Rules License v1.0` and the rules repository reports
+SPDX `NOASSERTION`; the terms say "You may not distribute the rules, or make
+them available to others as a service", granted for internal business purposes
+only, with no sublicensing. semgrep keeps no on-disk rule cache, so a prek
 hook would hit the registry on every commit and fail offline; the style-env-only
 placement follows the `ty`/`pyrefly`/`zuban` precedent. The dedicated group
 exists because `dev` includes `style` wholesale and the wheel is ~215 MB with a
@@ -214,7 +234,13 @@ not track.
 **Consequence:** not hermetic — a new community rule or a registry outage can
 redden an unrelated PR; findings overlap ruff's bandit rules, so a line may need
 both suppressions. The marginal value is cross-statement taint rules ruff
-cannot express.
+cannot express, on a faster cadence than CodeQL's scheduled deep analysis. The
+style job itself still pays the ~215 MB on every `tox -e style` run, including
+all ten render scenarios in this repository's own `template-ci.yml`; semgrep
+does ship a `win_amd64` wheel, so keeping it off other OSes is a cost decision,
+not a platform constraint. The exact pin has a single version source that
+Renovate tracks through the native `pep621` manager, and the scan is scoped to
+`src` so it audits the shipped package, not tests or docs.
 
 **Rejected alternative:** stack `p/security-audit` on top of `p/python`. It is
 the auditor-oriented low-confidence pack, and `p/python` already carries

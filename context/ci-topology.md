@@ -91,7 +91,9 @@ root `conftest.py` hook from each test's top-level `tests/<dir>/`. A
 monolithic CI job splits into `test-core` (always) and `test-<component>` jobs
 gated on their own filter or `core`. Each `coverage-<component>` job merges
 that component's OS cells and enforces `fail_under = 99` scoped to its subtree
-via `--include`; `coverage-core` uses `--omit` of every component and re-adds
+via `--include` (`source_pkgs` measures both `src/<pkg>` and `tests`, so each
+scope spans the component's source and its test subtree);
+`coverage-core` uses `--omit` of every component and re-adds
 `*/_version.py` because a CLI `--omit` overrides the pyproject one. A
 non-gating `coverage-report` job merges what ran, omitting skipped components so
 their unexecuted files are not reported at zero, and publishes to Codecov,
@@ -114,7 +116,15 @@ component list as `needs`.
 component-scoped PRs. `--include`/`--omit` patterns must match both the
 editable and installed layouts (`*/`-anchored) and are verifiable only through a
 real `tox run`. Adding a component touches the marker list, the conftest
-directory set, the filters, two jobs and the omit list in lockstep.
+directory set, the filters, two jobs and the omit list in lockstep. The default
+`tox run` is unchanged, `pytest -m web` or `-m "not worker"` now work locally,
+and the worker integration job gets the same path gate. No new toggle is
+involved: markers and jobs derive from the existing `include_*` answers. The
+coverage commands run through `uv run --locked --only-group test coverage` so
+they use the same locked coverage version that wrote the data files, without
+building the project. The root conftest's defensive `except ValueError` branch
+(unreachable, since every collected item is under `tests/`) carries a per-site
+pragma.
 
 ## Asymmetric matrix: every interpreter on Linux, one representative elsewhere; style and installed-CLI are separate jobs
 

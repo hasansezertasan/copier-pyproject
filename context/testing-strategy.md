@@ -58,7 +58,9 @@ runs with a broad deprecation-warning demotion and a pytest timeout.
 — serialization, connection handling, driver compatibility — and CI never
 started a broker. Docker is reliably available only on Ubuntu runners, so the
 cross-OS matrix must stay Docker-free. testcontainers owns the lifecycle from
-the test, so a laptop run matches CI. The original reasoning over-generalized
+the test, so a laptop run matches CI, and it composes with the existing
+`.devcontainer` services instead of duplicating their definitions into
+workflow YAML. The original reasoning over-generalized
 against `services:`: for fast-starting brokers the runner starts, health-gates
 and injects the connection before the job, which is lighter than in-test
 orchestration; Kafka's advertised listeners and RabbitMQ's readiness are not
