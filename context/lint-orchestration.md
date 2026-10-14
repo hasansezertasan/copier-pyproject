@@ -71,10 +71,13 @@ entry below separately accepts a registry dependency.
 **Evidence:** confirmed
 **Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5; recorded in ADR-003 ([`docs/adr/003-tox-as-canonical-lint-runner.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/003-tox-as-canonical-lint-runner.md))
 **Verification:** corroborated — a hook with no `stages` ran on `pre-commit`, `pre-push`, `commit-msg` and `manual` when `default_stages` was unset
-**Revisit when:** a hook other than `commitizen-branch` needs to run on push
+**Revisit when:** a third push-only hook is added, or pip-audit's push-time cost or false-positive rate outweighs its earlier feedback
 
 `default_stages` is `["pre-commit"]`. Hooks that belong on push, such as
-`commitizen-branch`, declare `stages` themselves.
+`commitizen-branch` and `pip-audit`, declare `stages` themselves. `pip-audit`
+exports the locked runtime tree and audits it with `uvx pip-audit`, the same
+pair `check-security.yml` runs, so a known-vulnerable pin is caught at push
+instead of a CI round later (adopter report, issue #395).
 
 **Reason:** `["pre-commit", "pre-push"]` ran every hook without its own stages
 twice per change, including the whole-project type checkers and pylint, and the

@@ -1193,6 +1193,9 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
        DB), this re-audits the *entire* resolved tree against the PyPI Advisory
        DB on the weekly cron, so a CVE disclosed *after* a dependency merged is
        caught while it is still pinned.
+       The same export + audit also runs locally as a push-only `pip-audit`
+       prek hook (`stages = ["pre-push"]`), so a vulnerable pin is reported
+       before CI rather than after it.
      - `trivy-image` (**`include_web` only**): builds the generated `Dockerfile`
        and scans the image with `aquasecurity/trivy-action`
        (`severity CRITICAL,HIGH`, `ignore-unfixed: true`, `exit-code: 1`). Gated

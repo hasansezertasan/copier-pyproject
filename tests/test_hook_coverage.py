@@ -33,6 +33,8 @@ def test_generated_hook_coverage(
     }
     assert expected <= hooks.keys()
     assert config["default_stages"] == ["pre-commit"]
+    assert hooks["pip-audit"]["stages"] == ["pre-push"]
+    assert "uvx pip-audit" in hooks["pip-audit"]["entry"]
     assert "ruff-check" in hooks
     assert "ruff" not in hooks  # Legacy alias upstream.
     assert "no-commit-to-branch" not in hooks
