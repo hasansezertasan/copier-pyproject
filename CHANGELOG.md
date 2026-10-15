@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.12.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.11.0...v1.12.0) (2026-10-15)
+
+
+### 🚀 Features
+
+* **template:** add always-on deptry and creosote dependency-hygiene gate ([#407](https://github.com/hasansezertasan/copier-pyproject/issues/407)) ([76b864e](https://github.com/hasansezertasan/copier-pyproject/commit/76b864e7e950a8d53f0c5e065370c337adfcb7e9)), closes [#394](https://github.com/hasansezertasan/copier-pyproject/issues/394)
+* **template:** add pre-push pip-audit prek hook ([#408](https://github.com/hasansezertasan/copier-pyproject/issues/408)) ([e976911](https://github.com/hasansezertasan/copier-pyproject/commit/e9769119f14cc1e75a5eccf80e1b68f2e1196d70)), closes [#395](https://github.com/hasansezertasan/copier-pyproject/issues/395)
+
+
+### 🐛 Bug Fixes
+
+* **skills:** gate template-adoption settings/ruleset references on repo answers ([#404](https://github.com/hasansezertasan/copier-pyproject/issues/404)) ([54d285f](https://github.com/hasansezertasan/copier-pyproject/commit/54d285f463338e9633ed29957755bb5c42d18d3c))
+* **template:** provision Python and uv before mise-action in mise-consuming workflows ([#389](https://github.com/hasansezertasan/copier-pyproject/issues/389)) ([ca29d8c](https://github.com/hasansezertasan/copier-pyproject/commit/ca29d8c3af0094bf4bffadd6020b52089c060f12))
+
+
+### 📝 Documentation
+
+* **context:** pin ADR provenance links to the last commit that carries docs/adr ([#402](https://github.com/hasansezertasan/copier-pyproject/issues/402)) ([935b0c1](https://github.com/hasansezertasan/copier-pyproject/commit/935b0c1d390b57c7f3c9e1d7cc79336b6cf67d48))
+* **context:** record context/ as the source of the why ([#397](https://github.com/hasansezertasan/copier-pyproject/issues/397)) ([5a99476](https://github.com/hasansezertasan/copier-pyproject/commit/5a994766b9a9b90d2db69c8b10a90764a57673ed))
+* record commented-out tool candidates as intentionally out ([#400](https://github.com/hasansezertasan/copier-pyproject/issues/400)) ([b729538](https://github.com/hasansezertasan/copier-pyproject/commit/b7295383ba3bfb1ed1cc86a23afd3b5793669773))
+* repoint repo-only ADR citations to context/ entries ([#399](https://github.com/hasansezertasan/copier-pyproject/issues/399)) ([d2e1ebb](https://github.com/hasansezertasan/copier-pyproject/commit/d2e1ebbae2cca725b963a6a211a77e31b5189307))
+* repoint shipped ADR citations to the published context/ pages ([#401](https://github.com/hasansezertasan/copier-pyproject/issues/401)) ([c06222e](https://github.com/hasansezertasan/copier-pyproject/commit/c06222e28adb395637f4a2c7cdbe68dd39c39bb7))
+
 ## [1.11.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.10.0...v1.11.0) (2026-10-11)
 
 
