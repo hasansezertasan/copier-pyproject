@@ -20,7 +20,20 @@ one of three architectures that make materially different promises — a tiny
 online-first-run launcher, a compiled native binary, a fully offline bundle — and
 that a project may legitimately want together (a launcher for connected users
 and an offline bundle for air-gapped ones). Naming the architecture rather than
-the tool means swapping PyCrucible for PyApp later needs no variable rename.
+the tool means swapping PyCrucible for PyApp later needs no variable rename. The
+three-way split follows the taxonomy in
+[awesome-python-standalone](https://github.com/hasansezertasan/awesome-python-standalone).
+Runtime promises: a launcher is tiny and needs the network once; a compiler gives
+faster startup and some obfuscation but needs a C toolchain to build; a freezer
+ships interpreter, stdlib and dependencies fully offline with no Python on the
+target.
+
+Why these representatives: PyCrucible was already in use, has the smallest
+artifact, always gets a current interpreter and dependencies, and is a trivial CI
+step. Nuitka is the mature compile-to-C option, giving runtime speed and source
+obfuscation that neither a launcher nor a freezer provides. PyInstaller is the
+de-facto standard offline bundler: widest ecosystem, GUI support and
+`.spec`-file reproducibility.
 
 **Rejected alternative:** one `executable_tool` enum — forces mutual exclusion
 that is wrong for these categories and blocks adding a fourth later.
@@ -32,8 +45,9 @@ native installers and GUI/mobile packaging, out of scope for a single-file
 executable. PyOxidizer — archived.
 
 **Consequence:** a breaking rename for existing answers files with no automatic
-migration (Copier does not rename variables). Build dependencies live in the uv
-`tool` group and are Renovate-tracked like every other pin. Each toggle must be
+migration (Copier does not rename variables), so a `copier update` of a project
+that had `include_pycrucible: true` must set `include_launcher: true`. Build
+dependencies live in the uv `tool` group and are Renovate-tracked like every other pin. Each toggle must be
 exercised independently and in combination.
 
 ## Executables are named per tool and OS and all target the package main module

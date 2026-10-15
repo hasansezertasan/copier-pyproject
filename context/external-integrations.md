@@ -69,6 +69,13 @@ precedent of the executable toggles.
 **Consequence:** the all-contributors workflow needs the repository setting that
 lets Actions create pull requests, which release-please already requires.
 
+**Consequence:** the CLI is a mise `npm:` tool, not a `bunx`-arg invocation, so
+Renovate's mise manager (npm datasource) bumps the pin with no manual upkeep;
+the entry is conditional on the toggle. The workflow runs on `workflow_dispatch`
+and on pushes that change `.all-contributorsrc`, opens the PR on a `chore/`
+branch via `peter-evans/create-pull-request`, and the bot stays an alternative
+for `@all-contributors please add` comment-driven edits.
+
 ## Opt-in benchmarking with pytest-codspeed
 
 **Id:** 841ba12d-3ad2-402e-9c7e-6791b8221952

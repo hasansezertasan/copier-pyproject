@@ -20,9 +20,9 @@ It answers:
 > Why is the project built this way?
 
 For usage, installation, operation, or troubleshooting, see `docs/`.
-The numbered architecture decision records in `docs/adr/` are the
-long-form originals, kept as a frozen archive; the entries here carry
-their decisions in the schema below and name the record each came from.
+The numbered architecture decision records that used to live in
+`docs/adr/` were deleted; the entries here carry their decisions in the
+schema below and name the record each came from, linked by permalink.
 
 ## Reading the entries
 

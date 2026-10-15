@@ -29,10 +29,17 @@ fixes were already in the template, so it was the option with the most
 evidence.
 
 **Rejected alternative:** release-it — JS-oriented, needs a Node runtime, and a
-human picks the bump every time.
+human picks the bump every time. It is a manual `workflow_dispatch` with an
+explicit bump, keeps no changelog file, and its audit trail is a commit after
+the fact rather than a reviewable PR before the tag.
 
 **Rejected alternative:** release-drafter — label-driven, writes release notes
-but no `CHANGELOG.md`.
+but no `CHANGELOG.md`. Its model is push/PR to a draft, then a manual publish;
+it needs PR-labelling hygiene and is generic rather than Python-native.
+
+release-please, by contrast, is a pure GitHub Action with first-class
+`release-type: python`, a generated and committed `CHANGELOG.md`, and a
+reviewable release PR as its audit trail.
 
 **Rejected alternative:** keeping a `none` escape hatch — projects that want no
 automation delete the files after generation; accepted for a template whose
@@ -41,7 +48,9 @@ audience publishes releases.
 **Consequence:** the PyPI trusted publisher must register `release.yml` as the
 workflow. Rendering plus actionlint validate the workflow across option
 combinations, but draft-tag timing, OIDC publishing and reconciliation can only
-be exercised by a live release. The template has no `CHANGELOG.md` seed file:
+be exercised by a live release. Conventional Commits become a soft
+requirement for the version bump to work, which matches the commit tooling
+the template already ships. The template has no `CHANGELOG.md` seed file:
 release-please owns the changelog, and a scaffold-time seed would wipe an
 adopting project's release history on update.
 
@@ -70,6 +79,10 @@ latest *published* release and ignores drafts.
 **Rejected alternative:** `draft: false` — a window with a public release and no
 artifacts.
 
+**Consequence:** PyPI publishing uses Trusted Publishing (`id-token: write`),
+and the publish checkout uses `fetch-depth: 0` so hatch-vcs can see the release
+tag.
+
 **Consequence:** docs deployment lives in the same workflow (`deploy-docs`,
 after finalization) because an event fired by `finalize-release`'s token cannot
 trigger a separate workflow.
@@ -95,8 +108,9 @@ auto-creates the environment unprotected on first use.
 executes the workflow file from the selected branch, so the `release_created`
 guard cannot stop someone with write access from dispatching a guard-free copy
 and minting a trusted-publishing token. But `finalize-release`'s reconciliation
-re-dispatches the workflow through the API, which requires the trigger.
-GitHub evaluates an environment's branch policy outside the workflow file, so
+re-dispatches the workflow through the API, which requires the trigger; that
+re-dispatch is the documented exception to the workflow token's loop
+prevention, which is why the step needs no PAT. GitHub evaluates an environment's branch policy outside the workflow file, so
 the environment contains what the trigger exposes.
 
 **Rejected alternative:** remove the trigger — breaks release-PR reconciliation.
@@ -117,7 +131,8 @@ handled procedurally in the generated setup guide rather than with a stronger
 credential: the release PR reports no required status contexts until a human
 closes and reopens it, and a merge that changes workflow files between the
 release PR merging and the release run finishing must wait, because the
-release API then refuses tag creation with a 403.
+[release API](https://docs.github.com/en/rest/releases/releases#create-a-release)
+then refuses tag creation with a 403.
 
 **Reason:** events created with the workflow token do not start workflow runs,
 and the token cannot be granted workflow write access. A PAT or App token would
@@ -171,7 +186,11 @@ because its hooks were unconditional anyway).
 pipeline that tags the same releases and rewrites the same `CHANGELOG.md` as
 release-please — a direct conflict the first release decision never compared.
 Versioning, tagging and changelog get exactly one owner; Commitizen keeps the
-orthogonal half, helping to write and lint conforming commits.
+orthogonal half, helping to write and lint conforming commits. A `cz bump`
+pipeline also has neither release-please's reviewable release PR nor
+tag-sourced versions by default, and a pipeline where Commitizen writes the
+version does not guarantee `uv.lock` cannot drift on release; with versions
+from git tags via hatch-vcs and no tool editing a literal, it cannot.
 
 **Rejected alternative:** keep both configured as "aligned" — competing tags
 and two changelog writers on one file.
@@ -186,7 +205,7 @@ authoring, before a PR exists.
 **Type:** decision
 **Status:** open
 **Evidence:** confirmed
-**Source:** ADR-037 ([`docs/adr/037-release-automation-reevaluation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/037-release-automation-reevaluation.md)), a research record last refreshed 2026-10-05; upstream release-please issues [#2515](https://github.com/googleapis/release-please/issues/2515) and [#2605](https://github.com/googleapis/release-please/issues/2605)
+**Source:** ADR-037 ([`docs/adr/037-release-automation-reevaluation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/037-release-automation-reevaluation.md)), a research record last refreshed 2026-10-05; upstream release-please issues [#2515](https://github.com/googleapis/release-please/issues/2515) and [#2605](https://github.com/googleapis/release-please/issues/2605); [release automation research note](../docs/research/release-automation-tools.md) (candidate tables and source links)
 **Revisit when:** git-cliff ships prerelease version calculation ([#1380](https://github.com/orhun/git-cliff/issues/1380)), RC series become frequent, or a maintainer picks one of the four options
 **See:** release-automation.md#release-please-is-the-sole-release-orchestrator — 7ec8a937-fd4d-41f2-96b7-824fe3be913b — as of 2026-10-11
 **See:** release-automation.md#commitizen-is-a-commit-helper-never-a-release-tool — ee1d2fad-67ab-4f4a-a531-73458da14eb1 — as of 2026-10-11

@@ -1,16 +1,12 @@
-# ADR-038: Sphinx API-reference rendering strategy (Typer / pydantic / OpenAPI / AsyncAPI)
+# Sphinx API-reference tools: survey
 
 ## Status
 
-Accepted (2026-08; renumbered from 027 and refreshed against template 1.5.3 on
-2026-10-05). Extends [ADR-006](006-sphinx-shibuya-for-documentation.md),
-which chose Sphinx + Shibuya and weighed the *CLI* generator only, to cover all
-four auto-generated reference pages and to record why the third-party Sphinx
-API-doc extensions surveyed below are (mostly) **not** adopted.
+Research snapshot kept from the former ADR-038 (last refreshed 2026-10-05). It is evidence, not the decision: the decision and its status live in the Sphinx API-reference rendering entry of [`context/docs-stack.md`](../../context/docs-stack.md). `ADR-NNN` mentions below name the former records, readable at commit [`c06222e`](https://github.com/hasansezertasan/copier-pyproject/tree/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr).
 
 ## Context
 
-The docs subsystem ([ADR-025](025-optional-docs-subsystem.md)) auto-generates
+The docs subsystem (ADR-025) auto-generates
 four reference pages. What they share is one property: when `include_docs` is
 set, each is derived from the **live app object** at build time, and no schema
 or reference file is hand-maintained or committed. The mechanism differs:

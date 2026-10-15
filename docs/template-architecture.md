@@ -12,7 +12,7 @@ duplication:
 - **`copier.yml` `help:`** — the one-line prompt shown for each toggle.
 - **This page** — what each toggle/workflow renders and how the pieces fit.
 - **The `context/` entry** — why it exists, the trade-offs, the posture, recorded
-  with the `keep-the-why` skill. `docs/adr/` is a frozen archive: no new ADRs.
+  with the `keep-the-why` skill. The former `docs/adr/` archive is deleted: no new ADRs.
 
 When a toggle's rationale changes, update its `context/` entry through the
 `keep-the-why` skill. When what it renders changes, edit this page and

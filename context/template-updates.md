@@ -12,7 +12,8 @@
 **See:** template-updates.md#copieryml-defines-no-_tasks — 86130379-1660-4992-8aba-8b6cd7b4a9f7 — as of 2026-10-11
 
 Generated projects receive template updates through Renovate's first-party
-`copier` manager, which watches the template's git tags, runs the real
+[`copier` manager](https://docs.renovatebot.com/modules/manager/copier/), which
+watches the template's git tags, runs the real
 `copier update` and opens a PR. No bespoke workflow ships. This repository's
 own release-please therefore must keep cutting tags — they are the datasource.
 Scaffolding uses the `.git` HTTPS URL because the `gh:` shorthand is not a git
@@ -38,7 +39,20 @@ the copier manager is tag-based, so release-please is the price of Renovate.
 
 **Consequence:** a copier-update PR can look mergeable while carrying conflict
 markers; maintainers review for them. A repo pinned to a raw SHA needs one
-manual update to re-anchor onto a tag.
+manual update to re-anchor onto a tag. Existing repos start receiving copier PRs
+once the Renovate App is installed and the template has a tag newer than their
+recorded `_commit`.
+
+**`_src_path` must be a real git URL.** Copier records `_src_path` verbatim
+from the `copier copy` argument, and the `gh:` shorthand is Copier-only, so
+Renovate's `git-tags` datasource rejects it ("non-git url", then `no-result`)
+and never opens an update PR even though the template has tags. Renovate accepts
+`_src_path` only when it starts with `git+https://`, `git+ssh://`, `git@` or
+`git://`, or ends with `.git`, which is why the README scaffold step and the
+`template-adoption` skill use the `.git` HTTPS URL. A project scaffolded with
+`gh:` can be fixed by rewriting the `_src_path` line; `copier update` preserves
+it. The manager is enabled by default (the shared preset sets no
+`enabledManagers`), so the template's own `renovate.json` needs no addition.
 
 ## `copier.yml` defines no `_tasks`
 
@@ -88,7 +102,10 @@ conflicts, so a PR looked mergeable with markers inside. With the template
 frozen, "theirs" equals "base" on every pin line and the downstream's value
 wins cleanly: the conflict class is eliminated structurally. `matchFileNames`
 plus `enabled: false` rather than `ignorePaths` preserves the shared preset's
-own ignore list and composes with its digest-pinning policy.
+own ignore list and composes with its digest-pinning policy. The confirmed conflict source was the
+plain `template/*.yml` workflow files; the `.jinja`-suffixed files are not
+matched by Renovate's stock managers, so freezing them is a safe no-op unless
+the shared preset's custom managers are extended to reach them.
 
 **Rejected alternative:** auto-resolve in the downstream's favour via a
 `merge=ours` driver or copier `_exclude` — `_exclude` is whole-file and would

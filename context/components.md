@@ -76,6 +76,12 @@ CLI is made a first-class way to *be* an app instead.
 **Rejected alternative:** click as a third choice — a dependency without Typer's
 ergonomics; earns its keep only on later demand.
 
+**Consequence:** the root now has two rendered variants (app and test module)
+to maintain, and `dependencies` may be empty for an argparse-only CLI, which
+is valid. The argparse root reproduces the `version`/`info` shape and the
+component subcommands for parity; a project wanting one no-subcommand action
+deletes what it does not need.
+
 ## Launcher imports are guarded with exact-match, preflighted dependency errors
 
 **Id:** 70e54068-d43c-40a2-9097-95e7cc14c668
@@ -98,7 +104,10 @@ hint (including a version-qualified Homebrew formula) because it is not a
 distribution. The root's own module-scope imports (`typer`, pydantic via the
 settings stack) and the sole-component entrypoint in `__main__.py` get the same
 treatment; all derived facts are `when: false` computed variables in
-`copier.yml`.
+`copier.yml`. The guard is emitted only when the root actually lazy-imports
+something (derived from `primary_component`), so a CLI-only project renders
+byte-identical to before, and a pure-argparse root without settings renders
+without it (`root_dependencies` is computed from the enabled toggles).
 
 **Reason:** there are no extras to name — component deps are core dependencies —
 so a missing module means the environment is out of sync with the metadata and
@@ -122,6 +131,23 @@ modules are what adopters edit most.
 
 **Rejected alternative:** let faststream's own `ImportError` through — its advice
 (`pip install "faststream[<broker>]"`) bypasses the lockfile.
+
+**Edge cases the guard keeps on purpose.** A nameless `ModuleNotFoundError`
+propagates untouched, because the guard cannot tell whose failure it is.
+`faststream.<broker>` re-exports the broker client behind faststream's own
+import guard, which raises a plain `ImportError` with no module name and advises
+`pip install "faststream[<broker>]"`, advice that bypasses the project's
+lockfile. So the worker allowlist names `faststream.<broker>` and not the client
+(`aiokafka`, `aio_pika`): faststream intercepts the client's own error, and a
+client entry would be dead. The Tk allowlist covers both `tkinter` and the
+`_tkinter` C extension, because on an interpreter built without tk-dev the
+pure-Python package still ships and `_tkinter` is the name that actually fails;
+the GUI hint also names `python-tk@X.Y` built from `sys.version_info`, since
+Homebrew's bare `python-tk` aliases the newest Python's formula. `_preflight`
+catches `ImportError` broadly, so a broken install is also reported as
+unavailable, which is the right summary at the launcher boundary. The error
+paths are unit-tested with no blanket pragma, driving the deferred and nameless
+cases through `sys.meta_path` finders so they reproduce on any runner.
 
 ## Component dependencies are core dependencies; there is no empty `all` extra
 
@@ -151,7 +177,17 @@ permanent misleading declaration.
 
 **Consequence:** adopters applying this update must re-lock, because the
 metadata recorded in `uv.lock` changes and every `uv run --locked` hard-fails
-until they do; a hand-added `uv run --extra all` breaks.
+until they do. Renovate's copier manager re-renders but does not re-lock, and
+CI, the prek system hooks and the mise tasks all use `uv run --locked`, so the
+update PR stays red until `uv lock` is committed in it; a hand-added
+`uv run --extra all` breaks. The `<pkg>[all]` dev self-reference was dropped
+outright rather than reduced to `<pkg>`, since `uv sync` and tox already
+install the project. Adding a real optional extra is now an explicit act:
+declare it, add it to the dev group, and add `extras` only to the tox envs that
+need it, which is the right blast radius to reason about. Other docs had
+attributed dependency availability to the extra (one claimed dropping it would
+break `automodule` of the web module, another used it to justify eager broker
+imports); they were corrected to name the core `dependencies`.
 
 ## The web component gets `run` and `dev` launch verbs, and therefore always a console root
 
@@ -184,7 +220,12 @@ the second entry scheme the subcommand decision exists to prevent.
 **Rejected alternative:** verbs for the worker too — reload needs
 `faststream[cli]` at runtime, which the template deliberately keeps out of
 `dependencies`, and type-sniffing the target is the framework detection avoided
-here.
+here. `faststream run <pkg>.worker.app:app --reload` stays the documented dev
+path for the worker and `<pkg> worker` stays the production one.
+
+**Rejected alternative:** verbs for gui, tui or mcp — no meaningful prod/dev
+distinction and nothing to point a target at. Because only web owns the verbs,
+`run` is never ambiguous and needs no `--component` selector.
 
 **Rejected alternative:** replace `<pkg> web` with `<pkg> run` — breaks the one
 naming rule the subcommand decision makes.
@@ -194,7 +235,10 @@ project command and is not testable the way a cheap shape check is.
 
 **Consequence:** web-only Litestar projects gain `typer` (FastAPI already ships
 it); `sole_component` can never be `web`, so a web project's executable
-entrypoint is the console root.
+entrypoint is the console root. The `web` preset's tree gains a `cli/` package
+and a `test-cli`/`coverage-cli` CI job pair. The verbs and their runner are
+unit-tested with the launch stubbed, so only the uvicorn-blocking `run_server`
+carries a coverage pragma.
 
 ## One application payload in `core/app.py`; components are adapters over it
 

@@ -12,7 +12,8 @@
 **See:** repo-setup.md#branch-protection-as-code-through-an-opt-in-rulesets-sync-workflow — 3f94789f-94e8-4758-a32d-1e0d72c0140b — as of 2026-10-11
 
 `include_repo_settings` (default off, `full` preset only) renders
-`.github/settings.yml` for the Settings App: description, homepage, topics
+`.github/settings.yml` for the
+[Settings App](https://github.com/apps/settings): description, homepage, topics
 (normalized from a free-form answer and omitted when empty so existing topics
 stay untouched) and the squash-merge flags release-please needs. Labels are
 excluded; branch protection and collaborators are excluded. The activity
@@ -29,7 +30,10 @@ the rulesets workflow below. The activity toggles are web-UI only.
 linked-issue escape hatch for any project without the App.
 
 **Consequence:** the App escalates push access to admin, mitigated by the
-documented CODEOWNERS plus required code-owner review pattern.
+documented CODEOWNERS plus required code-owner review pattern. The setup
+guide verifies that requirement and that a distinct trusted reviewer exists
+before the App is installed; an unavailable reviewer, or protection that
+cannot be verified, defers the App.
 
 ## Branch protection as code through an opt-in Rulesets sync workflow
 
@@ -65,6 +69,10 @@ concern.
 
 **Consequence:** strict status checks mean concurrent bot PRs rebase before
 merging; manual web-UI ruleset edits are reverted on the next push.
+
+**Independent of `include_repo_settings`:** the two are complementary.
+`settings.yml` controls which merge buttons exist, the ruleset enforces policy,
+and both encode squash-only so they agree.
 
 ## Maintainer repository setup has one actor-tagged home in the docs tree
 
@@ -117,7 +125,13 @@ only the shape of the setup, no secrets.
 Every actionable step in the setup doc carries a `[CHECK]` block: a command
 where exit 0 means the step is done. End-state checks assert the state a step
 establishes (not a weaker proxy); secret-presence checks assert the stored
-artifact by name, with conditional variants gated on repository attributes;
+artifact by name, with conditional variants gated on repository attributes
+(the Codecov check passes without a token on a public repository, the gitleaks
+check without a license on a user-owned one; the ruleset check asserts the
+applied ruleset is `enforcement: active`, not merely that its admin token
+exists, and the Pages check asserts the source branch and path, not merely that
+a site exists; the merge-policy check uses the REST endpoint because the `gh repo view
+--json` projection does not expose the squash-message or auto-merge fields);
 steps with no API-visible artifact carry an explicit no-scriptable-check
 marker; steps covered by another step point at it. A skill shipped verbatim
 into every generated project walks the doc top to bottom without aborting,
@@ -156,7 +170,12 @@ the commit message, plus `can_approve_pull_request_reviews=true` so
 release-please can open its release PR, with `default_workflow_permissions`
 left at least-privilege `read` — is recorded as two `gh` commands under
 "One-time repo setup" in `docs/template-architecture.md`. The repo-local
-`.claude/skills/repo-setup/` that drove them (ADR-023 §3) is removed. The
+`.claude/skills/repo-setup/` that drove them (ADR-023 §3) is removed. ADR-023
+had flagged `default_workflow_permissions=write` as a deliberate divergence from
+generated projects; that no longer holds. The default stays `read`, as in
+generated projects: every workflow declares its own `permissions:`, and
+`release.yml`'s `release-please` job grants itself the `write` scopes it needs
+(`docs/template-architecture.md`, "One-time repo setup"). The
 shipped `repo-setup` skill keeps its role; the plugin `setup` skill was
 later removed (companion-skills.md).
 

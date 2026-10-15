@@ -58,20 +58,34 @@ EOF, literal UTF-8 author tokens instead of `tojson`); and taplo runs in strict
 check mode. `template-ci.yml`'s render job runs the rendered project's own
 fixing hooks per scenario and gates on `git diff`, with an `integrations`
 scenario and a non-ASCII author name covering toggles nothing else rendered.
+yamlfmt's basic formatter would drop every blank line, but the blank lines
+between jobs and step groups in the roughly 1,300-line `ci.yml` are deliberate
+structure; the `_single` variant (not plain `retain_line_breaks`) collapses
+runs to exactly one, which keeps the formatter idempotent.
 
-**Reason:** on a pristine scaffold the first hook run rewrote two workflow files
-and taplo rewrote two TOML files while exiting 0, so the adopter's `hooks` CI
-failed and every later `copier update` showed drift they never caused. Nothing
+**Reason:** on a pristine v1.3.0 scaffold the first prek run (exit 1) rewrote
+`ci.yml` and `ISSUE_TEMPLATE/bug_report.yml` through yamlfmt, and the `style`
+run (exit 0) rewrote `pyproject.toml` and `prek.toml` through taplo's fix mode,
+so the adopter's `hooks` CI failed and every later `copier update` showed drift
+they never caused. Nothing
 caught it because this repo ran only checking tools over a render and the
 harness asserts YAML parses, not that it is canonical; taplo's fix mode made the
 defect invisible. Width-driven reflow would make a file's canonical form depend
 on which components are enabled, and comment alignment would let a Renovate
 bump break a line nothing touched. The diff, not hook exit codes, is the gate
 because a fixing hook that rewrites and exits 0 sails through an exit-code
-check.
+check. A third, latent case: `.cspell.yml` rendered author tokens through
+`tojson`, which escapes non-ASCII to `\uXXXX`; yamlfmt normalizes them back, so
+any adopter with a non-ASCII name and MegaLinter got a file their own hooks
+rewrote.
 
 **Rejected alternative:** chase the formatters' output in the templates — the
 config is pinned to make the written layout canonical instead.
+
+**Rejected alternative:** set yamlfmt `max_line_length` — it re-wraps folded
+scalars across files the template does not otherwise touch, trading one class
+of churn for a larger one. Long rendered lines are acceptable: yamllint's
+`line-length` is `level: warning`.
 
 **Consequence:** hand-aligned trailing comments and hand-wrapped folded scalars
 are unavailable; a conditional block in rendered YAML/TOML requires thinking
@@ -135,6 +149,10 @@ component added to `full` is exercised end-to-end without editing the matrix.
 
 **Consequence:** adding another `copier copy` invocation is a review defect; a
 new consumer imports `render()` or calls the CLI.
+
+**Consequence:** `tools/render.py` is import-reachable from the tests only
+because the repo root is on `sys.path` under pytest (`tests/__init__.py` plus
+prepend import mode). A future root `pyproject.toml` must keep that true.
 
 ## The generated-project tree page is a committed derived artifact with two drift guards
 

@@ -11,9 +11,9 @@ everything else — so per-toggle rationale is maintained once, not restated her
   toggle/workflow renders and how the pieces fit (*the reference detail*).
 - **[`context/`](context/index.md)** — why each exists, the trade-offs, the
   posture (*the why*), recorded with [Keep the Why](https://keepthewhy.com):
-  invoke the `keep-the-why` skill before writing there. `docs/adr/` is a frozen
-  archive — no new ADRs; the existing ones stay unchanged so `ADR-NNN` citations
-  keep resolving.
+  invoke the `keep-the-why` skill before writing there. The former `docs/adr/`
+  archive is deleted — no new ADRs; `context/` entries link the removed records
+  by permalink in their `Source` lines.
 
 When you add or change a toggle, update `copier.yml` help + its `context/` entry +
 the detail in `docs/template-architecture.md` + `README.md`, and add **one**

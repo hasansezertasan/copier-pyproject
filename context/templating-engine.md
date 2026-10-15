@@ -18,7 +18,10 @@ instead of re-applying them by hand. Conditional file inclusion via filename
 patterns is cleaner than hook-based approaches, the answers file makes updates
 reproducible, and full Jinja2 (whitespace control, raw blocks for GitHub Actions
 syntax) is required by the workflow templates. Copier is actively maintained and
-aligned with the uv/hatchling ecosystem the generated projects use.
+aligned with the uv/hatchling ecosystem the generated projects use. Industry
+trend pointed the same way: projects such as Substrate (Superlinear) migrated
+from Cookiecutter/Cruft to Copier, and 2026 academic literature describes
+Copier as a prominent evolution of Cookiecutter.
 
 **Rejected alternative:** Cookiecutter — the largest ecosystem, but no native
 update/sync; pulling upstream changes is manual work.

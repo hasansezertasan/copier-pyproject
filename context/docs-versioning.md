@@ -40,7 +40,9 @@ CI-commit cost above.
 **Consequence:** `gh-pages` becomes load-bearing state; both deploy paths must
 preserve the numeric version-slug directories. An older version's switcher is
 frozen at its build time, so the switcher appears only from the first versioned
-release onward.
+release onward. Old versions are never rebuilt, so a past `conf.py` need not
+keep building under future tooling. The build script lives outside `src/`, so
+the 99% coverage gate does not cover it; it stays ruff and mypy clean.
 
 ## Version granularity is a scaffold-time question
 

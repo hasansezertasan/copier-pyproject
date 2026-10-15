@@ -58,7 +58,9 @@ runs with a broad deprecation-warning demotion and a pytest timeout.
 — serialization, connection handling, driver compatibility — and CI never
 started a broker. Docker is reliably available only on Ubuntu runners, so the
 cross-OS matrix must stay Docker-free. testcontainers owns the lifecycle from
-the test, so a laptop run matches CI. The original reasoning over-generalized
+the test, so a laptop run matches CI, and it composes with the existing
+`.devcontainer` services instead of duplicating their definitions into
+workflow YAML. The original reasoning over-generalized
 against `services:`: for fast-starting brokers the runner starts, health-gates
 and injects the connection before the job, which is lighter than in-test
 orchestration; Kafka's advertised listeners and RabbitMQ's readiness are not
@@ -79,6 +81,11 @@ has exactly one.
 **Consequence:** the integration test file is in coverage `omit`, since it is
 collected but deselected in the default suite. The larger runtime integration of
 FastStream inside the Litestar app is explicitly out of scope.
+
+**Shared image variables.** The Redis-compatible image and CLI come from the
+`redis_image` / `redis_cli` computed vars, which the devcontainer compose
+service reads as well as the CI `services:` container, so a redis-to-valkey or
+version bump cannot leave CI and the devcontainer disagreeing.
 
 ## Coverage exclusions are per-site pragmas, and the globs must match the installed layout
 
@@ -158,6 +165,12 @@ module scope, so a missing Textual raises on import instead of degrading to
 stdout (a hard dependency being absent is a broken install), and the GUI
 catches `Exception` around an injected driver while keeping its specific
 "Tkinter not available" arm first.
+
+**Test-side details.** The TUI `q` binding is asserted inside the pilot
+context, because `run_test().__aexit__` stops the app unconditionally and
+asserting after exit proves nothing. The worker's `_run_app` keeps its uvloop
+probe inside the pragma'd helper, since choosing a loop only means anything next
+to the `run` call it chooses it for.
 
 ## Async testing is an explicit template axis (`async_style`)
 
