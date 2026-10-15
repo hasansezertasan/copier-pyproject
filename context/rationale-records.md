@@ -1,21 +1,20 @@
 # Rationale records
 
-## context/ is the source of the why; docs/adr/ is a frozen archive
+## context/ is the source of the why; the ADRs were deleted and stay readable by permalink
 
 **Id:** 02752a37-648d-4154-8548-aab28f054789
 **Type:** decision
-**Status:** needs-review
+**Status:** active
 **Evidence:** confirmed
 **Source:** maintainer decision, 2026-10-12, while reviewing [PR #386](https://github.com/hasansezertasan/copier-pyproject/pull/386)
-**Revisit when:** the ADR archive is removed, or the Keep the Why dashboard and docs site are dropped
+**Revisit when:** the Keep the Why dashboard and docs site are dropped
 
 The project's rationale lives in `context/`, recorded with Keep the Why: one
 entry per decision, written through the `keep-the-why` skill. The ADRs in
-`docs/adr/` were carried into `context/` entries that cite them and are kept
-unchanged as a frozen archive: no new ADRs are written. The archive exists only
-so the `ADR-NNN` citations across `AGENTS.md`, `docs/template-architecture.md`,
-`copier.yml`, the tests and the shipped template keep resolving. It is meant to
-be deleted once those citations point at `context/` entries.
+`docs/adr/` were carried into `context/` entries that cite them, and no new
+ADRs are written. The `docs/adr/` folder was deleted once the `ADR-NNN`
+citations pointed at `context/` entries; the records stay readable through the
+permalinks in those entries' `Source` lines.
 
 **Reason:** an entry records one decision with its own Evidence and Status,
 where an ADR bundles several decisions under one status. The skill captures
