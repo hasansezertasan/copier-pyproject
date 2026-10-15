@@ -137,7 +137,7 @@ unasked question, the existing contract of the `is_app` gate too. The
 template-ci `litestar-kafka` scenario renders with PyPI off so actionlint checks
 the web variant of `finalize-release`'s `needs` without `pypi-publish`.
 
-## The build stays hatchling plus hatch-vcs; the other backends are out
+## The build stays hatchling plus hatch-vcs; the other build and versioning tools are out
 
 **Id:** 1dbc52d3-7ba7-4bbf-b12a-299169c86160
 **Type:** decision
