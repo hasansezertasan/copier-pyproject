@@ -277,6 +277,16 @@ Testing choices:
   constrains the choice to `asyncio` or `anyio` because those components ship async tests.
   See [async testing style](../context/testing-strategy.md#async-testing-is-an-explicit-template-axis-async_style).
 
+   Evaluated and intentionally out (issue #392): `pytest-cov` — coverage is
+   measured with `coverage run --module pytest` plus `coverage combine`/`report`
+   in CI, so the pytest plugin would duplicate measurement/reporting over the
+   same run; `pytest-dependency` — the suite is designed order-free (markers
+   select; `pytest-xdist` ships for opt-in parallel runs), and upstream
+   documents xdist parallelization as incompatible with pytest-dependency;
+   anything beyond
+   `async_style` for `pytest-asyncio` — the `asyncio`/`anyio` choice above is the
+   whole answer, and a synchronous library stays runner-free.
+
 Devcontainer services:
 
 - `include_postgres` - PostgreSQL service
@@ -476,6 +486,24 @@ job. NOTE: verify zizmor changes with the **prek hook** (`prek run zizmor
 --all-files`), not a bare `uvx zizmor` — the two can pin different zizmor versions
 whose default-persona `dangerous-triggers` behavior differs, and the prek hook is
 what actually gates generated projects.
+
+Shell and YAML lint/format live in prek hooks, not a uv dependency group:
+`shellcheck` (via the shellcheck-py wheel, so no system install), `shfmt`
+(pre-existing: it formats the standalone scripts shellcheck lints), `checkmake`,
+`yamllint` and `yamlfmt` (every project ships workflow YAML, so the YAML pair
+engages from the first commit; the shell/Makefile hooks follow their upstream
+hook manifests' file scoping). There is deliberately no `shell`/`yaml` uv group:
+these tools run as version-pinned hook `rev`s that Renovate keeps current in
+generated projects (the `customManagers` regex in the shared preset, since
+Renovate's built-in pre-commit manager only reads `.pre-commit-config.yaml`),
+and a second uv pin of the same tools would be a second version source for the
+same check. Evaluated and intentionally out (issue #392): `yamlfix` (the
+`google/yamlfmt` hook is the single YAML formatter, so a second fixer cannot
+fight it over document style) and `shellcheck-makefile` (it lints shell
+*inside* recipes, complementing rather than replacing `checkmake`'s Makefile
+structure lint — that recipe-shell coverage stays unevaluated; workflow
+`run:` blocks are checked by actionlint, including its shellcheck pass where a
+`shellcheck` executable is available).
 
 **detect-secrets** is a local, pre-commit-stage secret scanner (`local` `system`
 hook via `uv run --locked --group style detect-secrets-hook --baseline
@@ -911,6 +939,18 @@ The `.devcontainer/docker-compose.yml.jinja` consolidates all services:
   sentinel is used only when neither live git metadata nor an expanded
   `.git_archival.txt` is available
 - **Build Command**: `uv build`
+
+Evaluated and intentionally out (issue #392): `setuptools-scm` — out as a
+direct requirement (hatch-vcs already builds on its version-inference logic,
+surfaced via `[tool.hatch.version.raw-options]`; adopting it as the version
+source itself would mean swapping the whole backend `hatchling` → `setuptools`),
+while the template standardizes on hatch-vcs (dynamic version from git tags,
+archive recovery via `.git_archival.txt`); `hatch-babel` — there is no
+i18n story yet, so it waits for a real translation workflow instead of shipping
+preemptively; `hatch-autorun` — it injects a `.pth` that auto-executes code
+at interpreter startup (before first import), which the supply-chain posture
+rejects; that is distinct from ordinary build-time hooks (hatch-vcs's
+version-file writer, the c-extension compiler), which stay.
 
 ## CI/CD Workflows
 

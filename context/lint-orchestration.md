@@ -293,3 +293,40 @@ inside functions by default, which would report the worker's lazily imported
 template defect: `core/config.py` imported `pydantic` while only
 `pydantic-settings` was declared, so `pydantic` is now a direct dependency
 whenever `include_pydantic_settings` or `include_worker` is on.
+
+## Shell and YAML lint/format are prek hooks, not a uv group
+
+**Id:** df7e185c-4188-457b-bc55-d20b7cde8ee1
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [issue #392](https://github.com/hasansezertasan/copier-pyproject/issues/392); maintainer scoping answers, 2026-10-12
+**Revisit when:** a shell/YAML check needs the project's venv, or the shell/YAML hook set changes
+**See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-12
+
+Shell (`shellcheck` via the shellcheck-py wheel, `shfmt`, `checkmake`) and
+YAML (`yamllint`, `yamlfmt`) checks run as prek hooks. The shell/Makefile trio
+follows its upstream hook manifests' file scoping; the YAML pair engages from
+the first commit since every project ships workflow YAML. There is deliberately
+no `shell`/`yaml` uv dependency group: the hooks carry version-pinned `rev`s
+that Renovate keeps current in generated projects (the `customManagers` regex
+in the shared preset), and a uv pin of the same tools would be a second version
+source for the same check.
+
+**Reason:** these tools inspect files outside the Python package (standalone
+scripts a project adds later, YAML configs), so they never needed the project's
+environment the way the whole-program `local` `system` hooks (the type
+checkers, import-linter, slotscheck) do. Workflow `run:` blocks are checked by
+actionlint — including its shellcheck pass where a `shellcheck` executable is
+available — so the shellcheck hook only covers standalone scripts.
+
+**Rejected alternative:** a uv lint group pinning shellcheck-py,
+shellcheck-makefile, yamllint, yamlfix and yamlfmt — the shortlist from the
+pre-adoption keycast `pyproject.toml` quoted in the issue; rejected as a
+duplicate version source.
+
+**Rejected alternative:** yamlfix over the `google/yamlfmt` hook — a second
+fixer would fight the existing one over document style; shellcheck-makefile
+over checkmake — a category error, it lints shell *inside* recipes while
+checkmake lints Makefile structure, so that recipe-shell coverage stays
+unevaluated rather than claimed.
