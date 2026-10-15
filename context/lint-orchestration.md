@@ -294,7 +294,6 @@ template defect: `core/config.py` imported `pydantic` while only
 `pydantic-settings` was declared, so `pydantic` is now a direct dependency
 whenever `include_pydantic_settings` or `include_worker` is on.
 
-
 ## Shell and YAML lint/format are prek hooks, not a uv group
 
 **Id:** df7e185c-4188-457b-bc55-d20b7cde8ee1
