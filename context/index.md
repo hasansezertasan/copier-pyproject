@@ -48,7 +48,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 
 ## G
 
-- [gitignore-generation.md](gitignore-generation.md) — cobo-sealed gitignore, its lockfiles, and the LF-corrupted macOS patterns.
+- [gitignore-generation.md](gitignore-generation.md) — cobo-sealed gitignore, its lockfiles, the always-on fragment set, and the seal-keeps/render-strips macOS CR split.
 
 ## H
 
@@ -60,7 +60,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 
 ## L
 
-- [lint-orchestration.md](lint-orchestration.md) — tox `style` as the sole lint suite, prek stages, Taplo schema fetching, the five type checkers, MegaLinter, semgrep.
+- [lint-orchestration.md](lint-orchestration.md) — tox `style` as the sole lint suite, prek stages, Taplo schema fetching, the five type checkers, MegaLinter, semgrep, deptry + creosote.
 
 ## M
 

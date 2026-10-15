@@ -274,6 +274,7 @@ the tox `style` env as the sole lint/build
 orchestrator ([tox as the canonical lint runner](context/lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite)),
 a style-env-only semgrep SAST pass over `src/`
 ([semgrep SAST](context/lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored)),
+a `deps` dependency-hygiene gate (deptry + creosote, [why](context/lint-orchestration.md#dependency-hygiene-deptry--creosote-is-an-always-on-deps-gate-not-a-toggle)),
 editorconfig-checker, ghalint, `SUPPORT.md`, `.gitattributes`, `.git_archival.txt`,
 and agent onboarding files — `AGENTS.md` by default, or the
 `.ai-rulez/` sources they are generated from when `include_ai_rulez`

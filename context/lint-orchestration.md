@@ -71,10 +71,13 @@ entry below separately accepts a registry dependency.
 **Evidence:** confirmed
 **Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5; fixed in [PR #379](https://github.com/hasansezertasan/copier-pyproject/pull/379) and recorded in ADR-003 ([`docs/adr/003-tox-as-canonical-lint-runner.md`](https://github.com/hasansezertasan/copier-pyproject/blob/26c25adf2282d04b89007f9752a2907516a1de12/docs/adr/003-tox-as-canonical-lint-runner.md), the last revision that carries this passage)
 **Verification:** corroborated — a hook with no `stages` ran on `pre-commit`, `pre-push`, `commit-msg` and `manual` when `default_stages` was unset
-**Revisit when:** a hook other than `commitizen-branch` needs to run on push
+**Revisit when:** a third push-only hook is added, or pip-audit's push-time cost or false-positive rate outweighs its earlier feedback
 
 `default_stages` is `["pre-commit"]`. Hooks that belong on push, such as
-`commitizen-branch`, declare `stages` themselves.
+`commitizen-branch` and `pip-audit`, declare `stages` themselves. `pip-audit`
+exports the locked runtime tree and audits it with `uvx pip-audit`, the same
+pair `check-security.yml` runs, so a known-vulnerable pin is caught at push
+instead of a CI round later (adopter report, issue #395).
 
 **Reason:** `["pre-commit", "pre-push"]` ran every hook without its own stages
 twice per change, including the whole-project type checkers and pylint, and the
@@ -248,3 +251,45 @@ the auditor-oriented low-confidence pack, and `p/python` already carries
 assumed: generated projects set `select = ["ALL"]`, so flake8-bandit (`S`) is
 already on, and of `p/python`'s 151 rules 55 are taint-mode and only 21 are
 relevant to what the template generates.
+
+## Dependency hygiene (deptry + creosote) is an always-on `deps` gate, not a toggle
+
+**Id:** 09ecae89-ab05-4fd9-ae46-2a4d33f69c47
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [issue #394](https://github.com/hasansezertasan/copier-pyproject/issues/394); maintainer decision on the approach, 2026-10-13
+**Revisit when:** deptry or creosote produce false positives for common generated shapes faster than the template can seed ignores, or one tool subsumes the other
+**See:** lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored — 5068081c-24ce-4c39-9cdf-13e0a7c229b4 — as of 2026-10-13
+
+Every generated project ships a `deps` dependency group (creosote, deptry), a
+`[tool.deptry]` block, a `tox -e deps` env and a `deps` job in `ci.yml` that
+the `check` aggregate needs. There is no `include_*` toggle. The tox env is not
+in `env_list`, so a plain `tox run` and the component test jobs skip it; CI runs
+it in its own job.
+
+**Reason:** the adopting project that raised it lost the only unused/transitive/
+misplaced-dependency check it had, and nothing in the template covered that
+drift. The maintainers chose to have the gate by default so every adopter gets it
+without re-applying an overlay on each `copier update`. It follows the `sast`
+precedent: its own group so a plain `uv sync` skips the tools, and its own job so
+a failure names dependency drift rather than a lint run.
+
+**Rejected alternative:** an opt-in `include_dep_hygiene` toggle (the issue's
+option 1) — declined by the maintainers in favour of default-on; the stated
+motivation was having the gate by default, no further reason was recorded.
+
+**Rejected alternative:** documenting the overlay recipe only (option 2) — leaves
+every adopter to reverse-engineer and re-apply it.
+
+**Consequence:** the template seeds the ignores its own output needs, gated on
+the toggles that produce the imports: `known_first_party` (the tox env installs
+the wheel, so deptry otherwise reads the project's own package as a transitive
+dependency), `uvicorn` (DEP003, web) and `packaging` (DEP004, docs) in
+`per_rule_ignores`, the build hook/benchmarks/worker probe script/Sphinx config
+in `extend_exclude`, and creosote's `--include-deferred` (creosote skips imports
+inside functions by default, which would report the worker's lazily imported
+`uvloop` as unused). The gate also surfaced a real
+template defect: `core/config.py` imported `pydantic` while only
+`pydantic-settings` was declared, so `pydantic` is now a direct dependency
+whenever `include_pydantic_settings` or `include_worker` is on.

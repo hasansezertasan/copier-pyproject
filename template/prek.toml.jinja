@@ -297,6 +297,14 @@ hooks = [
   # an activated mise shell environment (shims on PATH). It only requires `mise`
   # itself on PATH, which local contributors have and the CI `hooks` job supplies
   # via jdx/mise-action.
+  # pip-audit is a push-only hook: auditing the resolved runtime tree queries the
+  # PyPI Advisory DB, which is too slow and network-bound for every commit but
+  # cheap enough once per push, ahead of the weekly/CI `pip-audit` job in
+  # check-security.yml. It runs the same export + `uvx pip-audit` pair as that
+  # job (so pip-audit stays out of the project's dependencies) and cleans up its
+  # temp file whether or not the audit passes. `default_stages` excludes it from
+  # the commit gate; `stages` opts it into push.
+  { id = "pip-audit", name = "pip-audit", entry = "sh -c 'req=$(mktemp) && uv export --frozen --all-extras --no-dev --no-emit-project --no-hashes --format requirements.txt --output-file \"$req\" && uvx pip-audit --requirement \"$req\"; status=$?; rm -f \"$req\"; exit $status'", language = "system", stages = ["pre-push"], pass_filenames = false, always_run = true },
   { id = "ghalint", name = "ghalint", entry = "mise exec -- ghalint run", language = "system", pass_filenames = false, always_run = true },
   { id = "pytest", name = "Pytest Test Runner", entry = "uv run --locked pytest", language = "system", pass_filenames = false, always_run = true },
 ]
