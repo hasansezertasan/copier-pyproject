@@ -1,12 +1,12 @@
 ---
 name: Artifact Drift Check
-# The committed derived artifacts (docs/generated-project-trees.md — ADR-031)
-# are guarded on every PR by tests/test_doc_trees.py, which catches drift caused
+# The committed derived artifacts (docs/generated-project-trees.md —
+# context/template-testing.md) are guarded on every PR by tests/test_doc_trees.py, which catches drift caused
 # by a change in THIS repo. This workflow covers the other direction: the render
 # toolchain is unpinned, so a new copier release can change what the template
 # emits with no commit here at all — the same upstream-drift shape cobo's weekly
-# gitignore check exists for (ADR-012). Weekly schedule + workflow_dispatch,
-# never on pull_request and not in any gate: a failure is a maintenance signal
+# gitignore check exists for (context/gitignore-generation.md). Weekly
+# schedule + workflow_dispatch, never on pull_request and not in any gate: a failure is a maintenance signal
 # (run `mise run regenerate` and commit the diff), not a merge blocker.
 "on":
   workflow_dispatch:
@@ -31,8 +31,8 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
       - name: Regenerate the derived artifacts
-        # The single render entrypoint (ADR-031); uv resolves copier from the
-        # script's PEP 723 metadata.
+        # The single render entrypoint (context/template-testing.md); uv
+        # resolves copier from the script's PEP 723 metadata.
         run: uv run tools/render.py regenerate
       - name: Fail on drift
         run: |

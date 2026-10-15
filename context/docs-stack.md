@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-006 (`docs/adr/006-sphinx-shibuya-for-documentation.md`)
+**Source:** ADR-006 ([`docs/adr/006-sphinx-shibuya-for-documentation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/006-sphinx-shibuya-for-documentation.md))
 **Revisit when:** Shibuya stops being published on PyPI, or the Litestar-org reference sites change stack
 
 Generated projects document with Sphinx, the `shibuya` theme from PyPI,
@@ -24,7 +24,8 @@ Sphinx plus Shibuya, so adopting that stack is the direct path. Autodoc must
 import the package and the modules' dependencies, hence the package install.
 
 **Rejected alternative:** `litestar-sphinx-theme` — Shibuya plus Litestar
-branding, distributed as a git dependency; wrong for a generic template.
+branding, distributed as a git dependency; wrong for a generic template, and
+a PyPI release is a healthier default than a pinned git ref.
 
 **Rejected alternative:** `sphinxcontrib-typer` for the CLI reference — works,
 but generating the page from the live app at build time keeps the CLI uniform
@@ -41,13 +42,14 @@ docstring autodoc surfaced and was removed.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-010 §1 (`docs/adr/010-pr-docs-previews-and-released-issue-notifications.md`)
+**Source:** ADR-010 §1 ([`docs/adr/010-pr-docs-previews-and-released-issue-notifications.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/010-pr-docs-previews-and-released-issue-notifications.md))
 **Revisit when:** the preview action ships fork support, or previews need to block merges
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages — 858025c1-19a6-46f6-a237-01ba6477262a — as of 2026-10-11
 
 A single-job `docs-preview.yml` on `pull_request` builds the Sphinx HTML and
-hands deploy, removal on close and a sticky comment to a purpose-built action,
+hands deploy, removal on close and a sticky comment to a purpose-built action
+([`rossjrw/pr-preview-action`](https://github.com/rossjrw/pr-preview-action)),
 publishing under `pr-preview/pr-<N>/` on the project's own `gh-pages`. It runs
 only when the head repository is the repository itself; fork PRs skip cleanly.
 It renders only when `include_docs` is on (ADR-025) and is not in the `check`
@@ -60,7 +62,9 @@ fork code never runs with write access; for a solo-maintainer template,
 same-repo branches are the common case. Removing a subfolder on close and
 maintaining a comment would otherwise mean hand-rolled git on `gh-pages`,
 exactly the surface the released-docs deploy moved away from. A bare artifact
-has no live URL, which is the whole value.
+has no live URL, which is the whole value. If GitHub Pages is not enabled the
+deploy step fails only on that PR, which is tolerable because the workflow is
+not in the `check` gate.
 
 **Rejected alternative:** a `workflow_run`/`pull_request_target` split for fork
 coverage — deferred until the action supports forks.
@@ -75,7 +79,7 @@ racing deploy cannot overwrite them.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-011 (`docs/adr/011-docs-linting-and-cross-platform-filename-safety.md`)
+**Source:** ADR-011 ([`docs/adr/011-docs-linting-and-cross-platform-filename-safety.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/011-docs-linting-and-cross-platform-filename-safety.md))
 **Revisit when:** the matrix drops a case-insensitive platform, or linkcheck becomes reliable enough for PR time
 **See:** ci-topology.md#network-dependent-checks-run-on-a-weekly-cron-never-in-the-merge-gate — 3e5b9525-9087-4125-b19f-80f6c226c01f — as of 2026-10-11
 **See:** architecture-contracts.md#whole-program-analyzers-are-local-system-hooks-backed-by-the-style-group — 41f3397d-1afb-4e57-a0bd-b5ef85089bfc — as of 2026-10-11
@@ -130,7 +134,7 @@ for that choice was established in the reviewed sources.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-025 (`docs/adr/025-optional-docs-subsystem.md`); issue #252
+**Source:** ADR-025 ([`docs/adr/025-optional-docs-subsystem.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/025-optional-docs-subsystem.md)); issue #252
 **Revisit when:** the six files that hard-reference `docs/maintaining/setup.rst` move, or a preset wants docs off by default
 **See:** repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree — 4e0fcdab-d3b9-4f96-b61d-8e34927af98d — as of 2026-10-11
 
@@ -144,7 +148,9 @@ ships regardless; only its GitHub Pages step is conditional.
 library or internal tool often wants a README and nothing more. Default-on keeps
 `copier update` non-breaking and the published-site baseline. The maintainer
 setup guide is read as plain text by the `repo-setup` skill and hard-referenced
-from six other files, so relocating it would break all of them; a `docs/`
+from six other files (`README.md`, `CONTRIBUTING.md`, `ci.yml`, `settings.yml`,
+`.sourcery.yaml`, `sonar-project.properties`), so relocating it would break all
+of them; a `docs/`
 directory holding just the guide is preferable.
 
 **Consequence:** a README-only project is a supported shape; the later
@@ -157,7 +163,7 @@ gated by construction.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-028 (`docs/adr/028-tested-documentation-examples.md`)
+**Source:** ADR-028 ([`docs/adr/028-tested-documentation-examples.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/028-tested-documentation-examples.md))
 **Revisit when:** another Markdown file is adopted as a doctest surface, or the per-component CI jobs stop replacing tox's default env list
 **See:** docs-stack.md#the-sphinx-subsystem-is-toggleable-include_docs-default-on-the-maintainer-guide-is-not — e983d1e7-421f-4926-9415-a3da4626f220 — as of 2026-10-11
 
@@ -184,7 +190,10 @@ code, hence outside coverage.
 let a broken README doctest pass locally and surface only in CI.
 
 **Consequence:** the Sphinx builder owns `.rst` prose and pytest owns the one
-curated Markdown surface; neither collector overlaps the other.
+curated Markdown surface; neither collector overlaps the other. Examples stay
+out of built wheels; adopters who want distributable demonstrations use the
+independent `include_examples` scaffold. Pytest enables `ELLIPSIS`,
+`IGNORE_EXCEPTION_DETAIL` and `NORMALIZE_WHITESPACE` for the README doctests.
 
 ## The four auto-generated reference pages keep their current generators
 
@@ -192,7 +201,7 @@ curated Markdown surface; neither collector overlaps the other.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-038 (`docs/adr/038-sphinx-api-reference-rendering-strategy.md`), refreshed 2026-10-05
+**Source:** ADR-038 ([`docs/adr/038-sphinx-api-reference-rendering-strategy.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/038-sphinx-api-reference-rendering-strategy.md)), refreshed 2026-10-05; [Sphinx API-reference survey](../docs/research/sphinx-api-reference-tools.md) (candidate tables and source links)
 **Revisit when:** a `sphinxcontrib-openapi` pilot confirms OpenAPI 3.1 rendering, an AsyncAPI Sphinx renderer appears, or argparse CLIs are judged to need a reference page
 **See:** docs-stack.md#sphinx-with-the-bare-shibuya-theme-replaces-mkdocs — 5133caa8-3231-4d4d-877b-041b315cb87a — as of 2026-10-11
 

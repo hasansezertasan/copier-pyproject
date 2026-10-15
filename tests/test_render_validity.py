@@ -22,8 +22,9 @@ import yaml
 
 PKG = "example"
 
-# The four archetype presets (ADR-016) — the primary axis hand-regeneration
-# misses, since ``.example-input.yml`` only ever renders ``library``.
+# The four archetype presets (context/presets.md) — the primary axis
+# hand-regeneration misses, since ``.example-input.yml`` only ever renders
+# ``library``.
 PRESETS = ["library", "tool", "web", "full"]
 
 # High-signal toggle combinations beyond the presets: one render per broker and
@@ -163,10 +164,11 @@ def test_import_linter_contract_covers_every_subpackage(
 ) -> None:
     """Every rendered subpackage is declared in the exhaustive layers contract.
 
-    The contract is ``exhaustive`` (ADR-014), so ``lint-imports`` breaks on a
-    subpackage missing from ``layers`` — which is the point for a *new* package,
-    but would be a template bug for one this repo ships. Checked here because a
-    real ``lint-imports`` run needs the project installed.
+    The contract is ``exhaustive`` (context/architecture-contracts.md), so
+    ``lint-imports`` breaks on a subpackage missing from ``layers`` — which is
+    the point for a *new* package, but would be a template bug for one this repo
+    ships. Checked here because a real ``lint-imports`` run needs the project
+    installed.
     """
     root = render(preset=preset)
     pyproject = tomllib.loads(
@@ -199,7 +201,8 @@ def test_worker_broker_render_is_structurally_valid(
 
 # The env var each broker's integration seam reads — the single value that must
 # agree across ``worker_broker_spec.env``, the CI ``services:`` job ``env:``, and
-# the ``integration`` tox env's ``pass_env`` (ADR-008, issue #169).
+# the ``integration`` tox env's ``pass_env`` (context/testing-strategy.md,
+# issue #169).
 BROKER_ENV_VARS = {
     "kafka": "KAFKA_BOOTSTRAP_SERVERS",
     "nats": "NATS_URL",
@@ -312,7 +315,8 @@ def test_worker_integration_env_seam_agrees_across_ci_and_tox(
     The ``services:`` job ``env:`` sets it, the ``integration`` tox env must
     ``pass_env`` it through to pytest, and the integration test reads it. A
     mismatch in any one of them degrades the services path to a silent
-    testcontainers fallback rather than failing loudly (ADR-008, issue #169).
+    testcontainers fallback rather than failing loudly
+    (context/testing-strategy.md, issue #169).
     """
     root = render(include_worker=True, worker_broker=broker)
     env_var = BROKER_ENV_VARS[broker]
@@ -344,7 +348,8 @@ def test_docs_off_drops_sphinx_subsystem_but_keeps_setup_guide(
     render: Callable[..., Path],
 ) -> None:
     """``include_docs=false`` removes the Sphinx site + docs CI/deps but leaves
-    the maintainer setup guide and a structurally valid project (ADR-025)."""
+    the maintainer setup guide and a structurally valid project
+    (context/docs-stack.md)."""
     root = render(include_docs=False)
     _assert_all_yaml_parses(root)
     _assert_pyproject_is_toml(root)

@@ -105,9 +105,11 @@ Check particularly:
   propagation. Two jobs invoking prek are not necessarily equivalent.
 - **Required status checks:** before deleting or renaming a workflow/job,
   inspect check names (including matrix names), aggregate gates, downstream
-  references, and repository branch protection and rulesets. Compare local
-  `.github/settings.yml` / ruleset definitions with live settings when read
+  references, and repository branch protection and rulesets.
+{%- if include_repo_settings or include_repo_ruleset %}
+  Compare local{% if include_repo_settings %} `.github/settings.yml`{% endif %}{% if include_repo_settings and include_repo_ruleset %} /{% endif %}{% if include_repo_ruleset %} ruleset definitions{% endif %} with live settings when read
   access is available. Local files alone do not prove the active requirements.
+{%- endif %}
   If live requirements are unavailable, record that gap and defer removal or
   renaming of potentially required checks until the user supplies evidence.
 - **Project customizations:** preserve source behavior, meaningful tests,

@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-019 (`docs/adr/019-components-as-cli-subcommands.md`), including its 2026-09 amendment; issue #203
+**Source:** ADR-019 ([`docs/adr/019-components-as-cli-subcommands.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/019-components-as-cli-subcommands.md)), including its 2026-09 amendment; issue #203
 **Revisit when:** a new kind of runnable component is added, or `typer` becomes unacceptable on the minimal launcher
 **See:** architecture-contracts.md#one-exhaustive-import-linter-layers-contract-cli-above-independent-components-above-core-above-utils — 3b7cdbee-7c66-4e52-9d7e-8ab0ffe32e56 — as of 2026-10-11
 **See:** components.md#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root — 3daefc4a-ee36-44cb-b137-bc9224f2a262 — as of 2026-10-11
@@ -46,7 +46,7 @@ subcommand form.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-020 (`docs/adr/020-cli-framework-choice.md`); [issue #205](https://github.com/hasansezertasan/copier-pyproject/issues/205)
+**Source:** ADR-020 ([`docs/adr/020-cli-framework-choice.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/020-cli-framework-choice.md)); [issue #205](https://github.com/hasansezertasan/copier-pyproject/issues/205)
 **Revisit when:** demand appears for click as a third choice, or a no-CLI launcher needs to be framework-free
 **See:** components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts — 3d60ab14-8ff9-47db-b326-d7e82947a6cf — as of 2026-10-11
 **See:** package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic — 462ac46c-c9db-4a4a-b8ae-bbe5c14af09f — as of 2026-10-11
@@ -76,13 +76,19 @@ CLI is made a first-class way to *be* an app instead.
 **Rejected alternative:** click as a third choice — a dependency without Typer's
 ergonomics; earns its keep only on later demand.
 
+**Consequence:** the root now has two rendered variants (app and test module)
+to maintain, and `dependencies` may be empty for an argparse-only CLI, which
+is valid. The argparse root reproduces the `version`/`info` shape and the
+component subcommands for parity; a project wanting one no-subcommand action
+deletes what it does not need.
+
 ## Launcher imports are guarded with exact-match, preflighted dependency errors
 
 **Id:** 70e54068-d43c-40a2-9097-95e7cc14c668
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-028 (`docs/adr/028-actionable-component-dependency-guard.md`); issues #172 and #268
+**Source:** ADR-028 ([`docs/adr/028-actionable-component-dependency-guard.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/028-actionable-component-dependency-guard.md)); issues #172 and #268
 **Revisit when:** generated projects gain per-component extras, or a dependency stops importing lazily after the guarded block
 **See:** components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts — 3d60ab14-8ff9-47db-b326-d7e82947a6cf — as of 2026-10-11
 **See:** components.md#component-dependencies-are-core-dependencies-there-is-no-empty-all-extra — e9b25624-f621-4071-bd99-a7cde620189a — as of 2026-10-11
@@ -98,7 +104,10 @@ hint (including a version-qualified Homebrew formula) because it is not a
 distribution. The root's own module-scope imports (`typer`, pydantic via the
 settings stack) and the sole-component entrypoint in `__main__.py` get the same
 treatment; all derived facts are `when: false` computed variables in
-`copier.yml`.
+`copier.yml`. The guard is emitted only when the root actually lazy-imports
+something (derived from `primary_component`), so a CLI-only project renders
+byte-identical to before, and a pure-argparse root without settings renders
+without it (`root_dependencies` is computed from the enabled toggles).
 
 **Reason:** there are no extras to name — component deps are core dependencies —
 so a missing module means the environment is out of sync with the metadata and
@@ -123,6 +132,23 @@ modules are what adopters edit most.
 **Rejected alternative:** let faststream's own `ImportError` through — its advice
 (`pip install "faststream[<broker>]"`) bypasses the lockfile.
 
+**Edge cases the guard keeps on purpose.** A nameless `ModuleNotFoundError`
+propagates untouched, because the guard cannot tell whose failure it is.
+`faststream.<broker>` re-exports the broker client behind faststream's own
+import guard, which raises a plain `ImportError` with no module name and advises
+`pip install "faststream[<broker>]"`, advice that bypasses the project's
+lockfile. So the worker allowlist names `faststream.<broker>` and not the client
+(`aiokafka`, `aio_pika`): faststream intercepts the client's own error, and a
+client entry would be dead. The Tk allowlist covers both `tkinter` and the
+`_tkinter` C extension, because on an interpreter built without tk-dev the
+pure-Python package still ships and `_tkinter` is the name that actually fails;
+the GUI hint also names `python-tk@X.Y` built from `sys.version_info`, since
+Homebrew's bare `python-tk` aliases the newest Python's formula. `_preflight`
+catches `ImportError` broadly, so a broken install is also reported as
+unavailable, which is the right summary at the launcher boundary. The error
+paths are unit-tested with no blanket pragma, driving the deferred and nameless
+cases through `sys.meta_path` finders so they reproduce on any runner.
+
 ## Component dependencies are core dependencies; there is no empty `all` extra
 
 **Id:** e9b25624-f621-4071-bd99-a7cde620189a
@@ -130,7 +156,7 @@ modules are what adopters edit most.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-028 (`docs/adr/028-no-empty-all-extra.md`)
+**Source:** ADR-028 ([`docs/adr/028-no-empty-all-extra.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/028-no-empty-all-extra.md))
 **Revisit when:** a component gains a genuinely optional dependency
 
 Generated projects declare no `[project.optional-dependencies]` table. A
@@ -151,7 +177,17 @@ permanent misleading declaration.
 
 **Consequence:** adopters applying this update must re-lock, because the
 metadata recorded in `uv.lock` changes and every `uv run --locked` hard-fails
-until they do; a hand-added `uv run --extra all` breaks.
+until they do. Renovate's copier manager re-renders but does not re-lock, and
+CI, the prek system hooks and the mise tasks all use `uv run --locked`, so the
+update PR stays red until `uv lock` is committed in it; a hand-added
+`uv run --extra all` breaks. The `<pkg>[all]` dev self-reference was dropped
+outright rather than reduced to `<pkg>`, since `uv sync` and tox already
+install the project. Adding a real optional extra is now an explicit act:
+declare it, add it to the dev group, and add `extras` only to the tox envs that
+need it, which is the right blast radius to reason about. Other docs had
+attributed dependency availability to the extra (one claimed dropping it would
+break `automodule` of the web module, another used it to justify eager broker
+imports); they were corrected to name the core `dependencies`.
 
 ## The web component gets `run` and `dev` launch verbs, and therefore always a console root
 
@@ -159,7 +195,7 @@ until they do; a hand-added `uv run --extra all` breaks.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-032 (`docs/adr/032-uniform-run-dev-launch-verbs.md`); issue #177
+**Source:** ADR-032 ([`docs/adr/032-uniform-run-dev-launch-verbs.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/032-uniform-run-dev-launch-verbs.md)); issue #177
 **Revisit when:** FastStream's reload stops requiring its CLI extra, or a second component acquires a prod/dev distinction
 **See:** components.md#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts — 3d60ab14-8ff9-47db-b326-d7e82947a6cf — as of 2026-10-11
 **See:** components.md#launcher-imports-are-guarded-with-exact-match-preflighted-dependency-errors — 70e54068-d43c-40a2-9097-95e7cc14c668 — as of 2026-10-11
@@ -184,7 +220,12 @@ the second entry scheme the subcommand decision exists to prevent.
 **Rejected alternative:** verbs for the worker too — reload needs
 `faststream[cli]` at runtime, which the template deliberately keeps out of
 `dependencies`, and type-sniffing the target is the framework detection avoided
-here.
+here. `faststream run <pkg>.worker.app:app --reload` stays the documented dev
+path for the worker and `<pkg> worker` stays the production one.
+
+**Rejected alternative:** verbs for gui, tui or mcp — no meaningful prod/dev
+distinction and nothing to point a target at. Because only web owns the verbs,
+`run` is never ambiguous and needs no `--component` selector.
 
 **Rejected alternative:** replace `<pkg> web` with `<pkg> run` — breaks the one
 naming rule the subcommand decision makes.
@@ -194,7 +235,10 @@ project command and is not testable the way a cheap shape check is.
 
 **Consequence:** web-only Litestar projects gain `typer` (FastAPI already ships
 it); `sole_component` can never be `web`, so a web project's executable
-entrypoint is the console root.
+entrypoint is the console root. The `web` preset's tree gains a `cli/` package
+and a `test-cli`/`coverage-cli` CI job pair. The verbs and their runner are
+unit-tested with the launch stubbed, so only the uvicorn-blocking `run_server`
+carries a coverage pragma.
 
 ## One application payload in `core/app.py`; components are adapters over it
 
@@ -202,7 +246,7 @@ entrypoint is the console root.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-033 (`docs/adr/033-shared-app-service-components-as-adapters.md`); issues #178 and #321
+**Source:** ADR-033 ([`docs/adr/033-shared-app-service-components-as-adapters.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/033-shared-app-service-components-as-adapters.md)); issues #178 and #321
 **Revisit when:** a component needs a fourth failure behaviour, or a second provider of the payload appears
 **See:** architecture-contracts.md#one-exhaustive-import-linter-layers-contract-cli-above-independent-components-above-core-above-utils — 3b7cdbee-7c66-4e52-9d7e-8ab0ffe32e56 — as of 2026-10-11
 **See:** template-updates.md#retired-template-modules-become-adopter-owned — 4dd6729a-697e-4588-a7a7-d37152018b6b — as of 2026-10-11

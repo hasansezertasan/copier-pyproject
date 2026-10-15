@@ -21,7 +21,7 @@ FILTER_REGEX_EXCLUDE: (^|/)CHANGELOG\.md$
 # The one deliberate overlap is SPELL_CSPELL, scoped to prose (.md): a deeper,
 # dictionary-driven spell-check that complements prek's fast `typos` gate (it does
 # not replace it), with findings surfaced in the Security tab.
-# See ADR-013.
+# See https://hasansezertasan.github.io/copier-pyproject/context/lint-orchestration/#megalinter-is-an-opt-in-lean-complement-non-blocking-on-three-levels.
 APPLY_FIXES: none
 # Report-only: never fail the job on findings. This layer is non-blocking at the
 # exit-code level (tox/prek are the canonical gates); findings are delivered via

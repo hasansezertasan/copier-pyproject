@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-001 (`docs/adr/001-copier-over-cookiecutter.md`)
+**Source:** ADR-001 ([`docs/adr/001-copier-over-cookiecutter.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/001-copier-over-cookiecutter.md))
 **Revisit when:** `copier update` stops being a first-class feature, or a Python-native alternative gains native template-update support
 
 Copier renders this template. Generated projects carry a `.copier-answers.yml`
@@ -18,7 +18,10 @@ instead of re-applying them by hand. Conditional file inclusion via filename
 patterns is cleaner than hook-based approaches, the answers file makes updates
 reproducible, and full Jinja2 (whitespace control, raw blocks for GitHub Actions
 syntax) is required by the workflow templates. Copier is actively maintained and
-aligned with the uv/hatchling ecosystem the generated projects use.
+aligned with the uv/hatchling ecosystem the generated projects use. Industry
+trend pointed the same way: projects such as Substrate (Superlinear) migrated
+from Cookiecutter/Cruft to Copier, and 2026 academic literature describes
+Copier as a prominent evolution of Cookiecutter.
 
 **Rejected alternative:** Cookiecutter — the largest ecosystem, but no native
 update/sync; pulling upstream changes is manual work.

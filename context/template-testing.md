@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-024 (`docs/adr/024-render-and-inspect-template-test-suite.md`); issue #365 for the parallel run
+**Source:** ADR-024 ([`docs/adr/024-render-and-inspect-template-test-suite.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/024-render-and-inspect-template-test-suite.md)); issue #365 for the parallel run
 **Revisit when:** the golden set grows past a couple of stable artifacts, or a root Python project appears
 **See:** template-testing.md#toolsrenderpy-is-the-only-place-the-template-is-rendered — f41fa3a2-20e2-4ba5-a3d0-c53a0074a9d0 — as of 2026-10-11
 
@@ -42,7 +42,7 @@ regeneration and a reviewed diff.
 **Type:** incident
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-030 (`docs/adr/030-generated-files-must-be-formatter-canonical.md`); [issue #213](https://github.com/hasansezertasan/copier-pyproject/issues/213)
+**Source:** ADR-030 ([`docs/adr/030-generated-files-must-be-formatter-canonical.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/030-generated-files-must-be-formatter-canonical.md)); [issue #213](https://github.com/hasansezertasan/copier-pyproject/issues/213)
 **Revisit when:** yamlfmt or taplo change the semantics of the pinned non-default knobs, or the generated project's formatter set changes
 **See:** template-testing.md#render-and-inspect-is-the-fast-matrixed-layer-generate-and-run-stays-separate — c9bcdf52-af5d-4438-9c9f-d55e8226812c — as of 2026-10-11
 
@@ -58,20 +58,34 @@ EOF, literal UTF-8 author tokens instead of `tojson`); and taplo runs in strict
 check mode. `template-ci.yml`'s render job runs the rendered project's own
 fixing hooks per scenario and gates on `git diff`, with an `integrations`
 scenario and a non-ASCII author name covering toggles nothing else rendered.
+yamlfmt's basic formatter would drop every blank line, but the blank lines
+between jobs and step groups in the roughly 1,300-line `ci.yml` are deliberate
+structure; the `_single` variant (not plain `retain_line_breaks`) collapses
+runs to exactly one, which keeps the formatter idempotent.
 
-**Reason:** on a pristine scaffold the first hook run rewrote two workflow files
-and taplo rewrote two TOML files while exiting 0, so the adopter's `hooks` CI
-failed and every later `copier update` showed drift they never caused. Nothing
+**Reason:** on a pristine v1.3.0 scaffold the first prek run (exit 1) rewrote
+`ci.yml` and `ISSUE_TEMPLATE/bug_report.yml` through yamlfmt, and the `style`
+run (exit 0) rewrote `pyproject.toml` and `prek.toml` through taplo's fix mode,
+so the adopter's `hooks` CI failed and every later `copier update` showed drift
+they never caused. Nothing
 caught it because this repo ran only checking tools over a render and the
 harness asserts YAML parses, not that it is canonical; taplo's fix mode made the
 defect invisible. Width-driven reflow would make a file's canonical form depend
 on which components are enabled, and comment alignment would let a Renovate
 bump break a line nothing touched. The diff, not hook exit codes, is the gate
 because a fixing hook that rewrites and exits 0 sails through an exit-code
-check.
+check. A third, latent case: `.cspell.yml` rendered author tokens through
+`tojson`, which escapes non-ASCII to `\uXXXX`; yamlfmt normalizes them back, so
+any adopter with a non-ASCII name and MegaLinter got a file their own hooks
+rewrote.
 
 **Rejected alternative:** chase the formatters' output in the templates — the
 config is pinned to make the written layout canonical instead.
+
+**Rejected alternative:** set yamlfmt `max_line_length` — it re-wraps folded
+scalars across files the template does not otherwise touch, trading one class
+of churn for a larger one. Long rendered lines are acceptable: yamllint's
+`line-length` is `level: warning`.
 
 **Consequence:** hand-aligned trailing comments and hand-wrapped folded scalars
 are unavailable; a conditional block in rendered YAML/TOML requires thinking
@@ -84,7 +98,7 @@ them.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-030, 2026-09 amendment (`docs/adr/030-generated-files-must-be-formatter-canonical.md`); the agent-prose macros in the same file are recorded in ADR-035
+**Source:** ADR-030, 2026-09 amendment ([`docs/adr/030-generated-files-must-be-formatter-canonical.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/030-generated-files-must-be-formatter-canonical.md)); the agent-prose macros in the same file are recorded in ADR-035
 **Revisit when:** ruff-format changes its magic-trailing-comma or width behaviour, or Copier gains a way to share helpers inside `_subdirectory`
 **See:** template-testing.md#generated-files-must-be-formatter-canonical-not-merely-valid — 9b931598-7e52-4ff1-bb07-ef65c01d5369 — as of 2026-10-11
 
@@ -111,7 +125,7 @@ drift this replaced.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-031 §1 (`docs/adr/031-single-render-entrypoint.md`); issues #181, #183, #164, #184
+**Source:** ADR-031 §1 ([`docs/adr/031-single-render-entrypoint.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/031-single-render-entrypoint.md)); issues #181, #183, #164, #184
 **Revisit when:** Copier's API changes, or a root `pyproject.toml` appears (it must keep the repo root importable under pytest)
 **See:** template-testing.md#render-and-inspect-is-the-fast-matrixed-layer-generate-and-run-stays-separate — c9bcdf52-af5d-4438-9c9f-d55e8226812c — as of 2026-10-11
 
@@ -136,13 +150,17 @@ component added to `full` is exercised end-to-end without editing the matrix.
 **Consequence:** adding another `copier copy` invocation is a review defect; a
 new consumer imports `render()` or calls the CLI.
 
+**Consequence:** `tools/render.py` is import-reachable from the tests only
+because the repo root is on `sys.path` under pytest (`tests/__init__.py` plus
+prepend import mode). A future root `pyproject.toml` must keep that true.
+
 ## The generated-project tree page is a committed derived artifact with two drift guards
 
 **Id:** 54918c4d-49dd-4ce8-94a6-3d472010173f
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-031 §2–3 (`docs/adr/031-single-render-entrypoint.md`); generalizes the cobo drift-guard posture of ADR-012
+**Source:** ADR-031 §2–3 ([`docs/adr/031-single-render-entrypoint.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/031-single-render-entrypoint.md)); generalizes the cobo drift-guard posture of ADR-012
 **Revisit when:** copier is pinned in the render path, or another derived artifact joins `regenerate`
 **See:** template-testing.md#toolsrenderpy-is-the-only-place-the-template-is-rendered — f41fa3a2-20e2-4ba5-a3d0-c53a0074a9d0 — as of 2026-10-11
 **See:** ci-topology.md#network-dependent-checks-run-on-a-weekly-cron-never-in-the-merge-gate — 3e5b9525-9087-4125-b19f-80f6c226c01f — as of 2026-10-11
@@ -175,7 +193,7 @@ artifacts.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-031 §5 (`docs/adr/031-single-render-entrypoint.md`)
+**Source:** ADR-031 §5 ([`docs/adr/031-single-render-entrypoint.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/031-single-render-entrypoint.md))
 **Revisit when:** the rebake stops removing its target tree
 **See:** template-testing.md#toolsrenderpy-is-the-only-place-the-template-is-rendered — f41fa3a2-20e2-4ba5-a3d0-c53a0074a9d0 — as of 2026-10-11
 

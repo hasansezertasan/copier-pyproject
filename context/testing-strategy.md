@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-008 §1 and its implementation revision note (`docs/adr/008-worker-broker-testing-strategy.md`); the pattern was proven in litestar-faststream and [litestar-events#9](https://github.com/hasansezertasan/litestar-events/pull/9)
+**Source:** ADR-008 §1 and its implementation revision note ([`docs/adr/008-worker-broker-testing-strategy.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/008-worker-broker-testing-strategy.md)); the pattern was proven in litestar-faststream and [litestar-events#9](https://github.com/hasansezertasan/litestar-events/pull/9)
 **Revisit when:** a worker gains a second broker, or FastStream changes how a broker is constructed
 **See:** components.md#component-dependencies-are-core-dependencies-there-is-no-empty-all-extra — e9b25624-f621-4071-bd99-a7cde620189a — as of 2026-10-11
 
@@ -38,7 +38,7 @@ observable behaviour (a response reaching a collector subscriber), not wiring.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-008 §2 and its 2026-08 amendment (`docs/adr/008-worker-broker-testing-strategy.md`); issues #169 and #166
+**Source:** ADR-008 §2 and its 2026-08 amendment ([`docs/adr/008-worker-broker-testing-strategy.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/008-worker-broker-testing-strategy.md)); issues #169 and #166
 **Revisit when:** GitHub service containers can override the image command, Kafka/RabbitMQ gain a usable readiness probe, or Docker becomes available on non-Linux runners
 **See:** testing-strategy.md#the-worker-exposes-an-env-injectable-broker-factory-lazy-broker-imports-were-rejected — b00a3a49-7fbf-4d87-98fa-73519b994c8e — as of 2026-10-11
 **See:** ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component — 467b6cc3-775b-4e4c-9a8e-b0d1c3d733ac — as of 2026-10-11
@@ -58,7 +58,9 @@ runs with a broad deprecation-warning demotion and a pytest timeout.
 — serialization, connection handling, driver compatibility — and CI never
 started a broker. Docker is reliably available only on Ubuntu runners, so the
 cross-OS matrix must stay Docker-free. testcontainers owns the lifecycle from
-the test, so a laptop run matches CI. The original reasoning over-generalized
+the test, so a laptop run matches CI, and it composes with the existing
+`.devcontainer` services instead of duplicating their definitions into
+workflow YAML. The original reasoning over-generalized
 against `services:`: for fast-starting brokers the runner starts, health-gates
 and injects the connection before the job, which is lighter than in-test
 orchestration; Kafka's advertised listeners and RabbitMQ's readiness are not
@@ -80,6 +82,11 @@ has exactly one.
 collected but deselected in the default suite. The larger runtime integration of
 FastStream inside the Litestar app is explicitly out of scope.
 
+**Shared image variables.** The Redis-compatible image and CLI come from the
+`redis_image` / `redis_cli` computed vars, which the devcontainer compose
+service reads as well as the CI `services:` container, so a redis-to-valkey or
+version bump cannot leave CI and the devcontainer disagreeing.
+
 ## Coverage exclusions are per-site pragmas, and the globs must match the installed layout
 
 **Id:** 68366ce3-cc8e-4720-aa91-5eb83aaf2e2d
@@ -87,7 +94,7 @@ FastStream inside the Litestar app is explicitly out of scope.
 **Type:** incident
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-008, Consequences — systemic coverage fix (`docs/adr/008-worker-broker-testing-strategy.md`)
+**Source:** ADR-008, Consequences — systemic coverage fix ([`docs/adr/008-worker-broker-testing-strategy.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/008-worker-broker-testing-strategy.md))
 **Revisit when:** tox stops installing the built wheel/sdist, or coverage changes how `paths` remapping works
 **See:** testing-strategy.md#interactive-components-expose-injected-driver-seams-so-headless-ci-measures-everything-but-the-blocking-call — ffcf90f2-34c7-4673-bbe2-5619c6b23128 — as of 2026-10-11
 
@@ -124,7 +131,7 @@ path; after the fix every component and the base project report 100%.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 (`docs/adr/035-headless-testing-for-interactive-components.md`); issue #176
+**Source:** ADR-035 ([`docs/adr/035-headless-testing-for-interactive-components.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-headless-testing-for-interactive-components.md)); issue #176
 **Revisit when:** a component's blocking call becomes swappable at the module level, or a new interactive component is added
 **See:** testing-strategy.md#coverage-exclusions-are-per-site-pragmas-and-the-globs-must-match-the-installed-layout — 68366ce3-cc8e-4720-aa91-5eb83aaf2e2d — as of 2026-10-11
 **See:** components.md#one-application-payload-in-coreapppy-components-are-adapters-over-it — 8bb1e55e-f468-44fc-80a5-d3b3719e5ddc — as of 2026-10-11
@@ -159,13 +166,19 @@ stdout (a hard dependency being absent is a broken install), and the GUI
 catches `Exception` around an injected driver while keeping its specific
 "Tkinter not available" arm first.
 
+**Test-side details.** The TUI `q` binding is asserted inside the pilot
+context, because `run_test().__aexit__` stops the app unconditionally and
+asserting after exit proves nothing. The worker's `_run_app` keeps its uvloop
+probe inside the pragma'd helper, since choosing a loop only means anything next
+to the `run` call it chooses it for.
+
 ## Async testing is an explicit template axis (`async_style`)
 
 **Id:** e3dc1ec0-0579-4fc9-ac79-413d64550b9a
 **Type:** decision
 **Status:** active
 **Evidence:** inferred
-**Source:** ADR-036 (`docs/adr/036-async-testing-style.md`)
+**Source:** ADR-036 ([`docs/adr/036-async-testing-style.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/036-async-testing-style.md))
 **Revisit when:** an async-capable component gains trio support, or pytest ships a built-in async runner
 
 `async_style` offers `none`, `asyncio` and `anyio`; it defaults to `none` for a

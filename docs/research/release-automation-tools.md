@@ -1,22 +1,8 @@
-# ADR-037: Re-evaluating Release Automation — Changelog Engines vs Release Orchestrators
+# Release automation tools: changelog engines vs release orchestrators
 
 ## Status
 
-**Proposed — under discussion. No decision has been made.**
-
-Last refreshed 2026-10-05 against template 1.5.3 (`release.yml`,
-`release-please-action` v5.0.0) and the upstream issue states cited below.
-
-This ADR is a *research record*. It captures a deliberate re-evaluation of the
-release-automation tooling chosen in
-[ADR-002](002-release-please-for-release-automation.md) and refined in
-[ADR-004](004-commitizen-as-commit-helper-not-release-tool.md), the two-pass
-web research behind it, a conceptual framing of the tool landscape, and a
-head-to-head comparison of the two most credible replacements (Commitizen and
-git-cliff). It intentionally stops short of a decision so the options can be
-discussed on the record. If a direction is chosen later, this ADR is updated to
-**Accepted** with the selected option, and it then refines or supersedes ADR-002
-and ADR-004 as noted under "Consequences".
+Research snapshot kept from the former ADR-037 (last refreshed 2026-10-05). It is evidence, not the decision: the decision and its status live in the release-automation re-evaluation entry of [`context/release-automation.md`](../../context/release-automation.md). `ADR-NNN` mentions below name the former records, readable at commit [`c06222e`](https://github.com/hasansezertasan/copier-pyproject/tree/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr).
 
 ## Context
 
@@ -542,5 +528,5 @@ Primary sources cited above, grouped by tool.
   [#318](https://github.com/hasansezertasan/copier-pyproject/pull/318),
   [#332](https://github.com/hasansezertasan/copier-pyproject/issues/332),
   [#339](https://github.com/hasansezertasan/copier-pyproject/pull/339),
-  [ADR-002](002-release-please-for-release-automation.md),
-  [ADR-004](004-commitizen-as-commit-helper-not-release-tool.md).
+  ADR-002,
+  ADR-004.

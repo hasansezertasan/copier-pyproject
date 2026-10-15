@@ -128,7 +128,7 @@ dependencies = [
 {%- endif %}
 {%- if include_tui %}
   # >=6.0.0 for `Static.content`, which the headless pilot test asserts on
-  # (ADR-035). Earlier releases expose only `Static.renderable`, and 6.0.0
+  # (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#interactive-components-expose-injected-driver-seams-so-headless-ci-measures-everything-but-the-blocking-call). Earlier releases expose only `Static.renderable`, and 6.0.0
   # onward returns None for it — there is no spelling that spans both.
   "textual>=6.0.0",
   "typing-extensions>=4.4.0",
@@ -146,7 +146,11 @@ dependencies = [
 {%- endif %}
 {%- if include_worker %}
   "faststream[{{ 'rabbit' if worker_broker == 'rabbitmq' else worker_broker }}]>=0.5.0",
+{%- endif %}
+{%- if include_worker or include_pydantic_settings %}
   "pydantic>=2.0.0",
+{%- endif %}
+{%- if include_worker %}
   "uvloop>=0.19.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation == 'CPython'",
 {%- endif %}
 {%- if include_pydantic_settings %}
@@ -169,7 +173,7 @@ source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
     ``{{github_repo_name}}`` command, wired to ``__main__:main`` (the single
     entrypoint that standalone builds also target). Every *other* enabled
     component is reached as a subcommand of the ``{{github_repo_name}}`` console
-    root (``{{github_repo_name}} <name>`` — see ADR-019 and ``cli/app.py``), so
+    root (``{{github_repo_name}} <name>`` — see https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts and ``cli/app.py``), so
     no ``{{github_repo_name}}-<name>`` scripts are emitted. A GUI that is the
     *sole* runnable component uses ``[project.gui-scripts]`` so it starts without
     a console window on Windows; but once GUI shares a console root with other
@@ -224,6 +228,15 @@ style = [
 sast = [
   "semgrep==1.180.0",
 ]
+# Dependency hygiene gets its own group for the same reason `sast` does: it is
+# only ever run by the on-demand `deps` tox env and the `deps` CI job, so a plain
+# `uv sync` should not install it. deptry checks the imports against the declared
+# dependencies (missing, transitive, misplaced or obsolete); creosote flags
+# declared runtime dependencies that nothing imports.
+deps = [
+  "creosote==5.2.0",
+  "deptry==0.25.1",
+]
 {%- if include_ai_rulez %}
 # ai-rulez gets its own group for the same reason `sast` does: `dev` includes
 # `style` wholesale, so folding it in would install it into every developer and
@@ -233,7 +246,7 @@ sast = [
 # the first invocation needs network. That download verifies a checksum when it
 # can fetch one and prints a warning and proceeds when it cannot, so treat it as
 # best-effort rather than a guarantee. Still a single version source, same as
-# every other pin (ADR-035).
+# every other pin (https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros).
 agents = [
   "ai-rulez==4.11.5",
 ]
@@ -255,7 +268,7 @@ test = [
   "inline-snapshot",
   "pytest-deadfixtures==3.1.0",
 {%- if include_worker %}
-  # Integration tests start a real {{worker_broker}} in a container (ADR-008).
+  # Integration tests start a real {{worker_broker}} in a container (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism).
   # >=4.15.0 for the `testcontainers.community.*` module namespace (the old
   # top-level `testcontainers.{{ worker_broker }}` path is deprecated there).
   "testcontainers[{{ worker_broker }}]>=4.15.0",
@@ -281,11 +294,11 @@ docs = [
   "sphinx-paramlinks==0.6.0",
   "auto-pytabs[sphinx]==0.5.0",
   "myst-parser==4.0.1",
-  # Per-page "last updated" footer sourced from git commit dates (ADR-027);
+  # Per-page "last updated" footer sourced from git commit dates (https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#per-page-last-updated-comes-from-git-history);
   # offline, no network. Works from full history (docs CI checks out depth 0).
   "sphinx-last-updated-by-git==0.3.8",
   # PEP 440 version parsing/sorting used by tools/build_docs.py to order
-  # published versions and pick the `latest` alias (ADR-027). Also a Sphinx
+  # published versions and pick the `latest` alias (https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages). Also a Sphinx
   # transitive dependency; pinned here for the explicit direct use.
   "packaging>=24.0",
 {%- if include_pydantic_settings %}
@@ -425,7 +438,7 @@ addopts = "-v --tb=short --doctest-glob=README.md"
 {%- endif %}
 # One marker per component, auto-applied by tests/conftest.py from each test's
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
-# jobs (issue #160, ADR-028); `integration` (ADR-008) is one axis of the scheme.
+# jobs (issue #160, https://hasansezertasan.github.io/copier-pyproject/context/ci-topology/#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component); `integration` (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism) is one axis of the scheme.
 markers = [
 {%- if include_benchmarks %}
   "benchmark: performance benchmark (run with tox -e benchmark)",
@@ -471,7 +484,7 @@ filterwarnings = [
 {%- if include_worker %}
   # testcontainers applies its own deprecated @wait_container_is_ready decorator at
   # import time. The warning is internal to the library and not actionable here, so
-  # don't let `error` promote it to a collection/test failure (ADR-008). The
+  # don't let `error` promote it to a collection/test failure (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism). The
   # integration module is imported during default collection even though its tests
   # are deselected by the `integration` marker. Scoped to the testcontainers
   # module so the same message from anywhere else still errors.
@@ -499,7 +512,7 @@ parallel = true
 # Store data-file paths relative to the project root so `.coverage` files produced
 # on different runners/OSes merge in the `coverage-combine` CI job without
 # absolute-path mismatches. Complements the `[tool.coverage.paths]` remap below
-# (which unifies the src/ vs site-packages layouts). See ADR-026.
+# (which unifies the src/ vs site-packages layouts). See https://hasansezertasan.github.io/copier-pyproject/context/ci-topology/#a-single-union-coverage-gate-across-the-whole-matrix.
 relative_files = true
 source_pkgs = ["{{github_repo_name}}", "tests"]
 
@@ -521,7 +534,7 @@ source_pkgs = ["{{github_repo_name}}", "tests"]
 # patterns here: a regex matching a `def` line excludes the *whole function body*,
 # so a pattern like `def main\(` would silently un-measure any future `main()`
 # with real logic (and did mask the tested GUI/TUI entrypoints). Pragmas carry the
-# exclusion decision next to the code it affects. See ADR-008.
+# exclusion decision next to the code it affects. See https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#coverage-exclusions-are-per-site-pragmas-and-the-globs-must-match-the-installed-layout.
 exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
@@ -534,7 +547,7 @@ fail_under = 99
 # The integration suite is deselected from the default run (it needs Docker), so
 # its file is imported during collection but its test bodies are deselected and
 # never run — omit it so it does not depress coverage; it runs in its own
-# `integration` env (ADR-008). The integration glob is directory-anchored.
+# `integration` env (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#coverage-exclusions-are-per-site-pragmas-and-the-globs-must-match-the-installed-layout). The integration glob is directory-anchored.
 {%- endif %}
 omit = ["*/_version.py"{% if include_worker %}, "*/worker/test_integration.py"{% endif %}]
 show_missing = true
@@ -573,6 +586,48 @@ ignore_decorators = [
 ignore_names = ["CONFIG_FILE_PATH", "logger", "main", "model_config", "pytest_*", "collect_ignore_glob"{% if include_mcp %}, "arguments"{% endif %}{% if include_tui %}, "CSS", "compose", "on_mount", "title", "BINDINGS"{% endif %}{% if include_worker %}, "pytestmark"{% endif %}]
 min_confidence = 60
 paths = ["src", "tests"]
+
+
+[tool.deptry]
+# `known_first_party` is explicit because the tox `deps` env installs the built
+# wheel, so without it deptry reads the project's own imports as a third-party
+# transitive dependency (DEP003). Add further `per_rule_ignores` entries for the
+# project's own findings, e.g. DEP003 for a package only importable through
+# another declared one, or DEP002 for an optional import guarded by try/except.
+# See https://deptry.com/rules-violations/.
+# Excluded: the Sphinx config, the build hook (its imports belong to
+# `[build-system].requires`, not the runtime dependencies), the benchmarks and the
+# worker probe script (neither ships in the wheel; pytest and anyio come from
+# the dev tooling).
+extend_exclude = [
+{%- if include_docs %}
+  "docs/conf.py",
+{%- endif %}
+{%- if include_c_extensions %}
+  "hatch_build.py",
+{%- endif %}
+{%- if include_benchmarks %}
+  "benchmarks",
+{%- endif %}
+{%- if include_worker %}
+  "scripts",
+{%- endif %}
+]
+known_first_party = ["{{github_repo_name}}"]
+{%- if include_docs or include_web %}
+
+[tool.deptry.per_rule_ignores]
+{%- if include_web %}
+# The web launcher imports uvicorn, which the framework's `all`/`standard` extra
+# installs rather than this project declaring it.
+DEP003 = ["uvicorn"]
+{%- endif %}
+{%- if include_docs %}
+# tools/build_docs.py imports `packaging`, pinned in the `docs` group for that
+# script alone, so deptry reads it as a misplaced dev dependency.
+DEP004 = ["packaging"]
+{%- endif %}
+{%- endif %}
 
 
 [tool.slotscheck]
@@ -726,7 +781,7 @@ convention = "pep257"
 # package) whose whole job is to print GitHub `::error::` annotations to stdout.
 "docs/check_warnings.py" = ["INP001", "T201"]
 # The versioned-docs build orchestrator is a standalone CLI script under tools/,
-# not part of an importable package (ADR-027).
+# not part of an importable package (https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages).
 "tools/build_docs.py" = ["INP001"]
 {%- endif %}
 {%- if include_worker %}
@@ -821,7 +876,7 @@ disable = [
   # are deliberately lazy so import-linter's layering contract holds and a
   # framework is only imported when the code path that needs it actually runs.
   # Textual is the exception: the TUI imports it at module scope so `InfoApp`
-  # can be defined there and driven by the headless pilot (ADR-035).
+  # can be defined there and driven by the headless pilot (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#interactive-components-expose-injected-driver-seams-so-headless-ci-measures-everything-but-the-blocking-call).
   "import-outside-toplevel",
   # W0706 — the generated TUI entry point explicitly re-raises
   # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the
@@ -903,7 +958,7 @@ env_tmp_dir = "{toxworkdir}/tmp/{envname}"
 set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
 # Non-editable: `uv sync --no-editable` builds the project and installs it into
 # site-packages, the layout `[tool.coverage.paths]` remaps and the per-component
-# coverage gates measure (ADR-028).
+# coverage gates measure (https://hasansezertasan.github.io/copier-pyproject/context/ci-topology/#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component).
 {%- if include_c_extensions %}
 # uv builds that wheel from source for each env's own interpreter, so the
 # ABI-specific extension is compiled and tagged per Python version.
@@ -993,7 +1048,7 @@ commands = [
   # would make a registry request on every `git commit`. The ruleset is named
   # explicitly rather than `--config auto` so rule selection does not depend on
   # language auto-detection; it is still fetched from the registry, which is why
-  # this cannot be vendored (see ADR-032). `--error` makes findings blocking;
+  # this cannot be vendored (see https://hasansezertasan.github.io/copier-pyproject/context/lint-orchestration/#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored). `--error` makes findings blocking;
   # silence a false positive with a trailing `# nosemgrep: <rule-id>`.
   [
     "semgrep",
@@ -1033,7 +1088,7 @@ commands = [
 {%- if include_ai_rulez %}
   # Config/source validation only — the prek `ai-rulez` hook is what regenerates
   # the host files and so what catches drift. Having the check here too means a
-  # malformed `.ai-rulez/` source fails the canonical lint runner (ADR-003) even
+  # malformed `.ai-rulez/` source fails the canonical lint runner (https://hasansezertasan.github.io/copier-pyproject/context/lint-orchestration/#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite) even
   # on a clone whose git hooks were never installed.
   [
     "ai-rulez",
@@ -1058,6 +1113,32 @@ commands = [
 # resolve pytest and other test-only imports.
 dependency_groups = [{% if include_ai_rulez %}"agents", {% endif %}"sast", "style", "test"]
 description = "Run Checkers, Linters and Formatters"
+runner = "uv-venv-lock-runner"
+
+
+# On-demand and CI-only (not in env_list, like `integration`): the `deps` job in
+# ci.yml runs it and `check` aggregates that job. `test` is included so deptry
+# and creosote can resolve the project's own test-only imports. creosote needs
+# the installed distributions to map import names, which the lock runner provides.
+[tool.tox.env.deps]
+commands = [
+  [
+    "deptry",
+    ".",
+  ],
+  [
+    "creosote",
+    "--deps-file",
+    "pyproject.toml",
+    "--section",
+    "project.dependencies",
+    # Without this creosote skips imports inside functions, so a dependency used
+    # only through a lazy import (the worker's uvloop) is reported as unused.
+    "--include-deferred",
+  ],
+]
+dependency_groups = ["deps", "test"]
+description = "Check dependency hygiene (deptry, creosote)"
 runner = "uv-venv-lock-runner"
 
 
@@ -1173,7 +1254,7 @@ runner = "uv-venv-lock-runner"
 # On-demand only (not in env_list): the `integration`-marked tests start a real
 # {{worker_broker}} via testcontainers (Docker required), so they are excluded
 # from the default suite and run explicitly with ``tox -e integration``. CI runs
-# this in a dedicated Ubuntu-only job. See ADR-008. The `-m integration` here
+# this in a dedicated Ubuntu-only job. See https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism. The `-m integration` here
 # overrides the `-m "not integration"` default in [tool.pytest.ini_options].
 [tool.tox.env.integration]
 # `-W default::DeprecationWarning` overrides the strict `filterwarnings =
@@ -1207,7 +1288,7 @@ runner = "uv-venv-lock-runner"
 # subprocess. Forward {{ worker_broker_spec.env }} so a broker already provided by
 # the environment — the CI `services:` broker for redis/nats, or a docker-compose
 # / manually-exported one — reaches the integration test; without it the var is
-# dropped and the run falls back to testcontainers. See ADR-008 / issue #169.
+# dropped and the run falls back to testcontainers. See https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism / issue #169.
 pass_env = ["{{ worker_broker_spec.env }}"]
 {%- endif %}
 {%- if include_launcher %}

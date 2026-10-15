@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`), §1 and §5; issue #309
+**Source:** ADR-035 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md)), §1 and §5; issue #309
 **Revisit when:** a host stops reading its generated file, ai-rulez leaves PyPI, or a sixth host is expected to open PRs
 **See:** repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest — 68ac4665-dcde-456b-aef7-2faaf6fe51f4 — as of 2026-10-11
 **See:** template-testing.md#collection-literals-are-rendered-through-one-shared-macro — 47b21a49-5fc4-46b8-b450-7d9f3225706c — as of 2026-10-11
@@ -22,8 +22,13 @@ exact, Renovate-tracked through the native uv manager.
 **Reason:** the generated project's branch-name check already whitelists five
 agent prefixes, but only Claude received the repo-setup skill and only two
 hosts received instructions; hand-writing five formats is the duplication the
-template exists to remove. ai-rulez ships on PyPI (no Node) and has the cobo
-shape — sources in, committed output out, a check that proves they agree. A
+template exists to remove; four of the five agents got nothing, not even
+`.github/copilot-instructions.md`, which GitHub's Copilot coding agent and PR
+review read server-side. [ai-rulez](https://github.com/Goldziher/ai-rulez)
+(MIT, Go) authors rules, context, skills, agents and commands once and
+generates tool-native output for 20 hosts. It ships on PyPI (no Node) and has
+the cobo shape — sources in, committed output out, a check that proves they
+agree. A
 second hand-maintained copy of the paragraphs would recreate inside the
 template the drift it removes downstream. Its own group because `dev` includes
 `style` wholesale and only two callers invoke the tool; upstream's pre-commit
@@ -39,7 +44,7 @@ cannot be fetched.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 §2 and §8 (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`)
+**Source:** ADR-035 §2 and §8 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** ai-rulez and copier produce identical bytes for the same content, or the template gains a post-render step
 **See:** agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros — e1545d12-ac20-426b-9cd5-519e80a56b5f — as of 2026-10-11
 **See:** template-updates.md#copieryml-defines-no-_tasks — 86130379-1660-4992-8aba-8b6cd7b4a9f7 — as of 2026-10-11
@@ -48,10 +53,17 @@ The template renders `.ai-rulez/` and stops. `AGENTS.md`, the Copilot
 instructions and the per-host skill copies are written by the adopter's first
 `ai-rulez generate` and committed from then on. Turning the toggle on via
 update leaves a project with no instruction files until the generator runs
-(the after-update message names the two commands; CI is red until the output
-is committed). Turning it off requires running ai-rulez's clean command before
-the update, while the sources it reads still exist, because the host files are
-not copier-managed and would otherwise stay committed and stale.
+(the after-update message names the two commands, `uv lock` then the
+generator; CI is red until the output is committed). On a fresh copy the
+generator is an explicit numbered step of the after-copy message, beside
+`git init` and `uv sync`. Turning it off requires running ai-rulez's clean
+command before the update, while the sources it reads still exist, because the
+host files are not copier-managed and would otherwise stay committed and stale.
+Clean reads `.ai-rulez/.generated-manifest.json`, which the generator writes
+into the source tree; it is committed, and the prek `^\.ai-rulez/` gate and the
+`documentation` labeler glob cover it. Clean is run with ai-rulez's
+keep-gitignore flag as belt-and-braces: `gitignore = false` leaves no ai-rulez
+block to remove and the `.gitignore` is cobo-sealed.
 
 **Reason:** copier's renderer and ai-rulez's renderer produce different bytes
 for the same content (ai-rulez composes its own headings and stamps a
@@ -65,6 +77,11 @@ omits one is a worse surprise than a loud one.
 
 **Rejected alternative:** render the generated files as well — the churn above.
 
+**Rejected alternative:** mark the generated host files `linguist-generated` in
+`.gitattributes` — the path set differs per host and is ai-rulez's contract, so
+re-encoding it would be a second copy that rots. The files carry their own
+DO-NOT-EDIT banner instead.
+
 ## No builtin ai-rulez domains, and ai-rulez never touches `.gitignore`
 
 **Id:** e9823c4a-891f-4344-8d64-029dd8d31138
@@ -72,7 +89,7 @@ omits one is a worse surprise than a loud one.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 §3–4 (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`)
+**Source:** ADR-035 §3–4 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** a builtin domain stops contradicting a gate the project enforces, or the gitignore stops being cobo-sealed
 **See:** gitignore-generation.md#cobo-generates-the-gitignore-with-a-hash-sealed-fence-and-lockfiles — 3e3bc38e-bc1e-4e65-b74d-e91848262157 — as of 2026-10-11
 
@@ -80,10 +97,12 @@ omits one is a worse surprise than a loud one.
 `gitignore = false`: the generated output is committed and ai-rulez does not
 rewrite the ignore file.
 
-**Reason:** every one of the seven auto-included builtin domains either
-restates a gate or contradicts it — complexity 20 versus ruff's 5, 120 columns
-versus 88, 80% coverage versus 99%, "use conventional commits" versus the
-blocking title check. A rule an agent obeys and a gate that fails it must never
+**Reason:** every one of the seven auto-included builtin domains (of 33
+shipped) either restates a gate or contradicts it — complexity 20 versus ruff's
+5, 120 columns versus 88, Google-style docstrings and 80% coverage versus
+ruff's pep257 and 99%, "use conventional commits" versus the blocking title
+check, "descriptive branch names" versus Conventional Branch and the blocking
+`check-branch-name.yml`. A rule an agent obeys and a gate that fails it must never
 be two separately maintained sentences, and per-domain exclusions would leave
 the next release free to add a contradiction to a domain opted into. Off
 entirely also keeps the generated file ~60 lines instead of ~270. ai-rulez's
@@ -99,7 +118,7 @@ files GitHub must find in the repository.
 **Type:** incident
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035 §6–7 (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`)
+**Source:** ADR-035 §6–7 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** ai-rulez gains a check mode for preset output, or a host's generated output changes format
 **See:** template-testing.md#generated-files-must-be-formatter-canonical-not-merely-valid — 9b931598-7e52-4ff1-bb07-ef65c01d5369 — as of 2026-10-11
 **See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-11
@@ -129,13 +148,25 @@ path.
 **Consequence:** the width of the gate is the width of the output it sees;
 every offered host widens the scenario that must keep passing.
 
+**Consequence:** MegaLinter's `COPYPASTE_JSCPD` reports the generated host
+files as clones of each other, which they are. It is left unexcluded on
+purpose: an exclusion would spell out ai-rulez's per-host output paths, the
+same second copy refused for `.gitattributes`, and MegaLinter runs with
+`DISABLE_ERRORS: true`, so the cost is a Security-tab finding, not a red job.
+
+**Consequence:** `ai_rulez_presets` is the template's first list-valued answer,
+which surfaced a latent defect: copier writes block sequences unindented, so
+`.copier-answers.yml` fails the generated project's own yamllint `indentation`
+rule, and the file cannot be hand-edited. The yamllint hook now skips it, as the
+yamlfmt hook already did; any later list answer would have hit the same thing.
+
 ## No `CLAUDE.md` by default; `claude` left the preset defaults; `gemini` is no longer offered
 
 **Id:** 1a6849be-72d0-4990-abe2-7a0243cd5e67
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-035, 2026-10 amendment (`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`)
+**Source:** ADR-035, 2026-10 amendment ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** Claude Code stops reading `AGENTS.md` natively, or the maintainers start using Gemini
 **See:** agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros — e1545d12-ac20-426b-9cd5-519e80a56b5f — as of 2026-10-11
 

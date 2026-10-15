@@ -3,10 +3,12 @@
 # Generated project trees
 
 The exact file set each preset renders, captured from a real `copier copy`
-run rather than typed by hand (see [ADR-031](adr/031-single-render-entrypoint.md)).
+run rather than typed by hand (see
+[a committed derived artifact](../context/template-testing.md#the-generated-project-tree-page-is-a-committed-derived-artifact-with-two-drift-guards)).
 Presets are defined by `preset_map` in `copier.yml`
-([ADR-016](adr/016-archetype-based-presets.md)); the identity answers are the
-harness defaults (`octocat`/`example`), so `example` below is the package name.
+([archetype presets](../context/presets.md#archetype-presets-name-project-shapes-library-is-the-default));
+the identity answers are the harness defaults (`octocat`/`example`), so
+`example` below is the package name.
 
 Regenerate with `mise run regenerate`. `tests/test_doc_trees.py` fails when this
 page drifts from a fresh render.

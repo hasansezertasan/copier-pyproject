@@ -86,7 +86,7 @@ def test_installation_rst_shows_brew_cask_when_executable(
 
 def test_setup_doc_documents_tap_setup(render: Callable[..., Path]) -> None:
     # Maintainer repository setup lives in docs/maintaining/setup.rst (not the
-    # contributor-facing CONTRIBUTING.md); see ADR-022.
+    # contributor-facing CONTRIBUTING.md); see context/repo-setup.md.
     root = render(preset="tool", include_homebrew=True, include_scoop=True)
     setup = _read(root, "docs", "maintaining", "setup.rst")
     assert "homebrew-tap" in setup

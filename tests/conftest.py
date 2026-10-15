@@ -1,10 +1,10 @@
 """Render harness fixtures for the copier-pyproject template.
 
 The rendering itself lives in ``tools/render.py`` — the single render
-entrypoint every consumer shares (ADR-031). This module only wraps it in a
-``tmp_path``-scoped fixture; it deliberately holds no ``copier`` call of its
-own, so the harness, CI, the committed docs artifacts, and the authoring watch
-loop cannot drift apart.
+entrypoint every consumer shares (context/template-testing.md). This module only
+wraps it in a ``tmp_path``-scoped fixture; it deliberately holds no ``copier``
+call of its own, so the harness, CI, the committed docs artifacts, and the
+authoring watch loop cannot drift apart.
 
 Note: ``tools.render.render`` renders from this repo's git tree at ``HEAD`` and
 includes uncommitted working-tree changes (Copier emits a

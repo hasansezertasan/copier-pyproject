@@ -1,4 +1,6 @@
-"""The ai-rulez agent-instruction shape (``include_ai_rulez``, ADR-035).
+"""The ai-rulez agent-instruction shape (``include_ai_rulez``).
+
+Rationale: context/agent-instructions.md.
 
 Two things need guarding, and they pull in opposite directions:
 
@@ -7,11 +9,11 @@ Two things need guarding, and they pull in opposite directions:
 * With it **on** the template must render the ``.ai-rulez/`` sources and *no*
   generated output: those files are written by ``ai-rulez generate`` in the
   adopter's repository, so a template that also rendered them would put two
-  writers on one path (ADR-035 §2).
+  writers on one path (context/agent-instructions.md).
 
 The harness renders and inspects; it never runs ``ai-rulez`` itself (that needs
 the binary and a network fetch — ``template-ci.yml``'s ``ai-rulez`` scenario
-covers the generate-and-converge half, ADR-024).
+covers the generate-and-converge half, context/template-testing.md).
 """
 
 from __future__ import annotations
@@ -43,12 +45,13 @@ GENERATED = (
     ".codex/skills/repo-setup/SKILL.md",
     ".github/skills/repo-setup/SKILL.md",
     # Written *inside* the source tree, and still `generate`'s output: it is the
-    # record `ai-rulez clean` reads to retire the host files (ADR-035 §8).
+    # record `ai-rulez clean` reads to retire the host files
+    # (context/agent-instructions.md).
     ".ai-rulez/.generated-manifest.json",
 )
 # Paths whose bytes ai-rulez owns and whose linters must therefore skip them —
 # a violation there is unfixable, since the next `generate` erases the fix.
-# Keyed by the host that produces the path (ADR-035 §7).
+# Keyed by the host that produces the path (context/agent-instructions.md).
 GENERATOR_OWNED = {
     "cursor": "\\.mdc$",
     "continue-dev": "\\.continue/prompts/",
@@ -119,10 +122,12 @@ def test_config_is_pinned_to_the_posture_the_adr_argues(
     config = _config(render(include_ai_rulez=True))
     assert config["name"] == PKG
     assert config["version"] == "4.0"
-    # cobo owns .gitignore (ADR-012): ai-rulez rewriting it breaks the sha256
-    # fence and would hide the files GitHub has to read from the repository.
+    # cobo owns .gitignore (context/gitignore-generation.md): ai-rulez rewriting
+    # it breaks the sha256 fence and would hide the files GitHub has to read from
+    # the repository.
     assert config["gitignore"] is False
-    # Every builtin domain restates or contradicts a CI-enforced gate (ADR-035).
+    # Every builtin domain restates or contradicts a CI-enforced gate
+    # (context/agent-instructions.md).
     assert config["builtins"] is False
     assert config["presets"] == ["codex", "copilot"]
     assert config["header"] == {"timestamp": False}
@@ -163,7 +168,9 @@ def test_free_text_answers_are_escaped_into_the_config(
 def test_rule_bodies_are_the_same_prose_as_agents_md(
     render: Callable[..., Path],
 ) -> None:
-    """The macro guarantee (ADR-035 §1): one source, two renderings.
+    """The macro guarantee: one source, two renderings.
+
+    See context/agent-instructions.md.
 
     Rendered with a console root and a sibling interface so the conditional
     table rows and both layering paragraphs are covered, not just the bare
@@ -190,7 +197,8 @@ def test_toolchain_is_wired_for_both_gates(render: Callable[..., Path]) -> None:
     with (root / "pyproject.toml").open("rb") as fh:
         parsed = tomllib.load(fh)
 
-    # One version source, in a group `dev` does not drag in (ADR-035 §5).
+    # One version source, in a group `dev` does not drag in
+    # (context/agent-instructions.md).
     assert parsed["dependency-groups"]["agents"] == ["ai-rulez==4.11.5"]
     assert "agents" in parsed["tool"]["tox"]["env"]["style"]["dependency_groups"]
     assert ["ai-rulez", "validate"] in parsed["tool"]["tox"]["env"]["style"]["commands"]
@@ -235,7 +243,7 @@ def test_generator_owned_paths_are_skipped_by_the_linters(
     carries trailing spaces. A *fixing* hook there never converges and a
     *checking* one is unfixable, because the next ``generate`` erases the edit —
     the same bind ``.copier-answers.yml`` is in, so it gets the same answer
-    (ADR-035 §7).
+    (context/agent-instructions.md).
     """
     root = render(include_ai_rulez=True)
     prek = (root / "prek.toml").read_text(encoding="utf-8")

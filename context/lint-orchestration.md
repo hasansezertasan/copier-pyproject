@@ -6,7 +6,7 @@
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-003 (`docs/adr/003-tox-as-canonical-lint-runner.md`), including its 2026-06 update
+**Source:** ADR-003 ([`docs/adr/003-tox-as-canonical-lint-runner.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/003-tox-as-canonical-lint-runner.md)), including its 2026-06 update
 **Revisit when:** a second orchestrator is proposed, or tool versions gain a second pinning location
 
 Tool versions live in the uv-managed `style` dependency group and the tox
@@ -69,12 +69,15 @@ entry below separately accepts a registry dependency.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5; recorded in ADR-003 (`docs/adr/003-tox-as-canonical-lint-runner.md`)
+**Source:** found while adopting the template in openapipages; reproduced with prek 0.5.5; fixed in [PR #379](https://github.com/hasansezertasan/copier-pyproject/pull/379) and recorded in ADR-003 ([`docs/adr/003-tox-as-canonical-lint-runner.md`](https://github.com/hasansezertasan/copier-pyproject/blob/26c25adf2282d04b89007f9752a2907516a1de12/docs/adr/003-tox-as-canonical-lint-runner.md), the last revision that carries this passage)
 **Verification:** corroborated — a hook with no `stages` ran on `pre-commit`, `pre-push`, `commit-msg` and `manual` when `default_stages` was unset
-**Revisit when:** a hook other than `commitizen-branch` needs to run on push
+**Revisit when:** a third push-only hook is added, or pip-audit's push-time cost or false-positive rate outweighs its earlier feedback
 
 `default_stages` is `["pre-commit"]`. Hooks that belong on push, such as
-`commitizen-branch`, declare `stages` themselves.
+`commitizen-branch` and `pip-audit`, declare `stages` themselves. `pip-audit`
+exports the locked runtime tree and audits it with `uvx pip-audit`, the same
+pair `check-security.yml` runs, so a known-vulnerable pin is caught at push
+instead of a CI round later (adopter report, issue #395).
 
 **Reason:** `["pre-commit", "pre-push"]` ran every hook without its own stages
 twice per change, including the whole-project type checkers and pylint, and the
@@ -89,7 +92,7 @@ stage as the default, so file hooks also run on `commit-msg`.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-005 (`docs/adr/005-five-type-checkers-basedpyright-strict.md`)
+**Source:** ADR-005 ([`docs/adr/005-five-type-checkers-basedpyright-strict.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/005-five-type-checkers-basedpyright-strict.md))
 **Revisit when:** `ty` churn becomes a burden, or two checkers stop catching anything the others miss
 
 The `style` env invokes mypy (two Python versions), basedpyright at its full
@@ -110,6 +113,15 @@ strict bar drove into the generated code.
 
 **Rejected alternative:** keep pyright beside basedpyright — pure redundancy.
 
+**Consequence:** strict basedpyright forced concrete fixes in the generated
+code: `@override` on overriding methods (`typing.override` is 3.12+ and the floor
+is 3.10, hence `typing_extensions`), `ClassVar` on class attributes (`CSS`,
+`BINDINGS`, `model_config`) with `@final` on the TUI app class, `_ = ...` on
+intentionally discarded results, and single-string literals instead of implicit
+concatenation for multi-line messages. The worker's event-loop setup was
+modernized to `uvloop.run()`, which removed both a `reportAny` suppression and
+a deprecation finding, so the worker needs no suppression at all.
+
 **Consequence:** TUI projects gain `typing_extensions` for `@override` on
 3.10/3.11; `ty` is pre-release and kept because it currently passes and adds
 coverage. An earlier zuban miscategorized one finding and forced broadening a
@@ -121,7 +133,7 @@ mypy disable list; zuban 0.9.0 fixed it and the concession was removed.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** found while adopting the template in openapipages; recorded in ADR-005 (`docs/adr/005-five-type-checkers-basedpyright-strict.md`)
+**Source:** found while adopting the template in openapipages; recorded in ADR-005 ([`docs/adr/005-five-type-checkers-basedpyright-strict.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/005-five-type-checkers-basedpyright-strict.md))
 **Verification:** corroborated — the mirrors-mypy `rev` (v2.3.0) had drifted from the `style` group's `mypy==2.4.0` pin, and the hook's `files = "^src/"` skipped the `docs/examples` path that `[tool.mypy] files` adds with `include_docs`
 **Revisit when:** mypy needs to run without the project's environment, for example in a hook-only CI job without uv
 **See:** architecture-contracts.md#whole-program-analyzers-are-local-system-hooks-backed-by-the-style-group — 41f3397d-1afb-4e57-a0bd-b5ef85089bfc — as of 2026-10-11
@@ -146,7 +158,7 @@ drifts and keeps the duplicate version pin.
 **Type:** decision
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-013 (`docs/adr/013-megalinter-opt-in-lean-complement.md`); prompted by a real run ([hwid#90](https://github.com/hasansezertasan/hwid/actions/runs/30634574244/job/91168813067))
+**Source:** ADR-013 ([`docs/adr/013-megalinter-opt-in-lean-complement.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/013-megalinter-opt-in-lean-complement.md)); prompted by a real run ([hwid#90](https://github.com/hasansezertasan/hwid/actions/runs/30634574244/job/91168813067))
 **Revisit when:** prek gains one of the five enabled linters, the `cupcake` flavor drops one, or GitHub changes SARIF ingestion rules
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-11
@@ -167,7 +179,14 @@ integrations it needs no account, so it earned its own decision. A paths filter
 was tried and dropped: copy-paste detection scans source, so the filter fired on
 nearly every PR anyway and only confused. Pointing the SARIF upload at the
 reports directory was rejected because GitHub rejects a file whose runs share a
-tool and category; the aggregate's per-linter runs carry distinct tool names.
+tool and category (the GitHub
+[2025-07-21 changelog](https://github.blog/changelog/2025-07-21-code-scanning-will-stop-combining-multiple-sarif-runs-uploaded-in-the-same-sarif-file/));
+the aggregate's per-linter runs carry distinct tool names.
+
+The repository security linters are deliberately not enabled:
+`check-security.yml`, CodeQL and Scorecard already cover secrets, vulnerabilities
+and SAST. Likewise prek already runs actionlint, yamllint, markdownlint and
+editorconfig-checker, and the tox `style` env covers Python.
 
 **Rejected alternative:** always-on — the posture above.
 
@@ -186,7 +205,7 @@ MegaLinter to gate requires its code-scanning results via branch protection.
 **Type:** constraint
 **Status:** active
 **Evidence:** confirmed
-**Source:** ADR-032 (`docs/adr/032-semgrep-sast-in-the-style-env.md`); [issue #174](https://github.com/hasansezertasan/copier-pyproject/issues/174)
+**Source:** ADR-032 ([`docs/adr/032-semgrep-sast-in-the-style-env.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/032-semgrep-sast-in-the-style-env.md)); [issue #174](https://github.com/hasansezertasan/copier-pyproject/issues/174)
 **Revisit when:** offline determinism outranks rule quality, semgrep gains an on-disk rule cache, or the registry rules' license permits redistribution
 **See:** lint-orchestration.md#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite — 9b74fc8b-a808-4f2b-bdbd-9e4253c1b35a — as of 2026-10-11
 
@@ -197,7 +216,11 @@ ruleset is committed.
 
 **Reason:** the registry rules carry the Semgrep Rules License, which forbids
 distribution — a Copier template exists to distribute files, so vendoring them
-is exactly the prohibited act. semgrep keeps no on-disk rule cache, so a prek
+is exactly the prohibited act. Every `p/python` rule carries
+`metadata.license: Semgrep Rules License v1.0` and the rules repository reports
+SPDX `NOASSERTION`; the terms say "You may not distribute the rules, or make
+them available to others as a service", granted for internal business purposes
+only, with no sublicensing. semgrep keeps no on-disk rule cache, so a prek
 hook would hit the registry on every commit and fail offline; the style-env-only
 placement follows the `ty`/`pyrefly`/`zuban` precedent. The dedicated group
 exists because `dev` includes `style` wholesale and the wheel is ~215 MB with a
@@ -214,7 +237,63 @@ not track.
 **Consequence:** not hermetic — a new community rule or a registry outage can
 redden an unrelated PR; findings overlap ruff's bandit rules, so a line may need
 both suppressions. The marginal value is cross-statement taint rules ruff
-cannot express.
+cannot express, on a faster cadence than CodeQL's scheduled deep analysis. The
+style job itself still pays the ~215 MB on every `tox -e style` run, including
+all ten render scenarios in this repository's own `template-ci.yml`; semgrep
+does ship a `win_amd64` wheel, so keeping it off other OSes is a cost decision,
+not a platform constraint. The exact pin has a single version source that
+Renovate tracks through the native `pep621` manager, and the scan is scoped to
+`src` so it audits the shipped package, not tests or docs.
+
+**Rejected alternative:** stack `p/security-audit` on top of `p/python`. It is
+the auditor-oriented low-confidence pack, and `p/python` already carries
+`python.lang.security.*`. The overlap with ruff is also larger than first
+assumed: generated projects set `select = ["ALL"]`, so flake8-bandit (`S`) is
+already on, and of `p/python`'s 151 rules 55 are taint-mode and only 21 are
+relevant to what the template generates.
+
+## Dependency hygiene (deptry + creosote) is an always-on `deps` gate, not a toggle
+
+**Id:** 09ecae89-ab05-4fd9-ae46-2a4d33f69c47
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [issue #394](https://github.com/hasansezertasan/copier-pyproject/issues/394); maintainer decision on the approach, 2026-10-13
+**Revisit when:** deptry or creosote produce false positives for common generated shapes faster than the template can seed ignores, or one tool subsumes the other
+**See:** lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored — 5068081c-24ce-4c39-9cdf-13e0a7c229b4 — as of 2026-10-13
+
+Every generated project ships a `deps` dependency group (creosote, deptry), a
+`[tool.deptry]` block, a `tox -e deps` env and a `deps` job in `ci.yml` that
+the `check` aggregate needs. There is no `include_*` toggle. The tox env is not
+in `env_list`, so a plain `tox run` and the component test jobs skip it; CI runs
+it in its own job.
+
+**Reason:** the adopting project that raised it lost the only unused/transitive/
+misplaced-dependency check it had, and nothing in the template covered that
+drift. The maintainers chose to have the gate by default so every adopter gets it
+without re-applying an overlay on each `copier update`. It follows the `sast`
+precedent: its own group so a plain `uv sync` skips the tools, and its own job so
+a failure names dependency drift rather than a lint run.
+
+**Rejected alternative:** an opt-in `include_dep_hygiene` toggle (the issue's
+option 1) — declined by the maintainers in favour of default-on; the stated
+motivation was having the gate by default, no further reason was recorded.
+
+**Rejected alternative:** documenting the overlay recipe only (option 2) — leaves
+every adopter to reverse-engineer and re-apply it.
+
+**Consequence:** the template seeds the ignores its own output needs, gated on
+the toggles that produce the imports: `known_first_party` (the tox env installs
+the wheel, so deptry otherwise reads the project's own package as a transitive
+dependency), `uvicorn` (DEP003, web) and `packaging` (DEP004, docs) in
+`per_rule_ignores`, the build hook/benchmarks/worker probe script/Sphinx config
+in `extend_exclude`, and creosote's `--include-deferred` (creosote skips imports
+inside functions by default, which would report the worker's lazily imported
+`uvloop` as unused). The gate also surfaced a real
+template defect: `core/config.py` imported `pydantic` while only
+`pydantic-settings` was declared, so `pydantic` is now a direct dependency
+whenever `include_pydantic_settings` or `include_worker` is on.
+
 
 ## Shell and YAML lint/format are prek hooks, not a uv group
 

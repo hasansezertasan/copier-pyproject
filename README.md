@@ -10,17 +10,17 @@ Always included in every generated project:
 
 - **Packaging & workflow** — uv-first with dependency groups (dev, style, test, tool, prek — plus `docs` when `include_docs` is on) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions derived from Git tags.
 - **Type safety** — full type hints and a `py.typed` marker, checked by mypy, basedpyright, ty, pyrefly, and zuban.
-- **Code quality** — ruff linting/formatting and an always-on pylint gate, plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement, plus a semgrep SAST pass over `src/` in the `style` env ([ADR-032](docs/adr/032-semgrep-sast-in-the-style-env.md)).
+- **Code quality** — ruff linting/formatting and an always-on pylint gate, plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement, plus a semgrep SAST pass over `src/` in the `style` env ([semgrep SAST](context/lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored)), and a dependency-hygiene gate (deptry + creosote, `tox -e deps` and a `deps` CI job) ([dependency hygiene](context/lint-orchestration.md#dependency-hygiene-deptry--creosote-is-an-always-on-deps-gate-not-a-toggle)).
 - **Testing** — pytest with coverage/xdist/reruns (and `.github/codecov.yml`) and parallel execution.
 - **CI/CD & release** — matrix tests on macOS/Linux/Windows with per-component pytest markers and path-filtered CI jobs (unchanged components skip), trusted-publishing to PyPI, and release automation via release-please, with PR title linting, linked-issue enforcement, and a PR task-list completion check.
 - **Security** — CodeQL, OpenSSF Scorecard (with README badge), a dependency-review gate that blocks high-severity vulnerabilities, active scanning (gitleaks, pip-audit, and Trivy for web images), a local pre-commit `detect-secrets` gate with a committed `.secrets.baseline` (complementing gitleaks' history-spanning scan), GitHub Actions static analysis (zizmor + ghalint) enforcing least-privilege `permissions`, `persist-credentials: false`, per-job `timeout-minutes`, and full-length action SHA pins — a blocking prek/CI gate plus a zizmor Security-tab dashboard — and a CycloneDX SBOM attached to every release.
 - **Repo hygiene** — issue/PR templates, `SECURITY.md`, `SUPPORT.md`, `CODEOWNERS`, `FUNDING`, `LICENSE`, `.gitattributes`, `.dockerignore`, a badge-rich README, and VS Code launch configs (current file, tests, attach, entry points); always-on Commitizen and git hooks (run via prek) and an always-on `CITATION.cff` with a validation workflow.
 - **Managed `.gitignore`** — kept in sync with the upstream [github/gitignore](https://github.com/github/gitignore) templates by [cobo](https://github.com/hasansezertasan/cobo), with a weekly drift check.
-- **Dependency & template updates** — Renovate manages dependencies and, via its copier manager, opens a `copier update` PR whenever this template publishes a new tag (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
+- **Dependency & template updates** — Renovate manages dependencies and, via its copier manager, opens a `copier update` PR whenever this template publishes a new tag (see [copier-manager updates](context/template-updates.md#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source)).
 - **AI-agent onboarding** — a concise `AGENTS.md` (the cross-tool standard), so coding agents share a single source of truth.
 - **Modern Python** — uv for dependency management, hatch for building, and a devcontainer for reproducible environments.
 
-On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). Published docs are **versioned** — each release deploys under its version slug (`docs_version_granularity`: `minor` `X.Y`, `major` `X`, or `full` `X.Y.Z`) with an in-page version switcher and a `latest` alias, and every page footer shows its git "last updated" date (see ADR-027). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
+On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). Published docs are **versioned** — each release deploys under its version slug (`docs_version_granularity`: `minor` `X.Y`, `major` `X`, or `full` `X.Y.Z`) with an in-page version switcher and a `latest` alias, and every page footer shows its git "last updated" date (see [versioned docs](context/docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages)). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
 
 Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), CodSpeed-backed performance benchmarks, standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, smokeshow (a tokenless, account-free coverage-HTML mirror for public repos), MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App), and ai-rulez (agent instructions authored once under `.ai-rulez/` and generated into every AI coding host's native config — `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/`, … — instead of one hand-written file per tool).
 
@@ -53,14 +53,14 @@ Copier will prompt for:
 - `short_description`
 - `package_keywords` (extra comma-separated PyPI keywords; tooling/component keywords are added automatically)
 - `include_cli` (include Typer CLI)
-- `include_web` (include web API; its OpenAPI schema is generated into the docs, and the project gets `pkg run` / `pkg dev` launch verbs — see [ADR-032](docs/adr/032-uniform-run-dev-launch-verbs.md))
+- `include_web` (include web API; its OpenAPI schema is generated into the docs, and the project gets `pkg run` / `pkg dev` launch verbs — see [run/dev launch verbs](context/components.md#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root))
 - `web_framework` (fastapi/litestar - when `include_web` is enabled)
 - `include_gui` (include Tkinter GUI)
 - `include_tui` (include Textual TUI)
 - `include_mcp` (include MCP server support)
 - `include_worker` (include message queue worker using FastStream; its AsyncAPI message-interface schema is generated into the docs)
 - `worker_broker` (kafka/nats/rabbitmq/redis - when `include_worker` is enabled)
-- `async_style` (async test runner for generated tests: `none` / `asyncio` / `anyio`; defaults to `asyncio` when web/tui/mcp/worker is enabled, `none` otherwise — see [ADR-036](docs/adr/036-async-testing-style.md))
+- `async_style` (async test runner for generated tests: `none` / `asyncio` / `anyio`; defaults to `asyncio` when web/tui/mcp/worker is enabled, `none` otherwise — see [async testing style](context/testing-strategy.md#async-testing-is-an-explicit-template-axis-async_style))
 - `include_c_extensions` (include C extensions support using Cython)
 - `include_profiling` (include profiling and performance tools)
 - `include_benchmarks` (include pytest-codspeed benchmarks and a non-blocking CodSpeed CI workflow)
@@ -70,11 +70,11 @@ Copier will prompt for:
 - `include_launcher` (uv-bootstrap launcher via PyCrucible — small executable, downloads Python+deps on first run)
 - `include_compiler` (compiled native executable via Nuitka — source compiled to machine code)
 - `include_freezer` (offline freezer via PyInstaller — self-contained bundle, no Python on target)
-- `include_pypi_publish` (publish to PyPI via trusted publishing on each release; on by default — turn it off for a private project, a taken PyPI name, or GitHub-Releases-only distribution, see [ADR-039](docs/adr/039-optional-pypi-publishing.md))
+- `include_pypi_publish` (publish to PyPI via trusted publishing on each release; on by default — turn it off for a private project, a taken PyPI name, or GitHub-Releases-only distribution, see [optional PyPI publishing](context/package-distribution.md#optional-pypi-publishing))
 - `include_pydantic_settings` (use pydantic-settings for configuration; the docs build auto-generates a Configuration reference from the live settings model via autodoc-pydantic)
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_smokeshow` (opt-in tokenless coverage-HTML host; publishes the combined report to an ephemeral public URL from the `coverage-report` CI job — public repos only, no account or secret)
-- `include_ai_rulez` (author the agent instructions once under `.ai-rulez/` and generate each AI coding host's native config from them via [ai-rulez](https://github.com/Goldziher/ai-rulez), instead of the hand-written `AGENTS.md`; the generated files are committed build output, written by `ai-rulez generate` — see [ADR-035](docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
+- `include_ai_rulez` (author the agent instructions once under `.ai-rulez/` and generate each AI coding host's native config from them via [ai-rulez](https://github.com/Goldziher/ai-rulez), instead of the hand-written `AGENTS.md`; the generated files are committed build output, written by `ai-rulez generate` — see [ai-rulez as the instruction source](context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros))
   - `ai_rulez_presets` (asked when `include_ai_rulez`: which hosts to generate for — `codex`, `copilot` by default, plus `claude`/`cursor`/`windsurf`/`cline`/`continue-dev`/`amp`/`junie`/`opencode`/`hermes`/`antigravity`)
 - `include_repo_ruleset` (opt-in branch protection as code — a ruleset + App-free sync workflow enforcing squash-only merges, linear history, and the required CI checks; needs a `REPO_ADMIN_TOKEN` PAT)
 - `include_repo_settings` (repository metadata via the Settings App; installation requires a distinct trusted reviewer and verified code-owner review, so solo maintainers defer the App)
@@ -90,9 +90,9 @@ Copier will prompt for:
 ## Scaffold a project
 
 1. Install Copier and uv (e.g., `uvx copier`).
-2. Run `copier copy https://github.com/hasansezertasan/copier-pyproject.git <destination>` (or `copier copy . <destination>` from a local clone). Use the `.git` HTTPS URL, **not** the `gh:hasansezertasan/copier-pyproject` shorthand — Copier records the argument verbatim as `_src_path`, and Renovate's copier manager only resolves template tags when `_src_path` is a real git URL (see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
+2. Run `copier copy https://github.com/hasansezertasan/copier-pyproject.git <destination>` (or `copier copy . <destination>` from a local clone). Use the `.git` HTTPS URL, **not** the `gh:hasansezertasan/copier-pyproject` shorthand — Copier records the argument verbatim as `_src_path`, and Renovate's copier manager only resolves template tags when `_src_path` is a real git URL (see [copier-manager updates](context/template-updates.md#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source)).
 3. Optionally seed answers with `.example-input.yml` using `--data-file .example-input.yml --defaults`.
-4. Initialize git in the destination: `cd <destination> && git init` (the template intentionally defines no Copier tasks, so it does not auto-init — see [ADR-015](docs/adr/015-template-self-versioning-and-copier-update-automation.md)).
+4. Initialize git in the destination: `cd <destination> && git init` (the template intentionally defines no Copier tasks, so it does not auto-init — see [no Copier tasks](context/template-updates.md#copieryml-defines-no-_tasks)).
 5. Open the generated README (rendered from `template/README.md.jinja`) and clear the `TODO @...` markers in `README.md`, `pyproject.toml`, docs, and workflows.
 
 ### Claude Code instruction loading
@@ -192,7 +192,7 @@ project's `template-adoption` and `repo-setup` skills. No plugin install is need
 ## Working on the template
 
 Every render goes through one entrypoint, `tools/render.py`
-([ADR-031](docs/adr/031-single-render-entrypoint.md)) — the test harness, CI, the
+([single render entrypoint](context/template-testing.md#toolsrenderpy-is-the-only-place-the-template-is-rendered)) — the test harness, CI, the
 mise tasks and the generated docs all call it:
 
 - Render once: `uv run tools/render.py render /tmp/x --data preset=full`
@@ -207,7 +207,7 @@ structure cannot drift from what the template actually renders.
 
 ## Release automation
 
-Release automation is standardized on [release-please](https://github.com/googleapis/release-please) (see [ADR-002](docs/adr/002-release-please-for-release-automation.md)). A single unified workflow, `.github/workflows/release.yml`, orchestrates the whole release:
+Release automation is standardized on [release-please](https://github.com/googleapis/release-please) (see [release-please as the sole orchestrator](context/release-automation.md#release-please-is-the-sole-release-orchestrator)). A single unified workflow, `.github/workflows/release.yml`, orchestrates the whole release:
 
 1. On push to `main`, release-please opens a release PR derived from your Conventional Commits.
 2. Merging that PR creates the git tag and a **draft** GitHub Release.
