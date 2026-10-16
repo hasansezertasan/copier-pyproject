@@ -1283,14 +1283,13 @@ version-file writer, the c-extension compiler), which stay.
    rendering a project and running `prek run zizmor --all-files` in it).
 9. **PR documentation previews** (`docs-preview.yml`, rendered only when
    `include_docs`, static workflow). On `pull_request`
-   (`opened`/`synchronize`/`reopened`/`closed`) a read-only `build` job runs the Sphinx docs build and uploads the HTML as an artifact; a separate `deploy` job (the only one with `contents`/`pull-requests: write`; it checks out the default branch, never the PR, and runs no PR code) hands the lifecycle to `rossjrw/pr-preview-action`
-   (`action: auto`): deploy to `pr-preview/pr-<N>/` on `gh-pages` on
+   (`opened`/`synchronize`/`reopened`/`closed`) `docs-preview.yml` holds no write token: a `meta` job records the event action and a read-only `build` job runs the Sphinx docs build and uploads the HTML as artifacts. The `workflow_run` workflow `docs-preview-deploy.yml` (always the default branch's copy of the file, so a PR cannot edit it; `dangerous-triggers` ignore justified inline; runs no PR code, takes the PR number from the event payload and reduces the artifact's action file to an allowlisted word) hands the lifecycle to `rossjrw/pr-preview-action`
+   (explicit `deploy`/`remove`, since `auto` needs a `pull_request` event): deploy to `pr-preview/pr-<N>/` on `gh-pages` on
    open/update, remove on close, with a sticky preview-URL PR comment throughout.
    Guarded by `if: github.event.pull_request.head.repo.full_name ==
    github.repository` to **same-repo PRs only** — a fork PR's `GITHUB_TOKEN` is
    read-only and cannot deploy, so forks are skipped cleanly (fork support awaits
-   the action's v2). Plain `pull_request` (not `pull_request_target`) means no
-   `dangerous-triggers` ignore is needed. Not wired into the `check` gate
+   the action's v2). The build workflow is plain `pull_request`; only the deploy workflow carries a `dangerous-triggers` ignore. Not wired into the `check` gate
    (best-effort). Previews live under `pr-preview/**`, disjoint from the root docs
    deploy, and the two `JamesIves` publishes carry `clean-exclude: pr-preview/**`
    so a release never wipes them. See

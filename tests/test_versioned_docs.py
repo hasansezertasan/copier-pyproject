@@ -310,20 +310,33 @@ def test_preserve_from_gh_pages_extracts_the_subtree(
     ) == "published\n"
 
 
-def test_docs_preview_write_token_never_runs_pr_code(
+def test_docs_preview_write_token_lives_only_in_the_workflow_run_half(
     render: Callable[..., Path],
 ) -> None:
-    """PR code builds read-only; the write-token job only publishes (issue #409)."""
-    workflow = yaml.safe_load(
-        (
-            render(include_docs=True) / ".github" / "workflows" / "docs-preview.yml"
-        ).read_text(encoding="utf-8")
+    """PR-editable YAML holds no write token; the privileged half is workflow_run.
+
+    On ``pull_request`` the workflow file comes from the PR, so any job in it can
+    be edited by the PR (issue #409). Publishing therefore lives in a
+    ``workflow_run`` workflow, which always runs the default branch's copy.
+    """
+    workflows = render(include_docs=True) / ".github" / "workflows"
+    build = yaml.safe_load((workflows / "docs-preview.yml").read_text("utf-8"))
+    for job in build["jobs"].values():
+        assert not set(job.get("permissions", {}).values()) & {"write"}
+        assert "environment" not in job
+    deploy = yaml.safe_load(
+        (workflows / "docs-preview-deploy.yml").read_text("utf-8")
     )
-    build, deploy = workflow["jobs"]["build"], workflow["jobs"]["deploy"]
-    assert build["permissions"] == {"contents": "read"}
-    assert deploy["permissions"]["contents"] == "write"
-    assert deploy["needs"] == "build"
-    for step in deploy["steps"]:
-        assert "run" not in step
+    # PyYAML parses the bare ``on`` key as True.
+    trigger = deploy.get("on", deploy.get(True))
+    assert list(trigger) == ["workflow_run"]
+    assert trigger["workflow_run"]["workflows"] == [build["name"]]
+    job = deploy["jobs"]["deploy"]
+    assert job["permissions"] == {
+        "contents": "write",
+        "pull-requests": "write",
+        "actions": "read",
+    }
+    for step in job["steps"]:
         if "actions/checkout" in step.get("uses", ""):
-            assert "default_branch" in step["with"]["ref"]
+            assert "ref" not in step["with"]  # default branch, never the PR
