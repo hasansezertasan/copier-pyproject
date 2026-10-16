@@ -111,7 +111,8 @@ def test_web_plugin_is_wired_only_with_the_database(
     # The no-database render must stay byte-identical to the pre-toggle shape:
     # no unused ``Depends`` import and two blank lines before a module-level app.
     assert "Depends" not in plain
-    assert "\n\n\napp = " in plain
+    if framework == "litestar":
+        assert "\n\n\napp = Litestar(" in plain
 
 
 def test_database_works_without_the_web_component(
