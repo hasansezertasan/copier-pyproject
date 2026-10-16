@@ -261,8 +261,7 @@ def test_docs_preview_checks_out_full_history(render: Callable[..., Path]) -> No
     )
     checkouts = [
         step
-        for job in workflow["jobs"].values()
-        for step in job["steps"]
+        for step in workflow["jobs"]["build"]["steps"]
         if "actions/checkout" in step.get("uses", "")
     ]
     assert checkouts
@@ -309,3 +308,22 @@ def test_preserve_from_gh_pages_extracts_the_subtree(
     assert (out / "0.1" / "sub" / "index.html").read_text(
         encoding="utf-8"
     ) == "published\n"
+
+
+def test_docs_preview_write_token_never_runs_pr_code(
+    render: Callable[..., Path],
+) -> None:
+    """PR code builds read-only; the write-token job only publishes (issue #409)."""
+    workflow = yaml.safe_load(
+        (
+            render(include_docs=True) / ".github" / "workflows" / "docs-preview.yml"
+        ).read_text(encoding="utf-8")
+    )
+    build, deploy = workflow["jobs"]["build"], workflow["jobs"]["deploy"]
+    assert build["permissions"] == {"contents": "read"}
+    assert deploy["permissions"]["contents"] == "write"
+    assert deploy["needs"] == "build"
+    for step in deploy["steps"]:
+        assert "run" not in step
+        if "actions/checkout" in step.get("uses", ""):
+            assert "default_branch" in step["with"]["ref"]

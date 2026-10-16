@@ -255,7 +255,10 @@ Optional components (all boolean):
   PUT/POST), `default: false` and `full`-preset only. Opt-in and independent of
   `include_repo_settings` (the "Settings" App cannot manage rulesets). The
   workflow needs a `REPO_ADMIN_TOKEN` fine-grained PAT (Administration: read &
-  write) — the Actions `GITHUB_TOKEN` has no `administration` scope — and
+  write) — the Actions `GITHUB_TOKEN` has no `administration` scope — stored as a
+  secret of the `ruleset-admin` environment (required reviewer, default-branch
+  deployment policy; the job declares `environment: ruleset-admin`) so an edited
+  workflow cannot reach it unreviewed, and
   warn-and-skips when the secret is absent (the [Homebrew/Scoop posture](../context/package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic)).
   `required_approving_review_count` is 0 (checks strictly enforced, no
   human-approval requirement, no `bypass_actors`) so solo maintainers and
@@ -1280,7 +1283,7 @@ version-file writer, the c-extension compiler), which stay.
    rendering a project and running `prek run zizmor --all-files` in it).
 9. **PR documentation previews** (`docs-preview.yml`, rendered only when
    `include_docs`, static workflow). On `pull_request`
-   (`opened`/`synchronize`/`reopened`/`closed`) it builds the Sphinx docs and hands the lifecycle to `rossjrw/pr-preview-action`
+   (`opened`/`synchronize`/`reopened`/`closed`) a read-only `build` job runs the Sphinx docs build and uploads the HTML as an artifact; a separate `deploy` job (the only one with `contents`/`pull-requests: write`; it checks out the default branch, never the PR, and runs no PR code) hands the lifecycle to `rossjrw/pr-preview-action`
    (`action: auto`): deploy to `pr-preview/pr-<N>/` on `gh-pages` on
    open/update, remove on close, with a sticky preview-URL PR comment throughout.
    Guarded by `if: github.event.pull_request.head.repo.full_name ==

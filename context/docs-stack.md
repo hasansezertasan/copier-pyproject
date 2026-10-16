@@ -69,6 +69,14 @@ not in the `check` gate.
 **Rejected alternative:** a `workflow_run`/`pull_request_target` split for fork
 coverage — deferred until the action supports forks.
 
+**Build and deploy are separate jobs (issue #409):** `build` runs the PR's own
+`docs/conf.py` and dependencies with `contents: read` and uploads the HTML as an
+artifact; `deploy` holds the write token, checks out the default branch (never
+the PR) and only publishes the artifact. A single write-token job executed PR
+code, so a compromised branch or dependency-update PR could push to `gh-pages`
+or edit PRs — plain `pull_request` only makes *fork* tokens read-only. On
+`closed` the build is skipped and `deploy` alone removes the preview.
+
 **Consequence:** the released-docs deploys exclude `pr-preview/**` from
 cleaning and merge rather than force-push, so previews survive a release and a
 racing deploy cannot overwrite them.
