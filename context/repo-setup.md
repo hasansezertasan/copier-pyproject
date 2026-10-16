@@ -49,8 +49,8 @@ cannot be verified, defers the App.
 ruleset JSON for the default branch — no deletion or force push, linear
 history, pull requests with squash-only merges and thread resolution, zero
 required approvals, no bypass actors, strict required status checks naming the
-template's real contexts (the task-list gate as its check run `Task Completed
-Checker`, not its job name) — and an idempotent sync workflow authenticated by a
+template's real contexts (the task-list gate as its job `Check PR task list`,
+whose enforce step fails the job on unticked boxes) — and an idempotent sync workflow authenticated by a
 `REPO_ADMIN_TOKEN` fine-grained PAT that warns and skips when the secret is
 absent.
 
@@ -60,8 +60,11 @@ drift the template designs away. The Settings App cannot manage rulesets and
 the workflow token cannot be granted administration, so a PAT is required.
 Zero required approvals avoids deadlocking solo maintainers on their own PRs
 and unblocks release-please and Renovate while still enforcing every check.
-Requiring the task-list job name would gate nothing: the job is green with
-boxes unticked, so the check run it publishes is what must be required.
+The task-list gate keys on the job name, with an enforce step re-evaluating the
+current PR body and failing the job on unticked boxes — order-independent, so
+overlapping runs cannot disagree — after ruleset evaluation stopped honoring
+the action's synthetic check runs on 2026-10-16 and blocked every bot PR
+(issue #418).
 
 **Rejected alternative:** classic branch protection — a ruleset is one
 declarative, export-friendly file, which weakens the earlier duplication

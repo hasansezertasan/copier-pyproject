@@ -1167,18 +1167,19 @@ version-file writer, the c-extension compiler), which stay.
    apply the `no-issue` label to bypass the check. Keep it as a required status
    check alongside `check-pr-title`.
 5. **PR task-list completion check** (`task-completed-check.yml`): on
-   `pull_request_target` (`opened`/`edited`), runs
-   `kentaro-m/task-completed-checker-action` to post a check run that fails while
-   any task-list checkbox in the PR description is unticked. Uses
-   `pull_request_target` (least-privilege `checks: write` + `pull-requests: read`)
-   so the check also runs on fork PRs; wrap throwaway lists in
-   `<!-- ignore-task-list-start -->` / `<!-- ignore-task-list-end -->` to skip them.
-   The required context is the **check run** the action publishes (`Task
-   Completed Checker`), not the job name (`Check PR task list`) — the job is
-   green even when boxes are unticked. Because a check run is the whole verdict,
-   the `[bot]`-author skip would leave *no* context at all and block every
-   Renovate/release PR forever, so a follow-up step publishes that check run as a
-   success on bot PRs.
+   `pull_request_target` (`opened`/`edited`/`synchronize`/`reopened`), runs
+   `kentaro-m/task-completed-checker-action` to post an informational check run.
+   Uses `pull_request_target` (least-privilege `checks: write` +
+   `pull-requests: read`) so the check also runs on fork PRs; wrap throwaway
+   lists in `<!-- ignore-task-list-start -->` /
+   `<!-- ignore-task-list-end -->` to skip them. The required context is the
+   **job** (`Check PR task list`): an enforce step re-evaluates the *current*
+   PR body and fails the job while any checkbox is unticked, so the verdict
+   cannot go stale across overlapping runs. Bot-authored PRs skip both steps
+   and stay green via a follow-up step that publishes the check run as a
+   success. (An earlier revision required the action's `Task Completed
+   Checker` check run itself; ruleset evaluation stopped honoring those
+   synthetic runs and blocked every bot PR.)
 6. **Branch-name linting** (`check-branch-name.yml`): validates the PR's **head
    branch name** (`github.head_ref`) against the
    [Conventional Branch](https://conventionalbranch.org/) format
@@ -1194,9 +1195,10 @@ version-file writer, the c-extension compiler), which stay.
    never blocked. Branch names never reach `main` (squash-merge uses the PR
    title), so this is repo hygiene — not load-bearing for release-please. Keep it
    as a required status check (context: **Validate branch name**) alongside
-   **Validate PR title**, **Verify linked issue**, **Task Completed Checker**
-   (`task-completed-check.yml`), and **check** — `ci.yml`'s aggregate gate, the
-   only one of the five that says anything about the code.
+    **Validate PR title**, **Verify linked issue**, **Check PR task list**
+    (`task-completed-check.yml` — required as the job name; its enforce step
+    fails the job on unticked boxes), and **check** — `ci.yml`'s aggregate gate, the
+    only one of the five that says anything about the code.
 7. **Supply-chain security** (always included, static workflows):
    - `codeql.yml`: CodeQL analysis on push/PR to `main` + weekly schedule.
      Job-level visibility gate — code scanning needs GitHub Advanced Security on
