@@ -20,21 +20,26 @@ def _read(root: Path, *parts: str) -> str:
     return root.joinpath(*parts).read_text(encoding="utf-8")
 
 
-def test_task_check_publishes_its_required_context_for_bots(
+def test_task_check_gates_on_job_conclusion_for_humans(
     render: Callable[..., Path],
 ) -> None:
-    """The `[bot]` skip must leave the required check run behind, green.
+    """The `[bot]` skip must stay green while unticked human boxes fail the job.
 
-    The required context is the ``Task Completed Checker`` check run the action
-    creates — not the job name — so a bare skip leaves no context at all and
-    blocks every Renovate/release PR forever.
+    The required context is the ``Check PR task list`` job — not the action's
+    synthetic check run, which ruleset evaluation stopped honoring (issue
+    #418), blocking every Renovate/release PR forever. An enforce step
+    promotes a non-success task check into a job failure for humans, and
+    same-SHA runs are serialized so a verify step cannot read a sibling run's
+    verdict.
     """
     workflow = _read(render(), ".github", "workflows", "task-completed-check.yml")
     assert "-f name='Task Completed Checker'" in workflow
     assert "-f conclusion=success" in workflow
     assert (
-        workflow.count("endsWith(github.event.pull_request.user.login, '[bot]')") == 2
+        workflow.count("endsWith(github.event.pull_request.user.login, '[bot]')") == 3
     )
+    assert "exit 1" in workflow
+    assert "group: task-completed-check-" in workflow
 
 
 def test_warning_gate_runs_in_a_check_aggregated_job(

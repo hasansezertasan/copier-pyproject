@@ -6,6 +6,13 @@ on:
   # out or executed — the pinned action only reads the PR description's task list.
   pull_request_target:  # zizmor: ignore[dangerous-triggers]
     types: [opened, edited, synchronize, reopened]
+# Serialize runs per PR: rapid `edited` events on one head SHA otherwise overlap,
+# and a verify step could read a sibling run's verdict instead of its own
+# action step's. Queued (not cancelled) runs complete in event order, so the
+# required job conclusion always reflects the newest event.
+concurrency:
+  group: task-completed-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 jobs:
   task-check:
     name: Check PR task list
@@ -23,14 +30,37 @@ jobs:
         uses: kentaro-m/task-completed-checker-action@2ddb65fdd5577bae4a8e82e0564e459677aec893  # v0.1.2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Enforce the task check for human pull requests
+        # The action reports through its own `Task Completed Checker` check run
+        # but leaves this job green, so the job name alone cannot gate on it.
+        # Promote a non-success task check into a job failure here: this job's
+        # name (`Check PR task list`) is the required status check, which keeps
+        # human PRs with unticked boxes merge-blocked while bot PRs (skipped
+        # above, satisfied below) stay green.
+        if: ${{ !endsWith(github.event.pull_request.user.login, '[bot]') }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Read through env, never interpolated into the shell — the PR head SHA
+          # is fork-controlled data on a pull_request_target run.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          conclusion=""
+          for _ in 1 2 3 4 5 6; do
+            conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/check-runs?check_name=Task+Completed+Checker&per_page=100" \
+              --jq '[.check_runs[] | select(.name == "Task Completed Checker")] | sort_by(.id) | last | .conclusion // empty')"
+            if [ -n "${conclusion}" ]; then break; fi
+            sleep 10
+          done
+          if [ "${conclusion}" != "success" ]; then
+            echo "::error::Task Completed Checker is '${conclusion:-missing}' — tick every PR task-list box."
+            exit 1
+          fi
       - name: Report the task check as satisfied for bot pull requests
-        # The required status context is the check run `Task Completed Checker`
-        # that the action creates via the Checks API — NOT this job's name. So
-        # the skip above leaves no context behind at all and branch protection
-        # waits forever, making every Renovate/release-please PR unmergeable.
-        # Requiring the job name instead is not an option: the job is green even
-        # when boxes are unticked, so the gate would stop gating for humans.
-        # Publishing the check run green here is what keeps both true.
+        # Bots leave task checkboxes unticked by design, so the action step is
+        # skipped for them. Publish the informational check run green here; the
+        # required gate is this job's own conclusion, which stays green for
+        # bots. (A required check on the check-run name stopped being honored
+        # by ruleset evaluation on 2026-10-16 — see issue #418.)
         if: ${{ endsWith(github.event.pull_request.user.login, '[bot]') }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

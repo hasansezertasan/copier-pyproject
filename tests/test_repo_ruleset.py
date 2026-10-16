@@ -4,9 +4,11 @@ Guards the branch-protection-as-code design (context/repo-setup.md): the
 ruleset JSON and its idempotent sync workflow render only when the toggle is
 on, the JSON is valid and encodes the fixed review/bypass/merge policy, and the
 required-status-check contexts match the check names this template ships (with
-the Trivy context gated on ``include_web``). Most are job names;
-``Task Completed Checker`` is the check *run* the task-list action publishes,
-because the job around it is green even when boxes are unticked.
+the Trivy context gated on ``include_web``). All are job names; the task-list
+gate keys on the ``Check PR task list`` job itself, whose enforce step fails
+the job when the action reports unticked boxes — a required check on the
+action's synthetic check run stopped being honored by ruleset evaluation
+(upstream issue #418), so bot PRs stay green through the job conclusion.
 """
 
 from __future__ import annotations
@@ -75,7 +77,7 @@ def test_ruleset_status_contexts_non_web(render: Callable[..., Path]) -> None:
         "Validate branch name",
         "Validate PR title",
         "Verify linked issue",
-        "Task Completed Checker",
+        "Check PR task list",
         "Dependency audit (pip-audit)",
         "Secret scan (gitleaks)",
     ]

@@ -345,10 +345,12 @@ Do not break these — each is a real footgun with the detail/why in its linked
   reports the installed copy at 0%. Verify via a real `tox run`, never editable
   `pytest` ([per-component CI](context/ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component)).
 - **A required status context must actually report, and must actually gate.**
-  Three shapes of this bug have shipped: a `[bot]` skip on
-  `task-completed-check.yml` left *no* `Task Completed Checker` check run behind
-  (requiring the job name instead does not work — the job is green with boxes
-  unticked, so it must publish the check run itself); the Sphinx warning gate
+  Four shapes of this bug have shipped: a `[bot]` skip on
+  `task-completed-check.yml` left *no* `Task Completed Checker` check run behind;
+  then ruleset evaluation stopped honoring those synthetic runs at all (issue
+  #418), so the gate now keys on the `Check PR task list` job name with an
+  enforce step that fails the job on unticked boxes (same-SHA runs serialized
+  per PR so the verify cannot read a sibling run's verdict); the Sphinx warning gate
   lived only in `docs-preview.yml`, which forks skip and nothing requires, so
   `tox -e docs-build` now runs in `ci.yml`'s `docs-doctest` job that `check`
   aggregates (`fetch-depth: 0`, or `sphinx-last-updated-by-git` fails it); and
@@ -401,7 +403,7 @@ Detail (jobs, gating, security posture) in `docs/template-architecture.md`.
 Required status checks on generated repos (context names, not workflow files):
 **check** (`ci.yml`'s aggregate gate — the only one covering the code),
 **Validate PR title**, **Validate branch name**, **Verify linked issue**, and
-**Task Completed Checker** (the check run, not its job `Check PR task list`).
+**Check PR task list** (the job — its enforce step fails on unticked boxes).
 
 ### Workflow hardening rules
 
