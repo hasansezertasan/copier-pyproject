@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.13.0...v1.13.1) (2026-10-16)
+
+
+### 🐛 Bug Fixes
+
+* gate task list on job conclusion instead of synthetic check run ([#419](https://github.com/hasansezertasan/copier-pyproject/issues/419)) ([b599b07](https://github.com/hasansezertasan/copier-pyproject/commit/b599b0701ce7934754bf65e439a2b52978ed2ed4))
+
 ## [1.13.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.12.0...v1.13.0) (2026-10-16)
 
 
