@@ -6,13 +6,6 @@ on:
   # out or executed — the pinned action only reads the PR description's task list.
   pull_request_target:  # zizmor: ignore[dangerous-triggers]
     types: [opened, edited, synchronize, reopened]
-# Serialize runs per PR: rapid `edited` events on one head SHA otherwise overlap,
-# and a verify step could read a sibling run's verdict instead of its own
-# action step's. Queued (not cancelled) runs complete in event order, so the
-# required job conclusion always reflects the newest event.
-concurrency:
-  group: task-completed-check-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
 jobs:
   task-check:
     name: Check PR task list
@@ -32,27 +25,22 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Enforce the task check for human pull requests
         # The action reports through its own `Task Completed Checker` check run
-        # but leaves this job green, so the job name alone cannot gate on it.
-        # Promote a non-success task check into a job failure here: this job's
-        # name (`Check PR task list`) is the required status check, which keeps
-        # human PRs with unticked boxes merge-blocked while bot PRs (skipped
-        # above, satisfied below) stay green.
+        # but leaves this job green, so this job's name (`Check PR task list`)
+        # is the required status check. Evaluate the CURRENT PR body here rather
+        # than reading the action's run back: the verdict is then a pure
+        # function of present state, so overlapping runs on one head SHA cannot
+        # disagree about which event was newest. The matchers mirror the action
+        # (unticked `- [ ]` lines after stripping explicitly ignored blocks);
+        # bot PRs skip both steps and stay green via the POST below.
         if: ${{ !endsWith(github.event.pull_request.user.login, '[bot]') }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Read through env, never interpolated into the shell — the PR head SHA
-          # is fork-controlled data on a pull_request_target run.
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          conclusion=""
-          for _ in 1 2 3 4 5 6; do
-            conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/check-runs?check_name=Task+Completed+Checker&per_page=100" \
-              --jq '[.check_runs[] | select(.name == "Task Completed Checker")] | sort_by(.id) | last | .conclusion // empty')"
-            if [ -n "${conclusion}" ]; then break; fi
-            sleep 10
-          done
-          if [ "${conclusion}" != "success" ]; then
-            echo "::error::Task Completed Checker is '${conclusion:-missing}' — tick every PR task-list box."
+          body="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq .body)"
+          stripped="$(printf '%s' "${body}" | python3 -c 'import re,sys; print(re.sub(r"<!-- ignore-task-list-start -->[\s| ]*(- \[[x| ]\] .+[\s| ]*)+<!-- ignore-task-list-end -->", "", sys.stdin.read()))')"
+          if printf '%s' "${stripped}" | grep -Eq -- '- \[[ ]\].+'; then
+            echo "::error::Unticked task-list boxes remain — tick every PR task-list box."
             exit 1
           fi
       - name: Report the task check as satisfied for bot pull requests

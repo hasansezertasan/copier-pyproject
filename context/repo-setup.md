@@ -60,12 +60,11 @@ drift the template designs away. The Settings App cannot manage rulesets and
 the workflow token cannot be granted administration, so a PAT is required.
 Zero required approvals avoids deadlocking solo maintainers on their own PRs
 and unblocks release-please and Renovate while still enforcing every check.
-The task-list gate keys on the job name, with an enforce step promoting a
-non-success task check into a job failure — requiring the action's synthetic
-check run instead stopped working on 2026-10-16, when ruleset evaluation began
-reporting it `expected` despite successful runs and blocked every bot PR
-(issue #418). Same-SHA runs are serialized per PR so a verify step cannot read
-a sibling run's verdict.
+The task-list gate keys on the job name, with an enforce step re-evaluating the
+current PR body and failing the job on unticked boxes — order-independent, so
+overlapping runs cannot disagree — after ruleset evaluation stopped honoring
+the action's synthetic check runs on 2026-10-16 and blocked every bot PR
+(issue #418).
 
 **Rejected alternative:** classic branch protection — a ruleset is one
 declarative, export-friendly file, which weakens the earlier duplication

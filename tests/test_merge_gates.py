@@ -39,7 +39,11 @@ def test_task_check_gates_on_job_conclusion_for_humans(
         workflow.count("endsWith(github.event.pull_request.user.login, '[bot]')") == 3
     )
     assert "exit 1" in workflow
-    assert "group: task-completed-check-" in workflow
+    # Order-independent: the enforce step reads the current PR body, never a
+    # sibling run's verdict, so overlapping same-SHA runs cannot disagree.
+    assert 'pulls/${PR_NUMBER}"' in workflow
+    assert "ignore-task-list-start" in workflow
+    assert "concurrency" not in workflow
 
 
 def test_warning_gate_runs_in_a_check_aggregated_job(

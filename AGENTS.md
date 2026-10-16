@@ -349,8 +349,8 @@ Do not break these — each is a real footgun with the detail/why in its linked
   `task-completed-check.yml` left *no* `Task Completed Checker` check run behind;
   then ruleset evaluation stopped honoring those synthetic runs at all (issue
   #418), so the gate now keys on the `Check PR task list` job name with an
-  enforce step that fails the job on unticked boxes (same-SHA runs serialized
-  per PR so the verify cannot read a sibling run's verdict); the Sphinx warning gate
+  enforce step that re-evaluates the current PR body and fails the job on
+  unticked boxes — order-independent, so overlapping runs cannot disagree; the Sphinx warning gate
   lived only in `docs-preview.yml`, which forks skip and nothing requires, so
   `tox -e docs-build` now runs in `ci.yml`'s `docs-doctest` job that `check`
   aggregates (`fetch-depth: 0`, or `sphinx-last-updated-by-git` fails it); and
