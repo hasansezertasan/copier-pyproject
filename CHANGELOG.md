@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.12.0...v1.13.0) (2026-10-16)
+
+
+### 🚀 Features
+
+* **template:** add opt-in database layer (include_database) via Advanced Alchemy ([#416](https://github.com/hasansezertasan/copier-pyproject/issues/416)) ([e84fef4](https://github.com/hasansezertasan/copier-pyproject/commit/e84fef47c3618a228ecec3c489f1d5662bee9680))
+
+
+### 🐛 Bug Fixes
+
+* **template:** harden ruleset-sync and docs-preview against write-token exposure ([#411](https://github.com/hasansezertasan/copier-pyproject/issues/411)) ([42c37c2](https://github.com/hasansezertasan/copier-pyproject/commit/42c37c2262d127470705b02ff7a10dfe609c66a4))
+
 ## [1.12.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.11.0...v1.12.0) (2026-10-15)
 
 
