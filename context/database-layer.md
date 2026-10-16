@@ -56,10 +56,14 @@ without the devcontainer service, or the service without the layer.
 hard coupling between a runtime layer and a dev-only service.
 
 **Consequence:** with the postgres backend and the devcontainer service both on,
-the devcontainer service gets the prefixed `DATABASE_URL` pointing at the
-`postgres` compose service name, the way worker brokers are injected: inside the
-devcontainer `127.0.0.1` is the app container, not the database. A hosted
-Postgres without the service keeps the localhost default.
+the devcontainer gets the prefixed `DATABASE_URL` by the `postgres` compose
+service name, the way worker brokers are injected: inside the devcontainer
+`127.0.0.1` is the app container, not the database. It lives in
+`.devcontainer/database.env`, an `env_file` listed before the root `.env`, not
+in `environment:` — Compose lets `environment` outrank every `env_file`, which
+would make a URL in the root `.env` unable to win. `.env.example` carries the
+matching URL for its own `POSTGRES_*` values. A hosted Postgres without the
+service keeps the localhost default.
 
 The default is read from `preset_map`, not from the
 `include_postgres` answer, because that question is asked later than

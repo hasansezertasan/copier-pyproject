@@ -1,0 +1,4 @@
+# Default database URL for the devcontainer, by the `postgres` compose service
+# name. Keep it in step with POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB in the
+# root `.env`; set {{ github_repo_name | upper | replace("-", "_") }}_DATABASE_URL there to override it.
+{{ github_repo_name | upper | replace("-", "_") }}_DATABASE_URL=postgresql+asyncpg://postgres@postgres:5432/postgres

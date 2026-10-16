@@ -147,30 +147,36 @@ def test_alembic_tox_env_runs_the_advanced_alchemy_cli(
 def test_devcontainer_reaches_postgres_by_service_name(
     render: Callable[..., Path],
 ) -> None:
-    """Inside the devcontainer ``127.0.0.1`` is the app, not the service."""
-    compose = (
-        render(
-            preset="library",
-            include_database=True,
-            database_backend="postgres",
-            include_postgres=True,
-        )
-        / ".devcontainer"
-        / "docker-compose.yml"
-    ).read_text()
-    assert "EXAMPLE_DATABASE_URL" in compose
-    assert "@postgres:5432" in compose
+    """Inside the devcontainer ``127.0.0.1`` is the app, not the service.
+
+    The default lives in an ``env_file`` listed before the root ``.env`` (an
+    ``environment:`` entry would outrank it), and ``.env.example`` carries the
+    URL matching its own ``POSTGRES_DB``.
+    """
+    root = render(
+        preset="library",
+        include_database=True,
+        database_backend="postgres",
+        include_postgres=True,
+    )
+    compose = (root / ".devcontainer" / "docker-compose.yml").read_text()
+    assert "DATABASE_URL" not in compose
+    assert compose.index("- path: database.env") < compose.index("- path: ../.env")
+    default = (root / ".devcontainer" / "database.env").read_text()
+    assert "EXAMPLE_DATABASE_URL=postgresql+asyncpg://postgres@postgres:5432" in default
+    example = (root / ".env.example").read_text()
+    assert f"@postgres:5432/{PKG}" in example
 
 
 def test_devcontainer_leaves_sqlite_alone(render: Callable[..., Path]) -> None:
-    compose = (
-        render(
-            preset="library",
-            include_database=True,
-            database_backend="sqlite",
-            include_postgres=True,
-        )
-        / ".devcontainer"
-        / "docker-compose.yml"
+    root = render(
+        preset="library",
+        include_database=True,
+        database_backend="sqlite",
+        include_postgres=True,
+    )
+    assert not (root / ".devcontainer" / "database.env").exists()
+    assert "DATABASE_URL" not in (
+        root / ".devcontainer" / "docker-compose.yml"
     ).read_text()
-    assert "DATABASE_URL" not in compose
+    assert "DATABASE_URL" not in (root / ".env.example").read_text()

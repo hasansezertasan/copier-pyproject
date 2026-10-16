@@ -261,12 +261,13 @@ tools/build_docs.py
 
 ## web
 
-132 files.
+133 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
 .claude/skills/template-adoption/SKILL.md
 .copier-answers.yml
+.devcontainer/database.env
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
 .dockerignore
@@ -400,7 +401,7 @@ tools/build_docs.py
 
 ## full
 
-193 files.
+194 files.
 
 ```text
 .ai-rulez/config.toml
@@ -413,6 +414,7 @@ tools/build_docs.py
 .ai-rulez/skills/template-adoption/SKILL.md
 .all-contributorsrc
 .copier-answers.yml
+.devcontainer/database.env
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
 .devcontainer/vpn/.gitignore

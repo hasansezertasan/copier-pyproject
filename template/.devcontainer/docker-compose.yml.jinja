@@ -22,16 +22,8 @@ services:
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
 {%- set db_in_compose = include_database and database_backend == "postgres" and include_postgres %}
-{%- if include_worker or db_in_compose %}
-    environment:
-{%- endif %}
-{%- if db_in_compose %}
-      # Reach the database by its compose service DNS name: inside the
-      # devcontainer `127.0.0.1` is this container, not the `postgres` service.
-      # The app's own default (localhost) stays correct outside compose.
-      {{ github_repo_name | upper | replace("-", "_") }}_DATABASE_URL: ${ {{- github_repo_name | upper | replace("-", "_") }}_DATABASE_URL:-postgresql+asyncpg://postgres@postgres:5432/postgres}
-{%- endif %}
 {%- if include_worker %}
+    environment:
       # Point the worker at the broker by its compose service DNS name. The app's
       # own defaults use localhost (correct when running outside compose); inside
       # the devcontainer the broker is a sibling service reachable by name, not on
@@ -48,6 +40,13 @@ services:
 {%- endif %}
 {%- if include_postgres or redis_enabled %}
     env_file:
+{%- if db_in_compose %}
+      # Default database URL by the `postgres` service name (inside the
+      # devcontainer `127.0.0.1` is this container). Listed before `../.env` so
+      # a URL set there wins: later `env_file` entries override earlier ones,
+      # whereas an `environment:` entry would outrank both.
+      - path: database.env
+{%- endif %}
       - path: ../.env
         required: false
 {%- endif %}
