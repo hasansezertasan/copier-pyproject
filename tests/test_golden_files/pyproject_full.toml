@@ -1038,6 +1038,9 @@ runner = "uv-venv-lock-runner"
 [tool.tox.env.alembic]
 commands = [["alchemy", "--config", "example.db.migrations.config", { replace = "posargs", extend = true }]]
 dependency_groups = ["alembic"]
+# tox drops unlisted variables, so without this an exported URL would be ignored
+# and the migration would run against the default database.
+pass_env = ["EXAMPLE_DATABASE_URL"]
 description = "Run database migration commands (Advanced Alchemy / Alembic)."
 runner = "uv-venv-lock-runner"
 

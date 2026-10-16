@@ -61,9 +61,11 @@ service name, the way worker brokers are injected: inside the devcontainer
 `127.0.0.1` is the app container, not the database. It lives in
 `.devcontainer/database.env`, an `env_file` listed before the root `.env`, not
 in `environment:` — Compose lets `environment` outrank every `env_file`, which
-would make a URL in the root `.env` unable to win. `.env.example` carries the
-matching URL for its own `POSTGRES_*` values. A hosted Postgres without the
-service keeps the localhost default.
+would make a URL in the root `.env` unable to win. `.env.example` deliberately
+carries no URL: the root `.env` is also read on the host, where the `postgres`
+service name does not resolve. The default targets the `postgres` database and
+user, so changing `POSTGRES_USER`/`POSTGRES_DB` means editing `database.env`. A
+hosted Postgres without the service keeps the localhost default.
 
 The default is read from `preset_map`, not from the
 `include_postgres` answer, because that question is asked later than

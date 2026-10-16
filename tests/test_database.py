@@ -150,8 +150,8 @@ def test_devcontainer_reaches_postgres_by_service_name(
     """Inside the devcontainer ``127.0.0.1`` is the app, not the service.
 
     The default lives in an ``env_file`` listed before the root ``.env`` (an
-    ``environment:`` entry would outrank it), and ``.env.example`` carries the
-    URL matching its own ``POSTGRES_DB``.
+    ``environment:`` entry would outrank it), and ``.env.example`` must not carry
+    it: the service name does not resolve on the host.
     """
     root = render(
         preset="library",
@@ -164,8 +164,8 @@ def test_devcontainer_reaches_postgres_by_service_name(
     assert compose.index("- path: database.env") < compose.index("- path: ../.env")
     default = (root / ".devcontainer" / "database.env").read_text()
     assert "EXAMPLE_DATABASE_URL=postgresql+asyncpg://postgres@postgres:5432" in default
-    example = (root / ".env.example").read_text()
-    assert f"@postgres:5432/{PKG}" in example
+    # The root `.env` is also read on the host, where `postgres` does not resolve.
+    assert "DATABASE_URL" not in (root / ".env.example").read_text()
 
 
 def test_devcontainer_leaves_sqlite_alone(render: Callable[..., Path]) -> None:
@@ -180,3 +180,12 @@ def test_devcontainer_leaves_sqlite_alone(render: Callable[..., Path]) -> None:
         root / ".devcontainer" / "docker-compose.yml"
     ).read_text()
     assert "DATABASE_URL" not in (root / ".env.example").read_text()
+
+
+def test_alembic_tox_env_passes_the_database_url_through(
+    render: Callable[..., Path],
+) -> None:
+    root = render(preset="library", include_database=True)
+
+    tox = _pyproject(root)["tool"]["tox"]["env"]["alembic"]  # type: ignore[index]
+    assert tox["pass_env"] == ["EXAMPLE_DATABASE_URL"]
