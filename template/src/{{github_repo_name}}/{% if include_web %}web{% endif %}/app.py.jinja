@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING{% if include_database and web_framework == "fas
 {%- if include_database %}
 from advanced_alchemy.extensions.fastapi import AdvancedAlchemy
 {%- endif %}
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import {% if include_database %}Depends, {% endif %}FastAPI, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 {%- elif web_framework == "litestar" %}
 {%- if include_database %}
@@ -198,6 +198,8 @@ app = Litestar(
     plugins=[SQLAlchemyPlugin(config=get_config())],
 )
 {%- else %}
+
+
 app = Litestar(route_handlers=[get_version, get_info])
 {%- endif %}
 {%- endif %}
