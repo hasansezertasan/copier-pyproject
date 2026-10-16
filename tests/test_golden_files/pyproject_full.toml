@@ -22,6 +22,9 @@ keywords = [
   "faststream",
   "message-queue",
   "kafka",
+  "database",
+  "sqlalchemy",
+  "alembic",
   "pydantic",
   "cython",
   "c-extensions",
@@ -85,6 +88,9 @@ dependencies = [
   "pydantic>=2.0.0",
   "uvloop>=0.19.0; sys_platform != 'win32' and sys_platform != 'cygwin' and platform_python_implementation == 'CPython'",
   "pydantic-settings>=2.0.0",
+  "advanced-alchemy>=1.0.0",
+  "sqlalchemy>=2.0.41",
+  "asyncpg>=0.29.0",
 ]
 
 [project.urls]
@@ -173,6 +179,14 @@ test = [
   # wedged container/broker fails with a traceback instead of hanging until the
   # CI job timeout kills the run with no diagnostics.
   "pytest-timeout>=2.3",
+  # The suite runs against in-memory SQLite (see tests/conftest.py), so the
+  # driver is needed even though the runtime backend is PostgreSQL.
+  "aiosqlite>=0.20.0",
+]
+# The `alchemy` migration CLI needs rich-click; only the on-demand `alembic` tox
+# env installs it, so the runtime dependency stays the plain package.
+alembic = [
+  "advanced-alchemy[cli]>=1.0.0",
 ]
 benchmarks = [
   "pytest-codspeed>=4.0",
@@ -303,12 +317,20 @@ markers = [
   "tui: TUI component tests",
   "mcp: MCP component tests",
   "worker: worker component tests",
+  "db: database layer tests",
 ]
 # Strict mode requires explicit @pytest.mark.asyncio annotations, making async
 # test collection intentional instead of silently accepting unmarked coroutines.
 asyncio_mode = "strict"
 filterwarnings = [
   "error",
+  # Advanced Alchemy still decorates its audit mixins with SQLAlchemy's
+  # `declarative_mixin`, deprecated in 2.1. The warning fires at import inside
+  # the library and is not actionable here, so don't let `error` promote it.
+  "ignore:The declarative_mixin decorator:DeprecationWarning",
+  # Likewise its session helper still calls its own deprecated
+  # `set_async_context` (advanced-alchemy 1.9.0).
+  "ignore:Call to deprecated function 'set_async_context':DeprecationWarning",
   # Starlette's TestClient emits a forward-compat deprecation about httpx/httpx2.
   # It is harmless for tests, so don't let `error` promote it to a failure.
   "ignore:Using `httpx` with `starlette.testclient` is deprecated:Warning",
@@ -428,10 +450,13 @@ extend_exclude = [
   "hatch_build.py",
   "benchmarks",
   "scripts",
+  "migrations",
 ]
 known_first_party = ["example"]
 
 [tool.deptry.per_rule_ignores]
+# The async driver is selected by the connection URL scheme and never imported.
+DEP002 = ["asyncpg"]
 # The web launcher imports uvicorn, which the framework's `all`/`standard` extra
 # installs rather than this project declaring it.
 DEP003 = ["uvicorn"]
@@ -479,12 +504,16 @@ exhaustive_ignores = [
 layers = [
   "cli",
   "web | gui | tui | mcp | worker",
+  "db",
   "core",
   "utils",
 ]
 
 
 [tool.ruff]
+# The Alembic scaffold is Advanced Alchemy's generated `env.py`/`script.py.mako`;
+# keep it verbatim so regenerating it stays a no-diff operation.
+extend-exclude = ["migrations"]
 fix = true
 output-format = "full"
 preview = true
@@ -901,6 +930,9 @@ commands = [
     # Without this creosote skips imports inside functions, so a dependency used
     # only through a lazy import (the worker's uvloop) is reported as unused.
     "--include-deferred",
+    # The async driver is picked by the connection URL scheme and never imported.
+    "--exclude-dep",
+    "asyncpg",
   ],
 ]
 dependency_groups = ["deps", "test"]
@@ -998,6 +1030,15 @@ runner = "uv-venv-lock-runner"
 [tool.tox.env.cli]
 commands = [["example", { replace = "posargs", default = ["version"], extend = true }]]
 description = "Run the CLI application."
+runner = "uv-venv-lock-runner"
+
+# On-demand only (not in env_list): the Advanced Alchemy migration CLI, run from
+# the project root so the `migrations/` tree resolves, e.g.
+# ``tox run -e alembic -- make-migrations -m "add item"`` then ``-- upgrade``.
+[tool.tox.env.alembic]
+commands = [["alchemy", "--config", "example.db.migrations.config", { replace = "posargs", extend = true }]]
+dependency_groups = ["alembic"]
+description = "Run database migration commands (Advanced Alchemy / Alembic)."
 runner = "uv-venv-lock-runner"
 
 # On-demand only (not in env_list): starts a broker-bound worker, so run it with

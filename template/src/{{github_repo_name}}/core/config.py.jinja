@@ -12,6 +12,17 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.dirs import ROOT_FOLDER_PATH
+{%- if include_database %}
+
+# Async driver URL for the backend picked at scaffold time; override with the
+# prefixed ``DATABASE_URL`` environment variable. The SQLite file name is one the
+# generated ``.gitignore`` already covers.
+{%- if database_backend == 'postgres' %}
+_DEFAULT_DATABASE_URL = "postgresql+asyncpg://postgres@127.0.0.1:5432/postgres"
+{%- else %}
+_DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///db.sqlite3"
+{%- endif %}
+{%- endif %}
 
 
 class Settings(BaseSettings):
@@ -39,6 +50,11 @@ class Settings(BaseSettings):
     config_dir: Path = Field(
         default=ROOT_FOLDER_PATH, description="Configuration directory"
     )
+{%- if include_database %}
+    database_url: str = Field(
+        default=_DEFAULT_DATABASE_URL, description="Async SQLAlchemy database URL"
+    )
+{%- endif %}
 {%- else -%}
 import os
 from dataclasses import dataclass, field
@@ -68,6 +84,18 @@ def _env(name: str, default: str) -> str:
         str: The environment value, or ``default`` if it is not set.
     """
     return os.environ.get(f"{_ENV_PREFIX}{name}", default)
+{%- if include_database %}
+
+
+# Async driver URL for the backend picked at scaffold time; override with the
+# prefixed ``DATABASE_URL`` environment variable. The SQLite file name is one the
+# generated ``.gitignore`` already covers.
+{%- if database_backend == 'postgres' %}
+_DEFAULT_DATABASE_URL = "postgresql+asyncpg://postgres@127.0.0.1:5432/postgres"
+{%- else %}
+_DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///db.sqlite3"
+{%- endif %}
+{%- endif %}
 
 
 @dataclass(frozen=True)
@@ -88,6 +116,11 @@ class Settings:
     config_dir: Path = field(
         default_factory=lambda: Path(_env("CONFIG_DIR", str(ROOT_FOLDER_PATH)))
     )
+{%- if include_database %}
+    database_url: str = field(
+        default_factory=lambda: _env("DATABASE_URL", _DEFAULT_DATABASE_URL)
+    )
+{%- endif %}
 {%- endif %}
 
 

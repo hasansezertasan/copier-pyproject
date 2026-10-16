@@ -42,6 +42,11 @@ keywords = [
   "message-queue",
   "{{worker_broker}}",
 {%- endif %}
+{%- if include_database %}
+  "database",
+  "sqlalchemy",
+  "alembic",
+{%- endif %}
 {%- if include_pydantic_settings %}
   "pydantic",
 {%- endif %}
@@ -138,7 +143,13 @@ dependencies = [
   "fastapi[all]>=0.123.5",
 {%- endif %}
 {%- if web_framework == "litestar" %}
+{%- if include_database %}
+  # >=2.23.0 for `litestar.di.NamedDependency`, which the database health route
+  # uses to mark the plugin-provided session explicitly.
+  "litestar[standard]>=2.23.0",
+{%- else %}
   "litestar[standard]>=2.0.0",
+{%- endif %}
 {%- endif %}
 {%- endif %}
 {%- if include_mcp %}
@@ -155,6 +166,15 @@ dependencies = [
 {%- endif %}
 {%- if include_pydantic_settings %}
   "pydantic-settings>=2.0.0",
+{%- endif %}
+{%- if include_database %}
+  "advanced-alchemy>=1.0.0",
+  "sqlalchemy>=2.0.41",
+{%- if database_backend == "postgres" %}
+  "asyncpg>=0.29.0",
+{%- else %}
+  "aiosqlite>=0.20.0",
+{%- endif %}
 {%- endif %}
 ]
 
@@ -277,7 +297,19 @@ test = [
   # CI job timeout kills the run with no diagnostics.
   "pytest-timeout>=2.3",
 {%- endif %}
+{%- if include_database and database_backend == "postgres" %}
+  # The suite runs against in-memory SQLite (see tests/conftest.py), so the
+  # driver is needed even though the runtime backend is PostgreSQL.
+  "aiosqlite>=0.20.0",
+{%- endif %}
 ]
+{%- if include_database %}
+# The `alchemy` migration CLI needs rich-click; only the on-demand `alembic` tox
+# env installs it, so the runtime dependency stays the plain package.
+alembic = [
+  "advanced-alchemy[cli]>=1.0.0",
+]
+{%- endif %}
 {%- if include_benchmarks %}
 benchmarks = [
   "pytest-codspeed>=4.0",
@@ -465,6 +497,9 @@ markers = [
 {%- if include_worker %}
   "worker: worker component tests",
 {%- endif %}
+{%- if include_database %}
+  "db: database layer tests",
+{%- endif %}
 ]
 {%- if async_style == "asyncio" %}
 # Strict mode requires explicit @pytest.mark.asyncio annotations, making async
@@ -473,6 +508,15 @@ asyncio_mode = "strict"
 {%- endif %}
 filterwarnings = [
   "error",
+{%- if include_database %}
+  # Advanced Alchemy still decorates its audit mixins with SQLAlchemy's
+  # `declarative_mixin`, deprecated in 2.1. The warning fires at import inside
+  # the library and is not actionable here, so don't let `error` promote it.
+  "ignore:The declarative_mixin decorator:DeprecationWarning",
+  # Likewise its session helper still calls its own deprecated
+  # `set_async_context` (advanced-alchemy 1.9.0).
+  "ignore:Call to deprecated function 'set_async_context':DeprecationWarning",
+{%- endif %}
 {%- if include_web and web_framework == "fastapi" %}
   # Starlette's TestClient emits a forward-compat deprecation about httpx/httpx2.
   # It is harmless for tests, so don't let `error` promote it to a failure.
@@ -612,11 +656,18 @@ extend_exclude = [
 {%- if include_worker %}
   "scripts",
 {%- endif %}
+{%- if include_database %}
+  "migrations",
+{%- endif %}
 ]
 known_first_party = ["{{github_repo_name}}"]
-{%- if include_docs or include_web %}
+{%- if include_docs or include_web or include_database %}
 
 [tool.deptry.per_rule_ignores]
+{%- if include_database %}
+# The async driver is selected by the connection URL scheme and never imported.
+DEP002 = ["{{ 'asyncpg' if database_backend == 'postgres' else 'aiosqlite' }}"]
+{%- endif %}
 {%- if include_web %}
 # The web launcher imports uvicorn, which the framework's `all`/`standard` extra
 # installs rather than this project declaring it.
@@ -685,12 +736,20 @@ layers = [
 {%- if il_components %}
   "{{ il_components | join(' | ') }}",
 {%- endif %}
+{%- if include_database %}
+  "db",
+{%- endif %}
   "core",
   "utils",
 ]
 
 
 [tool.ruff]
+{%- if include_database %}
+# The Alembic scaffold is Advanced Alchemy's generated `env.py`/`script.py.mako`;
+# keep it verbatim so regenerating it stays a no-diff operation.
+extend-exclude = ["migrations"]
+{%- endif %}
 fix = true
 output-format = "full"
 preview = true
@@ -1135,6 +1194,11 @@ commands = [
     # Without this creosote skips imports inside functions, so a dependency used
     # only through a lazy import (the worker's uvloop) is reported as unused.
     "--include-deferred",
+{%- if include_database %}
+    # The async driver is picked by the connection URL scheme and never imported.
+    "--exclude-dep",
+    "{{ 'asyncpg' if database_backend == 'postgres' else 'aiosqlite' }}",
+{%- endif %}
   ],
 ]
 dependency_groups = ["deps", "test"]
@@ -1240,6 +1304,17 @@ runner = "uv-venv-lock-runner"
 [tool.tox.env.cli]
 commands = [["{{github_repo_name}}", { replace = "posargs", default = ["version"], extend = true }]]
 description = "Run the CLI application."
+runner = "uv-venv-lock-runner"
+{%- endif %}
+{%- if include_database %}
+
+# On-demand only (not in env_list): the Advanced Alchemy migration CLI, run from
+# the project root so the `migrations/` tree resolves, e.g.
+# ``tox run -e alembic -- make-migrations -m "add item"`` then ``-- upgrade``.
+[tool.tox.env.alembic]
+commands = [["alchemy", "--config", "{{github_repo_name}}.db.migrations.config", { replace = "posargs", extend = true }]]
+dependency_groups = ["alembic"]
+description = "Run database migration commands (Advanced Alchemy / Alembic)."
 runner = "uv-venv-lock-runner"
 {%- endif %}
 {%- if include_worker %}

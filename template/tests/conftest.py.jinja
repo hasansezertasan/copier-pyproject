@@ -18,14 +18,24 @@ through ``core.app``, so one fixture covers every component's error path
 
 from __future__ import annotations
 
-{% if primary_component %}from importlib.metadata import PackageNotFoundError
+{% if include_database %}import os
+{% endif %}{% if primary_component %}from importlib.metadata import PackageNotFoundError
 {% endif %}from pathlib import Path
 from typing import TYPE_CHECKING
 {%- if primary_component %}
 
 import pytest
-
+{%- endif %}
+{%- if primary_component or include_database %}{{ "\n" }}
+{%- if include_database %}
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+{%- endif %}
+{%- if primary_component %}
 from {{github_repo_name}}.core import app as service
+{%- endif %}
+{%- if include_database %}
+from {{github_repo_name}}.core.config import get_settings
+{%- endif %}
 {%- endif %}
 
 if TYPE_CHECKING:
@@ -42,6 +52,20 @@ if TYPE_CHECKING:
 # prose
 # under tests/ stays prose.
 collect_ignore_glob = ["*.md"]
+{%- if include_database %}
+
+_DATABASE_URL_ENV = f"{PROJECT_NAME.upper().replace('-', '_')}_DATABASE_URL"
+_TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+# Never let the suite reach a real database server: the settings read this
+# variable when the web app (and so the DB plugin) is first imported, which
+# happens after this module runs. SQLite works whatever ``database_backend`` was
+# picked, so the default driver need not be installed for the tests.
+os.environ[_DATABASE_URL_ENV] = _TEST_DATABASE_URL
+# Importing the package above may already have cached the settings (the logging
+# setup reads them), so drop that instance to make the override visible.
+get_settings.cache_clear()
+{%- endif %}
 
 
 # tests/<dir> names that map to a component marker, rendered from the enabled
@@ -69,6 +93,9 @@ _COMPONENT_DIRS: frozenset[str] = frozenset({
 {%- endif %}
 {%- if include_worker %}
     "worker",
+{%- endif %}
+{%- if include_database %}
+    "db",
 {%- endif %}
 })
 # fmt: on

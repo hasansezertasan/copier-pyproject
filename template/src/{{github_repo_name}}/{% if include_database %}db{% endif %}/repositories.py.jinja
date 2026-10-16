@@ -1,0 +1,14 @@
+"""Repositories: the data-access seam over the models."""
+
+from advanced_alchemy.repository import SQLAlchemyAsyncRepository
+
+from {{github_repo_name}}.db.models import Item
+
+
+class ItemRepository(SQLAlchemyAsyncRepository[Item]):  # pylint: disable=duplicate-bases  # false positive on the Generic parameterisation
+    """Async repository for :class:`~{{github_repo_name}}.db.models.Item`."""
+
+    model_type: type[Item] = Item
+
+
+__all__ = ["ItemRepository"]

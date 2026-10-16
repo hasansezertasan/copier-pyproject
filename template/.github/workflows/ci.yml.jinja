@@ -46,6 +46,9 @@ jobs:
 {%- if include_worker %}
       worker: {% raw %}${{ steps.filter.outputs.worker }}{% endraw %}
 {%- endif %}
+{%- if include_database %}
+      db: {% raw %}${{ steps.filter.outputs.db }}{% endraw %}
+{%- endif %}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
@@ -80,6 +83,9 @@ jobs:
             web:
               - 'src/{{github_repo_name}}/web/**'
               - 'tests/web/**'
+{%- if include_database %}
+              - 'src/{{github_repo_name}}/db/**'
+{%- endif %}
 {%- endif %}
 {%- if include_gui %}
             gui:
@@ -100,6 +106,12 @@ jobs:
             worker:
               - 'src/{{github_repo_name}}/worker/**'
               - 'tests/worker/**'
+{%- endif %}
+{%- if include_database %}
+            db:
+              - 'src/{{github_repo_name}}/db/**'
+              - 'tests/db/**'
+              - 'migrations/**'
 {%- endif %}
   hooks:
     name: Run prek hooks
@@ -297,6 +309,7 @@ jobs:
 {%- if include_tui %}{% set _ = comp_names.append('tui') %}{% endif %}
 {%- if include_mcp %}{% set _ = comp_names.append('mcp') %}{% endif %}
 {%- if include_worker %}{% set _ = comp_names.append('worker') %}{% endif %}
+{%- if include_database %}{% set _ = comp_names.append('db') %}{% endif %}
 {%- if comp_names %}{% set core_marker = 'not (' ~ comp_names | join(' or ') ~ ')' %}{% else %}{% set core_marker = '' %}{% endif %}
 {%- set test_jobs = [{'slug': 'core', 'marker': core_marker, 'gated': False}] %}
 {%- for c in comp_names %}{% set _ = test_jobs.append({'slug': c, 'marker': c ~ (' and not integration' if c == 'worker' else ''), 'gated': True}) %}{% endfor %}

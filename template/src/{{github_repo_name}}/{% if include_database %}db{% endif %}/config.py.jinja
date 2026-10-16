@@ -1,0 +1,35 @@
+"""Advanced Alchemy configuration, with the URL sourced from the settings."""
+
+{% if include_web -%}
+from advanced_alchemy.config import AlembicAsyncConfig
+from advanced_alchemy.extensions.{{ web_framework }} import SQLAlchemyAsyncConfig
+{%- else -%}
+from advanced_alchemy.config import AlembicAsyncConfig, SQLAlchemyAsyncConfig
+{%- endif %}
+
+from {{github_repo_name}}.core.config import get_settings
+from {{github_repo_name}}.db.base import Base
+
+#: Alembic script location, relative to the project root (where the migration
+#: commands are run, e.g. ``tox run -e alembic -- upgrade``).
+MIGRATIONS_PATH = "migrations"
+
+
+def get_config() -> SQLAlchemyAsyncConfig:
+    """Build the async engine/session configuration.
+
+    The connection URL comes from ``Settings.database_url`` so it can be
+    overridden through the environment like every other setting.
+
+    Returns:
+        SQLAlchemyAsyncConfig: The configuration shared by the web plugin, the
+            repositories and the Alembic commands.
+    """
+    return SQLAlchemyAsyncConfig(
+        connection_string=get_settings().database_url,
+        metadata=Base.metadata,
+        alembic_config=AlembicAsyncConfig(script_location=MIGRATIONS_PATH),
+    )
+
+
+__all__ = ["MIGRATIONS_PATH", "get_config"]

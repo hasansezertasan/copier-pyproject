@@ -322,6 +322,21 @@ def test_openapi_schema_available(client: TestClient) -> None:
 {%- endif %}
 
 
+{% if include_database -%}
+def test_db_health_endpoint() -> None:
+    """`/health/db` runs a trivial query through a request-scoped session.
+
+    The client is entered as a context manager so the app's startup hooks run:
+    the database plugin creates its engine there.
+    """
+    with TestClient(app) as live_client:
+        response = live_client.get("/health/db")
+
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    assert response.json() == {"database": "ok"}
+
+
+{% endif -%}
 def test_main_launches_server(monkeypatch: pytest.MonkeyPatch) -> None:
     """``main`` resolves the default target and bind, then invokes the runner."""
     monkeypatch.delenv(f"{ENV_PREFIX}HOST", raising=False)

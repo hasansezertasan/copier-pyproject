@@ -37,6 +37,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 
 ## D
 
+- [database-layer.md](database-layer.md) — The opt-in async database layer: Advanced Alchemy, backend/devcontainer alignment, the `db` import layer, library workarounds.
 - [docs-stack.md](docs-stack.md) — Sphinx + Shibuya, PR previews, docs linting, the warning allowlist, the docs toggle, executed examples, API-reference rendering.
 - [docs-versioning.md](docs-versioning.md) — Build-current-preserve-rest versioned docs, granularity, the manual redeploy, loud gh-pages fetch failures, last-updated stamps, the warning gate's job.
 

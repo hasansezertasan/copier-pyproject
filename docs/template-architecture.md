@@ -65,6 +65,7 @@ Optional components (all boolean):
 - `include_tui` - Textual TUI
 - `include_mcp` - MCP (Model Context Protocol) server
 - `include_worker` - FastStream message queue worker
+- `include_database` - Async database layer (Advanced Alchemy + Alembic); see [the database layer](../context/database-layer.md#the-database-layer-is-async-only-advanced-alchemy-behind-one-include_database-toggle)
 - `include_c_extensions` - Cython support with multi-platform wheels
 - `include_profiling` - py-spy, scalene, cProfile tools
 - `include_benchmarks` - pytest-codspeed benchmarks and a non-blocking CodSpeed workflow
@@ -269,15 +270,18 @@ Framework/broker choices (when parent option is enabled):
 
 - `web_framework` - fastapi/litestar (when `include_web` is true)
 - `worker_broker` - kafka/nats/rabbitmq/redis (when `include_worker` is true)
+- `database_backend` - sqlite/postgres (when `include_database` is true). Picks the async driver dependency (`aiosqlite`/`asyncpg`) and the default URL; the default follows whether the preset enables `include_postgres`, but the devcontainer service is never forced on ([backend alignment](../context/database-layer.md#database_backendpostgres-defaults-the-devcontainer-service-but-never-forces-it)).
 
 Testing choices:
 
 - `async_style` - `none`/`asyncio`/`anyio`. Async test runner for generated tests:
   `none` (synchronous tests only), `asyncio` (pytest-asyncio strict mode with explicit
   markers), or `anyio` (runs marked tests across both asyncio and trio backends).
-  Defaults to `asyncio` when `include_web`, `include_tui`, `include_mcp`, or `include_worker`
-  is enabled, and `none` otherwise. When TUI, MCP, or worker is enabled, validation
-  constrains the choice to `asyncio` or `anyio` because those components ship async tests.
+  Defaults to `asyncio` when `include_web`, `include_tui`, `include_mcp`, `include_worker`,
+  or `include_database` is enabled, and `none` otherwise. When TUI, MCP, worker, or the database
+  layer is enabled, validation constrains the choice to `asyncio` or `anyio` because those
+  ship async tests (SQLAlchemy's async drivers are asyncio-only, so the db tests pin the
+  `anyio` backend to asyncio).
   See [async testing style](../context/testing-strategy.md#async-testing-is-an-explicit-template-axis-async_style).
 
    Evaluated and intentionally out (issue #392): `pytest-cov` — coverage is
@@ -740,6 +744,20 @@ Subpackages (each with an `__init__.py`):
 - `gui/` - Tkinter GUI launcher (conditional)
 - `tui/` - Textual TUI (conditional)
 - `mcp/` - MCP server with `version` and `info` tools (conditional)
+- `db/` - async database layer (conditional on `include_database`): `base.py`
+  (Advanced Alchemy's UUID/audit declarative base), `models.py` (one illustrative
+  `Item`), `repositories.py`, `config.py` (`get_config()` builds the
+  `SQLAlchemyAsyncConfig` from `Settings.database_url`, using the FastAPI or
+  Litestar flavour of the config class when `include_web`) and `migrations.py`
+  (the config *instance* the `alchemy --config` CLI imports). It is its own layer
+  in the import-linter contract, between the components and `core`. With
+  `include_web` the app registers the framework's Advanced Alchemy plugin and
+  exposes `GET /health/db`. `Settings.database_url` is overridable through the
+  prefixed `DATABASE_URL` environment variable. The Alembic tree is the root
+  `migrations/` (Advanced Alchemy's own `env.py`/`script.py.mako`, excluded from
+  ruff and deptry); run `tox run -e alembic -- make-migrations -m "msg"` then
+  `-- upgrade` from the project root. Why:
+  [the database layer](../context/database-layer.md).
 - `worker/` - FastStream message queue worker (conditional). The broker is built
   by a `build_broker(url=None)` factory that registers the subscriber/publisher
   and resolves the connection at call time (not import time), so tests can point
@@ -770,7 +788,7 @@ Other conditional files:
 
 Test packages mirror source structure in `tests/`:
 
-- `tests/cli/`, `tests/web/`, `tests/gui/`, `tests/tui/`, `tests/mcp/`, `tests/worker/` (each conditional)
+- `tests/cli/`, `tests/web/`, `tests/gui/`, `tests/tui/`, `tests/mcp/`, `tests/worker/`, `tests/db/` (each conditional)
 - `tests/worker/` holds both the in-memory `Test<Broker>` unit tests (always run)
   and a broker round-trip integration test marked `integration` (excluded from
   the default run). Its `_broker_url` context manager reads a single seam: if the broker's

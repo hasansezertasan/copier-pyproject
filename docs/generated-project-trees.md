@@ -261,7 +261,7 @@ tools/build_docs.py
 
 ## web
 
-122 files.
+132 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
@@ -354,6 +354,8 @@ docs/maintaining/setup.rst
 docs/modules.rst
 docs/usage.rst
 docs/web-interface.rst
+migrations/env.py
+migrations/script.py.mako
 mise.toml
 prek.toml
 pyproject.toml
@@ -367,6 +369,12 @@ src/example/core/app.py
 src/example/core/config.py
 src/example/core/dirs.py
 src/example/core/logging_setup.py
+src/example/db/__init__.py
+src/example/db/base.py
+src/example/db/config.py
+src/example/db/migrations.py
+src/example/db/models.py
+src/example/db/repositories.py
 src/example/py.typed
 src/example/utils/__init__.py
 src/example/web/__init__.py
@@ -380,6 +388,8 @@ tests/core/test_app.py
 tests/core/test_config.py
 tests/core/test_dirs.py
 tests/core/test_logging_setup.py
+tests/db/__init__.py
+tests/db/test_db.py
 tests/test_docs_examples.py
 tests/test_main.py
 tests/test_smoke.py
@@ -390,7 +400,7 @@ tools/build_docs.py
 
 ## full
 
-183 files.
+193 files.
 
 ```text
 .ai-rulez/config.toml
@@ -519,6 +529,8 @@ examples/advanced/main.py
 examples/simple/README.md
 examples/simple/main.py
 hatch_build.py
+migrations/env.py
+migrations/script.py.mako
 mise.toml
 prek.toml
 profile.py
@@ -539,6 +551,12 @@ src/example/core/app.py
 src/example/core/config.py
 src/example/core/dirs.py
 src/example/core/logging_setup.py
+src/example/db/__init__.py
+src/example/db/base.py
+src/example/db/config.py
+src/example/db/migrations.py
+src/example/db/models.py
+src/example/db/repositories.py
 src/example/gui/__init__.py
 src/example/gui/app.py
 src/example/mcp/__init__.py
@@ -560,6 +578,8 @@ tests/core/test_app.py
 tests/core/test_config.py
 tests/core/test_dirs.py
 tests/core/test_logging_setup.py
+tests/db/__init__.py
+tests/db/test_db.py
 tests/gui/__init__.py
 tests/gui/test_app.py
 tests/mcp/__init__.py

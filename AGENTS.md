@@ -233,6 +233,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_tui` | Textual TUI | — |
 | `include_mcp` | MCP server | — |
 | `include_worker` | FastStream worker (`worker_broker` = kafka/nats/rabbitmq/redis) | [testing-strategy](context/testing-strategy.md#the-worker-exposes-an-env-injectable-broker-factory-lazy-broker-imports-were-rejected) |
+| `include_database` | Async database layer (Advanced Alchemy + Alembic; `database_backend` = sqlite/postgres); its own `db` import layer; on in `web`/`full` | [database-layer](context/database-layer.md#the-database-layer-is-async-only-advanced-alchemy-behind-one-include_database-toggle), [database-layer](context/database-layer.md#db-is-a-layer-of-its-own-between-the-components-and-core) |
 | `include_c_extensions` | Cython + multi-platform wheels | — |
 | `include_profiling` | py-spy / scalene / cProfile | — |
 | `include_benchmarks` | pytest-codspeed benchmarks + non-blocking CodSpeed workflow | [external-integrations](context/external-integrations.md#opt-in-benchmarking-with-pytest-codspeed) |

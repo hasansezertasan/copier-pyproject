@@ -1,0 +1,17 @@
+"""Starter model; replace it with the project's own."""
+
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from {{github_repo_name}}.db.base import Base
+
+
+class Item(Base):  # pylint: disable=too-many-ancestors  # Advanced Alchemy base is a deep mixin stack
+    """An illustrative persisted record (UUID primary key + audit columns)."""
+
+    __tablename__: str | None = "item"
+
+    name: Mapped[str] = mapped_column(String(length=120))
+
+
+__all__ = ["Item"]
