@@ -142,3 +142,35 @@ def test_alembic_tox_env_runs_the_advanced_alchemy_cli(
         "--config",
         f"{PKG}.db.migrations.config",
     ]
+
+
+def test_devcontainer_reaches_postgres_by_service_name(
+    render: Callable[..., Path],
+) -> None:
+    """Inside the devcontainer ``127.0.0.1`` is the app, not the service."""
+    compose = (
+        render(
+            preset="library",
+            include_database=True,
+            database_backend="postgres",
+            include_postgres=True,
+        )
+        / ".devcontainer"
+        / "docker-compose.yml"
+    ).read_text()
+    assert "EXAMPLE_DATABASE_URL" in compose
+    assert "@postgres:5432" in compose
+
+
+def test_devcontainer_leaves_sqlite_alone(render: Callable[..., Path]) -> None:
+    compose = (
+        render(
+            preset="library",
+            include_database=True,
+            database_backend="sqlite",
+            include_postgres=True,
+        )
+        / ".devcontainer"
+        / "docker-compose.yml"
+    ).read_text()
+    assert "DATABASE_URL" not in compose

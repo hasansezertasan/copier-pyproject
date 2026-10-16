@@ -55,7 +55,13 @@ without the devcontainer service, or the service without the layer.
 **Rejected alternative:** force `include_postgres` on for the postgres backend —
 hard coupling between a runtime layer and a dev-only service.
 
-**Consequence:** the default is read from `preset_map`, not from the
+**Consequence:** with the postgres backend and the devcontainer service both on,
+the devcontainer service gets the prefixed `DATABASE_URL` pointing at the
+`postgres` compose service name, the way worker brokers are injected: inside the
+devcontainer `127.0.0.1` is the app container, not the database. A hosted
+Postgres without the service keeps the localhost default.
+
+The default is read from `preset_map`, not from the
 `include_postgres` answer, because that question is asked later than
 `database_backend`.
 
