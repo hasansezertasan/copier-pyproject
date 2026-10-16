@@ -15,6 +15,8 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+import yaml
+
 
 def _ruleset(root: Path) -> Path:
     return root / ".github" / "rulesets" / "main.json"
@@ -111,6 +113,16 @@ def _setup_doc(root: Path) -> str:
     # Maintainer branch-protection setup lives in docs/maintaining/setup.rst
     # (not the contributor-facing CONTRIBUTING.md); see context/repo-setup.md.
     return (root / "docs" / "maintaining" / "setup.rst").read_text(encoding="utf-8")
+
+
+def test_sync_workflow_pat_is_behind_a_reviewed_environment(
+    render: Callable[..., Path],
+) -> None:
+    """The admin PAT is an environment secret, so a workflow edit can't reach it."""
+    root = render(include_repo_ruleset=True)
+    workflow = yaml.safe_load(_workflow(root).read_text(encoding="utf-8"))
+    assert workflow["jobs"]["sync"]["environment"] == "ruleset-admin"
+    assert "--env ruleset-admin" in _setup_doc(root)
 
 
 def test_setup_doc_documents_pat_when_enabled(render: Callable[..., Path]) -> None:

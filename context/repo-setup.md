@@ -70,6 +70,18 @@ concern.
 **Consequence:** strict status checks mean concurrent bot PRs rebase before
 merging; manual web-UI ruleset edits are reverted on the next push.
 
+**Admin PAT behind a required-reviewer environment:** the sync job declares
+`environment: ruleset-admin` and the PAT is an environment secret, not a
+repository secret. With zero required approvals anyone who can merge their own
+PR can edit `ruleset-sync.yml`, and the next default-branch push would run the
+edited file with the admin PAT; the environment's reviewer gate is evaluated
+outside the workflow file, so the edit cannot reach the token unreviewed
+(issue #409). **Rejected alternative:** shipping `CODEOWNERS` coverage for
+`.github/` with `require_code_owner_review: true` — a sole maintainer cannot
+approve their own PR, so it deadlocks every PR including release-please and
+Renovate, contradicting the zero-approvals choice above (and
+`tests/test_repo_settings.py`, which pins the flag to false).
+
 **Independent of `include_repo_settings`:** the two are complementary.
 `settings.yml` controls which merge buttons exist, the ruleset enforces policy,
 and both encode squash-only so they agree.

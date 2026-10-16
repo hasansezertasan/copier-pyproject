@@ -261,8 +261,7 @@ def test_docs_preview_checks_out_full_history(render: Callable[..., Path]) -> No
     )
     checkouts = [
         step
-        for job in workflow["jobs"].values()
-        for step in job["steps"]
+        for step in workflow["jobs"]["build"]["steps"]
         if "actions/checkout" in step.get("uses", "")
     ]
     assert checkouts
@@ -309,3 +308,35 @@ def test_preserve_from_gh_pages_extracts_the_subtree(
     assert (out / "0.1" / "sub" / "index.html").read_text(
         encoding="utf-8"
     ) == "published\n"
+
+
+def test_docs_preview_write_token_lives_only_in_the_workflow_run_half(
+    render: Callable[..., Path],
+) -> None:
+    """PR-editable YAML holds no write token; the privileged half is workflow_run.
+
+    On ``pull_request`` the workflow file comes from the PR, so any job in it can
+    be edited by the PR (issue #409). Publishing therefore lives in a
+    ``workflow_run`` workflow, which always runs the default branch's copy.
+    """
+    workflows = render(include_docs=True) / ".github" / "workflows"
+    build = yaml.safe_load((workflows / "docs-preview.yml").read_text("utf-8"))
+    for job in build["jobs"].values():
+        assert not set(job.get("permissions", {}).values()) & {"write"}
+        assert "environment" not in job
+    deploy = yaml.safe_load(
+        (workflows / "docs-preview-deploy.yml").read_text("utf-8")
+    )
+    # PyYAML parses the bare ``on`` key as True.
+    trigger = deploy.get("on", deploy.get(True))
+    assert list(trigger) == ["workflow_run"]
+    assert trigger["workflow_run"]["workflows"] == [build["name"]]
+    job = deploy["jobs"]["deploy"]
+    assert job["permissions"] == {
+        "contents": "write",
+        "pull-requests": "write",
+        "actions": "read",
+    }
+    for step in job["steps"]:
+        if "actions/checkout" in step.get("uses", ""):
+            assert "ref" not in step["with"]  # default branch, never the PR

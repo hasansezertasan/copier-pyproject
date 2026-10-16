@@ -66,8 +66,22 @@ has no live URL, which is the whole value. If GitHub Pages is not enabled the
 deploy step fails only on that PR, which is tolerable because the workflow is
 not in the `check` gate.
 
-**Rejected alternative:** a `workflow_run`/`pull_request_target` split for fork
-coverage — deferred until the action supports forks.
+**Rejected alternative:** `pull_request_target` for fork coverage — fork PR
+previews stay deferred until the action supports forks; the `workflow_run`
+split above is for privilege separation, and still skips forks.
+
+**Build and deploy are separate workflows (issue #409):** `docs-preview.yml`
+(`pull_request`, read-only) builds the HTML and uploads it as an artifact;
+`docs-preview-deploy.yml` (`workflow_run`) publishes it. A single job executed
+PR code with a write token, and a second *job* in the same file is not enough
+either: on `pull_request` the workflow YAML comes from the PR's merge commit, so
+a PR can add a step to the privileged job. `workflow_run` always runs the default
+branch's copy, which a PR cannot edit. The deploy workflow takes the PR number
+from the event payload, treats the artifact as static data and reduces its
+`action` file to an allowlisted word, and carries a justified
+`dangerous-triggers` ignore. It uses an explicit `deploy`/`remove` because
+`action: auto` keys off a `pull_request` event, and the action's internal sticky comment does not forward `pr-number` (upstream #131), so the workflow sets `comment: "false"` and posts the sticky comment itself with `marocchino/sticky-pull-request-comment` and the trusted PR number; on `closed` the build is
+skipped and only the meta artifact drives the removal.
 
 **Consequence:** the released-docs deploys exclude `pr-preview/**` from
 cleaning and merge rather than force-push, so previews survive a release and a
