@@ -1,0 +1,7 @@
+# Default database URL for the devcontainer, by the `postgres` compose service
+# name (it only resolves inside the Compose network, so it deliberately stays out
+# of the root `.env`, which the app also reads on the host). It targets the
+# default `postgres` database and user; if you change POSTGRES_USER/POSTGRES_DB
+# in `.env`, edit this URL to match. A {{ github_repo_name | upper | replace("-", "_") }}_DATABASE_URL set in `.env`
+# overrides it.
+{{ github_repo_name | upper | replace("-", "_") }}_DATABASE_URL=postgresql+asyncpg://postgres@postgres:5432/postgres

@@ -1,0 +1,12 @@
+"""Target of the Advanced Alchemy migration CLI (``alchemy --config``).
+
+The CLI imports a configuration *instance* rather than calling a factory, so it
+is built here, at import, and nowhere else: importing this module is what the
+``alembic`` tox env does and nothing in the application does.
+"""
+
+from {{github_repo_name}}.db.config import get_config
+
+config = get_config()
+
+__all__ = ["config"]

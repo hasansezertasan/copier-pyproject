@@ -67,6 +67,17 @@ Worker (``{{github_repo_name}}.worker``)
 FastStream worker processing messages from {{worker_broker}}.
 
 .. automodule:: {{github_repo_name}}.worker.app
+{% endif %}{% if include_database %}
+Database (``{{github_repo_name}}.db``)
+{{ '-' * (github_repo_name | length + 20) }}
+
+Async SQLAlchemy models, repositories and configuration (Advanced Alchemy).
+
+.. automodule:: {{github_repo_name}}.db.models
+
+.. automodule:: {{github_repo_name}}.db.repositories
+
+.. automodule:: {{github_repo_name}}.db.config
 {% endif %}
 
 .. TODO @{{github_user}}: Document your own modules here as the project grows.

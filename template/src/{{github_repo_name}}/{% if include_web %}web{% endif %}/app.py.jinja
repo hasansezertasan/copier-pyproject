@@ -4,19 +4,35 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING{% if include_database and web_framework == "fastapi" %}, Annotated{% endif %}
 {% if web_framework == "fastapi" %}
-from fastapi import FastAPI, HTTPException
+{%- if include_database %}
+from advanced_alchemy.extensions.fastapi import AdvancedAlchemy
+{%- endif %}
+from fastapi import {% if include_database %}Depends, {% endif %}FastAPI, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 {%- elif web_framework == "litestar" %}
+{%- if include_database %}
+from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
+{%- endif %}
 from litestar import Litestar, get
+{%- if include_database %}
+from litestar.di import NamedDependency  # noqa: TC002
+{%- endif %}
 from litestar.exceptions import HTTPException as LitestarHTTPException
 from litestar.openapi.datastructures import ResponseSpec
+{%- endif %}
+{%- if include_database %}
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002
 {%- endif %}
 
 from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core import app as service
 from {{github_repo_name}}.core.logging_setup import get_logger
+{%- if include_database %}
+from {{github_repo_name}}.db.config import get_config
+{%- endif %}
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -32,6 +48,22 @@ if TYPE_CHECKING:
 logger = get_logger()
 {% if web_framework == "fastapi" %}
 app = FastAPI(title="{{github_repo_name}}")
+{%- if include_database %}
+alchemy = AdvancedAlchemy(config=get_config(), app=app)
+
+
+@app.get("/health/db")
+async def get_db_health(
+    session: Annotated[AsyncSession, Depends(alchemy.provide_session())],
+) -> dict[str, str]:
+    """Probe the database with a trivial query through a request-scoped session.
+
+    Returns:
+        dict[str, str]: ``{"database": "ok"}`` when the query succeeds.
+    """
+    _ = await session.execute(text("SELECT 1"))
+    return {"database": "ok"}
+{%- endif %}
 
 
 @app.get(
@@ -147,7 +179,29 @@ def get_info() -> dict[str, str]:
     return payload
 
 
+{%- if include_database %}
+
+
+@get("/health/db")
+async def get_db_health(db_session: NamedDependency[AsyncSession]) -> dict[str, str]:
+    """Probe the database with a trivial query through a request-scoped session.
+
+    Returns:
+        dict[str, str]: ``{"database": "ok"}`` when the query succeeds.
+    """
+    _ = await db_session.execute(text("SELECT 1"))
+    return {"database": "ok"}
+
+
+app = Litestar(
+    route_handlers=[get_version, get_info, get_db_health],
+    plugins=[SQLAlchemyPlugin(config=get_config())],
+)
+{%- else %}
+
+
 app = Litestar(route_handlers=[get_version, get_info])
+{%- endif %}
 {%- endif %}
 
 
@@ -266,6 +320,9 @@ __all__ = [
     "DEFAULT_APP_PATH",
     "DEV_HOST",
     "app",
+{%- if include_database %}
+    "get_db_health",
+{%- endif %}
     "get_info",
     "get_version",
     "main",

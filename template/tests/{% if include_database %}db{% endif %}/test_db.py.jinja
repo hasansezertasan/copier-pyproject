@@ -1,0 +1,96 @@
+"""Tests for the async database layer."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+import pytest
+from advanced_alchemy.config import SQLAlchemyAsyncConfig
+from sqlalchemy import text
+
+from {{github_repo_name}}.__metadata__ import PROJECT_NAME
+from {{github_repo_name}}.core.config import get_settings
+from {{github_repo_name}}.db import Base, Item, ItemRepository, get_config, migrations
+from {{github_repo_name}}.db.config import MIGRATIONS_PATH
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+ENV_VAR = f"{PROJECT_NAME.upper().replace('-', '_')}_DATABASE_URL"
+
+{%- if async_style == "anyio" %}
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    """SQLAlchemy's async drivers are asyncio-only, so skip trio here."""
+    return "asyncio"
+{%- endif %}
+
+
+@pytest.fixture(autouse=True)
+def _fresh_settings() -> Iterator[None]:
+    """Drop the cached settings around each test so env overrides take effect."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+def test_config_reads_the_url_from_the_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The connection string comes from ``Settings.database_url``."""
+    monkeypatch.setenv(ENV_VAR, "sqlite+aiosqlite:///custom.db")
+
+    config = get_config()
+
+    assert config.connection_string == "sqlite+aiosqlite:///custom.db"
+    assert config.metadata is Base.metadata
+
+
+def test_default_url_matches_the_scaffolded_backend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without an override, the settings point at the chosen backend."""
+    monkeypatch.delenv(ENV_VAR)
+
+    url = get_settings().database_url
+
+    assert url.startswith("{{ 'postgresql+asyncpg' if database_backend == 'postgres' else 'sqlite+aiosqlite' }}:")
+
+
+def test_migration_cli_target_exposes_a_config_instance() -> None:
+    """``alchemy --config`` imports an instance, not the ``get_config`` factory."""
+    assert isinstance(migrations.config, SQLAlchemyAsyncConfig)
+
+
+def test_migrations_tree_is_scaffolded() -> None:
+    """The Alembic environment ships at the configured script location."""
+    root = Path(MIGRATIONS_PATH)
+
+    assert (root / "env.py").is_file()
+    assert (root / "script.py.mako").is_file()
+
+
+@pytest.mark.{{ async_test_marker }}
+async def test_repository_round_trip(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The starter model persists and is read back through its repository."""
+    monkeypatch.setenv(ENV_VAR, f"sqlite+aiosqlite:///{tmp_path / 'test.db'}")
+    config = get_config()
+    engine = config.get_engine()
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    async with config.get_session() as session:
+        repository = ItemRepository(session=session)
+        created = await repository.add(Item(name="first"), auto_commit=True)
+        fetched = await repository.get(created.id)
+        assert fetched.name == "first"
+        assert fetched.created_at is not None
+        assert await repository.count() == 1
+        assert (await session.execute(text("SELECT 1"))).scalar_one() == 1
+
+    await engine.dispose()
