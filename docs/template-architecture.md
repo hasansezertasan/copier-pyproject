@@ -1284,7 +1284,7 @@ version-file writer, the c-extension compiler), which stay.
 9. **PR documentation previews** (`docs-preview.yml`, rendered only when
    `include_docs`, static workflow). On `pull_request`
    (`opened`/`synchronize`/`reopened`/`closed`) `docs-preview.yml` holds no write token: a `meta` job records the event action and a read-only `build` job runs the Sphinx docs build and uploads the HTML as artifacts. The `workflow_run` workflow `docs-preview-deploy.yml` (always the default branch's copy of the file, so a PR cannot edit it; `dangerous-triggers` ignore justified inline; runs no PR code, takes the PR number from the event payload and reduces the artifact's action file to an allowlisted word) hands the lifecycle to `rossjrw/pr-preview-action`
-   (explicit `deploy`/`remove`, since `auto` needs a `pull_request` event): deploy to `pr-preview/pr-<N>/` on `gh-pages` on
+   (explicit `deploy`/`remove`, since `auto` needs a `pull_request` event; its own comment is disabled because it does not forward `pr-number`, so a `marocchino/sticky-pull-request-comment` step posts the preview comment): deploy to `pr-preview/pr-<N>/` on `gh-pages` on
    open/update, remove on close, with a sticky preview-URL PR comment throughout.
    Guarded by `if: github.event.pull_request.head.repo.full_name ==
    github.repository` to **same-repo PRs only** — a fork PR's `GITHUB_TOKEN` is

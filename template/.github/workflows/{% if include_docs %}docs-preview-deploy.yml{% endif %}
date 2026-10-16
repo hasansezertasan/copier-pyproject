@@ -62,6 +62,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
       - name: Deploy preview
+        id: preview
         # An explicit deploy/remove, not `auto`: `auto` keys off a
         # pull_request event, which this workflow_run job does not have. The
         # action authenticates from its `token` input (default github.token) via
@@ -76,3 +77,23 @@ jobs:
           deploy-commit-message: Deploy preview for PR ${{ github.event.workflow_run.pull_requests[0].number }} 🛫
           remove-commit-message: Remove preview for PR ${{ github.event.workflow_run.pull_requests[0].number }} 🛬
           action: ${{ steps.event.outputs.action }}
+          # The pinned action's internal sticky-comment step does not forward
+          # `pr-number` (upstream rossjrw/pr-preview-action#131), so with no
+          # pull_request event it cannot find the PR. Comment below instead.
+          comment: "false"
+      - name: Comment preview URL
+        if: steps.event.outputs.action == 'deploy'
+        uses: marocchino/sticky-pull-request-comment@67d0dec7b07ed060a405f9b2a64b8ab319fdd7db  # v2.9.2
+        with:
+          header: pr-preview
+          number: ${{ github.event.workflow_run.pull_requests[0].number }}
+          message: |
+            :rocket: Docs preview: ${{ steps.preview.outputs.preview-url }}
+      - name: Comment preview removal
+        if: steps.event.outputs.action == 'remove'
+        uses: marocchino/sticky-pull-request-comment@67d0dec7b07ed060a405f9b2a64b8ab319fdd7db  # v2.9.2
+        with:
+          header: pr-preview
+          number: ${{ github.event.workflow_run.pull_requests[0].number }}
+          message: |
+            :wastebasket: Docs preview removed because the pull request was closed.

@@ -80,7 +80,7 @@ branch's copy, which a PR cannot edit. The deploy workflow takes the PR number
 from the event payload, treats the artifact as static data and reduces its
 `action` file to an allowlisted word, and carries a justified
 `dangerous-triggers` ignore. It uses an explicit `deploy`/`remove` because
-`action: auto` keys off a `pull_request` event; on `closed` the build is
+`action: auto` keys off a `pull_request` event, and the action's internal sticky comment does not forward `pr-number` (upstream #131), so the workflow sets `comment: "false"` and posts the sticky comment itself with `marocchino/sticky-pull-request-comment` and the trusted PR number; on `closed` the build is
 skipped and only the meta artifact drives the removal.
 
 **Consequence:** the released-docs deploys exclude `pr-preview/**` from
