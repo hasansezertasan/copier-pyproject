@@ -24,7 +24,7 @@ Why copier-pyproject is built the way it is. The numbered architecture decision 
 
 ## A
 
-- [agent-instructions.md](agent-instructions.md) — ai-rulez as the opt-in agent-instruction source: shared prose macros, generated output as build output, no builtins, convergence gates, the default host set.
+- [agent-instructions.md](agent-instructions.md) — The hand-written `AGENTS.md` and the shared prose macros; the superseded ai-rulez integration and why it was removed.
 - [architecture-contracts.md](architecture-contracts.md) — The exhaustive import-linter layers contract and how whole-program analyzers run on the prek gate.
 
 ## B

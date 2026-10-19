@@ -125,8 +125,6 @@ def test_off_drops_pypi_from_setup_material(render: Callable[..., Path]) -> None
     assert "pending publisher" not in setup
     # The environment's branch policy still guards attestation minting.
     assert "Restrict the ``publish`` environment to ``main``" in setup
-    skill = _read(root, ".claude", "skills", "repo-setup", "SKILL.md")
-    assert "PyPI" not in skill
     assert "trusted publishing" not in _read(root, ".github", "CONTRIBUTING.md")
 
 

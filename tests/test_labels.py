@@ -120,15 +120,6 @@ def test_area_component_rules_only_render_for_included_components(
         assert f"\narea:{component}:" not in labeler
 
 
-def test_area_docs_includes_ai_rulez_when_enabled(
-    render: Callable[..., Path],
-) -> None:
-    labeler = (render(include_ai_rulez=True) / ".github" / "labeler.yml").read_text(
-        "utf-8"
-    )
-    assert "['docs/**', '.ai-rulez/**', '**/*.md', '**/*.rst']" in labeler
-
-
 def test_area_docs_matches_markdown_at_any_depth(
     render: Callable[..., Path],
 ) -> None:

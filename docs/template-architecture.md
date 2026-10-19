@@ -97,8 +97,8 @@ Optional components (all boolean):
   the `docs-preview.yml`/`docs-linkcheck.yml`/`gh-pages.yml` workflows and the
   `release.yml` `deploy-docs` job, plus the README docs badge/link, `SUPPORT.md`
   link, `CONTRIBUTING.md` docs section, and `mise` `docs-*` tasks. **Exception:**
-  `REPOSITORY_SETUP.rst` (at the repository root, outside the Sphinx tree; the maintainer repository-setup guide the
-  `repo-setup` skill reads, hard-referenced by README/CONTRIBUTING/`ci.yml`/
+  `REPOSITORY_SETUP.rst` (at the repository root, outside the Sphinx tree; the maintainer repository-setup guide,
+  hard-referenced by README/CONTRIBUTING/`ci.yml`/
   `settings.yml`/`.sourcery.yaml`/`sonar-project.properties`) always ships — only
   its GitHub Pages step is `include_docs`-gated — and with docs off the
   `settings.yml` `homepage` falls back to the repository URL. See
@@ -165,50 +165,6 @@ Optional components (all boolean):
   (`.markdownlint.yml`, `.github/actionlint.yaml`, `.github/yamllint.yaml`) stay
   always-on. See
   [MegaLinter as a lean complement](../context/lint-orchestration.md#megalinter-is-an-opt-in-lean-complement-non-blocking-on-three-levels).
-- `include_ai_rulez` - agent instructions authored once and generated per host,
-  `default: false` (seeded on by the `full` preset). With it **off** the project
-  keeps the hand-written `AGENTS.md` and the Claude-only
-  `repo-setup` skill. With it **on** the template renders
-  [ai-rulez](https://github.com/Goldziher/ai-rulez) sources instead —
-  `.ai-rulez/config.toml`, three rules (package structure, key conventions, pull
-  requests), two context files (commands, external references) and the
-  `repo-setup` skill — and `ai-rulez generate` fans
-  them out to the hosts named
-  by the `ai_rulez_presets` multiselect (default `codex`, `copilot` — Claude
-  Code reads `AGENTS.md` natively; `claude`, `cursor`, `windsurf`, `cline`, `continue-dev`, `amp`, `junie`,
-  `opencode`, `hermes` and `antigravity` are also offered).
-
-  The generated files are **build output the template never renders**:
-  `AGENTS.md`, `.github/copilot-instructions.md` and the per-host
-  copies of the skills appear on the adopter's first `ai-rulez generate` and are
-  committed from there on, which keeps `copier update`'s 3-way merge on the
-  small rule sources instead of one monolithic instruction file. The prose
-  itself lives in `_macros.jinja`, shared with the `AGENTS.md` rendering, so the
-  two shapes cannot drift.
-
-  Wiring: `ai-rulez==4.11.5` pinned in its own `agents` dependency group (not
-  `style`, which `dev` drags in everywhere); a prek **fixing** hook that
-  regenerates on any `.ai-rulez/` change; `ai-rulez validate` in the tox `style`
-  env; and a `ci.yml` step that fails when the working tree — untracked files
-  included — is not clean after the hooks, which is what catches a project that
-  never committed the generated output at all. `gitignore = false` is mandatory
-  (ai-rulez would otherwise rewrite the cobo-sealed `.gitignore`), and
-  `builtins = false` because every builtin domain restates or contradicts a gate
-  the generated project already enforces.
-
-  Because the output is not copier-managed, **both** update directions need a
-  manual step and both are documented in
-  [generated host files are build output](../context/agent-instructions.md#generated-host-files-are-build-output-the-template-renders-none-of-them). Turning the toggle *on*
-  (which the first `copier update` of a `full`-preset project does by default)
-  removes the copier-managed `AGENTS.md` and generates nothing, so
-  `_message_after_update` prints `uv lock` + `ai-rulez generate` and CI stays red
-  until their output is committed. Turning it *off* leaves every previously
-  generated host file behind, so `ai-rulez clean --force --keep-gitignore` must
-  run **before** the update, while the `.ai-rulez/` sources it reads still exist.
-  A few hosts also need the generated project's own linters to skip the paths
-  ai-rulez owns (`.mdc` and `.continue/prompts/`) — those excludes render only
-  under the toggle. See
-  [ai-rulez as the instruction source](../context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros).
 - `include_pypi_publish` - publish to PyPI on each release via trusted
   publishing; on in every preset. Off drops the `pypi-publish` release job,
   the PyPI publisher setup step, the README PyPI badges and Analysis links, and
@@ -423,9 +379,9 @@ for `.git_archival.txt`), and AI-agent onboarding
 file — a concise `AGENTS.md` (the cross-tool standard, also read by Claude Code)
 so there is a single source of truth.
 `AGENTS.md` intentionally carries **no** commit-attribution/`Co-Authored-By` block.
-When `include_ai_rulez` is enabled, that file is replaced by the `.ai-rulez/`
-sources the host-specific files are generated from, alongside every other host's native
-config ([ai-rulez as the instruction source](../context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros)).
+Per-host agent and skill files beyond `AGENTS.md` are delivered through
+[copier-skill-repo](https://github.com/hasansezertasan/copier-skill-repo), not
+this template.
 
 The default `AGENTS.md`-only shape requires Claude Code v2.1.277 or later for
 direct loading (v2.1.281 or later for sessions such as Amazon Bedrock or those
@@ -440,9 +396,7 @@ See the [official loading rules](https://code.claude.com/docs/en/memory#when-cla
 
 The retired `CLAUDE.md` wrapper is not excluded: `copier update` deletes the
 copy an older render left behind, including adopter customizations (git history
-keeps them). Only projects with `include_ai_rulez` off ever had it, so their
-`AGENTS.md` is hand-written: move any unique guidance there before updating, or
-into a `.ai-rulez/` rule source if the same update turns the toggle on.
+keeps them). Move any unique guidance into `AGENTS.md` before updating.
 
 Also always included (no toggle): a `.git_archival.txt` (setuptools-scm's stable
 `node`/`node-date`/`describe-name` `$Format:...$` template). Paired with the
@@ -673,15 +627,8 @@ Used by `__main__.py`, `cli/app.py` and `tests/test_main.py` for `__all__`, the
 component dependency allowlists, and the guard tuples.
 
 It also carries the `agent_*()` macros — the agent-instruction prose (commands,
-package structure, conventions, pull requests, external references). They exist
-because that prose has **two** renderings: the hand-written `AGENTS.md`, and the
-`.ai-rulez/` rule and context sources when `include_ai_rulez` is on. Both call
-the same macro, so a toggle meant to remove per-host duplication downstream
-cannot introduce per-shape duplication inside the template
-([ai-rulez as the instruction source](../context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros)). The
-`repo-setup` skill uses one file whose *path* the toggle picks; it needs no
-macro.
-Edit the prose in `_macros.jinja`, never in one of the two renderings.
+package structure, conventions, pull requests, external references) that
+`AGENTS.md.jinja` renders. Edit the prose in `_macros.jinja`.
 
 ## Generated Project Structure
 
@@ -1469,21 +1416,12 @@ registration, each step tagged `[AGENT]` (scriptable) or `[HUMAN]`
 sync when these requirements change. See
 [maintainer setup guide](../context/repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree).
 
-Generated projects also ship a **`repo-setup` skill**
-— one template file, under a directory name the `include_ai_rulez` toggle
-picks: `.claude/skills/repo-setup/` in the generated project by default, or
-`.ai-rulez/skills/repo-setup/` when the toggle is on, from which
-`ai-rulez generate` writes a copy for every selected host. It is a
-resume-driver that
-reads `REPOSITORY_SETUP.rst`,
-runs each step's idempotent **`[CHECK]`** block (exit 0 = already done), auto-runs
-red `[AGENT]` steps, and hands off `[HUMAN]` steps — classifying each step as
-required / deferred (Pages, pre-first-release) / optional so the walk never
-deadlocks and reports every gap at once. The
-`[CHECK]` tag is single-sourced in the setup doc alongside `[AGENT]`/`[HUMAN]`
-(no separate `steps.yaml`) — **every new setup step must carry one** (a real
-idempotent check, a secret-presence check, or an explicit `No scriptable check`
-marker). See [repo-setup skill](../context/repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest).
+Each setup step carries a **`[CHECK]`** block (an idempotent check where exit 0
+means already done, a secret-presence check, or an explicit `No scriptable check`
+marker), single-sourced in the setup doc alongside `[AGENT]`/`[HUMAN]` (no
+separate `steps.yaml`) — **every new setup step must carry one**. No skill is
+shipped to walk them; an agent or maintainer reads the guide directly. See
+[repo-setup decision](../context/repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest).
 
 Bump rules follow `.github/release-please-config.json`: `feat` → minor, `fix`/`perf` →
 patch, `feat!`/`BREAKING CHANGE` → major — but `bump-minor-pre-major: true`
@@ -1510,11 +1448,11 @@ generated `REPOSITORY_SETUP.rst`: update hazards inside **Template updates**
 check) and a final untagged **Adopting into an existing project** reference
 section (baseline, ruff and source-skeleton hazards, release state, check
 coverage and manifest parity, validation); the docs and MegaLinter hazards are
-gated by the project's answers. The `repo-setup` skill walks the tagged steps and
-skips that reference section. The README's pre-scaffold prompt establishes the
+gated by the project's answers. The tagged steps and the untagged reference
+section are read straight from the file. The README's pre-scaffold prompt establishes the
 recoverable baseline, and `_message_after_copy` points at the rendered section
 before tools or commits run. No external companion plugin or Copier post-copy
-task is needed. Repository-settings mutations stay in `repo-setup`.
+task is needed. Repository-settings mutations stay in `REPOSITORY_SETUP.rst`.
 
 Outside `.copier-answers.yml`, `README.md` and `REPOSITORY_SETUP.rst`, generated
 files carry no copier or template provenance; `tests/test_adoption_reference.py`

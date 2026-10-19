@@ -76,7 +76,7 @@ def test_update_removes_unchanged_retired_claude_file(
     render: Callable[..., Path],
 ) -> None:
     """An untouched ``@AGENTS.md`` wrapper from v1.6.0 is deleted on update."""
-    root = render(ref="v1.6.0", include_ai_rulez=False)
+    root = render(ref="v1.6.0")
     assert (root / "CLAUDE.md").is_file()
     _git(root, "init")
     _git(root, "add", ".")

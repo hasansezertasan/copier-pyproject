@@ -67,8 +67,8 @@ it. The manager is enabled by default (the shared preset sets no
 
 The template has no post-copy tasks; the former `git init` task is gone and
 the scaffold instructions tell the adopter to run it. Every later feature that
-needs a post-render step (the repo-setup skill, the render harness, the ai-rulez
-generator) is a rendered file or a documented command, never a task.
+needs a post-render step (the render harness; formerly the repo-setup skill and the
+ai-rulez generator) is a rendered file or a documented command, never a task.
 
 **Reason:** any task marks a template unsafe and forces `--trust`, which
 Renovate gates behind a self-hosted-only setting the hosted App disables — a

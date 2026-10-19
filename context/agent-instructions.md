@@ -4,7 +4,8 @@
 
 **Id:** e1545d12-ac20-426b-9cd5-519e80a56b5f
 **Type:** decision
-**Status:** active
+**Status:** superseded
+**Superseded by:** 249600a2-79c3-49b9-b4b5-277ccc245d1b
 **Evidence:** confirmed
 **Source:** ADR-035 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md)), §1 and §5; issue #309
 **Revisit when:** a host stops reading its generated file, ai-rulez leaves PyPI, or a sixth host is expected to open PRs
@@ -42,7 +43,8 @@ cannot be fetched.
 
 **Id:** e827d3fc-e3f6-4852-b2e3-d56180eac949
 **Type:** decision
-**Status:** active
+**Status:** superseded
+**Superseded by:** 249600a2-79c3-49b9-b4b5-277ccc245d1b
 **Evidence:** confirmed
 **Source:** ADR-035 §2 and §8 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** ai-rulez and copier produce identical bytes for the same content, or the template gains a post-render step
@@ -87,7 +89,8 @@ DO-NOT-EDIT banner instead.
 **Id:** e9823c4a-891f-4344-8d64-029dd8d31138
 **Type:** decision
 **Type:** constraint
-**Status:** active
+**Status:** superseded
+**Superseded by:** 249600a2-79c3-49b9-b4b5-277ccc245d1b
 **Evidence:** confirmed
 **Source:** ADR-035 §3–4 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** a builtin domain stops contradicting a gate the project enforces, or the gitignore stops being cobo-sealed
@@ -116,7 +119,8 @@ files GitHub must find in the repository.
 **Id:** b23fd420-5b88-4075-93ad-5122b4f7622e
 **Type:** decision
 **Type:** incident
-**Status:** active
+**Status:** superseded
+**Superseded by:** 249600a2-79c3-49b9-b4b5-277ccc245d1b
 **Evidence:** confirmed
 **Source:** ADR-035 §6–7 ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** ai-rulez gains a check mode for preset output, or a host's generated output changes format
@@ -164,7 +168,7 @@ yamlfmt hook already did; any later list answer would have hit the same thing.
 
 **Id:** 1a6849be-72d0-4990-abe2-7a0243cd5e67
 **Type:** decision
-**Status:** active
+**Status:** needs-review
 **Evidence:** confirmed
 **Source:** ADR-035, 2026-10 amendment ([`docs/adr/035-ai-rulez-as-the-agent-instruction-source.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/035-ai-rulez-as-the-agent-instruction-source.md))
 **Revisit when:** Claude Code stops reading `AGENTS.md` natively, or the maintainers start using Gemini
@@ -194,3 +198,35 @@ Removing a choice has a sharp edge: a `--defaults` update (what Renovate runs)
 silently replaces a recorded selection containing a removed choice with the new
 defaults, so a project that selected `gemini` loses every other host too and
 keeps a stale `GEMINI.md`; such a project cleans before updating and re-selects.
+
+## ai-rulez is removed; the template ships one hand-written `AGENTS.md` and no per-host files
+
+**Id:** 249600a2-79c3-49b9-b4b5-277ccc245d1b
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** issue #428 (maintainer decision), 2026-10-19
+**Revisit when:** copier-skill-repo stops generating per-host agent and skill files, or an adopter needs per-host files this template must render itself
+**See:** agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros — e1545d12-ac20-426b-9cd5-519e80a56b5f — as of 2026-10-19
+**See:** repo-setup.md#the-repo-setup-skill-is-no-longer-shipped-the-setup-doc-is-read-directly — 4ff05ee1-3b53-423d-96cf-acb7681b6a97 — as of 2026-10-19
+
+`include_ai_rulez`, `ai_rulez_presets`, the `.ai-rulez/` sources, the `agents`
+dependency group, the prek hook, the tox `ai-rulez validate` command and the CI
+convergence scenario are gone. `AGENTS.md` is always rendered from the
+`agent_*()` macros in `_macros.jinja`. The adjacent entries on ai-rulez (build
+output, no builtins, the convergence gates) are superseded with the toggle;
+the rule that the template renders no `CLAUDE.md` still stands, but its
+mention of `ai_rulez_presets` is obsolete, so that entry is `needs-review`.
+
+**Reason:** copier-skill-repo now generates agent and skill files per host, so
+keeping a second generator in this template duplicated it and carried the
+cost the earlier entries record (non-copier-managed output, two-way manual
+update steps, extra lint exclusions).
+
+**Rejected alternative:** keep the toggle beside copier-skill-repo — two
+generators for the same files, and the update hazards stay.
+
+**Consequence:** breaking change (`refactor!`). Adopters with
+`include_ai_rulez=true` must migrate: run `ai-rulez clean --force
+--keep-gitignore` before updating, then move any guidance from the `.ai-rulez/`
+sources into `AGENTS.md`. Adopters with it off see only the removed question.

@@ -24,12 +24,7 @@
 {%- endif -%}
 {%- endmacro -%}
 
-{#- The agent-instruction prose. Rendered into ``AGENTS.md``
-    when ``include_ai_rulez`` is off, and into the ``.ai-rulez/``
-    rule and context sources -- which ``ai-rulez generate`` fans out to every
-    selected host -- when it is on. Both renderings are the same
-    bytes because they call the same macro: a second copy of this prose, kept in
-    sync by nothing, is exactly the drift the toggle exists to remove.
+{#- The agent-instruction prose, rendered into ``AGENTS.md``.
 
     Each macro emits a section *body* with no surrounding blank lines, so the
     caller owns the heading above it and the spacing around it. -#}
