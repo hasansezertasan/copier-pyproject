@@ -627,9 +627,12 @@ Check these even when the update runner reports success:
   ``include_ai_rulez: true``, the update deletes ``.ai-rulez/`` but leaves the
   host files it generated (``CLAUDE.md``, ``.github/copilot-instructions.md``,
   per-host skill copies, ...) behind, next to the newly rendered ``AGENTS.md``.
-  Restore the sources, let ai-rulez remove its own output, then drop them:
-  ``git checkout <pre-update-commit> -- .ai-rulez && uvx ai-rulez clean --force
-  --keep-gitignore && git rm -rf --ignore-unmatch .ai-rulez``. Move any
+  Preferably run ``uvx ai-rulez clean --force --keep-gitignore`` *before*
+  updating, while the sources still exist. If the update is already checked
+  out, restore the sources and clean, then put back the rendered ``AGENTS.md``,
+  which ``clean`` also deletes: ``git checkout <pre-update-commit> --
+  .ai-rulez && uvx ai-rulez clean --force --keep-gitignore && git rm -rf
+  --ignore-unmatch .ai-rulez && git checkout HEAD -- AGENTS.md``. Move any
   guidance kept in the ``.ai-rulez/`` rule sources into ``AGENTS.md``, and drop
   the ``agents`` dependency group from ``pyproject.toml`` if it remains.
 * **Never run** ``copier copy --overwrite`` **on an adopted project.** It
