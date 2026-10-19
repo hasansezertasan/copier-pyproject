@@ -52,30 +52,44 @@
 - name: tests
   color: 8a63d2
   description: Test suite changes
+{%- if include_examples %}
 - name: examples
   color: b392f0
   description: Example application changes
+{%- endif %}
 - name: area:core
   color: "5319e7"
   description: Core package, utilities, or core tests
+{%- if include_console_root %}
 - name: area:cli
   color: 006b75
   description: Command-line interface code or tests
+{%- endif %}
+{%- if include_gui %}
 - name: area:gui
   color: b60205
   description: Graphical user interface code or tests
+{%- endif %}
+{%- if include_tui %}
 - name: area:tui
   color: d4c5f9
   description: Terminal user interface code or tests
+{%- endif %}
+{%- if include_web %}
 - name: area:web
   color: 0052cc
   description: Web application code or tests
+{%- endif %}
+{%- if include_mcp %}
 - name: area:mcp
   color: 1d76db
   description: Model Context Protocol server code or tests
+{%- endif %}
+{%- if include_worker %}
 - name: area:worker
   color: fbca04
   description: Message worker code or tests
+{%- endif %}
 - name: area:docs
   color: 0075ca
   description: Documentation or project prose
