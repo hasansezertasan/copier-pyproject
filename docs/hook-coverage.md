@@ -2,7 +2,7 @@
 
 This audit records the decisions for issue #351.
 It concerns generated projects, not the template repository's own hooks.
-The [adoption/update audit](template-adoption.md) must compare these defaults
+The lost-check-coverage review in the generated `REPOSITORY_SETUP.rst` must compare these defaults
 with the adopter's existing checks before retiring a configuration.
 
 ## Default hooks and matching

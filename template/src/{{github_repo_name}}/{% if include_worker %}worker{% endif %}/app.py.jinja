@@ -77,7 +77,7 @@ def build_client_broker(url: str | None = None) -> {{ worker_broker_spec.cls }}:
     successful round-trip proves a *separate* worker replied, not itself.
 
     Connection is resolved at *call* time (not import time) for the same reasons
-    as ``build_broker`` (see https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#the-worker-exposes-an-env-injectable-broker-factory-lazy-broker-imports-were-rejected).
+    as ``build_broker``.
 
     Args:
         url: Broker connection URL. When ``None``, falls back to the
@@ -96,7 +96,7 @@ def build_broker(url: str | None = None) -> {{ worker_broker_spec.cls }}:
     Connection is resolved at *call* time (not import time) so tests can point a
     fresh, self-contained broker at a throwaway instance — e.g. one started by
     testcontainers — without the import-order/caching pitfalls of a module-level
-    singleton (see https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#the-worker-exposes-an-env-injectable-broker-factory-lazy-broker-imports-were-rejected).
+    singleton.
 
     Args:
         url: Broker connection URL. When ``None``, falls back to the

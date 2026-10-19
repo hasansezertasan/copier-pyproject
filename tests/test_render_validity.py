@@ -372,7 +372,7 @@ def test_docs_off_drops_sphinx_subsystem_but_keeps_setup_guide(
     assert "Improving The Documentation" not in contributing
 
     # The maintainer setup guide always ships; only its Pages step is gated.
-    setup = root / "docs" / "maintaining" / "setup.rst"
+    setup = root / "REPOSITORY_SETUP.rst"
     assert setup.is_file()
     setup_text = setup.read_text(encoding="utf-8")
     assert "GitHub Pages" not in setup_text

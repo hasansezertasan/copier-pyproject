@@ -10,6 +10,7 @@
 **Revisit when:** the release build matrix becomes per-architecture, or an ecosystem's own bump tooling changes shape
 **See:** external-integrations.md#a-freshly-generated-project-is-green-on-first-push-with-zero-external-accounts — 392b6dcf-6e9d-441d-bf7b-64ba362578d7 — as of 2026-10-11
 **See:** package-distribution.md#optional-pypi-publishing — 20be7463-ca95-4d01-82c9-71f632d1b4be — as of 2026-10-11
+**See:** package-distribution.md#the-tap-and-bucket-are-scaffolded-by-their-own-templates-not-by-a-docspackaging-bundle — 9be17e7b-110f-4de7-8b6d-a0d42350e9cb — as of 2026-10-19
 
 `include_homebrew` and `include_scoop` are independent toggles, off by default
 and asked only when the project can distribute natively. When enabled,
@@ -17,8 +18,8 @@ and asked only when the project can distribute natively. When enabled,
 `repository_dispatch` at the owner's `homebrew-tap`/`scoop-bucket` repository
 with only the package name and version. A listener workflow living in the tap
 or bucket does the manifest work with each ecosystem's own tooling; the
-generated project ships a reference listener and setup guide under
-`docs/packaging/` as a copy-into-your-tap bundle, not code it runs. The jobs
+generated project no longer ships a listener bundle: the tap and bucket are
+scaffolded by their own templates (see the entry below). The jobs
 are gated on a fine-grained PAT with Contents-write on the target repository
 only, skip with a visible warning when the secret is unset, run with no
 workflow permissions of their own, and never join the `check` gate.
@@ -43,6 +44,40 @@ one ecosystem only.
 fallback is best-effort because Scoop's tooling assumes binary downloads; the
 listener is not validated by this template's tests; payload validation is the
 listener's job.
+
+## The tap and bucket are scaffolded by their own templates, not by a `docs/packaging` bundle
+
+**Id:** 9be17e7b-110f-4de7-8b6d-a0d42350e9cb
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer instruction, 2026-10-19
+**Revisit when:** the dispatch event types or payload keys of `copier-homebrew-tap` / `copier-scoop-bucket` change, or those repositories are retired
+**See:** package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic — 462ac46c-c9db-4a4a-b8ae-bbe5c14af09f — as of 2026-10-19
+
+`include_homebrew` and `include_scoop` no longer render a `docs/packaging/`
+folder (reference listener workflows plus a README per ecosystem). The
+generated `REPOSITORY_SETUP.rst` instead promotes the maintainer's
+dedicated repositories: `copier-homebrew-tap` and `copier-scoop-bucket` scaffold
+the tap or bucket (their templates already carry the `update-formula`,
+`update-cask` and `update-manifest` dispatch listeners this project's
+`release.yml` fires at), and `homebrew-tap-skills` and `scoop-bucket-skills`
+are the agent skills that add, fix, triage, retire and verify packages
+afterwards. The dispatch jobs, the event types, the payload keys and the
+`*_TOKEN` secrets are unchanged, so existing adopters keep working.
+
+**Reason:** scaffolding and maintaining a tap or bucket now has dedicated
+homes; a copy-into-your-tap bundle in every generated project is a second,
+drifting copy of what those templates own.
+
+**Rejected alternative:** keep the bundle as a reference copy — superseded by
+the dedicated templates, which render the same listeners as a maintained tap or
+bucket. Further alternatives considered: unknown.
+
+**Consequence:** the generated project no longer tests listener workflow shape
+(permissions, failure reporting); that lives in the tap and bucket templates.
+The setup guide hard-codes the `hasansezertasan/` repositories, matching how the
+template already names itself.
 
 ## `primary_executable` is the single source for the distribution payload
 

@@ -238,7 +238,7 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_profiling` | py-spy / scalene / cProfile | — |
 | `include_benchmarks` | pytest-codspeed benchmarks + non-blocking CodSpeed workflow | [external-integrations](context/external-integrations.md#opt-in-benchmarking-with-pytest-codspeed) |
 | `include_examples` | `examples/` folder with usage stubs (`library`-preset default) | — |
-| `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + versioned Pages deploy with a version switcher + per-page "last updated"); **default-on** every preset, off keeps a README-only project. `docs/maintaining/` always ships | [docs-stack](context/docs-stack.md#the-sphinx-subsystem-is-toggleable-include_docs-default-on-the-maintainer-guide-is-not), [docs-versioning](context/docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages) |
+| `include_docs` | Sphinx docs site (`docs/` Sphinx tree, `docs-*` tox envs, docs CI + versioned Pages deploy with a version switcher + per-page "last updated"); **default-on** every preset, off keeps a README-only project. `REPOSITORY_SETUP.rst` (repo root) always ships | [docs-stack](context/docs-stack.md#the-sphinx-subsystem-is-toggleable-include_docs-default-on-the-maintainer-guide-is-not), [docs-versioning](context/docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages) |
 | `include_launcher` | PyCrucible online-first-run launcher | [standalone-executables](context/standalone-executables.md#three-architecture-named-executable-toggles-instead-of-one-brand-toggle) |
 | `include_compiler` | Nuitka native-compiled executable | [standalone-executables](context/standalone-executables.md#three-architecture-named-executable-toggles-instead-of-one-brand-toggle) |
 | `include_freezer` | PyInstaller offline bundle | [standalone-executables](context/standalone-executables.md#three-architecture-named-executable-toggles-instead-of-one-brand-toggle) |
@@ -363,7 +363,7 @@ Do not break these — each is a real footgun with the detail/why in its linked
   `finalize-release` re-dispatches the workflow with `gh workflow run` to
   reconcile the phantom release PR, and that API requires the trigger. The
   containment is the `publish` environment's deployment-branch policy, which
-  GitHub evaluates outside the workflow file — a `setup.rst` `[AGENT]` step.
+  GitHub evaluates outside the workflow file — a `REPOSITORY_SETUP.rst` `[AGENT]` step.
 - **A failed `gh-pages` fetch must abort, never fall through.** `git fetch
   origin gh-pages:gh-pages || echo ...` swallows a transport error as "branch
   absent"; `build_docs.py` then assembles a site with no prior versions and the
@@ -440,7 +440,7 @@ release-please to miss releases or bump them incorrectly. release-please also ne
 → Actions → General → Workflow permissions → Allow GitHub Actions to create and
 approve pull requests** enabled.
 
-The generated project's `docs/maintaining/setup.rst` is the one-time "Repository
+The generated project's `REPOSITORY_SETUP.rst` is the one-time "Repository
 setup" guide (`[AGENT]`/`[HUMAN]`/`[CHECK]`-tagged, driven by the shipped
 `repo-setup` skill — [maintainer setup guide](context/repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree),
 [repo-setup skill](context/repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest); shipped to Claude alone, or to every
@@ -450,7 +450,7 @@ commands under "One-time repo setup" in `docs/template-architecture.md`; bump
 rules and this repo's own self-versioning are detailed there and in
 [copier-manager updates](context/template-updates.md#renovates-copier-manager-delivers-downstream-updates-the-template-keeps-release-please-as-its-tag-source).
 
-The always-shipped `template-adoption` skill uses the same host delivery path as `repo-setup`; its adoption/update audit and walkthrough are documented in `docs/template-adoption.md`.
+The adoption and update guidance is not a skill: it is the **Template updates** and **Adopting into an existing project** sections of `REPOSITORY_SETUP.rst`. Generated projects must carry no copier or template provenance outside `.copier-answers.yml`, `README.md` and `REPOSITORY_SETUP.rst` — no links to this repository's docs or issues, no "copier update" prose in comments — which `tests/test_adoption_reference.py` guards.
 
 ## Code Style Guidelines
 

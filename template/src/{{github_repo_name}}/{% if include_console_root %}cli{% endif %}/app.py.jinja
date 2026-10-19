@@ -1,14 +1,13 @@
 {% import "_macros.jinja" as fmt %}{#- Every derived fact this module needs -- ``launcher_components``,
     ``need_import_guard``, ``component_label``, ``component_preflight``,
     ``preflight_used`` and ``root_uses_typer`` -- is computed in ``copier.yml``
-    from ``primary_component`` (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts), so this module, its test module and the
+    from ``primary_component``, so this module, its test module and the
     ``typer`` dependency in ``pyproject.toml`` cannot drift.
 
     The guard constants, dependency tuples, and ``_preflight`` are identical in
     both the argparse and Typer branches, so they are defined once as Jinja macros
     and expanded in each branch to avoid source-level duplication. -#}
-{#- ``run``/``dev`` share one launch function differing only by ``dev_mode``
-    (issue #177, https://hasansezertasan.github.io/copier-pyproject/context/components/#the-web-component-gets-run-and-dev-launch-verbs-and-therefore-always-a-console-root). The guarded import is identical in both roots, so it
+{#- ``run``/``dev`` share one launch function differing only by ``dev_mode``. The guarded import is identical in both roots, so it
     is a macro like the rest of the shared guard infrastructure. -#}
 {%- macro _run_web_fn() -%}
 def _run_web(app_path: str | None, *, dev_mode: bool) -> None:
@@ -36,7 +35,7 @@ The application to run as a ``module:attribute`` import
 # Every component's runtime dependency is a core ``dependency`` of this package
 # (there are no per-component extras), so a missing one never means "install the
 # extra" -- it means this environment is out of sync with the installed metadata.
-# That happens after a ``copier update`` enables a component, or in a stale venv.
+# That happens after a component is enabled without a re-sync, or in a stale venv.
 _MISSING_DEPENDENCY = "Error: The {component} component requires '{missing}', which is not available in this environment. {hint}"  # noqa: E501
 _SYNC_HINT = f"Component dependencies ship with '{PROJECT_NAME}', so this usually means your environment is out of sync -- run `uv sync` (or reinstall the package) and try again."  # noqa: E501
 {%- if include_gui %}
@@ -48,8 +47,7 @@ _SYNC_HINT = f"Component dependencies ship with '{PROJECT_NAME}', so this usuall
 _TK_HINT = f"'tkinter' is part of the Python standard library but ships as a separate system package on many platforms, so a dependency sync cannot install it -- install your platform's Tk bindings (Debian/Ubuntu: `sudo apt install python3-tk`; Fedora: `sudo dnf install python3-tkinter`; macOS/Homebrew: `brew install python-tk@{sys.version_info.major}.{sys.version_info.minor}`), or use a Python build that includes Tk."  # noqa: E501
 {%- endif %}
 {#- The allowlists come from ``component_dependencies`` in ``copier.yml``, the
-    single source shared with ``__main__.py``'s sole-component guard -- see
-    https://hasansezertasan.github.io/copier-pyproject/context/components/#launcher-imports-are-guarded-with-exact-match-preflighted-dependency-errors. ``gui`` carries ``_tkinter`` beside ``tkinter`` because that C
+    single source shared with ``__main__.py``'s sole-component guard. ``gui`` carries ``_tkinter`` beside ``tkinter`` because that C
     extension is the name that actually fails on an interpreter built without
     tk-dev; ``worker`` carries ``faststream.<broker>`` rather than the broker
     client, which faststream re-exports behind its own nameless import guard. -#}
@@ -113,9 +111,7 @@ A dependency-free ``argparse`` root for the ``{{github_repo_name}}`` command. It
 exposes the same ``version`` / ``info`` commands as the Typer variant and hangs
 every enabled non-primary component off the root as a lazily-imported subcommand
 — ``{{github_repo_name}} interactive`` (TUI), ``{{github_repo_name}} web``, ... —
-rather than a separate ``{{github_repo_name}}-<name>`` console script (see
-https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts
-and https://hasansezertasan.github.io/copier-pyproject/context/components/#cli_framework-offers-argparse-beside-typer-the-typer-dependency-is-gated-on-root_uses_typer).
+rather than a separate ``{{github_repo_name}}-<name>`` console script.
 Selected via ``cli_framework``.
 """
 
@@ -325,7 +321,7 @@ def web() -> None:
     Launch the web server:
         {{github_repo_name}} web
 
-    The component-named form every non-primary component gets (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts).
+    The component-named form every non-primary component gets.
     It is
     ``{{github_repo_name}} run`` with no target; use ``run``/``dev`` to point at
     a different application or to enable autoreload.
@@ -506,7 +502,7 @@ The ``{{github_repo_name}}`` command is the single Typer root. Every enabled
 component other than the primary (CLI > GUI > TUI > web > MCP > worker) is hung
 off it as a lazily-imported subcommand — ``{{github_repo_name}} interactive``
 (TUI), ``{{github_repo_name}} web``, ``{{github_repo_name}} mcp``, ... — rather
-than a separate ``{{github_repo_name}}-<name>`` console script (see https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts).
+than a separate ``{{github_repo_name}}-<name>`` console script.
 {%- if not include_cli %}
 This project has no ``include_cli`` feature, so this module is a *minimal
 launcher*: it carries no ``version``/``info`` commands. Bare
@@ -519,7 +515,7 @@ via the default callback.
 {# Collected rather than emitted as a chain of inline conditionals: a CLI-only
     project imports nothing here from the standard library, and an empty chain
     left two blank lines before ``import typer`` -- which ruff's isort rewrites,
-    so the file would not be formatter-canonical (https://hasansezertasan.github.io/copier-pyproject/context/template-testing/#generated-files-must-be-formatter-canonical-not-merely-valid). -#}
+    so the file would not be formatter-canonical. -#}
 {%- set _stdlib = [] -%}
 {%- if need_import_guard %}{% set _ = _stdlib.append("import contextlib") %}{% endif -%}
 {%- if preflight_used %}{% set _ = _stdlib.append("import importlib") %}{% endif -%}
@@ -785,7 +781,7 @@ def web() -> None:
     Launch the web server:
         {{github_repo_name}} web
 
-    The component-named form every non-primary component gets (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts).
+    The component-named form every non-primary component gets.
     It is
     ``{{github_repo_name}} run`` with no target; use ``run``/``dev`` to point at
     a different application or to enable autoreload.

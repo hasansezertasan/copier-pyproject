@@ -66,7 +66,7 @@ def test_settings_installation_requires_enforced_owner_review(
 ) -> None:
     """Both protection paths must enforce the safeguard before App installation."""
     root = render(include_repo_settings=True, include_repo_ruleset=include_repo_ruleset)
-    guide = (root / "docs/maintaining/setup.rst").read_text(encoding="utf-8")
+    guide = (root / "REPOSITORY_SETUP.rst").read_text(encoding="utf-8")
     settings_section = guide.split('Repository settings ("Settings" App)', 1)[1]
     assert settings_section.index("**[CHECK]** Prerequisite") < settings_section.index(
         "**[HUMAN]** Only after the prerequisite check passes"

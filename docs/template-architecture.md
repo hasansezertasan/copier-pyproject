@@ -91,7 +91,7 @@ Optional components (all boolean):
   the `docs-preview.yml`/`docs-linkcheck.yml`/`gh-pages.yml` workflows and the
   `release.yml` `deploy-docs` job, plus the README docs badge/link, `SUPPORT.md`
   link, `CONTRIBUTING.md` docs section, and `mise` `docs-*` tasks. **Exception:**
-  `docs/maintaining/setup.rst` (the maintainer repository-setup guide the
+  `REPOSITORY_SETUP.rst` (at the repository root, outside the Sphinx tree; the maintainer repository-setup guide the
   `repo-setup` skill reads, hard-referenced by README/CONTRIBUTING/`ci.yml`/
   `settings.yml`/`.sourcery.yaml`/`sonar-project.properties`) always ships — only
   its GitHub Pages step is `include_docs`-gated — and with docs off the
@@ -162,11 +162,11 @@ Optional components (all boolean):
 - `include_ai_rulez` - agent instructions authored once and generated per host,
   `default: false` (seeded on by the `full` preset). With it **off** the project
   keeps the hand-written `AGENTS.md` and the Claude-only
-  `repo-setup` and `template-adoption` skills. With it **on** the template renders
+  `repo-setup` skill. With it **on** the template renders
   [ai-rulez](https://github.com/Goldziher/ai-rulez) sources instead —
   `.ai-rulez/config.toml`, three rules (package structure, key conventions, pull
   requests), two context files (commands, external references) and the
-  `repo-setup` and `template-adoption` skills — and `ai-rulez generate` fans
+  `repo-setup` skill — and `ai-rulez generate` fans
   them out to the hosts named
   by the `ai_rulez_presets` multiselect (default `codex`, `copilot` — Claude
   Code reads `AGENTS.md` natively; `claude`, `cursor`, `windsurf`, `cline`, `continue-dev`, `amp`, `junie`,
@@ -218,9 +218,12 @@ Optional components (all boolean):
   project does not build a formula/cask itself: its `release.yml` fires a
   `repository_dispatch` (`update-formula`/`update-cask`) at the owner's own
   `homebrew-tap` repo, which owns the manifest logic via `brew
-  bump-formula-pr`/`bump-cask-pr` + `brew update-python-resources`. A
-  reference listener workflow + setup guide ships under
-  `docs/packaging/homebrew-tap/` for copying into that tap repo. Needs a
+  bump-formula-pr`/`bump-cask-pr` + `brew update-python-resources`. No tap
+  files are generated: `REPOSITORY_SETUP.rst` points to
+  [`copier-homebrew-tap`](https://github.com/hasansezertasan/copier-homebrew-tap)
+  (scaffolds the tap and its dispatch listener) and
+  [`homebrew-tap-skills`](https://github.com/hasansezertasan/homebrew-tap-skills)
+  (agent skills to maintain it). Needs a
   `HOMEBREW_TAP_TOKEN` secret: a fine-grained PAT with **Contents: write**
   only on the tap repo (no `Pull requests` scope — the tap opens its own PR
   with its own `GITHUB_TOKEN`). See
@@ -228,8 +231,11 @@ Optional components (all boolean):
 - `include_scoop` - Scoop bucket distribution (opt-in), the same
   dispatch-not-generation pattern: `release.yml` fires `update-manifest` at
   the owner's own `scoop-bucket` repo, which owns the manifest via its own
-  `checkver`/`autoupdate` (or updater script). A reference listener + setup
-  guide ships under `docs/packaging/scoop-bucket/`. Needs a
+  `checkver`/`autoupdate` (or updater script). No bucket files are generated:
+  the setup guide points to
+  [`copier-scoop-bucket`](https://github.com/hasansezertasan/copier-scoop-bucket)
+  and [`scoop-bucket-skills`](https://github.com/hasansezertasan/scoop-bucket-skills).
+  Needs a
   `SCOOP_BUCKET_TOKEN` secret with the same **Contents: write**-only PAT
   scope. Both toggles pick a binary (Homebrew cask / Scoop binary-zip
   manifest) vs. PyPI (Homebrew formula / Scoop pipx manifest) payload via the
@@ -667,8 +673,8 @@ because that prose has **two** renderings: the hand-written `AGENTS.md`, and the
 the same macro, so a toggle meant to remove per-host duplication downstream
 cannot introduce per-shape duplication inside the template
 ([ai-rulez as the instruction source](../context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros)). The
-`repo-setup` and `template-adoption` skills each use one file whose *path*
-the toggle picks; neither needs a macro.
+`repo-setup` skill uses one file whose *path* the toggle picks; it needs no
+macro.
 Edit the prose in `_macros.jinja`, never in one of the two renderings.
 
 ## Generated Project Structure
@@ -1048,7 +1054,7 @@ version-file writer, the c-extension compiler), which stay.
      `::notice::` visible skip instead of failing the run — coverage reporting is
      best-effort (the upload step's `fail_ci_if_error` defaults to false), not
      load-bearing for a green build. Setup is documented in the generated
-     project's `docs/maintaining/setup.rst` "Repository setup" guide.
+     project's `REPOSITORY_SETUP.rst` "Repository setup" guide.
    - When `include_smokeshow` is set, `coverage-report` additionally publishes the
      combined `htmlcov/` to a tokenless ephemeral public URL via
      `smokeshow upload htmlcov` (public repos only) — an account-free browsable
@@ -1232,7 +1238,7 @@ version-file writer, the c-extension compiler), which stay.
      PR there; skipping keeps private forks green. Needs the repository's
      **dependency graph** enabled — with it off the action errors ("Dependency
      review is not supported on this repository") rather than passing empty, so
-     it is a `[HUMAN]` step in `docs/maintaining/setup.rst` (UI-only: the
+     it is a `[HUMAN]` step in `REPOSITORY_SETUP.rst` (UI-only: the
      `security_and_analysis[dependency_graph]` PATCH silently no-ops).
    - `check-security.yml.jinja`: an active scanning pass on PR/push to `main` +
      weekly cron, complementing the three above (which are SAST / repo-posture /
@@ -1362,7 +1368,7 @@ scaffold instructions now tell the user to `git init`). Caveat: Renovate does no
 fail its artifacts check on `copier update` merge conflicts
 ([renovate#31600](https://github.com/renovatebot/renovate/issues/31600)), so a
 copier PR can look mergeable while carrying `<<<<<<<` markers — the generated
-project's `docs/maintaining/setup.rst` "Template updates" note says to review
+project's `REPOSITORY_SETUP.rst` "Template updates" note says to review
 for them.
 
 **Shipped pins under `template/**` are frozen from this repo's Renovate** (a
@@ -1448,8 +1454,8 @@ release-please also needs **Settings → Actions → General → Workflow permis
 → Allow GitHub Actions to create and approve pull requests** enabled, or it
 cannot open/maintain the release PR. Generated repos should additionally enable
 **release immutability** (Settings → General). The generated project's
-`docs/maintaining/setup.rst` documents all of these as a one-time "Repository
-setup" guide (published under **Maintainer guide** in the docs site, and
+`REPOSITORY_SETUP.rst` documents all of these as a one-time "Repository
+setup" guide (a repo-root file, not part of the docs site, and
 pointed to from the slimmed contributor-facing `CONTRIBUTING.md`), including
 ready-to-run `gh repo edit` / `gh api` commands and the PyPI trusted-publishing
 registration, each step tagged `[AGENT]` (scriptable) or `[HUMAN]`
@@ -1463,7 +1469,7 @@ picks: `.claude/skills/repo-setup/` in the generated project by default, or
 `.ai-rulez/skills/repo-setup/` when the toggle is on, from which
 `ai-rulez generate` writes a copy for every selected host. It is a
 resume-driver that
-reads `docs/maintaining/setup.rst`,
+reads `REPOSITORY_SETUP.rst`,
 runs each step's idempotent **`[CHECK]`** block (exit 0 = already done), auto-runs
 red `[AGENT]` steps, and hands off `[HUMAN]` steps — classifying each step as
 required / deferred (Pages, pre-first-release) / optional so the walk never
@@ -1490,19 +1496,20 @@ For generated projects to publish to PyPI (only when `include_pypi_publish`):
      so this is the filename PyPI's OIDC check matches — not a reusable `cd.yml`)
    - Environment: `publish`
 
-### Template adoption and update audit
+### Template adoption and update guidance
 
-Generated projects always ship a `template-adoption` skill beside `repo-setup`,
-using the same `.claude/skills/` or `.ai-rulez/skills/` delivery convention.
-It includes first-adoption and Copier-update hazards; docs and MegaLinter
-hazards are gated by the generated project's answers. The README's pre-scaffold
-prompt establishes the recoverable baseline, and `_message_after_copy` points
-at the rendered skill before tools or commits run. No external companion plugin
-or Copier post-copy task is needed.
-It establishes an adoption/update baseline, compares existing project behavior
-with template defaults, preserves user work and customizations, and requests
-decisions before consequential cleanup. Post-update audits inspect committed
-changes without rerunning Copier. Workflow removal requires comparing events,
-permissions, dependencies, and live required-status references; unavailable
-settings evidence defers potentially required-check removal. Repository-settings
-mutations stay in `repo-setup`. See [invocation and the prek walkthrough](template-adoption.md).
+Generated projects ship no adoption skill. The guidance is two parts of the
+generated `REPOSITORY_SETUP.rst`: update hazards inside **Template updates**
+(conflict scan, new-question defaults, reset release state, the update-anchor
+check) and a final untagged **Adopting into an existing project** reference
+section (baseline, ruff and source-skeleton hazards, release state, check
+coverage and manifest parity, validation); the docs and MegaLinter hazards are
+gated by the project's answers. The `repo-setup` skill walks the tagged steps and
+skips that reference section. The README's pre-scaffold prompt establishes the
+recoverable baseline, and `_message_after_copy` points at the rendered section
+before tools or commits run. No external companion plugin or Copier post-copy
+task is needed. Repository-settings mutations stay in `repo-setup`.
+
+Outside `.copier-answers.yml`, `README.md` and `REPOSITORY_SETUP.rst`, generated
+files carry no copier or template provenance; `tests/test_adoption_reference.py`
+scans representative renders for it.

@@ -14,7 +14,7 @@ from {{github_repo_name}}.__metadata__ import PROJECT_NAME
 from {{github_repo_name}}.core.dirs import ROOT_FOLDER_PATH
 {%- if include_database %}
 
-# Async driver URL for the backend picked at scaffold time; override with the
+# Async driver URL for the backend selected when the project was created; override with the
 # prefixed ``DATABASE_URL`` environment variable. The SQLite file name is one the
 # generated ``.gitignore`` already covers.
 {%- if database_backend == 'postgres' %}
@@ -87,7 +87,7 @@ def _env(name: str, default: str) -> str:
 {%- if include_database %}
 
 
-# Async driver URL for the backend picked at scaffold time; override with the
+# Async driver URL for the backend selected when the project was created; override with the
 # prefixed ``DATABASE_URL`` environment variable. The SQLite file name is one the
 # generated ``.gitignore`` already covers.
 {%- if database_backend == 'postgres' %}

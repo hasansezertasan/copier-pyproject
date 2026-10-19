@@ -57,7 +57,9 @@ def test_argparse_cli_unlocks_homebrew_packaging(
         cli_framework="argparse",
         include_homebrew=True,
     )
-    assert (root / "docs" / "packaging" / "homebrew-tap").is_dir()
+    assert "bump-homebrew" in (root / ".github" / "workflows" / "release.yml").read_text(
+        encoding="utf-8"
+    )
     project = _pyproject(root)
     assert not any(dep.startswith("typer") for dep in project.get("dependencies", []))
 

@@ -9,7 +9,7 @@ on:
   # also the documented exception to GITHUB_TOKEN loop-prevention, which is why
   # that step needs no PAT. The containment is the `publish` environment's
   # deployment-branch policy, which GitHub evaluates OUTSIDE this file so a
-  # branch edit cannot bypass it — see docs/maintaining/setup.rst
+  # branch edit cannot bypass it — see REPOSITORY_SETUP.rst
   # ("Restrict the publish environment to main"). Verify that policy is in
   # place rather than deleting this trigger.
   workflow_dispatch:
@@ -191,7 +191,6 @@ jobs:
         # jobs), so download-artifact's merge-multiple and the release asset names
         # never collide. PyCrucible names via output:/`-o` + a `*` upload glob, so
         # no per-OS `ext` is needed here (unlike the freezer's post-build mv).
-        # See https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module.
         include:
           - os: ubuntu-latest
             label: linux
@@ -232,7 +231,7 @@ jobs:
       matrix:
         # label/ext make each binary's filename unique per OS (and per tool across
         # jobs), so download-artifact's merge-multiple and the release asset names
-        # never collide. See https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module.
+        # never collide.
         include:
           - os: ubuntu-latest
             label: linux
@@ -288,7 +287,7 @@ jobs:
       matrix:
         # label/ext make each binary's filename unique per OS (and per tool across
         # jobs), so download-artifact's merge-multiple and the release asset names
-        # never collide. See https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module.
+        # never collide.
         include:
           - os: ubuntu-latest
             label: linux
@@ -326,7 +325,7 @@ jobs:
         # macOS needs no equivalent — a --onefile binary launched from Finder runs
         # without a terminal — and --macos-create-app-bundle is deliberately NOT
         # used: it emits a .app *directory*, which would break the single-file
-        # verify/upload steps (and the merge-multiple release attach). See https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module.
+        # verify/upload steps (and the merge-multiple release attach).
         run: uv run --locked --group tool python -m nuitka --onefile --assume-yes-for-downloads --warn-implicit-exceptions --warn-unusual-code {% if include_gui %}{% raw %}${{ matrix.os == 'windows-latest' && '--windows-console-mode=disable' || '' }}{% endraw %} {% endif %}--output-filename={{github_repo_name}}-compiler-{% raw %}${{ matrix.label }}{% endraw %} --output-dir=dist src/{{github_repo_name}}/__main__.py
       - name: Upload executable
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
@@ -476,7 +475,7 @@ jobs:
     name: Attach Build Artifacts to GitHub Release
     timeout-minutes: 10
     {#- Downloads build's artifacts, so it must order after build. pypi-publish
-        already needs build; without it, nothing else would (https://hasansezertasan.github.io/copier-pyproject/context/package-distribution/#optional-pypi-publishing). #}
+        already needs build; without it, nothing else would. #}
     needs: [release-please, {% if include_pypi_publish %}pypi-publish{% else %}build{% endif %}, sbom{% if include_launcher %}, build-launcher{% endif %}{% if include_freezer %}, build-freezer{% endif %}{% if include_compiler %}, build-compiler{% endif %}]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:
@@ -542,7 +541,7 @@ jobs:
       actions: write  # IMPORTANT: Mandatory to re-dispatch this workflow
     steps:
       - name: Publish the draft release
-        # KNOWN COSMETIC LIMITATION (accepted, see https://hasansezertasan.github.io/copier-pyproject/context/release-automation/#the-stale-draft-release-comment-link-is-an-accepted-cosmetic-defect): while the release is
+        # KNOWN COSMETIC LIMITATION (accepted): while the release is
         # a draft it has no public tag page, so its URL is a transient
         # `/releases/tag/untagged-<hash>` slug. release-please writes its
         # "🤖 Created releases:" comment on the merged release PR once, at
@@ -720,7 +719,7 @@ jobs:
         env:
           PYTHONUNBUFFERED: "1"
           # Passed via env (not interpolated into run:) — read by the Python
-          # process, so no template-injection surface. See https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages / CLAUDE.md.
+          # process, so no template-injection surface.
           DOCS_BUILD_VERSION: {% raw %}${{ needs.release-please.outputs.version }}{% endraw %}
         # Builds only this release's docs, then assembles ./site with every prior
         # version copied from gh-pages, a `latest` alias, and a root redirect.
@@ -737,7 +736,7 @@ jobs:
           # maintains — the action's default clean: true would otherwise wipe it.
           # The numeric version directories (e.g. 0.3/) are re-supplied in ./site
           # each run, so clean is safe for them. Disable force-push so a
-          # concurrent preview deploy is not clobbered. See https://hasansezertasan.github.io/copier-pyproject/context/docs-stack/#pr-docs-previews-deploy-to-a-subfolder-of-the-projects-own-gh-pages-same-repo-only, https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages.
+          # concurrent preview deploy is not clobbered.
           clean-exclude: pr-preview/**
           force: false
 {%- endif %}
@@ -747,7 +746,7 @@ jobs:
     timeout-minutes: 10
     # Runs after the release is published (un-drafted) so the comment links a
     # live release page. Best-effort: a failure here never affects the already
-    # published release or packages. See https://hasansezertasan.github.io/copier-pyproject/context/release-automation/#released-issue-notifications-are-one-inline-job-in-releaseyml.
+    # published release or packages.
     needs: [release-please, finalize-release]
     if: {% raw %}${{ needs.release-please.outputs.release_created == 'true' }}{% endraw %}
     permissions:

@@ -112,9 +112,9 @@ def test_sync_workflow_present_when_enabled(render: Callable[..., Path]) -> None
 
 
 def _setup_doc(root: Path) -> str:
-    # Maintainer branch-protection setup lives in docs/maintaining/setup.rst
+    # Maintainer branch-protection setup lives in REPOSITORY_SETUP.rst
     # (not the contributor-facing CONTRIBUTING.md); see context/repo-setup.md.
-    return (root / "docs" / "maintaining" / "setup.rst").read_text(encoding="utf-8")
+    return (root / "REPOSITORY_SETUP.rst").read_text(encoding="utf-8")
 
 
 def test_sync_workflow_pat_is_behind_a_reviewed_environment(

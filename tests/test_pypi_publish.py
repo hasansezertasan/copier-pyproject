@@ -120,7 +120,7 @@ def test_off_drops_pypi_from_setup_material(render: Callable[..., Path]) -> None
     readme = _read(root, "README.md")
     assert f"uv tool install {GIT_URL}" in readme
     assert f"uvx --from {GIT_URL} {PKG}" in readme
-    setup = _read(root, "docs", "maintaining", "setup.rst")
+    setup = _read(root, "REPOSITORY_SETUP.rst")
     assert "PyPI trusted publishing" not in setup
     assert "pending publisher" not in setup
     # The environment's branch policy still guards attestation minting.
@@ -159,7 +159,7 @@ def test_off_with_executable_keeps_homebrew_and_scoop(
     answers = _answers(root)
     assert answers["include_homebrew"] is True
     assert answers["include_scoop"] is True
-    scoop = _read(root, "docs", "packaging", "scoop-bucket", "README.md")
-    assert "binary manifest" in scoop
-    assert "pipx" not in scoop
-    assert "pypi.org" not in scoop
+    release = _read(root, ".github", "workflows", "release.yml")
+    assert "event_type=update-cask" in release
+    assert "event_type=update-formula" not in release
+    assert "bump-scoop" in release

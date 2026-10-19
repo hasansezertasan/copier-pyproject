@@ -3,7 +3,7 @@
     output. Templates pull it in with an ``import`` tag on their first line.
 
     ``py_collection`` emits a Python tuple or list literal in the exact byte form
-    ruff-format produces (https://hasansezertasan.github.io/copier-pyproject/context/template-testing/#collection-literals-are-rendered-through-one-shared-macro): one line when the whole statement fits in 88
+    ruff-format produces: one line when the whole statement fits in 88
     columns, otherwise one element per line with a trailing comma. The generated
     project sets ``skip-magic-trailing-comma``, so an always-exploded literal
     would be collapsed back and an always-inline one would be exploded -- either
@@ -27,7 +27,7 @@
 {#- The agent-instruction prose. Rendered into ``AGENTS.md``
     when ``include_ai_rulez`` is off, and into the ``.ai-rulez/``
     rule and context sources -- which ``ai-rulez generate`` fans out to every
-    selected host -- when it is on (https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros). Both renderings are the same
+    selected host -- when it is on. Both renderings are the same
     bytes because they call the same macro: a second copy of this prose, kept in
     sync by nothing, is exactly the drift the toggle exists to remove.
 
