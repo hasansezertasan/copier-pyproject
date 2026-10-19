@@ -23,6 +23,12 @@ When a toggle's rationale changes, update its `context/` entry through the
 Required inputs:
 
 - `github_user`, `github_repo_name`, `author_full_name`, `author_email`, `short_description`
+- `copyright_year` (`int`, default: the current year) - the start year in
+  `LICENSE`'s `Copyright (c) <year>-present`. It is asked, not hidden, so Copier
+  records it in `.copier-answers.yml` and `copier update` keeps it. A project
+  created before this question has no answer: a non-interactive update adopts the
+  current year, and `copier update -d copyright_year=<year>` keeps the original.
+  See [the LICENSE start year](../context/template-updates.md#the-license-start-year-is-a-visible-copyright_year-question).
 
 Free-form metadata:
 

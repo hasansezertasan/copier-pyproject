@@ -50,6 +50,7 @@ Copier will prompt for:
 - `github_repo_name` (valid Python package name: lowercase letters/digits/underscores, starts with a letter, and not a Python reserved keyword — used verbatim as the import package name, so no dashes)
 - `author_full_name`
 - `author_email`
+- `copyright_year` (the year `LICENSE` says the copyright starts, rendered as `<year>-present`; defaults to the current year and is then kept by `copier update` — see [the LICENSE start year](context/template-updates.md#the-license-start-year-is-a-visible-copyright_year-question))
 - `short_description`
 - `package_keywords` (extra comma-separated PyPI keywords; tooling/component keywords are added automatically)
 - `include_cli` (include Typer CLI)
