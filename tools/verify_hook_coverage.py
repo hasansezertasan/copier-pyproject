@@ -2,7 +2,6 @@
 
 Run through the rendered project's prek group so its version remains canonical:
 uv run --group prek python /path/to/tools/verify_hook_coverage.py prek.toml
-Requires an include_ai_rulez=true render to probe its generated-output exclusions.
 """
 
 from __future__ import annotations
@@ -215,14 +214,6 @@ def verify_hooks(config_path: Path) -> None:
                 identifier,
                 ".gitignore",
                 b"\xef\xbb\xbfsealed\r\nbytes\n",
-                skipped=True,
-            )
-            # This probe runs against the ai-rulez render in template CI.
-            verify_fixture(
-                root,
-                identifier,
-                ".continue/prompts/probe.yaml",
-                b"\xef\xbb\xbfowned\r\nbytes\n",
                 skipped=True,
             )
         for suffix in ("ps1", "psm1", "psd1", "PS1"):

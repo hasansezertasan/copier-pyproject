@@ -1,4 +1,4 @@
-"""Generated hook coverage and generator-owned byte protection."""
+"""Generated hook coverage and sealed-file byte protection."""
 
 from __future__ import annotations
 
@@ -11,11 +11,10 @@ import pytest
 
 
 @pytest.mark.parametrize("preset", ["library", "tool", "web", "full"])
-@pytest.mark.parametrize("include_ai_rulez", [False, True])
 def test_generated_hook_coverage(
-    render: Callable[..., Path], preset: str, include_ai_rulez: bool
+    render: Callable[..., Path], preset: str
 ) -> None:
-    root = render(preset=preset, include_ai_rulez=include_ai_rulez)
+    root = render(preset=preset)
     config = tomllib.loads((root / "prek.toml").read_text(encoding="utf-8"))
     hooks = {hook["id"]: hook for repo in config["repos"] for hook in repo["hooks"]}
     expected = {
@@ -56,9 +55,6 @@ def test_generated_hook_coverage(
         assert re.search(exclusion, ".gitignore")
         assert not re.search(exclusion, "src/package/__init__.py")
         assert not re.search(exclusion, "nested/.gitignore")
-        assert bool(re.search(exclusion, ".continue/prompts/instructions.yaml")) == (
-            include_ai_rulez
-        )
 
     issue_config = hooks["check-github-issue-config"]["files"]
     for filename in ("config.yml", "config.yaml"):

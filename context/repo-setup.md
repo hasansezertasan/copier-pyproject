@@ -167,7 +167,7 @@ The two earlier entries it touches are `needs-review` until re-checked.
 
 **Id:** 68ac4665-dcde-456b-aef7-2faaf6fe51f4
 **Type:** decision
-**Status:** active
+**Status:** needs-review
 **Evidence:** confirmed
 **Source:** ADR-023 ([`docs/adr/023-repo-setup-skill.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/023-repo-setup-skill.md)); the pattern follows the `infra-setup` skill in infra-copilot
 **Revisit when:** a setup step cannot carry a `[CHECK]` block, or the skill grows a parser instead of an LLM reader
@@ -208,8 +208,10 @@ skill is a rendered file, so it never needs a post-copy task.
 **Consequence:** every future setup step must carry a `[CHECK]` block to stay
 machine-drivable, as every step already had to carry an actor tag.
 
-This repository's own setup has no repo-local skill since 2026-10-12; the
-entry below records why.
+The shipped skill half of this entry is superseded by
+[the removal entry](#the-repo-setup-skill-is-no-longer-shipped-the-setup-doc-is-read-directly);
+the `[CHECK]` convention stands. This repository's own setup has no repo-local
+skill since 2026-10-12; the entry below records why.
 
 ## This repository's own one-time setup is two documented commands, not a repo-local skill
 
@@ -242,3 +244,26 @@ carries.
 **Rejected alternative:** keep it as an idempotent verifier for when the
 release PR stops opening, or for a fork — re-running the two documented
 commands (with the fork's `OWNER/REPO` substituted) covers that by hand.
+
+## The repo-setup skill is no longer shipped; the setup doc is read directly
+
+**Id:** 4ff05ee1-3b53-423d-96cf-acb7681b6a97
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** issue #428 open question, answered by the maintainer 2026-10-19
+**Revisit when:** copier-skill-repo offers a repo-setup skill adopters want from this template
+**See:** repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest — 68ac4665-dcde-456b-aef7-2faaf6fe51f4 — as of 2026-10-19
+**See:** agent-instructions.md#ai-rulez-is-removed-the-template-ships-one-hand-written-agentsmd-and-no-per-host-files — 249600a2-79c3-49b9-b4b5-277ccc245d1b — as of 2026-10-19
+
+Generated projects no longer ship `.claude/skills/repo-setup/`. The
+`REPOSITORY_SETUP.rst` guide keeps its `[AGENT]`/`[HUMAN]`/`[CHECK]` tags, so an
+agent or maintainer can still walk it, and `_message_after_copy` points at the
+file instead of the skill.
+
+**Reason:** with ai-rulez gone, the skill had no per-host delivery path in this
+template; skills are delivered through copier-skill-repo.
+
+**Rejected alternative:** keep it Claude-only under `.claude/skills/` (the old
+default) or move it to a host-neutral `.agents/skills/` — both keep a skill
+rendered here that copier-skill-repo is meant to own.

@@ -2,13 +2,7 @@
 # Add 'documentation' label to any changes within 'docs' folder or any subfolders
 documentation:
   - changed-files:
-{%- if include_ai_rulez %}
-      # The .ai-rulez sources are the agent-facing documentation; the files they
-      # generate are build output nobody edits by hand.
-      - any-glob-to-any-file: ['docs/**', '.ai-rulez/**']
-{%- else %}
       - any-glob-to-any-file: docs/**
-{%- endif %}
 # Apply area labels from the component and cross-cutting paths a PR changes.
 # Keep each component rule gated so generated projects never receive labels for
 # packages they do not contain.
@@ -47,11 +41,7 @@ area:worker:
 {%- endif %}
 area:docs:
   - changed-files:
-{%- if include_ai_rulez %}
-      - any-glob-to-any-file: ['docs/**', '.ai-rulez/**', '**/*.md', '**/*.rst']
-{%- else %}
       - any-glob-to-any-file: ['docs/**', '**/*.md', '**/*.rst']
-{%- endif %}
 area:ci:
   - changed-files:
       - any-glob-to-any-file: .github/workflows/**

@@ -36,16 +36,9 @@ _exclude:
 _message_before_copy: >-
   Pick a preset, then press Enter through the toggles to accept its defaults, or tune any of them. The preset only sets defaults — every toggle is still asked and saved (a few sub-questions stay conditional on their parent toggle).
 _message_after_copy: >-
-  Project {{ github_repo_name }} scaffolded. Adopting into an existing package? Before running tools or committing the scaffold, give your agent this prompt: "Read the "Adopting into an existing project" section of REPOSITORY_SETUP.rst and reconcile this adoption against the pre-adoption commit, then read {% if include_ai_rulez %}.ai-rulez{% else %}.claude{% endif %}/skills/repo-setup/SKILL.md and walk the rest of REPOSITORY_SETUP.rst." For a new project, follow these next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in REPOSITORY_SETUP.rst (squash-merge policy, workflow permissions{% if include_pypi_publish %}, PyPI trusted publishing{% endif %}).
-# An update that answers `include_ai_rulez` yes — including the first update of a
-# `full`-preset project, where the new question defaults to yes — deletes the
-# copier-managed AGENTS.md and replaces it with `.ai-rulez/` sources
-# whose output only exists after a `generate`. There are no `_tasks` to run it
-# (https://hasansezertasan.github.io/copier-pyproject/context/template-updates/#copieryml-defines-no-_tasks), so the update lands with no agent instruction files at all. CI says
-# so loudly, but only after a push; say it here, while the maintainer is still
-# looking. See https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros for the reverse direction.
+  Project {{ github_repo_name }} scaffolded. Adopting into an existing package? Before running tools or committing the scaffold, give your agent this prompt: "Read the "Adopting into an existing project" section of REPOSITORY_SETUP.rst and reconcile this adoption against the pre-adoption commit, then walk the rest of REPOSITORY_SETUP.rst." For a new project, follow these next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync (3) complete the one-time repository setup documented in REPOSITORY_SETUP.rst (squash-merge policy, workflow permissions{% if include_pypi_publish %}, PyPI trusted publishing{% endif %}).
 _message_after_update: >-
-  {% if copyright_year | string == '%Y' | strftime %}LICENSE now reads {{ copyright_year }}-present (the copyright_year answer). If the project's copyright started earlier, run: copier update -d copyright_year=<first year>.{% endif %} {% if include_ai_rulez %}This project now authors its agent instructions under .ai-rulez/. Run: (1) uv lock (the new `agents` dependency group) (2) uv run --group agents ai-rulez generate, then commit both — AGENTS.md and the per-host files are build output, so until you do the repository has no agent instruction files and the `hooks` CI job fails.{% endif %}
+  {% if copyright_year | string == '%Y' | strftime %}LICENSE now reads {{ copyright_year }}-present (the copyright_year answer). If the project's copyright started earlier, run: copier update -d copyright_year=<first year>.{% endif %}
 # ── ① Identity ──────────────────────────────────────────────────────────────
 github_user:
   type: str
@@ -145,7 +138,6 @@ preset_map:
       - include_all_contributors
       - include_smokeshow
       - include_megalinter
-      - include_ai_rulez
       - include_repo_settings
       - include_repo_ruleset
       - include_postgres
@@ -315,40 +307,6 @@ include_megalinter:
   default: "{{ 'include_megalinter' in preset_map[preset] }}"
   help: >-
     Add MegaLinter as an optional extra CI quality layer? It runs only linters that prek/tox do not already cover (shellcheck, hadolint, jsonlint, jscpd clone-detection, and a .md-scoped cspell prose pass) and uploads SARIF findings to the Security tab. Off by default so the fast, self-contained default is preserved (tox/prek remain the canonical runners).
-include_ai_rulez:
-  type: bool
-  default: "{{ 'include_ai_rulez' in preset_map[preset] }}"
-  help: >-
-    Author the agent instructions once under .ai-rulez/ and generate each AI coding host's native config from them (ai-rulez)? Off renders the hand-written AGENTS.md and a Claude-only repo-setup skill. On renders the .ai-rulez/ sources instead, and `ai-rulez generate` (a prek hook, plus the after-copy step) writes AGENTS.md, .github/copilot-instructions.md and the per-host copies of the repo-setup skill as committed build output. See https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros.
-ai_rulez_presets:
-  type: str
-  multiselect: true
-  default:
-    - codex
-    - copilot
-  choices:
-    - claude
-    - codex
-    - copilot
-    - cursor
-    - windsurf
-    - cline
-    - continue-dev
-    - amp
-    - junie
-    - opencode
-    - hermes
-    - antigravity
-  when: "{{ include_ai_rulez }}"
-  # An empty selection renders a config ai-rulez itself rejects ("at least one
-  # preset is required"), so every `ai-rulez generate` and the tox `style` env's
-  # `ai-rulez validate` would fail from the first run. Catch it at prompt time
-  # instead, where the answer can still be changed, rather than handing the
-  # adopter a scaffold whose lint gate is red before they touch it.
-  validator: >-
-    {% if include_ai_rulez and not ai_rulez_presets %} Pick at least one host. ai-rulez rejects a config with no presets, so `ai-rulez generate` and the tox `style` env would both fail until one is chosen. {% endif %}
-  help: >-
-    Which AI coding hosts should `ai-rulez generate` write native config for? codex renders AGENTS.md + .codex/, copilot renders .github/copilot-instructions.md + .github/skills/ (the one GitHub itself reads server-side); both are on by default. Claude Code reads AGENTS.md natively, so claude is opt-in and only adds CLAUDE.md + .claude/ (where Claude Code looks for the repo-setup skill). Each extra host adds committed files to the repository root.
 include_repo_settings:
   type: bool
   default: "{{ 'include_repo_settings' in preset_map[preset] }}"
@@ -517,9 +475,8 @@ launched_components:
 # contract, in the order the architecture tables list them. Unlike
 # `launcher_components` this is launch-agnostic — it is the *layering* view, so
 # the primary component is included. Read by the agent-instruction prose macros
-# in `_macros.jinja`, which render into either `AGENTS.md` or the `.ai-rulez/`
-# rule sources depending on `include_ai_rulez` (https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros); computing it here keeps
-# the two renderings from rebuilding the same list in two Jinja headers.
+# in `_macros.jinja`, which render into `AGENTS.md`; computing it here keeps
+# the Jinja header from rebuilding the same list.
 interface_components:
   type: json
   when: false

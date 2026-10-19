@@ -22,7 +22,7 @@ Always included in every generated project:
 
 On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). Published docs are **versioned** — each release deploys under its version slug (`docs_version_granularity`: `minor` `X.Y`, `major` `X`, or `full` `X.Y.Z`) with an in-page version switcher and a `latest` alias, and every page footer shows its git "last updated" date (see [versioned docs](context/docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages)). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`REPOSITORY_SETUP.rst`) ships regardless.
 
-Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), CodSpeed-backed performance benchmarks, standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, smokeshow (a tokenless, account-free coverage-HTML mirror for public repos), MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App), and ai-rulez (agent instructions authored once under `.ai-rulez/` and generated into every AI coding host's native config — `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/`, … — instead of one hand-written file per tool).
+Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), CodSpeed-backed performance benchmarks, standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, smokeshow (a tokenless, account-free coverage-HTML mirror for public repos), MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), and repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App).
 
 ## Inputs
 
@@ -77,8 +77,6 @@ Copier will prompt for:
 - `include_pydantic_settings` (use pydantic-settings for configuration; the docs build auto-generates a Configuration reference from the live settings model via autodoc-pydantic)
 - `include_megalinter` (opt-in extra CI quality layer; runs gap linters — shellcheck, hadolint, jsonlint, jscpd, and a `.md`-scoped cspell — not covered by prek/tox)
 - `include_smokeshow` (opt-in tokenless coverage-HTML host; publishes the combined report to an ephemeral public URL from the `coverage-report` CI job — public repos only, no account or secret)
-- `include_ai_rulez` (author the agent instructions once under `.ai-rulez/` and generate each AI coding host's native config from them via [ai-rulez](https://github.com/Goldziher/ai-rulez), instead of the hand-written `AGENTS.md`; the generated files are committed build output, written by `ai-rulez generate` — see [ai-rulez as the instruction source](context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros))
-  - `ai_rulez_presets` (asked when `include_ai_rulez`: which hosts to generate for — `codex`, `copilot` by default, plus `claude`/`cursor`/`windsurf`/`cline`/`continue-dev`/`amp`/`junie`/`opencode`/`hermes`/`antigravity`)
 - `include_repo_ruleset` (opt-in branch protection as code — a ruleset + App-free sync workflow enforcing squash-only merges, linear history, and the required CI checks; needs a `REPO_ADMIN_TOKEN` PAT)
 - `include_repo_settings` (repository metadata via the Settings App; installation requires a distinct trusted reviewer and verified code-owner review, so solo maintainers defer the App)
 - `include_postgres` (include PostgreSQL service in devcontainer)
@@ -112,15 +110,13 @@ If you keep one of those project or ancestor files, open `/config` and set
 For an older client or a session with AGENTS.md support disabled, add a local
 `CLAUDE.md` containing `@AGENTS.md` instead.
 See [Claude Code's instruction-loading documentation](https://code.claude.com/docs/en/memory#when-claude-code-reads-agents-md)
-for the full rules. Opting into `include_ai_rulez` instead generates the
-selected hosts' native instruction files.
+for the full rules. For per-host agent and skill files beyond `AGENTS.md`, use
+[copier-skill-repo](https://github.com/hasansezertasan/copier-skill-repo).
 
 A project first scaffolded from v1.6.0 or earlier carries a `CLAUDE.md` wrapper
 (v1.7.0 stopped rendering it but kept existing copies). `copier update` now
 deletes it, customized or not. Before updating, move any
-project-specific guidance from it into `AGENTS.md` (or, if the same update turns
-on `include_ai_rulez`, into a `.ai-rulez/` rule source, since `AGENTS.md` then
-becomes generated output).
+project-specific guidance from it into `AGENTS.md`.
 
 ## Adopt into an existing project
 
@@ -129,8 +125,7 @@ The `copier copy` flow above is for **new** projects. Adopting this template int
 Generated projects carry the adoption guidance in their `REPOSITORY_SETUP.rst`:
 its **Template updates** section covers later `copier update` runs, and its final
 **Adopting into an existing project** section covers the baseline, the hazards,
-check-coverage and manifest parity, and validation. The **repo-setup** skill
-walks the tagged setup steps and skips that reference section. Generated
+check-coverage and manifest parity, and validation. Generated
 projects carry no other indication of how they were created beyond
 `.copier-answers.yml` and the README.
 
@@ -159,26 +154,26 @@ dependencies, running hooks or committing the output, read the "Adopting into an
 existing project" section of the rendered REPOSITORY_SETUP.rst directly and
 follow it to reconcile against the baseline. Preserve our real source, tests,
 identity, release history and custom tooling; ask before consequential changes.
-Then use the repo-setup skill to walk the rest of REPOSITORY_SETUP.rst.
+Then walk the rest of REPOSITORY_SETUP.rst.
 Report validation results and any remaining setup steps.
 ```
 
 ### After scaffolding
 
-Copier prints a prompt pointing at the rendered skills. Give your agent:
+Copier prints a prompt for your agent. Give it:
 
 ```text
 Read the "Adopting into an existing project" section of REPOSITORY_SETUP.rst and
-audit this scaffold against our existing behavior before running tools, then use
-repo-setup to walk the rest of REPOSITORY_SETUP.rst.
+audit this scaffold against our existing behavior before running tools, then walk
+the rest of REPOSITORY_SETUP.rst.
 ```
 
-For a brand-new project, use `repo-setup` to walk the setup guide after the
+For a brand-new project, walk the setup guide in `REPOSITORY_SETUP.rst` after the
 [quickstart](#generated-project-quickstart); there is no existing code to reconcile.
 
 The companion plugin and its `adopt`, `update`, and `setup` skills are retired.
 If you installed them previously, remove that installation and use the generated
-project's `REPOSITORY_SETUP.rst` and its `repo-setup` skill. No plugin install is needed.
+project's `REPOSITORY_SETUP.rst`. No plugin install is needed.
 
 ## Generated project quickstart
 

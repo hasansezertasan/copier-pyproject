@@ -29,21 +29,10 @@ _PROVENANCE = re.compile(
 
 
 @pytest.mark.parametrize("preset", ["library", "tool", "web", "full"])
-@pytest.mark.parametrize("include_ai_rulez", [False, True])
-def test_only_repo_setup_skill_ships(
-    render: Callable[..., Path], preset: str, include_ai_rulez: bool
-) -> None:
-    root = render(preset=preset, include_ai_rulez=include_ai_rulez)
-    host = ".ai-rulez" if include_ai_rulez else ".claude"
-    skill = root / host / "skills" / "repo-setup" / "SKILL.md"
-    text = skill.read_text(encoding="utf-8")
-    frontmatter = yaml.safe_load(text.split("---", 2)[1])
-    assert frontmatter["name"] == "repo-setup"
-    assert "{%" not in text
-    assert "{{" not in text
-    assert "Adopting into an existing project" in text
-    for other in {".claude", ".ai-rulez", ".codex", ".github"}:
-        assert not (root / other / "skills" / "template-adoption").exists()
+def test_no_skills_ship(render: Callable[..., Path], preset: str) -> None:
+    root = render(preset=preset)
+    for host in (".claude", ".ai-rulez", ".codex", ".github", ".agents"):
+        assert not (root / host / "skills").exists()
 
 
 @pytest.mark.parametrize("include_docs", [False, True])
@@ -76,18 +65,16 @@ def test_adoption_hazards_follow_answers(
     assert ("MegaLinter's cspell" in text) is include_megalinter
 
 
-@pytest.mark.parametrize("include_ai_rulez", [False, True])
 def test_copy_message_routes_before_tools(
     render: Callable[..., Path],
     capsys: pytest.CaptureFixture[str],
-    include_ai_rulez: bool,
 ) -> None:
-    render(include_ai_rulez=include_ai_rulez, quiet=False)
+    render(quiet=False)
     captured = capsys.readouterr()
     message = captured.out + captured.err
     assert "Adopting into an existing project" in message
     assert "template-adoption" not in message
-    assert "repo-setup" in message
+    assert "repo-setup" not in message
     assert "REPOSITORY_SETUP.rst" in message
     assert message.index("Before running tools") < message.index("uv sync")
 
@@ -104,7 +91,6 @@ def test_copy_message_routes_before_tools(
         },
         {
             "preset": "full",
-            "include_ai_rulez": True,
             "include_docs": False,
             "include_sourcery": True,
         },
@@ -120,7 +106,7 @@ def test_copy_message_routes_before_tools(
         },
         {"preset": "web", "include_megalinter": True, "include_smokeshow": True},
     ],
-    ids=["full-extras", "full-ai-rulez-no-docs", "library", "tool-exe", "web"],
+    ids=["full-extras", "full-no-docs", "library", "tool-exe", "web"],
 )
 def test_no_copier_provenance_outside_allowed_files(
     render: Callable[..., Path], data: dict[str, object]

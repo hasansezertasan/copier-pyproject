@@ -33,16 +33,7 @@ hooks = [
   # verbatim, but upstream github/gitignore ships trailing whitespace on some
   # comment lines. Exclude it so the hook does not break the seal (cobo owns
   # this file).
-{%- if include_ai_rulez %}
-  # `.continue/prompts/` is the same shape: ai-rulez owns those bytes, and its
-  # generated YAML header ships two trailing-space comment lines. Stripping them
-  # here would be undone by the next `ai-rulez generate`, so the hook and the
-  # generator would rewrite each other forever — the non-convergence
-  # that formatter-canonical output forbids. The path is inert unless the `continue-dev` host is selected.
-  { id = "trailing-whitespace", exclude = '^(\.gitignore|\.continue/prompts/.*)$' },
-{%- else %}
   { id = "trailing-whitespace", exclude = '^\.gitignore$' },
-{%- endif %}
   { id = "check-merge-conflict", args = [
     "--assume-in-merge",
   ] },
@@ -54,14 +45,8 @@ hooks = [
   { id = "check-xml" },
   # Preserve cobo-owned bytes.
   # Windows PowerShell 5.1 needs a UTF-8 BOM for non-ASCII source literals.
-{%- if include_ai_rulez %}
-  # Also preserve ai-rulez output.
-  { id = "fix-byte-order-marker", exclude = '^(\.gitignore|\.continue/prompts/.*)$|(?i:\.ps[md]?1)$' },
-  { id = "mixed-line-ending", args = ["--fix=auto"], exclude = '^(\.gitignore|\.continue/prompts/.*)$' },
-{%- else %}
   { id = "fix-byte-order-marker", exclude = '^\.gitignore$|(?i:\.ps[md]?1)$' },
   { id = "mixed-line-ending", args = ["--fix=auto"], exclude = '^\.gitignore$' },
-{%- endif %}
   # auto fixes mixed endings, retaining consistent CRLF for Windows scripts.
 ]
 
@@ -149,20 +134,6 @@ hooks = [
   # `style` group pin (its PyPI wrapper has no separate upstream pre-commit repo
   # revision worth tracking here).
   { id = "detect-secrets", name = "detect-secrets (pre-commit secret scan)", entry = "uv run --locked --group style detect-secrets-hook --baseline .secrets.baseline", language = "system", pass_filenames = true },
-{%- if include_ai_rulez %}
-  # ai-rulez regenerates the agent instruction files every host reads (AGENTS.md,
-  # CLAUDE.md, ...) from the `.ai-rulez/` sources, which are the only thing anyone
-  # edits. It is a *fixing* hook, so it behaves like the formatters above: it
-  # rewrites what drifted and fails the run when it had to, which is what keeps
-  # the committed output honest — there is no `--check` mode for preset output
-  # (ai-rulez's own `verify` covers plugin bundles only). Upstream ships
-  # pre-commit hooks, but they carry a second version pin; going through the uv
-  # `agents` group keeps one. It reads the whole `.ai-rulez/` tree and
-  # writes a fixed output set, so filenames are not passed; the `files` gate
-  # keeps it off unrelated commits while CI's `--all-files` run always reaches it
-  # — including when someone hand-edits a generated file the gate does not match.
-  { id = "ai-rulez", name = "ai-rulez (regenerate agent instruction files)", entry = "uv run --locked --group agents ai-rulez generate", language = "system", files = '^\.ai-rulez/', pass_filenames = false },
-{%- endif %}
 ]
 
 [[repos]]
@@ -221,17 +192,8 @@ rev = "v1.38.0"
 # sequences unindented, which yamllint's `indentation` rule rejects. The only
 # way to satisfy the linter would be to hand-edit a file that is overwritten,
 # so the gate can only ever produce an unfixable failure — it fires the moment
-# any answer is a list (e.g. `ai_rulez_presets`).
-{%- if include_ai_rulez %}
-# `.continue/prompts/` is excluded on the same "a generator owns these bytes"
-# grounds: ai-rulez's generated YAML header carries trailing spaces (a
-# `trailing-spaces` *error*, not a warning) and no `---` document start, and
-# hand-fixing either is undone by the next `generate`. Inert unless the
-# `continue-dev` host is selected.
-hooks = [{ id = "yamllint", exclude = "^(\\.copier-answers\\.yml|\\.continue/prompts/.*)$", args = ["-c", ".github/yamllint.yaml"] }]
-{%- else %}
+# any answer is a list.
 hooks = [{ id = "yamllint", exclude = "^\\.copier-answers\\.yml$", args = ["-c", ".github/yamllint.yaml"] }]
-{%- endif %}
 
 [[repos]]
 repo = "https://github.com/DavidAnson/markdownlint-cli2"
@@ -267,16 +229,7 @@ hooks = [{ id = "checkmake" }]
 [[repos]]
 repo = "https://github.com/google/yamlfmt"
 rev = "v0.21.0"
-{%- if include_ai_rulez %}
-# `.continue/prompts/` joins the machine-written answers file for the same reason,
-# one step further along: yamlfmt prepends the `---` document start ai-rulez does
-# not emit, and the next `generate` strips it back off. A *fixing* hook that
-# disagrees with a generator does not fail once — the two rewrite each other
-# forever. Inert unless the `continue-dev` host is selected.
-hooks = [{ id = "yamlfmt", exclude = "^(\\.copier-answers\\.yml|\\.continue/prompts/.*)$", args = ["-conf", ".github/yamlfmt.yml"] }]
-{%- else %}
 hooks = [{ id = "yamlfmt", exclude = "^\\.copier-answers\\.yml$", args = ["-conf", ".github/yamlfmt.yml"] }]
-{%- endif %}
 
 [[repos]]
 repo = "https://github.com/commitizen-tools/commitizen"

@@ -20,7 +20,7 @@ Absent applicable files make file-scoped hooks no-ops.
 | --- | --- |
 | `check-executables-have-shebangs` | Add: text **and** executable files must start with a shebang. Binary executables are not selected. |
 | `check-symlinks` | Add: detect broken symlinks; upstream selects symlinks, not ordinary files. |
-| `fix-byte-order-marker` | Add: remove leading UTF-8 BOM from text files. Exclude cobo-owned `.gitignore`, ai-rulez-owned `.continue/prompts/` output, and `.ps1`/`.psm1`/`.psd1` files (case-insensitive) to preserve Windows PowerShell 5.1 encoding detection. |
+| `fix-byte-order-marker` | Add: remove leading UTF-8 BOM from text files. Exclude cobo-owned `.gitignore`, and `.ps1`/`.psm1`/`.psd1` files (case-insensitive) to preserve Windows PowerShell 5.1 encoding detection. |
 | `mixed-line-ending` | Add: text files, `--fix=auto`; normalize mixed endings to the dominant ending, but retain consistent CRLF (permitted for `.bat`/`.ps1` by `.editorconfig`). Same generator-owned exclusions as the BOM fixer; PowerShell files remain eligible. This is not enforcement of universal LF. |
 | `check-xml` | Add: XML-typed files only; dormant until a project adds XML. |
 | `check-github-issue-forms` | Add: YAML under root `.github/ISSUE_TEMPLATE/`, excluding `config.yml` and `config.yaml`; Markdown templates are not selected. |
@@ -89,11 +89,11 @@ the adoption report, and obtain the adopter's decision before reducing coverage.
 
 ## Regression validation
 
-`tests/test_hook_coverage.py` renders all presets with both instruction hosts
+`tests/test_hook_coverage.py` renders all presets
 and checks defaults, exclusions, and the explicit issue-config matcher.
 Template CI validates generated schemas/hygiene across its render matrix.
-Its ai-rulez scenario also runs `tools/verify_hook_coverage.py` through the
+Its `full` scenario also runs `tools/verify_hook_coverage.py` through the
 rendered project's own prek dependency group in an isolated fixture repository.
 The probes exercise malformed inputs, unrelated-file skips, JSON5 parsing,
 executable and symlink checks, UTF-8 BOM removal, consistent CRLF preservation,
-generator-owned and PowerShell byte preservation, and second-pass convergence.
+sealed-file and PowerShell byte preservation, and second-pass convergence.

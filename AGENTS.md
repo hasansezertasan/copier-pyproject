@@ -248,7 +248,6 @@ prompt, `docs/template-architecture.md` for what each renders):
 | `include_all_contributors` | all-contributors config + workflow + README section | [external-integrations](context/external-integrations.md#sourcery-sonarcloud-and-all-contributors-are-independent-opt-in-toggles) |
 | `include_smokeshow` | tokenless coverage-HTML host (smokeshow step in the `coverage-combine` job; public repos only) | [ci-topology](context/ci-topology.md#a-tokenless-public-html-coverage-mirror-via-smokeshow) |
 | `include_megalinter` | MegaLinter lean-complement CI layer | [lint-orchestration](context/lint-orchestration.md#megalinter-is-an-opt-in-lean-complement-non-blocking-on-three-levels) |
-| `include_ai_rulez` | agent instructions authored once under `.ai-rulez/` and generated per host (`ai_rulez_presets`); replaces the hand-written `AGENTS.md`, and the generated files are build output the template never renders | [agent-instructions](context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros) |
 | `include_pypi_publish` | PyPI trusted publishing on release (default-on every preset); off ships GitHub Releases only and gates out a PyPI-backed Homebrew/Scoop | [package-distribution](context/package-distribution.md#optional-pypi-publishing) |
 | `include_homebrew` | Homebrew tap dispatch (`can_distribute_natively`-gated) | [package-distribution](context/package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic) |
 | `include_scoop` | Scoop bucket dispatch | [package-distribution](context/package-distribution.md#homebrew-and-scoop-are-opt-in-dispatches-the-tap-or-bucket-owns-the-manifest-logic) |
@@ -277,9 +276,10 @@ a style-env-only semgrep SAST pass over `src/`
 ([semgrep SAST](context/lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored)),
 a `deps` dependency-hygiene gate (deptry + creosote, [why](context/lint-orchestration.md#dependency-hygiene-deptry--creosote-is-an-always-on-deps-gate-not-a-toggle)),
 editorconfig-checker, ghalint, `SUPPORT.md`, `.gitattributes`, `.git_archival.txt`,
-and agent onboarding files — `AGENTS.md` by default, or the
-`.ai-rulez/` sources they are generated from when `include_ai_rulez`
-([ai-rulez as the instruction source](context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros)).
+and a hand-written `AGENTS.md` agent onboarding file (per-host agent and
+skill files come from [copier-skill-repo](https://github.com/hasansezertasan/copier-skill-repo),
+not this template —
+[agent instructions](context/agent-instructions.md)).
 
 ### Load-bearing invariants
 
@@ -318,10 +318,8 @@ Do not break these — each is a real footgun with the detail/why in its linked
   emits a tuple/list literal in the byte form ruff-format produces (a second
   hand-rolled copy of that width logic is the drift this replaced —
   [one shared collection macro](context/template-testing.md#collection-literals-are-rendered-through-one-shared-macro)), and
-  the `agent_*()` prose macros, which are the **one** source for the agent
-  instructions whether they render as `AGENTS.md` or as the `.ai-rulez/` rule
-  sources ([ai-rulez as the instruction source](context/agent-instructions.md#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros)).
-  Edit the prose there, never in one of the two renderings.
+  the `agent_*()` prose macros, the source of the rendered `AGENTS.md`.
+  Edit the prose there.
 - **One render entrypoint.** `tools/render.py` is the only place `copier.run_copy`
   is called (harness fixture, CI matrix, docs artifacts, watch loop, mise tasks);
   adding a second `copier copy` spelling is the drift this replaced
@@ -441,10 +439,8 @@ release-please to miss releases or bump them incorrectly. release-please also ne
 approve pull requests** enabled.
 
 The generated project's `REPOSITORY_SETUP.rst` is the one-time "Repository
-setup" guide (`[AGENT]`/`[HUMAN]`/`[CHECK]`-tagged, driven by the shipped
-`repo-setup` skill — [maintainer setup guide](context/repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree),
-[repo-setup skill](context/repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest); shipped to Claude alone, or to every
-selected host when `include_ai_rulez`); keep it in sync when these
+setup" guide (`[AGENT]`/`[HUMAN]`/`[CHECK]`-tagged — [maintainer setup guide](context/repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree);
+no skill is shipped for it, see [repo-setup decision](context/repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest)); keep it in sync when these
 requirements change. This repo's own two-step setup is the pair of `gh`
 commands under "One-time repo setup" in `docs/template-architecture.md`; bump
 rules and this repo's own self-versioning are detailed there and in

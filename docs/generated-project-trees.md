@@ -15,10 +15,9 @@ page drifts from a fresh render.
 
 ## library
 
-110 files.
+109 files.
 
 ```text
-.claude/skills/repo-setup/SKILL.md
 .copier-answers.yml
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
@@ -132,10 +131,9 @@ tools/build_docs.py
 
 ## tool
 
-120 files.
+119 files.
 
 ```text
-.claude/skills/repo-setup/SKILL.md
 .copier-answers.yml
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
@@ -259,10 +257,9 @@ tools/build_docs.py
 
 ## web
 
-132 files.
+131 files.
 
 ```text
-.claude/skills/repo-setup/SKILL.md
 .copier-answers.yml
 .devcontainer/database.env
 .devcontainer/devcontainer.json
@@ -398,16 +395,9 @@ tools/build_docs.py
 
 ## full
 
-189 files.
+183 files.
 
 ```text
-.ai-rulez/config.toml
-.ai-rulez/context/commands.md
-.ai-rulez/context/references.md
-.ai-rulez/rules/package-structure.md
-.ai-rulez/rules/project-conventions.md
-.ai-rulez/rules/pull-requests.md
-.ai-rulez/skills/repo-setup/SKILL.md
 .all-contributorsrc
 .copier-answers.yml
 .devcontainer/database.env
@@ -492,6 +482,7 @@ tools/build_docs.py
 .taplo.toml
 .vscode/extensions.json
 .vscode/launch.json
+AGENTS.md
 CITATION.cff
 Dockerfile
 LICENSE
