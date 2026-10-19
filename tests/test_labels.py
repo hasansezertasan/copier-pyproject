@@ -53,8 +53,24 @@ def _label_names(root: Path) -> set[str]:
     return names
 
 
+COMPONENT_LABELS = {f"area:{c}" for c in ("cli", "gui", "tui", "web", "mcp", "worker")}
+
+
 def test_labels_cover_expected_set(render: Callable[..., Path]) -> None:
-    assert _label_names(render()) == EXPECTED_LABELS
+    assert _label_names(render(preset="full")) == EXPECTED_LABELS
+
+
+def test_component_labels_only_render_for_included_components(
+    render: Callable[..., Path],
+) -> None:
+    # A flat library has no components, so none of the component labels (nor
+    # the rules that apply them) may be provisioned (issue #417).
+    names = _label_names(render(preset="library"))
+    assert not names & COMPONENT_LABELS
+    assert {"area:core", "area:docs", "area:ci", "area:deps"} <= names
+    web = _label_names(render(preset="library", include_web=True))
+    assert {"area:web", "area:cli"} <= web
+    assert not web & (COMPONENT_LABELS - {"area:web", "area:cli"})
 
 
 def test_workflow_required_labels_present(render: Callable[..., Path]) -> None:
