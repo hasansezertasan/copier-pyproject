@@ -13,6 +13,9 @@
 
 Update 2026-10-19: the adoption skill described here no longer ships; the
 guidance moved into the generated `REPOSITORY_SETUP.rst` (see the later entry).
+`repo-setup` no longer ships either: the template ships no skills at all, and
+skill delivery belongs to copier-skill-repo (issue #428; see
+`repo-setup.md#the-repo-setup-skill-is-no-longer-shipped-the-setup-doc-is-read-directly`).
 
 First-adoption hazards now live in the shipped `template-adoption` skill,
 alongside the update audit. Repository setup stays in `repo-setup` and its
@@ -55,8 +58,8 @@ walkthrough) is gone. Its essentials moved into the generated
 defaults, reset release state, update-anchor check) sit in **Template updates**,
 and a final untagged **Adopting into an existing project** section carries the
 baseline, ruff and source-skeleton hazards, release state, check-coverage and
-manifest-parity review, and validation. The `repo-setup` skill is told to skip
-that reference section. The README's pre-scaffold prompt and Copier's completion
+manifest-parity review, and validation. (The `repo-setup` skill that once
+skipped that reference section has since been removed, issue #428.) The README's pre-scaffold prompt and Copier's completion
 message now point at that section.
 
 Alongside it, generated projects may mention copier or the template only in
