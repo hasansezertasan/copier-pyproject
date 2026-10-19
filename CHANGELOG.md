@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.14.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.13.1...v1.14.0) (2026-10-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove include_ai_rulez; agent/skill delivery moves to copier-skill-repo ([#430](https://github.com/hasansezertasan/copier-pyproject/issues/430))
+
+### 🚀 Features
+
+* promote tap and bucket templates, move setup guide to repo root ([#427](https://github.com/hasansezertasan/copier-pyproject/issues/427)) ([da6865b](https://github.com/hasansezertasan/copier-pyproject/commit/da6865ba4f2a46fdd25d81580c9a8938b7f84923))
+
+
+### 🐛 Bug Fixes
+
+* **labels:** gate component labels on the components a project has ([#429](https://github.com/hasansezertasan/copier-pyproject/issues/429)) ([2eeb17c](https://github.com/hasansezertasan/copier-pyproject/commit/2eeb17c3b38dae8f223340c5503121ce2f2cf2b4))
+* **license:** derive the copyright start year from the creation year ([#425](https://github.com/hasansezertasan/copier-pyproject/issues/425)) ([3c383ff](https://github.com/hasansezertasan/copier-pyproject/commit/3c383ff820484281fa5d9b16e5713a16e4d50dd0))
+
+
+### ♻️ Refactoring
+
+* remove include_ai_rulez; agent/skill delivery moves to copier-skill-repo ([#430](https://github.com/hasansezertasan/copier-pyproject/issues/430)) ([1e1e48b](https://github.com/hasansezertasan/copier-pyproject/commit/1e1e48b29d270e8b7b983e68ebb97e27c5e98df4))
+
+
+### 🔧 Chores
+
+* release 1.14.0 ([#432](https://github.com/hasansezertasan/copier-pyproject/issues/432)) ([c660db5](https://github.com/hasansezertasan/copier-pyproject/commit/c660db522ae25af50f05a5f109996d4ae4540c17))
+
 ## [1.13.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.13.0...v1.13.1) (2026-10-16)
 
 
