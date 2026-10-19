@@ -133,7 +133,7 @@ dependencies = [
 {%- endif %}
 {%- if include_tui %}
   # >=6.0.0 for `Static.content`, which the headless pilot test asserts on
-  # (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#interactive-components-expose-injected-driver-seams-so-headless-ci-measures-everything-but-the-blocking-call). Earlier releases expose only `Static.renderable`, and 6.0.0
+  # Earlier releases expose only `Static.renderable`, and 6.0.0
   # onward returns None for it — there is no spelling that spans both.
   "textual>=6.0.0",
   "typing-extensions>=4.4.0",
@@ -193,7 +193,7 @@ source = "https://github.com/{{github_user}}/{{github_repo_name}}.git"
     ``{{github_repo_name}}`` command, wired to ``__main__:main`` (the single
     entrypoint that standalone builds also target). Every *other* enabled
     component is reached as a subcommand of the ``{{github_repo_name}}`` console
-    root (``{{github_repo_name}} <name>`` — see https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts and ``cli/app.py``), so
+    root (``{{github_repo_name}} <name>`` and ``cli/app.py``), so
     no ``{{github_repo_name}}-<name>`` scripts are emitted. A GUI that is the
     *sole* runnable component uses ``[project.gui-scripts]`` so it starts without
     a console window on Windows; but once GUI shares a console root with other
@@ -266,7 +266,7 @@ deps = [
 # the first invocation needs network. That download verifies a checksum when it
 # can fetch one and prints a warning and proceeds when it cannot, so treat it as
 # best-effort rather than a guarantee. Still a single version source, same as
-# every other pin (https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros).
+# every other pin.
 agents = [
   "ai-rulez==4.11.5",
 ]
@@ -288,7 +288,7 @@ test = [
   "inline-snapshot",
   "pytest-deadfixtures==3.1.0",
 {%- if include_worker %}
-  # Integration tests start a real {{worker_broker}} in a container (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism).
+  # Integration tests start a real {{worker_broker}} in a container.
   # >=4.15.0 for the `testcontainers.community.*` module namespace (the old
   # top-level `testcontainers.{{ worker_broker }}` path is deprecated there).
   "testcontainers[{{ worker_broker }}]>=4.15.0",
@@ -326,11 +326,11 @@ docs = [
   "sphinx-paramlinks==0.6.0",
   "auto-pytabs[sphinx]==0.5.0",
   "myst-parser==4.0.1",
-  # Per-page "last updated" footer sourced from git commit dates (https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#per-page-last-updated-comes-from-git-history);
+  # Per-page "last updated" footer sourced from git commit dates;
   # offline, no network. Works from full history (docs CI checks out depth 0).
   "sphinx-last-updated-by-git==0.3.8",
   # PEP 440 version parsing/sorting used by tools/build_docs.py to order
-  # published versions and pick the `latest` alias (https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages). Also a Sphinx
+  # published versions and pick the `latest` alias. Also a Sphinx
   # transitive dependency; pinned here for the explicit direct use.
   "packaging>=24.0",
 {%- if include_pydantic_settings %}
@@ -376,7 +376,6 @@ tool = [
 {%- endif %}
   # "marimo==0.15.2",
   # "inflection==0.5.1",
-  # "copier==9.11.0",
 ]
 prek = [
   "prek==0.4.12",
@@ -470,7 +469,7 @@ addopts = "-v --tb=short --doctest-glob=README.md"
 {%- endif %}
 # One marker per component, auto-applied by tests/conftest.py from each test's
 # top-level tests/<dir>/. Enables `pytest -m web` locally and per-component CI
-# jobs (issue #160, https://hasansezertasan.github.io/copier-pyproject/context/ci-topology/#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component); `integration` (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism) is one axis of the scheme.
+# jobs; `integration` is one axis of the scheme.
 markers = [
 {%- if include_benchmarks %}
   "benchmark: performance benchmark (run with tox -e benchmark)",
@@ -528,7 +527,7 @@ filterwarnings = [
 {%- if include_worker %}
   # testcontainers applies its own deprecated @wait_container_is_ready decorator at
   # import time. The warning is internal to the library and not actionable here, so
-  # don't let `error` promote it to a collection/test failure (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism). The
+  # don't let `error` promote it to a collection/test failure. The
   # integration module is imported during default collection even though its tests
   # are deselected by the `integration` marker. Scoped to the testcontainers
   # module so the same message from anywhere else still errors.
@@ -556,7 +555,7 @@ parallel = true
 # Store data-file paths relative to the project root so `.coverage` files produced
 # on different runners/OSes merge in the `coverage-combine` CI job without
 # absolute-path mismatches. Complements the `[tool.coverage.paths]` remap below
-# (which unifies the src/ vs site-packages layouts). See https://hasansezertasan.github.io/copier-pyproject/context/ci-topology/#a-single-union-coverage-gate-across-the-whole-matrix.
+# (which unifies the src/ vs site-packages layouts).
 relative_files = true
 source_pkgs = ["{{github_repo_name}}", "tests"]
 
@@ -578,7 +577,7 @@ source_pkgs = ["{{github_repo_name}}", "tests"]
 # patterns here: a regex matching a `def` line excludes the *whole function body*,
 # so a pattern like `def main\(` would silently un-measure any future `main()`
 # with real logic (and did mask the tested GUI/TUI entrypoints). Pragmas carry the
-# exclusion decision next to the code it affects. See https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#coverage-exclusions-are-per-site-pragmas-and-the-globs-must-match-the-installed-layout.
+# exclusion decision next to the code it affects.
 exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
@@ -591,7 +590,7 @@ fail_under = 99
 # The integration suite is deselected from the default run (it needs Docker), so
 # its file is imported during collection but its test bodies are deselected and
 # never run — omit it so it does not depress coverage; it runs in its own
-# `integration` env (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#coverage-exclusions-are-per-site-pragmas-and-the-globs-must-match-the-installed-layout). The integration glob is directory-anchored.
+# `integration` env. The integration glob is directory-anchored.
 {%- endif %}
 omit = ["*/_version.py"{% if include_worker %}, "*/worker/test_integration.py"{% endif %}]
 show_missing = true
@@ -840,7 +839,7 @@ convention = "pep257"
 # package) whose whole job is to print GitHub `::error::` annotations to stdout.
 "docs/check_warnings.py" = ["INP001", "T201"]
 # The versioned-docs build orchestrator is a standalone CLI script under tools/,
-# not part of an importable package (https://hasansezertasan.github.io/copier-pyproject/context/docs-versioning/#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages).
+# not part of an importable package.
 "tools/build_docs.py" = ["INP001"]
 {%- endif %}
 {%- if include_worker %}
@@ -935,7 +934,7 @@ disable = [
   # are deliberately lazy so import-linter's layering contract holds and a
   # framework is only imported when the code path that needs it actually runs.
   # Textual is the exception: the TUI imports it at module scope so `InfoApp`
-  # can be defined there and driven by the headless pilot (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#interactive-components-expose-injected-driver-seams-so-headless-ci-measures-everything-but-the-blocking-call).
+  # can be defined there and driven by the headless pilot.
   "import-outside-toplevel",
   # W0706 — the generated TUI entry point explicitly re-raises
   # KeyboardInterrupt/SystemExit ahead of a broad `except Exception` to make the
@@ -944,7 +943,7 @@ disable = [
   "try-except-raise",
   # R0801 — the component skeletons (gui/tui/mcp/worker) are deliberately
   # parallel: each fetches package metadata and formats the same info block the
-  # same way. That structural symmetry is a feature of the scaffold, not
+  # same way. That structural symmetry is a feature of the layout, not
   # copy-paste debt, and R0801 cannot be suppressed inline at the call site.
   "duplicate-code",
 ]
@@ -955,10 +954,9 @@ max-positional-arguments = 10
 max-branches = 20
 
 [tool.typos.files]
-# copier records `_commit` as a `git describe` string (`v1.2.3-4-g<hash>`) when
-# the template is rendered from an untagged ref, and a fragment of the hex hash
-# can read as a misspelled word, failing the check on a hash nobody chose. The
-# file is machine-written with no prose to check. The prek hook passes
+# The answers file can record a `git describe` string (`v1.2.3-4-g<hash>`), and
+# a fragment of the hex hash can read as a misspelled word, failing the check on
+# a hash nobody chose. The file is machine-written with no prose to check. The prek hook passes
 # `--force-exclude`, so the exclusion holds there as well as in `tox -e style`.
 extend-exclude = [
   "{{ _copier_conf.answers_file }}",
@@ -1017,7 +1015,7 @@ env_tmp_dir = "{toxworkdir}/tmp/{envname}"
 set_env = { COVERAGE_PROCESS_START = "{tox_root}/pyproject.toml" }
 # Non-editable: `uv sync --no-editable` builds the project and installs it into
 # site-packages, the layout `[tool.coverage.paths]` remaps and the per-component
-# coverage gates measure (https://hasansezertasan.github.io/copier-pyproject/context/ci-topology/#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component).
+# coverage gates measure.
 {%- if include_c_extensions %}
 # uv builds that wheel from source for each env's own interpreter, so the
 # ABI-specific extension is compiled and tagged per Python version.
@@ -1107,7 +1105,7 @@ commands = [
   # would make a registry request on every `git commit`. The ruleset is named
   # explicitly rather than `--config auto` so rule selection does not depend on
   # language auto-detection; it is still fetched from the registry, which is why
-  # this cannot be vendored (see https://hasansezertasan.github.io/copier-pyproject/context/lint-orchestration/#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored). `--error` makes findings blocking;
+  # this cannot be vendored. `--error` makes findings blocking;
   # silence a false positive with a trailing `# nosemgrep: <rule-id>`.
   [
     "semgrep",
@@ -1124,7 +1122,7 @@ commands = [
     "*.toml",
   ],
   # A strict `--check` gate, not fix mode: a generated file that taplo would
-  # rewrite fails its own CI on first push and drifts on every `copier update`.
+  # rewrite fails its own CI on first push.
   # `.taplo.toml` disables array auto expand/collapse so the shipped layout is
   # the canonical one regardless of which components are enabled. The `*.toml`
   # glob is non-recursive, so it scopes taplo to this project's own root TOML
@@ -1147,7 +1145,7 @@ commands = [
 {%- if include_ai_rulez %}
   # Config/source validation only — the prek `ai-rulez` hook is what regenerates
   # the host files and so what catches drift. Having the check here too means a
-  # malformed `.ai-rulez/` source fails the canonical lint runner (https://hasansezertasan.github.io/copier-pyproject/context/lint-orchestration/#the-tox-style-env-is-the-sole-authoritative-lint-suite-prek-is-a-fast-gate-not-a-second-suite) even
+  # malformed `.ai-rulez/` source fails the canonical lint runner even
   # on a clone whose git hooks were never installed.
   [
     "ai-rulez",
@@ -1158,6 +1156,7 @@ commands = [
   [
     "sphinx-lint",
     "docs",
+    "REPOSITORY_SETUP.rst",
   ],
 {%- endif %}
   # Collects (does not run) the suite and flags fixtures that are never used --
@@ -1332,7 +1331,7 @@ runner = "uv-venv-lock-runner"
 # On-demand only (not in env_list): the `integration`-marked tests start a real
 # {{worker_broker}} via testcontainers (Docker required), so they are excluded
 # from the default suite and run explicitly with ``tox -e integration``. CI runs
-# this in a dedicated Ubuntu-only job. See https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism. The `-m integration` here
+# this in a dedicated Ubuntu-only job. The `-m integration` here
 # overrides the `-m "not integration"` default in [tool.pytest.ini_options].
 [tool.tox.env.integration]
 # `-W default::DeprecationWarning` overrides the strict `filterwarnings =
@@ -1366,7 +1365,7 @@ runner = "uv-venv-lock-runner"
 # subprocess. Forward {{ worker_broker_spec.env }} so a broker already provided by
 # the environment — the CI `services:` broker for redis/nats, or a docker-compose
 # / manually-exported one — reaches the integration test; without it the var is
-# dropped and the run falls back to testcontainers. See https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#real-broker-integration-tests-testcontainers-locally-per-broker-ci-mechanism / issue #169.
+# dropped and the run falls back to testcontainers.
 pass_env = ["{{ worker_broker_spec.env }}"]
 {%- endif %}
 {%- if include_launcher %}

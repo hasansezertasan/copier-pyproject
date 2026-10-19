@@ -20,7 +20,7 @@ Always included in every generated project:
 - **AI-agent onboarding** — a concise `AGENTS.md` (the cross-tool standard), so coding agents share a single source of truth.
 - **Modern Python** — uv for dependency management, hatch for building, and a devcontainer for reproducible environments.
 
-On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). Published docs are **versioned** — each release deploys under its version slug (`docs_version_granularity`: `minor` `X.Y`, `major` `X`, or `full` `X.Y.Z`) with an in-page version switcher and a `latest` alias, and every page footer shows its git "last updated" date (see [versioned docs](context/docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages)). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`docs/maintaining/setup.rst`) ships regardless.
+On by default, opt-out: a **Sphinx documentation site** (`include_docs`) — the Shibuya theme, autodoc API reference, GitHub Pages deployment, live per-PR previews, and a build-warning allowlist gate (`docs/expected_warnings.txt` + `check_warnings.py`). Published docs are **versioned** — each release deploys under its version slug (`docs_version_granularity`: `minor` `X.Y`, `major` `X`, or `full` `X.Y.Z`) with an in-page version switcher and a `latest` alias, and every page footer shows its git "last updated" date (see [versioned docs](context/docs-versioning.md#docs-publish-only-the-current-version-and-carry-older-built-versions-forward-from-gh-pages)). With a Typer CLI, a CLI reference page is generated at build time straight from the live app (`typer ... utils docs`) so it never drifts from `--help`. Turn it off for a README-only project; the maintainer setup guide (`REPOSITORY_SETUP.rst`) ships regardless.
 
 Opt in per project (see [Inputs](#inputs) for the full list): a Typer CLI, a FastAPI/Litestar web app (container-ready `Dockerfile`), a Tkinter GUI, a Textual TUI, an MCP server, a FastStream worker, Cython C extensions with multi-platform wheel building, profiling tools (py-spy, scalene, cProfile), CodSpeed-backed performance benchmarks, standalone-executable packaging (PyCrucible / Nuitka / PyInstaller), and extra quality integrations — SonarCloud, Sourcery, all-contributors, smokeshow (a tokenless, account-free coverage-HTML mirror for public repos), MegaLinter (adds gap checks — shellcheck, hadolint, jsonlint, jscpd clone-detection, and a `.md`-scoped cspell prose pass — not already covered by prek/tox), repository-settings-as-code (a `.github/settings.yml` syncing description/homepage/topics via the "Settings" GitHub App), and ai-rulez (agent instructions authored once under `.ai-rulez/` and generated into every AI coding host's native config — `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.cursor/rules/`, … — instead of one hand-written file per tool).
 
@@ -126,14 +126,13 @@ becomes generated output).
 
 The `copier copy` flow above is for **new** projects. Adopting this template into an **existing or already-published** package is a different job: `copier copy` overwrites source, config, docs, and CI, so it must be run as a migrate-and-reconcile rather than a scaffold.
 
-Generated projects ship a **template-adoption** skill alongside **repo-setup**.
-In a session inside the generated project, ask: "Audit this template adoption/update and reconcile it with our existing
-behavior." It handles initial adoption, version updates, and post-update audits,
-compares custom behavior and overlapping workflows, and asks before consequential
-cleanup. The source lives in `.claude/skills/template-adoption/SKILL.md` by default,
-or `.ai-rulez/skills/template-adoption/SKILL.md` with `include_ai_rulez=true`;
-`ai-rulez generate` delivers it to the selected hosts. An agent can also read that
-file directly. See the [prek walkthrough](docs/template-adoption.md).
+Generated projects carry the adoption guidance in their `REPOSITORY_SETUP.rst`:
+its **Template updates** section covers later `copier update` runs, and its final
+**Adopting into an existing project** section covers the baseline, the hazards,
+check-coverage and manifest parity, and validation. The **repo-setup** skill
+walks the tagged setup steps and skips that reference section. Generated
+projects carry no other indication of how they were created beyond
+`.copier-answers.yml` and the README.
 
 ### Before scaffolding an existing package
 
@@ -145,8 +144,9 @@ Use the latest released template version and record its exact tag. First inspect
 the repository and agree with me on explicit --data answers that preserve its
 dependencies, Python support and interfaces. If the latest release is incompatible,
 explain why and agree with me on an alternative.
-The target must ship template-adoption (v1.6.0 or newer); if no compatible
-version does, stop before copying and explain the limitation.
+The target must ship an "Adopting into an existing project" section in its
+REPOSITORY_SETUP.rst; if no compatible version does, stop before copying and
+explain the limitation.
 Require a clean working tree with all project work committed,
 create a dedicated chore/adopt-copier-pyproject branch, and record the baseline commit
 and last published version. If .copier-answers.yml already exists, use the
@@ -155,11 +155,11 @@ update flow instead of a new overwrite copy.
 For first adoption, use uvx copier copy --overwrite --defaults with the .git URL,
 --vcs-ref=<recorded-tag>, the agreed --data answers, and . as the destination.
 Before installing
-dependencies, running hooks or committing the output, read the rendered
-skills/template-adoption/SKILL.md under .claude/ or .ai-rulez/ directly and
+dependencies, running hooks or committing the output, read the "Adopting into an
+existing project" section of the rendered REPOSITORY_SETUP.rst directly and
 follow it to reconcile against the baseline. Preserve our real source, tests,
 identity, release history and custom tooling; ask before consequential changes.
-Then read the sibling repo-setup skill and walk docs/maintaining/setup.rst.
+Then use the repo-setup skill to walk the rest of REPOSITORY_SETUP.rst.
 Report validation results and any remaining setup steps.
 ```
 
@@ -168,8 +168,9 @@ Report validation results and any remaining setup steps.
 Copier prints a prompt pointing at the rendered skills. Give your agent:
 
 ```text
-Read template-adoption and audit this scaffold against our existing behavior
-before running tools, then use repo-setup to walk docs/maintaining/setup.rst.
+Read the "Adopting into an existing project" section of REPOSITORY_SETUP.rst and
+audit this scaffold against our existing behavior before running tools, then use
+repo-setup to walk the rest of REPOSITORY_SETUP.rst.
 ```
 
 For a brand-new project, use `repo-setup` to walk the setup guide after the
@@ -177,7 +178,7 @@ For a brand-new project, use `repo-setup` to walk the setup guide after the
 
 The companion plugin and its `adopt`, `update`, and `setup` skills are retired.
 If you installed them previously, remove that installation and use the generated
-project's `template-adoption` and `repo-setup` skills. No plugin install is needed.
+project's `REPOSITORY_SETUP.rst` and its `repo-setup` skill. No plugin install is needed.
 
 ## Generated project quickstart
 
@@ -221,7 +222,7 @@ CI runs on macOS/Linux/Windows via `.github/workflows/ci.yml.jinja`.
 
 Versions are derived from git tags by hatch-vcs (`dynamic = ["version"]`), so release-please never edits a static version literal and `uv.lock` cannot desync. `bump-minor-pre-major` keeps pre-1.0 projects pre-1.0.
 
-Pause merges that change `.github/workflows/` (including Renovate action-pin updates) from merging a release PR until the entire Release run finishes. With `GITHUB_TOKEN`, workflow differences between the release commit and current `main` can block tag or release creation with a 403. The generated [repository setup guide](template/docs/maintaining/setup.rst.jinja) explains how to restore matching workflows, recover the release, and re-apply the changes. See [#332](https://github.com/hasansezertasan/copier-pyproject/issues/332).
+Pause merges that change `.github/workflows/` (including Renovate action-pin updates) from merging a release PR until the entire Release run finishes. With `GITHUB_TOKEN`, workflow differences between the release commit and current `main` can block tag or release creation with a 403. The generated [repository setup guide](template/REPOSITORY_SETUP.rst.jinja) explains how to restore matching workflows, recover the release, and re-apply the changes. See [#332](https://github.com/hasansezertasan/copier-pyproject/issues/332).
 
 ### PyPI Trusted Publishing setup
 

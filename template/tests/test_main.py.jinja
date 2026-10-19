@@ -108,8 +108,7 @@ def tk_available(monkeypatch: pytest.MonkeyPatch) -> None:
 {% endif %}def test_main_is_callable() -> None:
     """The package exposes a callable ``main()`` entrypoint.
 
-    Every standalone-executable build (launcher / freezer / compiler — see
-    https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module)
+    Every standalone-executable build (launcher / freezer / compiler)
     targets ``{{github_repo_name}}.__main__:main``, so this pins the
     contract that the symbol exists and is callable for whichever component is
     enabled, and that the active branch's component import actually resolves.
@@ -132,7 +131,7 @@ def tk_available(monkeypatch: pytest.MonkeyPatch) -> None:
 {%- elif sole_component %}
     # The component is resolved through ``_load_component`` (so a missing
     # dependency stays actionable rather than a bare traceback at the
-    # standalone-executable entrypoint (https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module));
+    # standalone-executable entrypoint);
     # calling it here performs the same import
     # ``main()`` would and pins the if/elif precedence.
     assert callable(vars(main_module)["_load_component"]())
@@ -169,9 +168,8 @@ def test_console_root_reports_missing_launcher_dependency(
 
     Given:
         - An environment out of sync with the installed package, so one of the
-          root's own dependencies cannot be imported -- what a ``copier update``
-          that adds the shared launcher (or enables settings) leaves behind until
-          ``uv sync``.
+          root's own dependencies cannot be imported -- what adding the shared
+          launcher (or enabling settings) leaves behind until ``uv sync``.
     When:
         - ``__main__`` loads the console root, as bare ``{{github_repo_name}}`` does.
     Then:
@@ -330,7 +328,7 @@ def test_sole_component_reports_missing_dependency(
     This project enables exactly one runnable component, so there is no console
     root to route through and ``__main__`` binds
     ``{{github_repo_name}}.{{sole_component}}.app`` directly -- the
-    standalone-executable entrypoint (https://hasansezertasan.github.io/copier-pyproject/context/standalone-executables/#executables-are-named-per-tool-and-os-and-all-target-the-package-main-module),
+    standalone-executable entrypoint,
     whose user has no CLI to fall back on.
     Every module parametrized here is reached by that import: the component's
     own dependencies, plus the settings stack ``core.logging_setup`` ->
@@ -338,8 +336,8 @@ def test_sole_component_reports_missing_dependency(
 
     Given:
         - An environment out of sync with the installed package, so one of those
-          modules cannot be imported -- what a ``copier update`` that enabled
-          this component leaves behind until ``uv sync``.
+          modules cannot be imported -- what enabling this
+          component leaves behind until ``uv sync``.
     When:
         - ``__main__`` loads the component, as bare ``{{github_repo_name}}`` and
           ``python -m {{github_repo_name}}`` both do.

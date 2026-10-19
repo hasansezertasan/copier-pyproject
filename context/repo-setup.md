@@ -93,15 +93,16 @@ and both encode squash-only so they agree.
 
 **Id:** 4e0fcdab-d3b9-4f96-b61d-8e34927af98d
 **Type:** decision
-**Status:** active
+**Status:** needs-review
 **Evidence:** confirmed
 **Source:** ADR-022 ([`docs/adr/022-maintainer-setup-as-single-doc-home.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/022-maintainer-setup-as-single-doc-home.md))
 **Revisit when:** the docs site is published before setup starts (making a published URL viable), or the setup guide moves
 **See:** docs-stack.md#the-sphinx-subsystem-is-toggleable-include_docs-default-on-the-maintainer-guide-is-not — e983d1e7-421f-4926-9415-a3da4626f220 — as of 2026-10-11
+**See:** repo-setup.md#the-maintainer-setup-guide-lives-in-the-repo-root-as-repository_setuprst-outside-the-sphinx-tree — 5f78a4cc-950f-4e28-8ca8-66762f9af359 — as of 2026-10-19
 
-`docs/maintaining/setup.rst` is the single home for one-time owner setup,
+`REPOSITORY_SETUP.rst` is the single home for one-time owner setup,
 organized by concern with every step tagged `[AGENT]` (scriptable) or `[HUMAN]`
-(browser-only), published under a maintainer-guide toctree caption.
+(browser-only), a repo-root file outside the Sphinx tree.
 `CONTRIBUTING.md` keeps the contributor-facing release narrative and a
 one-line pointer; README, the CI skip notices and the integration config files
 point at the `.rst` source path.
@@ -121,8 +122,46 @@ link-check gates.
 **Rejected alternative:** Markdown — outside the docs tooling that gates the
 other pages.
 
-**Consequence:** the setup guide renders on the public docs site; it contains
-only the shape of the setup, no secrets.
+**Consequence:** the guide contains only the shape of the setup, no secrets.
+It no longer renders on the public docs site and the link check no longer
+covers it (see the later entry on the repo-root move).
+
+## The maintainer setup guide lives in the repo root as `REPOSITORY_SETUP.rst`, outside the Sphinx tree
+
+**Id:** 5f78a4cc-950f-4e28-8ca8-66762f9af359
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** maintainer instruction, 2026-10-19
+**Revisit when:** the guide is wanted on the published docs site again, or the file is renamed
+**See:** repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree — 4e0fcdab-d3b9-4f96-b61d-8e34927af98d — as of 2026-10-19
+**See:** docs-stack.md#the-sphinx-subsystem-is-toggleable-include_docs-default-on-the-maintainer-guide-is-not — e983d1e7-421f-4926-9415-a3da4626f220 — as of 2026-10-19
+
+The one-time setup guide moved from `docs/maintaining/setup.rst` to
+`REPOSITORY_SETUP.rst` at the generated project's root, keeping reStructuredText
+and the `[AGENT]`/`[HUMAN]`/`[CHECK]` step tags. It is the only copy: the
+`maintaining/` docs folder and its toctree entry are gone, so the Sphinx site no
+longer publishes it. Every path that pointed at the old location (README,
+CONTRIBUTING, CI skip notices, integration config comments, the `repo-setup`
+skill) points at the new name.
+
+**Reason:** the guide is owner-facing, not part of the product documentation,
+and a descriptive capitalised root file is discoverable on GitHub next to
+`README.md` without the docs subsystem (maintainer's call).
+
+**Rejected alternative:** keep a `docs/` stub that `.. include::`s the root file
+so it stays on the site — declined in favour of one copy.
+
+**Rejected alternative:** `MAINTAINER_SETUP.rst` and a Markdown
+`REPOSITORY_SETUP.md` — offered, not chosen; Markdown would also have meant
+converting the guide away from the existing docs tooling.
+
+**Consequence:** the docs build and link check no longer see the guide, so the
+prek and tox `sphinx-lint` invocations list the file explicitly; its external
+links are not link-checked. `copier update` deletes the old
+`docs/maintaining/setup.rst` in adopting projects and adds the new file, so
+anything an adopter hand-edited there must be carried over.
+The two earlier entries it touches are `needs-review` until re-checked.
 
 ## A resume-driven repo-setup skill reads `[CHECK]` blocks from the setup doc; no separate manifest
 

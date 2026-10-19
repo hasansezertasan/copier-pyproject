@@ -45,4 +45,4 @@ jobs:
           token: {% raw %}${{ secrets.CODSPEED_TOKEN }}{% endraw %}
       - name: Note skipped CodSpeed benchmarks
         if: {% raw %}${{ env.CODSPEED_TOKEN_SET != 'true' }}{% endraw %}
-        run: echo "::notice::CODSPEED_TOKEN secret is not set — skipping CodSpeed benchmarks. See docs/maintaining/setup.rst (Repository setup) to enable them."
+        run: echo "::notice::CODSPEED_TOKEN secret is not set — skipping CodSpeed benchmarks. See REPOSITORY_SETUP.rst (Repository setup) to enable them."

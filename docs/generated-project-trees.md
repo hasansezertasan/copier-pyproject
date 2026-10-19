@@ -15,11 +15,10 @@ page drifts from a fresh render.
 
 ## library
 
-111 files.
+110 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
-.claude/skills/template-adoption/SKILL.md
 .copier-answers.yml
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
@@ -93,6 +92,7 @@ AGENTS.md
 CITATION.cff
 LICENSE
 README.md
+REPOSITORY_SETUP.rst
 cobo.lock
 docs/check_warnings.py
 docs/conf.py
@@ -100,7 +100,6 @@ docs/examples/version_lookup.py
 docs/expected_warnings.txt
 docs/index.rst
 docs/installation.rst
-docs/maintaining/setup.rst
 docs/modules.rst
 docs/usage.rst
 examples/advanced/README.md
@@ -133,11 +132,10 @@ tools/build_docs.py
 
 ## tool
 
-121 files.
+120 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
-.claude/skills/template-adoption/SKILL.md
 .copier-answers.yml
 .devcontainer/devcontainer.json
 .devcontainer/docker-compose.yml
@@ -211,6 +209,7 @@ AGENTS.md
 CITATION.cff
 LICENSE
 README.md
+REPOSITORY_SETUP.rst
 cobo.lock
 docs/check_warnings.py
 docs/cli-reference.md
@@ -222,7 +221,6 @@ docs/examples/version_lookup.py
 docs/expected_warnings.txt
 docs/index.rst
 docs/installation.rst
-docs/maintaining/setup.rst
 docs/modules.rst
 docs/usage.rst
 mise.toml
@@ -261,11 +259,10 @@ tools/build_docs.py
 
 ## web
 
-133 files.
+132 files.
 
 ```text
 .claude/skills/repo-setup/SKILL.md
-.claude/skills/template-adoption/SKILL.md
 .copier-answers.yml
 .devcontainer/database.env
 .devcontainer/devcontainer.json
@@ -342,6 +339,7 @@ CITATION.cff
 Dockerfile
 LICENSE
 README.md
+REPOSITORY_SETUP.rst
 cobo.lock
 docs/check_warnings.py
 docs/conf.py
@@ -351,7 +349,6 @@ docs/examples/web_usage.py
 docs/expected_warnings.txt
 docs/index.rst
 docs/installation.rst
-docs/maintaining/setup.rst
 docs/modules.rst
 docs/usage.rst
 docs/web-interface.rst
@@ -401,7 +398,7 @@ tools/build_docs.py
 
 ## full
 
-194 files.
+189 files.
 
 ```text
 .ai-rulez/config.toml
@@ -411,7 +408,6 @@ tools/build_docs.py
 .ai-rulez/rules/project-conventions.md
 .ai-rulez/rules/pull-requests.md
 .ai-rulez/skills/repo-setup/SKILL.md
-.ai-rulez/skills/template-adoption/SKILL.md
 .all-contributorsrc
 .copier-answers.yml
 .devcontainer/database.env
@@ -500,6 +496,7 @@ CITATION.cff
 Dockerfile
 LICENSE
 README.md
+REPOSITORY_SETUP.rst
 benchmarks/test_version_lookup.py
 cobo.lock
 docs/check_warnings.py
@@ -516,12 +513,7 @@ docs/examples/worker_usage.py
 docs/expected_warnings.txt
 docs/index.rst
 docs/installation.rst
-docs/maintaining/setup.rst
 docs/modules.rst
-docs/packaging/homebrew-tap/README.md
-docs/packaging/homebrew-tap/update-cask-dispatch.yml
-docs/packaging/scoop-bucket/README.md
-docs/packaging/scoop-bucket/update-manifest-dispatch.yml
 docs/usage.rst
 docs/web-interface.rst
 docs/worker-interface.rst

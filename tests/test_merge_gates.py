@@ -180,7 +180,7 @@ def test_setup_doc_requires_the_aggregate_ci_context(
 ) -> None:
     """Without ``check``, a PR whose whole suite failed still satisfies protection."""
     setup = _read(
-        render(include_repo_ruleset=False), "docs", "maintaining", "setup.rst"
+        render(include_repo_ruleset=False), "REPOSITORY_SETUP.rst"
     )
     assert '"contexts": ["check", "Validate PR title"' in setup
     # The two ordering traps that make the documented protection unsatisfiable.
@@ -193,7 +193,7 @@ def test_setup_doc_contains_the_publish_environment_policy(
 ) -> None:
     """`workflow_dispatch` runs the file from any branch; the environment does not."""
     root = render()
-    setup = _read(root, "docs", "maintaining", "setup.rst")
+    setup = _read(root, "REPOSITORY_SETUP.rst")
     assert "environments/publish/deployment-branch-policies" in setup
     # `gh api -f` sends "false"/"true" as JSON *strings*; the environments API
     # types both as booleans, so these two must use the typed -F form.
@@ -225,7 +225,7 @@ def test_setup_doc_enables_the_dependency_graph(
     request with "Dependency review is not supported on this repository"
     (issue #299).
     """
-    setup = _read(render(), "docs", "maintaining", "setup.rst")
+    setup = _read(render(), "REPOSITORY_SETUP.rst")
     assert "Dependency graph\n----------------" in setup
     # A scriptable [CHECK] does exist even though the toggle is not scriptable:
     # the dependency-review API answers 403 while the graph is off. Probe the

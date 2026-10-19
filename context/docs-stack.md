@@ -146,16 +146,18 @@ for that choice was established in the reviewed sources.
 
 **Id:** e983d1e7-421f-4926-9415-a3da4626f220
 **Type:** decision
-**Status:** active
+**Status:** needs-review
 **Evidence:** confirmed
 **Source:** ADR-025 ([`docs/adr/025-optional-docs-subsystem.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/025-optional-docs-subsystem.md)); issue #252
-**Revisit when:** the six files that hard-reference `docs/maintaining/setup.rst` move, or a preset wants docs off by default
+**Revisit when:** the files that hard-reference `REPOSITORY_SETUP.rst` move again, or a preset wants docs off by default
 **See:** repo-setup.md#maintainer-repository-setup-has-one-actor-tagged-home-in-the-docs-tree — 4e0fcdab-d3b9-4f96-b61d-8e34927af98d — as of 2026-10-11
+**See:** repo-setup.md#the-maintainer-setup-guide-lives-in-the-repo-root-as-repository_setuprst-outside-the-sphinx-tree — 5f78a4cc-950f-4e28-8ca8-66762f9af359 — as of 2026-10-19
 
 One boolean gates the whole Sphinx site: the `docs/` pages, the `docs`
 dependency group, the `docs-*` tox envs, sphinx-lint in style and prek, the
 docs workflows, the `deploy-docs` release job and the related README, support
-and contributing links. It defaults on in every preset. `docs/maintaining/`
+and contributing links. It defaults on in every preset. The maintainer guide
+(`REPOSITORY_SETUP.rst` at the repo root, formerly `docs/maintaining/setup.rst`)
 ships regardless; only its GitHub Pages step is conditional.
 
 **Reason:** docs was the only substantial subsystem with no toggle, and a small

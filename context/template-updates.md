@@ -49,7 +49,7 @@ Renovate's `git-tags` datasource rejects it ("non-git url", then `no-result`)
 and never opens an update PR even though the template has tags. Renovate accepts
 `_src_path` only when it starts with `git+https://`, `git+ssh://`, `git@` or
 `git://`, or ends with `.git`, which is why the README scaffold step and the
-`template-adoption` skill use the `.git` HTTPS URL. A project scaffolded with
+setup guide's adoption section use the `.git` HTTPS URL. A project scaffolded with
 `gh:` can be fixed by rewriting the `_src_path` line; `copier update` preserves
 it. The manager is enabled by default (the shared preset sets no
 `enabledManagers`), so the template's own `renovate.json` needs no addition.
@@ -162,7 +162,7 @@ ownership and update-safety constraint.
 **Status:** active
 **Evidence:** confirmed
 **Source:** [issue #348](https://github.com/hasansezertasan/copier-pyproject/issues/348), [PR #349](https://github.com/hasansezertasan/copier-pyproject/pull/349); commit [0abcffc](https://github.com/hasansezertasan/copier-pyproject/commit/0abcffc525ed4a558ecb80649a1b6e9a231c5ff5); `docs/template-adoption.md`
-**Verification:** corroborated — the shipped `template-adoption` skill and its walkthrough compare behavior and preserve customizations; the older update skill now shares that contract
+**Verification:** corroborated — the adoption and update sections of the generated `REPOSITORY_SETUP.rst` (formerly a shipped skill) compare behavior and preserve customizations; the older update skill now shares that contract
 **Revisit when:** the adoption and update skills change their reconciliation contract
 **See:** repo-setup.md#a-resume-driven-repo-setup-skill-reads-check-blocks-from-the-setup-doc-no-separate-manifest — 68ac4665-dcde-456b-aef7-2faaf6fe51f4 — as of 2026-10-11
 
@@ -185,7 +185,7 @@ conditional on the adopter's decision and evidence; neither option is rejected
 universally. Deletion without establishing equivalence is excluded because it
 can silently remove functionality or block merges.
 
-The execution procedure is in `docs/template-adoption.md`.
+The execution procedure is the "Adopting into an existing project" section of the generated `REPOSITORY_SETUP.rst`.
 
 ## Which reconciliation policy governs machine-config and CI conflicts?
 
@@ -193,7 +193,7 @@ The execution procedure is in `docs/template-adoption.md`.
 **Type:** constraint
 **Status:** superseded
 **Evidence:** unknown
-**Source:** `skills/update/SKILL.md`, Shared reconciliation; the shipped `template-adoption` skill; [PR #349](https://github.com/hasansezertasan/copier-pyproject/pull/349)
+**Source:** `skills/update/SKILL.md`, Shared reconciliation; the formerly shipped `template-adoption` skill (now `REPOSITORY_SETUP.rst`); [PR #349](https://github.com/hasansezertasan/copier-pyproject/pull/349)
 **Verification:** uncorroborated — the original justification for category-based precedence could not be established; the conflicting wording found during recovery has since been replaced
 **See:** template-updates.md#adoption-audits-preserve-behavior-before-consolidating-workflows — dfd6cd98-9d07-4dc4-b58f-d1343d636ea4 — as of 2026-10-08
 **Superseded by:** 9a6bf00c-33c1-4f0c-962e-7e960f9d2d58
@@ -213,14 +213,14 @@ claiming to have recovered the original justification.
 **Type:** decision
 **Status:** superseded
 **Evidence:** confirmed
-**Source:** maintainer-approved reconciliation-policy review, 2026-10-08; `docs/template-adoption.md`; `skills/update/SKILL.md`
+**Source:** maintainer-approved reconciliation-policy review, 2026-10-08; the former `docs/template-adoption.md` (now `REPOSITORY_SETUP.rst`); `skills/update/SKILL.md`
 **Verification:** corroborated — the older update skill now preserves custom behavior, requires evidence for equivalence, and delegates repository-settings transitions to `repo-setup`
 **Revisit when:** either skill changes its scope or introduces a conflicting reconciliation policy
 **Superseded by:** e4cd1c46-28c3-4241-82c8-d5aac41c293f
 **See:** template-updates.md#adoption-audits-preserve-behavior-before-consolidating-workflows — dfd6cd98-9d07-4dc4-b58f-d1343d636ea4 — as of 2026-10-08
 
 Superseded on 2026-10-12 by [the companion-skill retirement decision](companion-skills.md#every-lifecycle-skill-ships-through-the-template).
-The generated `template-adoption` skill retains the preservation-first contract;
+The preservation-first contract now lives in the generated `REPOSITORY_SETUP.rst`;
 the separate root `skills/update` delivery surface is retired.
 
 At the time of this decision, both skills used the same preservation-first contract.

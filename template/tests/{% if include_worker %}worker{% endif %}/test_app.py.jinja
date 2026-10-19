@@ -55,7 +55,7 @@ def test_build_broker_forwards_url(mocker: MockerFixture) -> None:
     """``build_broker`` forwards an explicit URL to the broker constructor.
 
     This is the seam the integration test relies on to point the worker at a
-    container-started broker (https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#the-worker-exposes-an-env-injectable-broker-factory-lazy-broker-imports-were-rejected);
+    container-started broker;
     constructing a broker does not connect,
     so a throwaway address is safe here. Spying on the constructor pins that the
     ``url`` parameter is actually used — a fresh-instance check alone would still

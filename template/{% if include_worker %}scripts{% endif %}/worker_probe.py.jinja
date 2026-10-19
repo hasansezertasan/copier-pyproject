@@ -4,9 +4,7 @@ A handy dev-loop affordance: start the broker (devcontainer or ``docker
 compose``), run this script, and confirm the worker consumes the request and
 publishes a response. Not part of the package's public surface: it lives under
 ``scripts/`` rather than ``src/``, so it ships in neither the sdist nor the
-wheel, and it deliberately sits outside coverage and import-linter's reach
-(see https://hasansezertasan.github.io/copier-pyproject/context/testing-strategy/#the-worker-exposes-an-env-injectable-broker-factory-lazy-broker-imports-were-rejected
-for why the worker itself is tested this way).
+wheel, and it deliberately sits outside coverage and import-linter's reach.
 
 The probe is a pure *client*: it uses ``build_client_broker`` (no request
 handler registered), so a green result proves a *separate* worker replied and

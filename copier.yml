@@ -36,7 +36,7 @@ _exclude:
 _message_before_copy: >-
   Pick a preset, then press Enter through the toggles to accept its defaults, or tune any of them. The preset only sets defaults — every toggle is still asked and saved (a few sub-questions stay conditional on their parent toggle).
 _message_after_copy: >-
-  Project {{ github_repo_name }} scaffolded. Adopting into an existing package? Before running tools or committing the scaffold, give your agent this prompt: "Read {% if include_ai_rulez %}.ai-rulez{% else %}.claude{% endif %}/skills/template-adoption/SKILL.md and reconcile this adoption against the pre-adoption commit, then read the sibling repo-setup skill and walk docs/maintaining/setup.rst." For a new project, follow these next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in docs/maintaining/setup.rst (squash-merge policy, workflow permissions{% if include_pypi_publish %}, PyPI trusted publishing{% endif %}).
+  Project {{ github_repo_name }} scaffolded. Adopting into an existing package? Before running tools or committing the scaffold, give your agent this prompt: "Read the "Adopting into an existing project" section of REPOSITORY_SETUP.rst and reconcile this adoption against the pre-adoption commit, then read {% if include_ai_rulez %}.ai-rulez{% else %}.claude{% endif %}/skills/repo-setup/SKILL.md and walk the rest of REPOSITORY_SETUP.rst." For a new project, follow these next steps: (1) git init && git add -A && git commit -m "chore: initial commit" (2) uv sync{% if include_ai_rulez %} (3) uv run --group agents ai-rulez generate — the agent instruction files (AGENTS.md, ...) are build output from .ai-rulez/, so they do not exist until you run it once; commit what it writes (4){% else %} (3){% endif %} complete the one-time repository setup documented in REPOSITORY_SETUP.rst (squash-merge policy, workflow permissions{% if include_pypi_publish %}, PyPI trusted publishing{% endif %}).
 # An update that answers `include_ai_rulez` yes — including the first update of a
 # `full`-preset project, where the new question defaults to yes — deletes the
 # copier-managed AGENTS.md and replaces it with `.ai-rulez/` sources
@@ -273,7 +273,7 @@ include_docs:
   type: bool
   default: "{{ 'include_docs' in preset_map[preset] }}"
   help: >-
-    Generate a Sphinx documentation site (docs/ tree, docs-build/docs-server/docs-linkcheck tox envs, the docs-preview + weekly docs-linkcheck workflows, and the release Pages deploy)? Off disables the Sphinx site for a README-only project; the maintainer setup guide (docs/maintaining/setup.rst) still ships.
+    Generate a Sphinx documentation site (docs/ tree, docs-build/docs-server/docs-linkcheck tox envs, the docs-preview + weekly docs-linkcheck workflows, and the release Pages deploy)? Off disables the Sphinx site for a README-only project; the maintainer setup guide (REPOSITORY_SETUP.rst) still ships.
 docs_version_granularity:
   type: str
   default: minor
@@ -348,17 +348,17 @@ ai_rulez_presets:
   validator: >-
     {% if include_ai_rulez and not ai_rulez_presets %} Pick at least one host. ai-rulez rejects a config with no presets, so `ai-rulez generate` and the tox `style` env would both fail until one is chosen. {% endif %}
   help: >-
-    Which AI coding hosts should `ai-rulez generate` write native config for? codex renders AGENTS.md + .codex/, copilot renders .github/copilot-instructions.md + .github/skills/ (the one GitHub itself reads server-side); both are on by default. Claude Code reads AGENTS.md natively, so claude is opt-in and only adds CLAUDE.md + .claude/ (where Claude Code looks for the repo-setup and template-adoption skills). Each extra host adds committed files to the repository root.
+    Which AI coding hosts should `ai-rulez generate` write native config for? codex renders AGENTS.md + .codex/, copilot renders .github/copilot-instructions.md + .github/skills/ (the one GitHub itself reads server-side); both are on by default. Claude Code reads AGENTS.md natively, so claude is opt-in and only adds CLAUDE.md + .claude/ (where Claude Code looks for the repo-setup skill). Each extra host adds committed files to the repository root.
 include_repo_settings:
   type: bool
   default: "{{ 'include_repo_settings' in preset_map[preset] }}"
   help: >-
-    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? It escalates push access to admin, so setup requires a distinct trusted reviewer and verified code-owner review before App installation (docs/maintaining/setup.rst).
+    Include a .github/settings.yml that syncs repository metadata (description, homepage, topics) via the "Settings" GitHub App? It escalates push access to admin, so setup requires a distinct trusted reviewer and verified code-owner review before App installation (REPOSITORY_SETUP.rst).
 include_repo_ruleset:
   type: bool
   default: "{{ 'include_repo_ruleset' in preset_map[preset] }}"
   help: >-
-    Include a repository ruleset (.github/rulesets/main.json) plus an App-free ruleset-sync.yml workflow that enforces branch protection on the default branch as code (squash-only, linear history, required CI checks)? Requires a one-time REPO_ADMIN_TOKEN secret — a fine-grained PAT with Administration read & write (the Actions GITHUB_TOKEN cannot manage rulesets). Manual edits in the web UI are reverted on the next default-branch push. See the repository-setup guide (docs/maintaining/setup.rst) before enabling.
+    Include a repository ruleset (.github/rulesets/main.json) plus an App-free ruleset-sync.yml workflow that enforces branch protection on the default branch as code (squash-only, linear history, required CI checks)? Requires a one-time REPO_ADMIN_TOKEN secret — a fine-grained PAT with Administration read & write (the Actions GITHUB_TOKEN cannot manage rulesets). Manual edits in the web UI are reverted on the next default-branch push. See the repository-setup guide (REPOSITORY_SETUP.rst) before enabling.
 repository_topics:
   type: str
   default: ""
@@ -671,10 +671,10 @@ include_homebrew:
   default: "{{ can_distribute_natively and 'include_homebrew' in preset_map[preset] }}"
   when: "{{ can_distribute_natively }}"
   help: >-
-    Publish a Homebrew tap formula on each release? Requires a homebrew-tap repo under your account and a HOMEBREW_TAP_TOKEN secret (one-time setup, documented in docs/maintaining/setup.rst).
+    Publish a Homebrew tap formula on each release? Requires a homebrew-tap repo under your account (scaffold it with hasansezertasan/copier-homebrew-tap) and a HOMEBREW_TAP_TOKEN secret (one-time setup, documented in REPOSITORY_SETUP.rst).
 include_scoop:
   type: bool
   default: "{{ can_distribute_natively and 'include_scoop' in preset_map[preset] }}"
   when: "{{ can_distribute_natively }}"
   help: >-
-    Publish a Scoop bucket manifest on each release? Requires a scoop-bucket repo under your account and a SCOOP_BUCKET_TOKEN secret (one-time setup, documented in docs/maintaining/setup.rst). Best paired with an executable toggle (Scoop favors binaries).
+    Publish a Scoop bucket manifest on each release? Requires a scoop-bucket repo under your account (scaffold it with hasansezertasan/copier-scoop-bucket) and a SCOOP_BUCKET_TOKEN secret (one-time setup, documented in REPOSITORY_SETUP.rst). Best paired with an executable toggle (Scoop favors binaries).

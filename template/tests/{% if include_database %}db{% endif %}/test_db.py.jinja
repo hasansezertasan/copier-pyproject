@@ -49,7 +49,7 @@ def test_config_reads_the_url_from_the_settings(
     assert config.metadata is Base.metadata
 
 
-def test_default_url_matches_the_scaffolded_backend(
+def test_default_url_matches_the_selected_backend(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Without an override, the settings point at the chosen backend."""
@@ -65,7 +65,7 @@ def test_migration_cli_target_exposes_a_config_instance() -> None:
     assert isinstance(migrations.config, SQLAlchemyAsyncConfig)
 
 
-def test_migrations_tree_is_scaffolded() -> None:
+def test_migrations_tree_exists() -> None:
     """The Alembic environment ships at the configured script location."""
     root = Path(MIGRATIONS_PATH)
 

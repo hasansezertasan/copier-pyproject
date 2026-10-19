@@ -85,10 +85,10 @@ def test_installation_rst_shows_brew_cask_when_executable(
 
 
 def test_setup_doc_documents_tap_setup(render: Callable[..., Path]) -> None:
-    # Maintainer repository setup lives in docs/maintaining/setup.rst (not the
+    # Maintainer repository setup lives in REPOSITORY_SETUP.rst (not the
     # contributor-facing CONTRIBUTING.md); see context/repo-setup.md.
     root = render(preset="tool", include_homebrew=True, include_scoop=True)
-    setup = _read(root, "docs", "maintaining", "setup.rst")
+    setup = _read(root, "REPOSITORY_SETUP.rst")
     assert "homebrew-tap" in setup
     assert "HOMEBREW_TAP_TOKEN" in setup
     assert "scoop-bucket" in setup
@@ -98,7 +98,7 @@ def test_setup_doc_documents_tap_setup(render: Callable[..., Path]) -> None:
 def test_setup_doc_omits_tap_setup_when_disabled(
     render: Callable[..., Path],
 ) -> None:
-    setup = _read(render(preset="tool"), "docs", "maintaining", "setup.rst")
+    setup = _read(render(preset="tool"), "REPOSITORY_SETUP.rst")
     assert "HOMEBREW_TAP_TOKEN" not in setup
     assert "SCOOP_BUCKET_TOKEN" not in setup
 
@@ -157,50 +157,28 @@ def test_no_dispatch_jobs_or_packaging_when_disabled(
     text = _read(root, ".github", "workflows", "release.yml")
     assert "bump-homebrew" not in text
     assert "bump-scoop" not in text
-    # The reference bundle renders under docs/packaging/, so that is the path
-    # whose absence proves the toggles gated it out.
     assert not (root / "docs" / "packaging").exists()
 
 
-def _assert_reports_failure(listener: Path) -> None:
-    """A dispatch listener grants ``issues: write`` and has a Report failure step."""
-    job = yaml.safe_load(listener.read_text(encoding="utf-8"))["jobs"]["update"]
-    assert job["permissions"]["issues"] == "write"
-    step_names = {step.get("name") for step in job["steps"]}
-    assert "Report failure" in step_names
-    # The failure step must retry without --label, or a fresh tap/bucket (which
-    # has neither label yet) reports nothing — the labeled call would just fail.
-    report = next(s for s in job["steps"] if s.get("name") == "Report failure")
-    assert report["run"].count("gh issue create") >= 2
-
-
-def test_packaging_bundle_renders_when_enabled(render: Callable[..., Path]) -> None:
-    # Formula path (no executable toggle): homebrew ships the formula listener,
-    # scoop ships the manifest listener; the cask listener is gated out.
+def test_no_packaging_bundle_is_rendered(render: Callable[..., Path]) -> None:
+    # The tap/bucket are scaffolded by copier-homebrew-tap / copier-scoop-bucket,
+    # so no toggle combination ships a reference listener bundle any more.
     root = render(preset="tool", include_homebrew=True, include_scoop=True)
-    pkg = root / "docs" / "packaging"
-    assert (pkg / "homebrew-tap" / "README.md").is_file()
-    formula = pkg / "homebrew-tap" / "update-formula-dispatch.yml"
-    assert formula.is_file()
-    assert not (pkg / "homebrew-tap" / "update-cask-dispatch.yml").exists()
-    assert (pkg / "scoop-bucket" / "README.md").is_file()
-    manifest = pkg / "scoop-bucket" / "update-manifest-dispatch.yml"
-    assert manifest.is_file()
-    # Both non-cask listeners surface dispatch failures as issues.
-    _assert_reports_failure(formula)
-    _assert_reports_failure(manifest)
+    assert not (root / "docs" / "packaging").exists()
 
 
-def test_homebrew_ships_cask_listener_when_executable(
-    render: Callable[..., Path],
-) -> None:
-    # Executable toggle flips the homebrew bundle to the cask listener.
-    root = render(preset="tool", include_homebrew=True, include_freezer=True)
-    tap = root / "docs" / "packaging" / "homebrew-tap"
-    cask = tap / "update-cask-dispatch.yml"
-    assert cask.is_file()
-    assert not (tap / "update-formula-dispatch.yml").exists()
-    _assert_reports_failure(cask)
+def test_setup_doc_promotes_tap_and_bucket_repos(render: Callable[..., Path]) -> None:
+    root = render(preset="tool", include_homebrew=True, include_scoop=True)
+    setup = _read(root, "REPOSITORY_SETUP.rst")
+    for repo in (
+        "copier-homebrew-tap",
+        "homebrew-tap-skills",
+        "copier-scoop-bucket",
+        "scoop-bucket-skills",
+    ):
+        assert f"hasansezertasan/{repo}" in setup
+    assert "packaging/homebrew-tap" not in setup
+    assert "packaging/scoop-bucket" not in setup
 
 
 # --- ghalint (reverted to web-only) ------------------------------------------
