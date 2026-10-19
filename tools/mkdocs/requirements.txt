@@ -1,5 +1,5 @@
 # The docs-site toolchain (.github/workflows/docs.yml, local preview in
 # mkdocs.yml). Exact pins, kept current by Renovate's pip_requirements manager.
-keep-the-why-dashboard==0.11.1
+keep-the-why-dashboard==0.11.12
 mkdocs==1.6.1
 mkdocs-material==9.7.7
