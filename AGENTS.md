@@ -212,7 +212,7 @@ invariants an agent must not break.
 ### Template Variables (copier.yml) — index
 
 Required inputs: `github_user`, `github_repo_name`, `author_full_name`,
-`author_email`, `short_description`. Free-form: `package_keywords`,
+`author_email`, `short_description`. Asked once and kept: `copyright_year` (LICENSE start year, [why](context/template-updates.md#the-license-start-year-is-a-visible-copyright_year-question)). Free-form: `package_keywords`,
 `repository_topics` (asked only when `include_repo_settings`). Starting point:
 `preset` (`library`/`tool`/`web`/`full`, `default: library`; seeds every toggle
 default via the hidden `preset_map`, [archetype presets](context/presets.md#archetype-presets-name-project-shapes-library-is-the-default)).

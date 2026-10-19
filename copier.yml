@@ -45,7 +45,7 @@ _message_after_copy: >-
 # so loudly, but only after a push; say it here, while the maintainer is still
 # looking. See https://hasansezertasan.github.io/copier-pyproject/context/agent-instructions/#ai-rulez-is-the-opt-in-single-source-for-agent-instructions-with-the-prose-in-shared-macros for the reverse direction.
 _message_after_update: >-
-  {% if include_ai_rulez %}This project now authors its agent instructions under .ai-rulez/. Run: (1) uv lock (the new `agents` dependency group) (2) uv run --group agents ai-rulez generate, then commit both — AGENTS.md and the per-host files are build output, so until you do the repository has no agent instruction files and the `hooks` CI job fails.{% endif %}
+  {% if copyright_year | string == '%Y' | strftime %}LICENSE now reads {{ copyright_year }}-present (the copyright_year answer). If the project's copyright started earlier, run: copier update -d copyright_year=<first year>.{% endif %} {% if include_ai_rulez %}This project now authors its agent instructions under .ai-rulez/. Run: (1) uv lock (the new `agents` dependency group) (2) uv run --group agents ai-rulez generate, then commit both — AGENTS.md and the per-host files are build output, so until you do the repository has no agent instruction files and the `hooks` CI job fails.{% endif %}
 # ── ① Identity ──────────────────────────────────────────────────────────────
 github_user:
   type: str
@@ -70,6 +70,16 @@ author_family_names:
 author_email:
   type: str
   help: The email of the author
+# A visible question, not `when: false`: Copier writes only asked questions to
+# `.copier-answers.yml`, so only a visible answer survives `copier update`
+# (a hidden default would be re-evaluated, and the year would move, every run).
+copyright_year:
+  type: int
+  default: "{{ '%Y' | strftime }}"
+  validator: >-
+    {% if not (1900 <= copyright_year <= 9999) %} copyright_year must be a four-digit year, e.g. 2025. {% endif %}
+  help: >-
+    The year the project's copyright starts, rendered into LICENSE as "<year>-present". Defaults to this year and is then kept on every `copier update`. Adopting a project that already existed? Enter the year it was first published.
 short_description:
   type: str
   default: A Python project template.

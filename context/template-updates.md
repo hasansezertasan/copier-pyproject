@@ -247,3 +247,41 @@ and preserving configured inputs rather than assuming equivalence from the SHA.
 Repository-settings transitions remain with `repo-setup`; the reconciliation
 procedure is in the skills, not duplicated here. The former policy's historical
 justification remains unknown in the superseded record above.
+
+## The LICENSE start year is a visible `copyright_year` question
+
+**Id:** 4ecf9da8-3879-40c8-9a46-85f5cfc3bfc5
+**Type:** decision
+**Type:** constraint
+**Status:** active
+**Evidence:** confirmed
+**Source:** empirical runs against Copier 9.18.2 (copy, update and recopy with a faked clock)
+**Verification:** corroborated — `tests/test_license.py` pins the recorded answer, the stability across `copier update` and the existing-project path
+**Revisit when:** Copier exposes the copy-versus-update operation to question defaults, or removes the `strftime` filter
+
+`LICENSE` renders `Copyright (c) <copyright_year>-present`. `copyright_year` is
+an asked `int` question defaulting to the current year (`'%Y' | strftime`), so
+Copier records it in `.copier-answers.yml` and every later `copier update` keeps
+the creation year.
+
+**Reason:** Copier writes only asked questions to the answers file; a
+`when: false` default is not recorded and is re-evaluated on each run. A hidden
+or inline current-year expression only looks stable on update, because the
+three-way merge re-renders the old side with the same clock: it conflicts when a
+neighbouring line changes, and `copier recopy` or any re-render at the recorded
+commit rewrites the year.
+
+**Rejected alternative:** hard-coding `2025`. It is the bug: every later project
+claims a year it did not start in.
+
+**Rejected alternative:** a `when: false` default, or `{{ now().year }}` inline.
+Not recorded, so not stable (above). `now` is also a deprecated Copier builtin
+that warns it will be removed; the `strftime` filter is the supported spelling.
+
+**Consequence:** a project scaffolded before this question has no answer and an
+existing `2025-present`. Copier's question defaults cannot see whether the run is
+a copy or an update (`_copier_operation` exists only for tasks and exclusions),
+so a non-interactive update (Renovate) adopts the current year and rewrites that
+line. An interactive update prompts, and `-d copyright_year=<year>` keeps the
+original; `_message_after_update` says so. No default avoids this without
+leaving the bug in new projects.
