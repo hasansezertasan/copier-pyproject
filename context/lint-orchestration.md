@@ -115,7 +115,7 @@ strict bar drove into the generated code.
 
 **Consequence:** strict basedpyright forced concrete fixes in the generated
 code: `@override` on overriding methods (`typing.override` is 3.12+ and the floor
-is 3.10, hence `typing_extensions`), `ClassVar` on class attributes (`CSS`,
+is 3.11, hence `typing_extensions`), `ClassVar` on class attributes (`CSS`,
 `BINDINGS`, `model_config`) with `@final` on the TUI app class, `_ = ...` on
 intentionally discarded results, and single-string literals instead of implicit
 concatenation for multi-line messages. The worker's event-loop setup was
@@ -123,7 +123,7 @@ modernized to `uvloop.run()`, which removed both a `reportAny` suppression and
 a deprecation finding, so the worker needs no suppression at all.
 
 **Consequence:** TUI projects gain `typing_extensions` for `@override` on
-3.10/3.11; `ty` is pre-release and kept because it currently passes and adds
+3.11; `ty` is pre-release and kept because it currently passes and adds
 coverage. An earlier zuban miscategorized one finding and forced broadening a
 mypy disable list; zuban 0.9.0 fixed it and the concession was removed.
 

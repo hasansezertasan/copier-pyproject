@@ -136,9 +136,9 @@ pragma.
 **Revisit when:** a platform-specific interpreter defect slips through often enough to matter, or a C-extension build no longer differs per OS/interpreter pair
 **See:** ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component — 467b6cc3-775b-4e4c-9a8e-b0d1c3d733ac — as of 2026-10-11
 
-Each `test-*` job runs Python 3.10 through 3.14 on Ubuntu and the invoking
+Each `test-*` job runs Python 3.11 through 3.14 on Ubuntu and the invoking
 interpreter on macOS and Windows; with `include_c_extensions` every OS runs all
-five. `style` runs once on Ubuntu, with mypy additionally run for the win32
+four. `style` runs once on Ubuntu, with mypy additionally run for the win32
 and darwin platforms. With `include_cli`, a `cli-installed` job runs the
 installed console-script check on all three OSes. Explicit tox env lists keep
 style and CLI execution out of the component jobs.
