@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # -- Project information -----------------------------------------------------
@@ -19,9 +19,9 @@ author = "{{ author_full_name }}"
 # `tox` runs leave it unset and fall back to the current year below.
 _source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
 _build_date = (
-    datetime.fromtimestamp(int(_source_date_epoch), tz=timezone.utc)
+    datetime.fromtimestamp(int(_source_date_epoch), tz=UTC)
     if _source_date_epoch
-    else datetime.now(tz=timezone.utc)
+    else datetime.now(tz=UTC)
 )
 copyright = f"{_build_date:%Y}, {{ author_full_name }}"  # noqa: A001
 
