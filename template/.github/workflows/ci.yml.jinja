@@ -298,7 +298,7 @@ jobs:
 {%- if comp_names %}{% set core_marker = 'not (' ~ comp_names | join(' or ') ~ ')' %}{% else %}{% set core_marker = '' %}{% endif %}
 {%- set test_jobs = [{'slug': 'core', 'marker': core_marker, 'gated': False}] %}
 {%- for c in comp_names %}{% set _ = test_jobs.append({'slug': c, 'marker': c ~ (' and not integration' if c == 'worker' else ''), 'gated': True}) %}{% endfor %}
-{%- set all_python_envs = '-e 3.14,3.13,3.12,3.11,3.10' %}
+{%- set all_python_envs = '-e 3.14,3.13,3.12,3.11' %}
 {% for job in test_jobs %}
   test-{{ job.slug }}:
     name: Test {{ job.slug }} on {% raw %}${{ matrix.os }}{% endraw %}

@@ -42,12 +42,12 @@ def test_version_response_model() -> None:
     response = VersionResponse(
         request_id="test-123",
         version="1.0.0",
-        python_version="3.10.0",
+        python_version="3.11.0",
         platform="Linux",
     )
     assert response.request_id == "test-123"
     assert response.version == "1.0.0"
-    assert response.python_version == "3.10.0"
+    assert response.python_version == "3.11.0"
     assert response.platform == "Linux"
 
 
