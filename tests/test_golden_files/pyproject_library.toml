@@ -29,6 +29,7 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
   "Programming Language :: Python",
@@ -523,6 +524,7 @@ env_list = [
   # Inline ``>>>`` snippets are part of the tested-documentation contract,
   # so run them in the default CI ``tox run`` invocation.
   "docs-doctest",
+  "3.15",
   "3.14",
   "3.13",
   "3.12",
