@@ -445,6 +445,14 @@ include_console_root:
   type: bool
   when: false
   default: "{{ include_cli or include_web or ([include_gui, include_tui, include_web, include_mcp, include_worker] | select | list | length >= 2) }}"
+# Whether the generated project's matrix includes Python 3.15. `faststream[cli]`
+# (the docs group's AsyncAPI generation) caps `watchfiles<1.2.0`, whose 1.1.1
+# has no 3.15 wheel, so a worker + docs project locks an unbuildable watchfiles
+# for 3.15 (ag2ai/faststream#3291). Drop this guard once faststream lifts the cap.
+supports_python_315:
+  type: bool
+  when: false
+  default: "{{ not (include_worker and include_docs) }}"
 # The components the console root reaches by *lazy* import: every enabled
 # runnable component that is not the primary (https://hasansezertasan.github.io/copier-pyproject/context/components/#secondary-components-are-subcommands-of-one-console-root-not-separate-scripts). Derived from
 # `primary_component`, so the precedence still lives in exactly one place.

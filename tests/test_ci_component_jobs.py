@@ -122,6 +122,16 @@ def test_matrix_asymmetric_without_c_extensions(render: Callable[..., Path]) -> 
     assert by_os["windows-latest"] == "-e py"
 
 
+def test_matrix_drops_python_315_for_worker_with_docs(
+    render: Callable[..., Path],
+) -> None:
+    # faststream[cli] (docs group) caps watchfiles<1.2, which has no 3.15 wheel.
+    ci = _ci(render, preset="library", include_worker=True, include_docs=True)
+    include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
+    by_os = {row["os"]: row["tox_args"] for row in include}
+    assert by_os["ubuntu-latest"] == "-e 3.14,3.13,3.12,3.11"
+
+
 def test_matrix_keeps_installed_cli_check_on_every_os(
     render: Callable[..., Path],
 ) -> None:
