@@ -8,7 +8,7 @@ Copier template for a modern, typed Python package/CLI with `uv`, `hatch`, `tox`
 
 Always included in every generated project:
 
-- **Packaging & workflow** — uv-first with dependency groups (dev, style, test, tool, prek — plus `docs` when `include_docs` is on) and tox-uv runners across Python 3.10–3.14; builds via `hatchling`/`hatch-vcs` with versions derived from Git tags.
+- **Packaging & workflow** — uv-first with dependency groups (dev, style, test, tool, prek — plus `docs` when `include_docs` is on) and tox-uv runners across Python 3.11–3.14; builds via `hatchling`/`hatch-vcs` with versions derived from Git tags.
 - **Type safety** — full type hints and a `py.typed` marker, checked by mypy, basedpyright, ty, pyrefly, and zuban.
 - **Code quality** — ruff linting/formatting and an always-on pylint gate, plus vulture, slotscheck, taplo, validate-pyproject, typos, actionlint, editorconfig-checker, and import-linter architecture-contract enforcement, plus a semgrep SAST pass over `src/` in the `style` env ([semgrep SAST](context/lint-orchestration.md#semgrep-runs-in-the-style-env-against-a-named-registry-ruleset-never-vendored)), and a dependency-hygiene gate (deptry + creosote, `tox -e deps` and a `deps` CI job) ([dependency hygiene](context/lint-orchestration.md#dependency-hygiene-deptry--creosote-is-an-always-on-deps-gate-not-a-toggle)).
 - **Testing** — pytest with coverage/xdist/reruns (and `.github/codecov.yml`) and parallel execution.

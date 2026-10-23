@@ -136,7 +136,7 @@ uv run --locked tox run
 uv run --locked tox run -e style
 
 # Run specific Python version tests
-uv run --locked tox run -e 3.10
+uv run --locked tox run -e 3.11
 uv run --locked tox run -e 3.14
 
 # Run a single test file
