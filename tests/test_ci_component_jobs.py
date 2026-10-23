@@ -117,7 +117,7 @@ def test_matrix_asymmetric_without_c_extensions(render: Callable[..., Path]) -> 
     ci = _ci(render, preset="library")
     include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
     by_os = {row["os"]: row["tox_args"] for row in include}
-    assert by_os["ubuntu-latest"] == "-e 3.14,3.13,3.12,3.11"
+    assert by_os["ubuntu-latest"] == "-e 3.15,3.14,3.13,3.12,3.11"
     assert by_os["macos-latest"] == "-e py"
     assert by_os["windows-latest"] == "-e py"
 
@@ -139,7 +139,7 @@ def test_matrix_full_grid_with_c_extensions(render: Callable[..., Path]) -> None
     ci = _ci(render, preset="library", include_c_extensions=True)
     include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
     assert all(
-        row["tox_args"] == "-e 3.14,3.13,3.12,3.11" for row in include
+        row["tox_args"] == "-e 3.15,3.14,3.13,3.12,3.11" for row in include
     )
 
 

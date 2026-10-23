@@ -934,7 +934,7 @@ version-file writer, the c-extension compiler), which stay.
 
 ## CI/CD Workflows
 
-1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.11-3.14
+1. **CI** (`ci.yml.jinja`): Matrix tests on Windows/Ubuntu/macOS, Python 3.11-3.15
    - **Per-component jobs + path filtering**
      ([per-component CI](../context/ci-topology.md#per-component-markers-path-filtered-jobs-and-one-coverage-gate-per-component)): a
      `changes` job (`dorny/paths-filter`) emits a boolean per component plus
