@@ -123,3 +123,37 @@ sealed Node `.env.*` silently dropped `.env.example` from fresh renders (its
 below-fence negation in the repo-root `.gitignore` author section (never inside
 the fence, never in `template/.gitignore.jinja`, whose author section renders
 into generated projects) — here, `!/template/.env.example.jinja`.
+
+## `copier update` leaves the cobo-managed `.gitignore` and lock alone; adoption still renders them
+
+**Id:** cecafff6-ea1b-4821-942f-30e9c5c6e489
+**Type:** decision
+**Status:** active
+**Evidence:** inferred
+**Source:** maintainer conversation, 2026-10-24 (all copier-* templates seed the cobo-managed files once); `copier/_main.py` in copier 9.18.2 and `tests/test_copier_exclude.py`
+**Revisit when:** copier renders `_skip_if_exists` patterns with `_copier_operation`, or the generated `cobo.lock` tracks more than `.gitignore`
+**See:** gitignore-generation.md#cobo-generates-the-gitignore-with-a-hash-sealed-fence-and-lockfiles — 3e3bc38e-bc1e-4e65-b74d-e91848262157 — as of 2026-10-24
+
+`copier.yml` lists `.gitignore` and `cobo.lock` in `_exclude`, each wrapped in
+`{% if _copier_operation == 'update' %}…{% endif %}`. A generated project owns
+both after the first render: cobo rewrites the sealed block and the lock, so a
+`copier update` three-way merge of the template's copies would conflict with it.
+Adoption (`copier copy --overwrite`) still renders both, as a matched pair.
+`.gitattributes` and `.editorconfig` are not listed: the generated `cobo.lock`
+tracks only `.gitignore`, so nothing else would refresh them.
+
+**Reason:** the user's other copier templates seed the cobo files once, and the
+update flow is the only place the merge hurts.
+
+**Rejected alternative:** an unconditional `_skip_if_exists`, as the other
+templates use. Copier renders its patterns without `_copier_operation`, so it
+cannot be limited to updates, and the adoption copy would keep an existing
+`.gitignore` beside the template's fresh `cobo.lock` (`cobo check --strict`
+fails).
+
+**Consequence:** `copier update` does not restore a deleted file: the exclusion
+prevents rendering even when the file is absent. A project that deletes one of
+the two is left with an incomplete pair and must restore the missing file itself
+(`cobo gitignore dump … --lock` rebuilds both), but the two cannot be reseeded
+out of step. Template changes to the template's `.gitignore` reach existing
+projects only through cobo's own updates.

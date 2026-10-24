@@ -86,3 +86,30 @@ def test_update_removes_unchanged_retired_claude_file(
 
     assert not (root / "CLAUDE.md").exists()
     assert (root / "AGENTS.md").is_file()
+
+
+def test_exclude_leaves_the_cobo_pair_to_updates_only() -> None:
+    """The cobo-managed pair is excluded on update; adoption still renders it."""
+    exclude = _exclude()
+    assert "{% if _copier_operation == 'update' %}.gitignore{% endif %}" in exclude
+    assert "{% if _copier_operation == 'update' %}cobo.lock{% endif %}" in exclude
+
+
+def test_update_leaves_a_cobo_managed_gitignore_alone(
+    render: Callable[..., Path],
+) -> None:
+    """``copier update`` keeps the project's cobo pair; the first render still has it."""
+    root = render(ref="v1.6.0")
+    assert (root / ".gitignore").is_file()
+    assert (root / "cobo.lock").is_file()
+    _git(root, "init")
+    _git(root, "add", ".")
+    _git(root, "commit", "-m", "Initial scaffold")
+    (root / ".gitignore").write_text("# cobo-managed\n")
+    (root / "cobo.lock").write_text("# cobo-managed\n")
+    _git(root, "commit", "-am", "Manage the gitignore with cobo")
+
+    copier.run_update(str(root), vcs_ref="HEAD", defaults=True, overwrite=True, quiet=True)
+
+    assert (root / ".gitignore").read_text() == "# cobo-managed\n"
+    assert (root / "cobo.lock").read_text() == "# cobo-managed\n"
