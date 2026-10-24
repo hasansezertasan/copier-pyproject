@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.15.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.14.0...v1.15.0) (2026-10-24)
+
+
+### 🚀 Features
+
+* leave the cobo-managed gitignore and lockfile to the project on update ([#439](https://github.com/hasansezertasan/copier-pyproject/issues/439)) ([7a275b1](https://github.com/hasansezertasan/copier-pyproject/commit/7a275b142d251917fa868e651a3fa9ced7b03276))
+
+
+### 📝 Documentation
+
+* use one wording for the template back reference ([#438](https://github.com/hasansezertasan/copier-pyproject/issues/438)) ([d147c4f](https://github.com/hasansezertasan/copier-pyproject/commit/d147c4f1938387bcfd20c0f96966ffe49f378b30))
+
 ## [1.14.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.13.1...v1.14.0) (2026-10-19)
 
 
