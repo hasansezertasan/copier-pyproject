@@ -151,6 +151,9 @@ cannot be limited to updates, and the adoption copy would keep an existing
 `.gitignore` beside the template's fresh `cobo.lock` (`cobo check --strict`
 fails).
 
-**Consequence:** a project that deletes one of the two files is not reseeded on
-update, so the pair cannot drift apart that way; template changes to the
-template's `.gitignore` reach existing projects only through cobo's own updates.
+**Consequence:** `copier update` does not restore a deleted file: the exclusion
+prevents rendering even when the file is absent. A project that deletes one of
+the two is left with an incomplete pair and must restore the missing file itself
+(`cobo gitignore dump … --lock` rebuilds both), but the two cannot be reseeded
+out of step. Template changes to the template's `.gitignore` reach existing
+projects only through cobo's own updates.
