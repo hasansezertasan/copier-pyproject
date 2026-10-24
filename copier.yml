@@ -25,6 +25,14 @@ _exclude:
   # #321: docstring-only placeholders.
   - "src/{{ github_repo_name }}/utils/app.py"
   - "{% if not primary_component %}src/{{ github_repo_name }}/core/app.py{% endif %}"
+  # Seeded by `copy`, then owned by the project: cobo (cobo.lock) rewrites the sealed
+  # `.gitignore` block, so `copier update` must not merge the template's copies into them.
+  # `_exclude` rather than `_skip_if_exists` because the exclusion can be limited to
+  # updates: adoption (`copier copy --overwrite`) must still render both files, or an
+  # existing `.gitignore` would sit beside a fresh `cobo.lock` and `cobo check --strict`
+  # would fail. `_skip_if_exists` patterns are rendered without `_copier_operation`.
+  - "{% if _copier_operation == 'update' %}.gitignore{% endif %}"
+  - "{% if _copier_operation == 'update' %}cobo.lock{% endif %}"
 # No `_tasks`: defining any task marks the template "unsafe", which forces
 # `copier ... --trust`. The hosted Mend Renovate App runs `copier update` with
 # scripts disabled (no `--trust`), so a task-bearing template would break
