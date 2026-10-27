@@ -39,7 +39,8 @@ by `cobo sync`; a hand edit inside the fence breaks the sha256.
 **Id:** a5df0a9c-aa53-4a8c-add6-566326352a0e
 **Type:** decision
 **Type:** workaround
-**Status:** active
+**Status:** superseded
+**Superseded by:** 61324e22-356d-42aa-b16c-5afbc89185f4
 **Evidence:** confirmed
 **Source:** ADR-012 §1 ([`docs/adr/012-cobo-for-gitignore-generation.md`](https://github.com/hasansezertasan/copier-pyproject/blob/c06222e28adb395637f4a2c7cdbe68dd39c39bb7/docs/adr/012-cobo-for-gitignore-generation.md)); cobo#120/#121 (the upstreamed `--eol lf` policy), [cobo#124](https://github.com/hasansezertasan/cobo/issues/124), [issue #111](https://github.com/hasansezertasan/copier-pyproject/issues/111), [issue #393](https://github.com/hasansezertasan/copier-pyproject/issues/393)
 **Revisit when:** the Copier render preserves a lone carriage return in this file (the cobo half — normalize terminators only, not a mid-line CR — already shipped in cobo 0.6.0)
@@ -47,7 +48,7 @@ by `cobo sync`; a hand edit inside the fence breaks the sha256.
 The fence is sealed with cobo's `--eol lf` policy, persisted as `eol = "lf"` on
 the lock fragment. Since cobo 0.6.0 that policy normalizes terminators only
 (`CRLF` → `LF`) and keeps a mid-line lone CR — so the sealed
-`template/.gitignore.jinja` carries the macOS boilerplate's two carriage-return
+`template/.gitignore` carries the macOS boilerplate's two carriage-return
 filenames (`Icon␍`, `.HFS+ Private Directory Data␍`) byte-intact, and the old
 "seal LF-normalizes them into `Icon[`/`]`" description is stale. The corruption
 moved one stage down the pipeline: Copier renders `.gitignore.jinja` through
@@ -81,7 +82,56 @@ cobo fence verification that treats a render-stripped lone CR as clean under
 `eol = "lf"`. Until then, refreshes come from a template-side `cobo sync`,
 never from a local `cobo dump` in a generated project (whose bytes
 `copier update` can never reproduce) — that rule is recorded in the NOTE below
-the fence in `template/.gitignore.jinja`.
+the fence in `template/.gitignore`.
+
+## The sealed `.gitignore` ships as a plain, unrendered file
+
+**Id:** 61324e22-356d-42aa-b16c-5afbc89185f4
+**Type:** decision
+**Status:** active
+**Evidence:** confirmed
+**Source:** [cobo#243](https://github.com/hasansezertasan/cobo/issues/243) (closed as won't-fix cobo-side; the fix is the consumer shipping the file unrendered), maintainer conversation 2026-10-27; the sibling `copier-copier` template already ships a plain `template/.gitignore` with both CRs intact
+**Revisit when:** the sealed block needs a value only a render can supply, or Copier preserves a lone carriage return in rendered files
+**See:** gitignore-generation.md#the-seal-keeps-the-two-macos-cr-patterns-the-render-still-strips-them — a5df0a9c-aa53-4a8c-add6-566326352a0e — as of 2026-10-27
+
+`template/.gitignore` has no `.jinja` suffix and no Jinja syntax, so Copier copies
+it byte for byte and the macOS boilerplate's two lone-CR classes (`Icon␍`,
+`.HFS+ Private Directory Data␍`) reach the generated project intact; the
+`eol = "lf"` seal verifies there as is. The cause was never the seal: Jinja's
+lexer rewrites a lone `\r` to `\n` in any file it renders, and this one never
+needed rendering. To make that true, the author section below the fence lost its
+toggle-conditional lines and became name-independent and unconditional:
+`!/*.spec` (was `!{{pkg}}.spec`), `/src/*/_c_extension.c`, and the `docs/_generated/`
+and `docs/_static/versions.json` rules without their `include_docs`/component
+guards. The cost is a few inert ignore lines in projects that do not use those
+features, the same trade as the always-on Node/GitHubPages fragments; dropping
+the `docs/_generated/` guard also removes the condition that drifted from
+`conf.py`'s generator guard in #299.
+
+**Reason:** the fix belongs where the corruption happens. cobo normalizes
+terminators only and keeps the CR on purpose, because `Icon[]` (the CR stripped
+at seal time) ignores nothing; trading seal correctness for one renderer was
+cobo's rejected option (its `lf-strict` policy, cobo#249). Every sibling `copier-*`
+template seeds its cobo-managed `.gitignore` once as a plain file.
+
+**Rejected alternative:** keep `.gitignore.jinja` and write the CRs as `{{ "\r" }}`
+expressions — the rendered output is right but the template source then fails its
+own `cobo check`, breaking the dogfooded lock fragment. Also rejected: a `_tasks`
+step running `cobo gitignore dump` (forces `--trust`; see the no-`_tasks`
+invariant) and accepting the permanently "locally modified" block (a later
+`cobo sync` with real upstream drift would need `--force`).
+
+**Consequence:** a plain `template/.gitignore` is also a live ignore file for the
+`template/` tree itself, so the sealed Node `.env.*` and `.vscode/*` rules hide
+`template/.env.example.jinja` and `template/.vscode/*.json.jinja` from Copier's
+file enumeration (verified by diffing the rendered file sets). Exact negations
+below the fence (`!/.env.example.jinja`, `!/.vscode/*.jinja`) rescue them and
+render as inert lines into generated projects; a blanket `!*.jinja` was
+rejected because it would also make a stray `.env.production.jinja` trackable
+there. `tests/test_sealed_gitignore.py` guards the CRs, the verbatim copy, those
+rescues and that no tracked template file is ignored. Refreshes follow the
+[both-lockfiles procedure](../docs/template-architecture.md); the root
+`cobo.lock` fragment now tracks `template/.gitignore`.
 
 ## Node and GitHubPages ride always-on in the seal
 
@@ -110,7 +160,7 @@ for non-docs projects, rejected for the lock-templating complexity above.
 
 **Consequence:** the refresh re-pinned `57286c3` → `0e5d690` at the same time
 (only `Python.gitignore` had changed upstream: `UV` → `uv`, mkdocs/Zensical,
-a VSCode comment rewrap). Both root-lock fragments (`template/.gitignore.jinja`
+a VSCode comment rewrap). Both root-lock fragments (`template/.gitignore`
 and the dogfooded repo `.gitignore`) carry the same seven files, and
 `template/cobo.lock` ships the same set to generated projects. The pin refresh
 also surfaced the seal-keeps/render-strips CR split above, whose check-side
@@ -119,10 +169,12 @@ follow-up lives in the cobo tracker, not here.
 **Consequence:** a sealed pattern can also match a *template source* file:
 copier honors the worktree gitignore when enumerating `template/`, so the
 sealed Node `.env.*` silently dropped `.env.example` from fresh renders (its
-`!.env.example` rescue misses the `.jinja` suffix). Such collisions get a
-below-fence negation in the repo-root `.gitignore` author section (never inside
-the fence, never in `template/.gitignore.jinja`, whose author section renders
-into generated projects) — here, `!/template/.env.example.jinja`.
+`!.env.example` rescue misses the `.jinja` suffix). A collision with the
+repo-root `.gitignore` gets a below-fence negation in its author section (never
+inside the fence) — here, `!/template/.env.example.jinja`. A collision with
+`template/.gitignore`'s own rules cannot be overridden from the root (the nested
+file wins), so its exact negation goes below that file's fence instead, and
+renders into generated projects as an inert line.
 
 ## `copier update` leaves the cobo-managed `.gitignore` and lock alone; adoption still renders them
 
