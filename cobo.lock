@@ -1,7 +1,7 @@
 version = 1
 
 [[fragment]]
-path = "template/.gitignore.jinja"
+path = "template/.gitignore"
 source = "gitignore"
 update = true
 eol = "lf"

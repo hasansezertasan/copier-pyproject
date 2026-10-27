@@ -6,7 +6,9 @@ is build output and is never committed, but the ``.gitignore`` rule used to be
 gated on ``include_worker or include_web`` while ``conf.py``'s generator guard
 also covers a Typer CLI. A ``tool``-preset project therefore wrote an artifact
 nothing ignored, ``git add -A`` swept it in, and the committed copy then failed
-``prek run --all-files`` intermittently (issue #299).
+``prek run --all-files`` intermittently (issue #299). The rule is now
+unconditional: the sealed ``.gitignore`` ships as a plain, unrendered file, so
+there is no condition left to drift from the generator guard.
 """
 
 from __future__ import annotations
@@ -48,11 +50,13 @@ def test_generating_shapes_ignore_the_tree(
     assert "docs/_generated/" in _gitignore(root)
 
 
-def test_non_generating_shape_ships_neither(render: Callable[..., Path]) -> None:
-    """An argparse-only CLI writes nothing, so the rule would be dead weight."""
+def test_non_generating_shape_ignores_the_tree_anyway(
+    render: Callable[..., Path],
+) -> None:
+    """The rule is unconditional: an argparse-only CLI gets it as a no-op."""
     root = render(include_docs=True, include_cli=True, cli_framework="argparse")
     assert "_generated_dir" not in _conf_py(root)
-    assert "docs/_generated/" not in _gitignore(root)
+    assert "docs/_generated/" in _gitignore(root)
 
 
 def test_rule_sits_below_the_cobo_seal(render: Callable[..., Path]) -> None:
