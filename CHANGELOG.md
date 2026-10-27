@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.15.0...v1.15.1) (2026-10-27)
+
+
+### 🐛 Bug Fixes
+
+* ship the sealed gitignore unrendered so lone CRs survive ([#442](https://github.com/hasansezertasan/copier-pyproject/issues/442)) ([99a95a9](https://github.com/hasansezertasan/copier-pyproject/commit/99a95a981b173d1ee9a1c37ed56fdd0bcbe6510d))
+
 ## [1.15.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.14.0...v1.15.0) (2026-10-24)
 
 
