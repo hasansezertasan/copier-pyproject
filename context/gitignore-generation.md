@@ -124,12 +124,14 @@ invariant) and accepting the permanently "locally modified" block (a later
 **Consequence:** a plain `template/.gitignore` is also a live ignore file for the
 `template/` tree itself, so the sealed Node `.env.*` and `.vscode/*` rules hide
 `template/.env.example.jinja` and `template/.vscode/*.json.jinja` from Copier's
-file enumeration (verified by diffing the rendered file sets). A `!*.jinja` line
-below the fence rescues every Jinja source and renders as one inert line into
-generated projects; `tests/test_sealed_gitignore.py` guards the CRs, the
-verbatim copy and that rescue. Refreshes still come from a template-side
-`cobo update && cobo sync`; the root `cobo.lock` fragment now tracks
-`template/.gitignore`.
+file enumeration (verified by diffing the rendered file sets). Exact negations
+below the fence (`!/.env.example.jinja`, `!/.vscode/*.jinja`) rescue them and
+render as inert lines into generated projects; a blanket `!*.jinja` was
+rejected because it would also make a stray `.env.production.jinja` trackable
+there. `tests/test_sealed_gitignore.py` guards the CRs, the verbatim copy, those
+rescues and that no tracked template file is ignored. Refreshes follow the
+[both-lockfiles procedure](../docs/template-architecture.md); the root
+`cobo.lock` fragment now tracks `template/.gitignore`.
 
 ## Node and GitHubPages ride always-on in the seal
 
@@ -167,10 +169,12 @@ follow-up lives in the cobo tracker, not here.
 **Consequence:** a sealed pattern can also match a *template source* file:
 copier honors the worktree gitignore when enumerating `template/`, so the
 sealed Node `.env.*` silently dropped `.env.example` from fresh renders (its
-`!.env.example` rescue misses the `.jinja` suffix). Such collisions get a
-below-fence negation in the repo-root `.gitignore` author section (never inside
-the fence, never in `template/.gitignore`, whose author section is copied
-into generated projects) — here, `!/template/.env.example.jinja`.
+`!.env.example` rescue misses the `.jinja` suffix). A collision with the
+repo-root `.gitignore` gets a below-fence negation in its author section (never
+inside the fence) — here, `!/template/.env.example.jinja`. A collision with
+`template/.gitignore`'s own rules cannot be overridden from the root (the nested
+file wins), so its exact negation goes below that file's fence instead, and
+renders into generated projects as an inert line.
 
 ## `copier update` leaves the cobo-managed `.gitignore` and lock alone; adoption still renders them
 

@@ -8,6 +8,7 @@ suffix on the sealed file split the macOS ``Icon[<CR>]`` class in two and made
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from typing import Callable
 
@@ -38,14 +39,29 @@ def test_render_is_the_template_file_unchanged(render: Callable[..., Path]) -> N
         assert rendered == TEMPLATE_GITIGNORE.read_bytes()
 
 
-def test_template_ignore_does_not_hide_jinja_sources(
+def test_template_ignore_does_not_hide_template_sources(
     render: Callable[..., Path],
 ) -> None:
-    """The file doubles as a live ignore for ``template/``; ``!*.jinja`` rescues.
+    """The file doubles as a live ignore for ``template/``; negations rescue.
 
-    Without it the sealed Node ``.env.*`` and ``.vscode/*`` rules silently drop
-    ``.env.example`` and the ``.vscode`` configs from fresh renders.
+    Without them the sealed Node ``.env.*`` and ``.vscode/*`` rules silently drop
+    ``.env.example`` and the ``.vscode`` configs from fresh renders. The rescues
+    name those files exactly rather than ``!*.jinja``, which would also make a
+    stray ``.env.production.jinja`` trackable in a generated project.
     """
     root = render(preset="full")
     assert (root / ".env.example").is_file()
     assert (root / ".vscode" / "extensions.json").is_file()
+    assert "!*.jinja" not in TEMPLATE_GITIGNORE.read_text(encoding="utf-8")
+
+
+def test_no_tracked_template_file_is_ignored() -> None:
+    """A new collision shows up here instead of as a file missing from renders."""
+    ignored = subprocess.run(
+        ["git", "ls-files", "-ci", "--exclude-standard", "template"],
+        cwd=TEMPLATE_GITIGNORE.parents[1],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    assert ignored == []
