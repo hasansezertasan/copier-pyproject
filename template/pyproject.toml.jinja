@@ -88,6 +88,9 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+{%- if supports_python_315 %}
+  "Programming Language :: Python :: 3.15",
+{%- endif %}
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
   "Programming Language :: Python",
@@ -962,6 +965,9 @@ env_list = [
 {%- if include_cli %}
   "cli",
 {%- endif %}
+{%- if supports_python_315 %}
+  "3.15",
+{%- endif %}
   "3.14",
   "3.13",
   "3.12",
@@ -1029,7 +1035,7 @@ commands = [
   [
     "mypy",
     "--python-version",
-    "3.14",
+    "3.{{ 15 if supports_python_315 else 14 }}",
   ],
   # Style runs once on Linux, so explicitly sweep platform-gated branches that
   # mypy would otherwise prune as unreachable on the host platform.
