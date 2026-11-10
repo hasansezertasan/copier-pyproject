@@ -245,7 +245,7 @@ jobs:
           # Copier renders from a git ref, so it needs the repo's history.
           fetch-depth: 0
       - name: Set up mise for configuration regression tests
-        uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195  # v5.2.5
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b  # v5.2.7
         with:
           install: false
       - name: Set up uv
