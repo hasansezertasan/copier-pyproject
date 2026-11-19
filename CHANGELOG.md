@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/hasansezertasan/copier-pyproject/compare/v1.15.1...v1.16.0) (2026-11-19)
+
+
+### 🚀 Features
+
+* add Python 3.15 support ([#436](https://github.com/hasansezertasan/copier-pyproject/issues/436)) ([2d9664e](https://github.com/hasansezertasan/copier-pyproject/commit/2d9664ef19ffbeca8ba295c8dcfcf7a78fb45ed9))
+
 ## [1.15.1](https://github.com/hasansezertasan/copier-pyproject/compare/v1.15.0...v1.15.1) (2026-10-27)
 
 
