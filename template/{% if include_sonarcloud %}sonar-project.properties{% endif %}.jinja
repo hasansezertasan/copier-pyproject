@@ -16,7 +16,7 @@ sonar.sourceEncoding=UTF-8
 
 # Coverage is produced by the CI test run (coverage.xml).
 sonar.python.coverage.reportPaths=coverage.xml
-sonar.python.version=3.11, 3.12, 3.13, 3.14
+sonar.python.version=3.11, 3.12, 3.13, 3.14{{ ", 3.15" if supports_python_315 }}
 
 # Generated / untestable-at-unit-level paths are excluded from coverage so the
 # quality gate matches the project's own coverage config (see pyproject.toml

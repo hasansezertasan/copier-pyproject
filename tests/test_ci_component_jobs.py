@@ -69,8 +69,13 @@ def test_worker_test_job_excludes_integration(render: Callable[..., Path]) -> No
 
 
 def test_core_marker_deselects_components(render: Callable[..., Path]) -> None:
-    ci = _ci(render, preset="library", include_web=True, include_worker=True,
-             worker_broker="redis")
+    ci = _ci(
+        render,
+        preset="library",
+        include_web=True,
+        include_worker=True,
+        worker_broker="redis",
+    )
     run = _job_run(ci["jobs"]["test-core"])
     # core deselects every enabled component; exact list depends on the preset.
     assert '-m "not (' in run
@@ -117,9 +122,34 @@ def test_matrix_asymmetric_without_c_extensions(render: Callable[..., Path]) -> 
     ci = _ci(render, preset="library")
     include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
     by_os = {row["os"]: row["tox_args"] for row in include}
-    assert by_os["ubuntu-latest"] == "-e 3.14,3.13,3.12,3.11"
+    assert by_os["ubuntu-latest"] == "-e 3.15,3.14,3.13,3.12,3.11"
     assert by_os["macos-latest"] == "-e py"
     assert by_os["windows-latest"] == "-e py"
+
+
+def test_matrix_drops_python_315_for_worker_with_docs(
+    render: Callable[..., Path],
+) -> None:
+    # faststream[cli] (docs group) caps watchfiles<1.2, which has no 3.15 wheel.
+    ci = _ci(render, preset="library", include_worker=True, include_docs=True)
+    include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
+    by_os = {row["os"]: row["tox_args"] for row in include}
+    assert by_os["ubuntu-latest"] == "-e 3.14,3.13,3.12,3.11"
+
+
+def test_sonar_python_versions_follow_315_support(
+    render: Callable[..., Path],
+) -> None:
+    for kwargs, expected in (
+        ({"include_worker": True, "include_docs": True}, "3.14"),
+        ({"include_worker": False}, "3.15"),
+    ):
+        root = render(preset="library", include_sonarcloud=True, **kwargs)
+        props = (root / "sonar-project.properties").read_text()
+        line = next(
+            x for x in props.splitlines() if x.startswith("sonar.python.version")
+        )
+        assert line.endswith(expected)
 
 
 def test_matrix_keeps_installed_cli_check_on_every_os(
@@ -138,9 +168,7 @@ def test_matrix_keeps_installed_cli_check_on_every_os(
 def test_matrix_full_grid_with_c_extensions(render: Callable[..., Path]) -> None:
     ci = _ci(render, preset="library", include_c_extensions=True)
     include = ci["jobs"]["test-core"]["strategy"]["matrix"]["include"]
-    assert all(
-        row["tox_args"] == "-e 3.14,3.13,3.12,3.11" for row in include
-    )
+    assert all(row["tox_args"] == "-e 3.15,3.14,3.13,3.12,3.11" for row in include)
 
 
 # --- Task 4: coverage decomposition -------------------------------------------
@@ -181,7 +209,9 @@ def test_coverage_report_job_is_non_gating(render: Callable[..., Path]) -> None:
     assert "coverage xml" in run
 
 
-def test_check_and_sonar_reference_new_coverage_jobs(render: Callable[..., Path]) -> None:
+def test_check_and_sonar_reference_new_coverage_jobs(
+    render: Callable[..., Path],
+) -> None:
     ci = _ci(render, preset="full")
     needs = ci["jobs"]["check"]["needs"]
     assert "coverage-core" in needs
@@ -193,7 +223,9 @@ def test_check_and_sonar_reference_new_coverage_jobs(render: Callable[..., Path]
 # --- Task 5: worker-integration gate ------------------------------------------
 
 
-def test_worker_integration_gated_on_worker_or_core(render: Callable[..., Path]) -> None:
+def test_worker_integration_gated_on_worker_or_core(
+    render: Callable[..., Path],
+) -> None:
     ci = _ci(render, preset="library", include_worker=True, worker_broker="redis")
     job = ci["jobs"]["worker-integration"]
     assert "changes" in job["needs"]
@@ -291,20 +323,25 @@ def test_style_sweeps_non_linux_mypy_platforms(
     render: Callable[..., Path],
 ) -> None:
     project = render(preset="library")
-    data = tomllib.loads(
-        (project / "pyproject.toml").read_text(encoding="utf-8")
-    )
+    data = tomllib.loads((project / "pyproject.toml").read_text(encoding="utf-8"))
     commands = data["tool"]["tox"]["env"]["style"]["commands"]
     assert ["mypy", "--platform", "win32"] in commands
     assert ["mypy", "--platform", "darwin"] in commands
 
 
-def test_coverage_report_scopes_out_skipped_components(render: Callable[..., Path]) -> None:
+def test_coverage_report_scopes_out_skipped_components(
+    render: Callable[..., Path],
+) -> None:
     # The aggregate report/html/xml must omit components that did not run this PR,
     # else `source_pkgs` surfaces their unexecuted files at ~0% and misreports the
     # combined number (CodeRabbit PR #259 review).
-    ci = _ci(render, preset="library", include_web=True, include_worker=True,
-             worker_broker="redis")
+    ci = _ci(
+        render,
+        preset="library",
+        include_web=True,
+        include_worker=True,
+        worker_broker="redis",
+    )
     job = ci["jobs"]["coverage-report"]
     combine = next(s for s in job["steps"] if s.get("name", "").startswith("Combine"))
     # reads changes outputs via env, per component
