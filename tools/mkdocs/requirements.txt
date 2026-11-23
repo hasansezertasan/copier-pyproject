@@ -2,4 +2,4 @@
 # mkdocs.yml). Exact pins, kept current by Renovate's pip_requirements manager.
 keep-the-why-dashboard==0.11.45
 mkdocs==1.6.1
-mkdocs-material==9.8.1
+mkdocs-material==9.8.2
